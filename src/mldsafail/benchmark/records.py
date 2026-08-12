@@ -43,7 +43,6 @@ def validate_record(
         "profiles": dict,
         "suites": dict,
         "environment": dict,
-        "integrity": dict,
     }
     if not isinstance(record, dict):
         raise RecordValidationError("record is not an object")
@@ -61,6 +60,7 @@ def validate_record(
         for field, expected_type in {
             "cost_model_version": str,
             "resource_limits": dict,
+            "integrity": dict,
         }.items():
             if field not in record or not isinstance(record[field], expected_type):
                 raise RecordValidationError(f"record field {field!r} has the wrong type")

@@ -85,6 +85,16 @@ def test_version_two_score_is_required_and_consistent():
         validate_record(sample_record() | {"score": 1, "aggregate": {"score": 1}})
 
 
+def test_early_schema_one_records_remain_readable():
+    legacy = sample_record()
+    legacy["schema_version"] = "1"
+    legacy.pop("score")
+    legacy.pop("cost_model_version")
+    legacy.pop("resource_limits")
+    legacy.pop("integrity")
+    validate_record(legacy)
+
+
 def test_dirty_git_state_is_recorded(monkeypatch):
     def fake_git(*args):
         return " M src/example.py" if args == ("status", "--porcelain") else "abc123"
