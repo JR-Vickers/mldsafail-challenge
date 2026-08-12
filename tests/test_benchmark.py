@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import json
+
+import pytest
+
+from mldsafail.benchmark import runner
 from mldsafail.benchmark.comparison import best_per_metric, dominates, pareto_frontier
 from mldsafail.benchmark.metrics import aggregate_profile, measure_instance
 from mldsafail.benchmark.suites import load_seed_suite, selected_suites
@@ -66,3 +71,66 @@ def test_pareto_and_best_per_metric_ignore_invalid():
     assert dominates(fast["aggregate"], worse["aggregate"])
     assert {item["experiment_id"] for item in pareto_frontier([fast, cheap, worse, invalid])} == {"fast", "cheap"}
     assert best_per_metric([fast, cheap, invalid])["abstract_cost"] is cheap
+
+
+def test_cli_serializes_solver_exception_as_unscored_failure(tmp_path, monkeypatch, capsys):
+    def broken_solver(_instance, _cost):
+        raise RuntimeError("solver exploded")
+
+    monkeypatch.setattr(runner, "solve", broken_solver)
+    monkeypatch.setattr(
+        runner,
+        "_integrity_status",
+        lambda baseline: {
+            "trusted_fingerprint": "trusted",
+            "baseline_fingerprint": baseline,
+            "matches_baseline": None,
+        },
+    )
+    output = tmp_path / "experiments.jsonl"
+    result = runner.main([
+        "--profile", "toy-small", "--seed", "12345", "--output", str(output)
+    ])
+    printed = json.loads(capsys.readouterr().out)
+    persisted = json.loads(output.read_text())
+    assert result == 1
+    assert printed == persisted
+    assert persisted["correct"] is False
+    assert persisted["aggregate"]["abstract_cost"] is None
+    assert persisted["failure_reason"] == "RuntimeError: solver exploded"
+
+
+def test_cli_records_integrity_mismatch_without_running_benchmark(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        runner,
+        "_integrity_status",
+        lambda baseline: {
+            "trusted_fingerprint": "current",
+            "baseline_fingerprint": baseline,
+            "matches_baseline": False,
+        },
+    )
+    monkeypatch.setattr(
+        runner, "run_benchmark", lambda **_kwargs: pytest.fail("benchmark should not run")
+    )
+    output = tmp_path / "experiments.jsonl"
+    result = runner.main(["--baseline-fingerprint", "expected", "--output", str(output)])
+    record = json.loads(output.read_text())
+    assert result == 1
+    assert record["integrity"]["matches_baseline"] is False
+    assert "fingerprint" in record["failure_reason"]
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        ["--seed", "1"],
+        ["--profile", "not-a-profile"],
+        ["--profile", "toy-small", "--seed", "1", "--suite", "hidden"],
+        ["--profile", "toy-small", "--seed", "1", "--suite", "full"],
+    ],
+)
+def test_cli_rejects_invalid_flag_combinations(arguments):
+    with pytest.raises(SystemExit) as raised:
+        runner.main(arguments)
+    assert raised.value.code == 2

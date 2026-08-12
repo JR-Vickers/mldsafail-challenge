@@ -4,7 +4,14 @@ import json
 
 import pytest
 
-from mldsafail.benchmark.records import append_record, new_experiment_record, read_records
+from mldsafail.benchmark import records as records_module
+from mldsafail.benchmark.records import (
+    RecordValidationError,
+    append_record,
+    new_experiment_record,
+    read_records,
+    validate_record,
+)
 
 
 def sample_record():
@@ -38,3 +45,36 @@ def test_reader_tolerates_corrupt_tail_or_can_be_strict(tmp_path):
     assert len(read_records(path)) == 1
     with pytest.raises(ValueError, match="line 2"):
         read_records(path, strict=True)
+
+
+def test_schema_and_benchmark_versions_are_validated(tmp_path):
+    wrong_schema = sample_record() | {"schema_version": "999"}
+    with pytest.raises(RecordValidationError, match="schema version"):
+        validate_record(wrong_schema)
+    with pytest.raises(RecordValidationError, match="does not match"):
+        validate_record(sample_record(), expected_benchmark_version="9.0.0")
+
+    path = tmp_path / "records.jsonl"
+    path.write_text(json.dumps(wrong_schema) + "\n" + json.dumps(sample_record()) + "\n")
+    assert len(read_records(path)) == 1
+    with pytest.raises(RecordValidationError, match="line 1"):
+        read_records(path, strict=True)
+
+
+def test_invalid_append_does_not_modify_existing_file(tmp_path):
+    path = tmp_path / "records.jsonl"
+    append_record(sample_record(), path)
+    original = path.read_bytes()
+    with pytest.raises(RecordValidationError, match="missing"):
+        append_record({"schema_version": "1"}, path)
+    assert path.read_bytes() == original
+
+
+def test_dirty_git_state_is_recorded(monkeypatch):
+    def fake_git(*args):
+        return " M src/example.py" if args == ("status", "--porcelain") else "abc123"
+
+    monkeypatch.setattr(records_module, "_git", fake_git)
+    environment = records_module.reproducibility_metadata(["bench"])
+    assert environment["git_dirty"] is True
+    assert environment["git_commit"] == "abc123"

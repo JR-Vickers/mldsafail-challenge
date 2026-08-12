@@ -18,6 +18,54 @@ SCHEMA_VERSION = "1"
 DEFAULT_RECORDS_PATH = Path(__file__).resolve().parents[3] / "results" / "experiments.jsonl"
 
 
+class RecordValidationError(ValueError):
+    """An experiment record does not match the supported JSONL schema."""
+
+
+def validate_record(
+    record: dict[str, Any], *, expected_benchmark_version: str | None = None
+) -> None:
+    """Validate the stable envelope while allowing metrics to evolve inside it."""
+
+    required_types: dict[str, type] = {
+        "schema_version": str,
+        "benchmark_version": str,
+        "experiment_id": str,
+        "timestamp": str,
+        "agent": str,
+        "model": str,
+        "hypothesis": str,
+        "tags": list,
+        "notes": str,
+        "correct": bool,
+        "aggregate": dict,
+        "profiles": dict,
+        "suites": dict,
+        "environment": dict,
+        "integrity": dict,
+    }
+    if not isinstance(record, dict):
+        raise RecordValidationError("record is not an object")
+    for field, expected_type in required_types.items():
+        if field not in record:
+            raise RecordValidationError(f"record is missing {field!r}")
+        if not isinstance(record[field], expected_type):
+            raise RecordValidationError(f"record field {field!r} has the wrong type")
+    if record["schema_version"] != SCHEMA_VERSION:
+        raise RecordValidationError(
+            f"unsupported schema version {record['schema_version']!r}; expected {SCHEMA_VERSION!r}"
+        )
+    if not record["benchmark_version"]:
+        raise RecordValidationError("benchmark version must not be empty")
+    if expected_benchmark_version is not None and record["benchmark_version"] != expected_benchmark_version:
+        raise RecordValidationError(
+            f"benchmark version {record['benchmark_version']!r} does not match "
+            f"{expected_benchmark_version!r}"
+        )
+    if not all(isinstance(tag, str) and tag for tag in record["tags"]):
+        raise RecordValidationError("tags must contain non-empty strings")
+
+
 def _git(*args: str) -> str | None:
     try:
         return subprocess.run(
@@ -58,9 +106,11 @@ def new_experiment_record(
     notes: str = "",
     parent_experiment: str | None = None,
     command: list[str] | None = None,
+    integrity: dict[str, Any] | None = None,
+    failure_reason: str | None = None,
 ) -> dict[str, Any]:
     now = datetime.now().astimezone()
-    return {
+    record = {
         "schema_version": SCHEMA_VERSION,
         "benchmark_version": benchmark_version,
         "experiment_id": f"{now:%Y%m%dT%H%M%S}-{uuid4().hex[:8]}",
@@ -76,12 +126,21 @@ def new_experiment_record(
         "profiles": profiles or {},
         "suites": suites,
         "environment": reproducibility_metadata(command),
+        "integrity": integrity or {
+            "trusted_fingerprint": None,
+            "baseline_fingerprint": None,
+            "matches_baseline": None,
+        },
+        "failure_reason": failure_reason,
     }
+    validate_record(record)
+    return record
 
 
 def append_record(record: dict[str, Any], path: Path = DEFAULT_RECORDS_PATH) -> None:
     """Append one complete compact JSON object using a single OS write."""
 
+    validate_record(record)
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = (json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n").encode()
     descriptor = os.open(path, os.O_APPEND | os.O_CREAT | os.O_WRONLY, 0o644)
@@ -93,7 +152,12 @@ def append_record(record: dict[str, Any], path: Path = DEFAULT_RECORDS_PATH) -> 
         os.close(descriptor)
 
 
-def read_records(path: Path = DEFAULT_RECORDS_PATH, *, strict: bool = False) -> list[dict[str, Any]]:
+def read_records(
+    path: Path = DEFAULT_RECORDS_PATH,
+    *,
+    strict: bool = False,
+    expected_benchmark_version: str | None = None,
+) -> list[dict[str, Any]]:
     """Read valid records; tolerate interrupted/corrupt lines unless strict."""
 
     if not path.exists():
@@ -104,10 +168,9 @@ def read_records(path: Path = DEFAULT_RECORDS_PATH, *, strict: bool = False) -> 
             continue
         try:
             value = json.loads(line)
-            if not isinstance(value, dict):
-                raise ValueError("record is not an object")
+            validate_record(value, expected_benchmark_version=expected_benchmark_version)
             records.append(value)
-        except (json.JSONDecodeError, ValueError):
+        except (json.JSONDecodeError, RecordValidationError):
             if strict:
-                raise ValueError(f"invalid JSONL record at line {number}") from None
+                raise RecordValidationError(f"invalid JSONL record at line {number}") from None
     return records

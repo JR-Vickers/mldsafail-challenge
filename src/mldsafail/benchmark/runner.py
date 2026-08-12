@@ -24,6 +24,15 @@ from mldsafail.models import InstanceMetrics, ProfileMetrics
 from mldsafail.solver import solve
 
 
+UNSCORED_AGGREGATE = {
+    "total_wall_seconds": None,
+    "median_instance_seconds": None,
+    "peak_memory_bytes": None,
+    "abstract_cost": None,
+    "solution_quality": None,
+}
+
+
 def _trusted_functions():
     # Imports remain at the trusted boundary and make the separation obvious.
     from mldsafail.trusted.generator import generate_instance
@@ -43,13 +52,7 @@ def _aggregate(profiles: list[ProfileMetrics]) -> dict[str, Any]:
     # Correctness gates every scored field. Timing is still present inside each
     # instance for diagnosing failures, but an invalid run cannot be ranked.
     if not correct:
-        return {
-            "total_wall_seconds": None,
-            "median_instance_seconds": None,
-            "peak_memory_bytes": None,
-            "abstract_cost": None,
-            "solution_quality": None,
-        }
+        return dict(UNSCORED_AGGREGATE)
     return {
         "total_wall_seconds": sum(item.wall_seconds for item in instances),
         "median_instance_seconds": statistics.median(item.wall_seconds for item in instances),
@@ -118,7 +121,33 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--tag", action="append", dest="tags")
     parser.add_argument("--notes", default="")
     parser.add_argument("--parent-experiment")
+    parser.add_argument(
+        "--baseline-fingerprint",
+        help="expected trusted-input fingerprint; a mismatch is recorded as an invalid run",
+    )
     return parser
+
+
+def _integrity_status(baseline_fingerprint: str | None) -> dict[str, Any]:
+    from mldsafail.benchmark.integrity import compute_trusted_fingerprint
+
+    current = compute_trusted_fingerprint()
+    return {
+        "trusted_fingerprint": current,
+        "baseline_fingerprint": baseline_fingerprint,
+        "matches_baseline": None if baseline_fingerprint is None else current == baseline_fingerprint,
+    }
+
+
+def _profile_failure_reason(suites: dict[str, Any]) -> str | None:
+    failures = [
+        instance.get("failure_reason")
+        for profiles in suites.values()
+        for profile in profiles.values()
+        for instance in profile.get("instances", [])
+        if instance.get("failure_reason")
+    ]
+    return "; ".join(dict.fromkeys(failures)) if failures else None
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -126,9 +155,30 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.seed is not None and args.profile is None:
         parser.error("--seed requires --profile")
-    suites, aggregate, correct = run_benchmark(
-        suite=args.suite, profile=args.profile, seed=args.seed
-    )
+    if args.seed is not None and args.suite != "public":
+        parser.error("--seed cannot be combined with --suite hidden or --suite full")
+    suites: dict[str, Any] = {}
+    aggregate = dict(UNSCORED_AGGREGATE)
+    correct = False
+    failure_reason: str | None = None
+    try:
+        integrity = _integrity_status(args.baseline_fingerprint)
+        if integrity["matches_baseline"] is False:
+            failure_reason = "trusted-input fingerprint does not match the supplied baseline"
+        else:
+            suites, aggregate, correct = run_benchmark(
+                suite=args.suite, profile=args.profile, seed=args.seed
+            )
+            failure_reason = _profile_failure_reason(suites) if not correct else None
+    except Exception as exc:
+        # Generation, integrity, or benchmark infrastructure failures should be
+        # auditable records. argparse errors remain usage errors and never write.
+        integrity = {
+            "trusted_fingerprint": None,
+            "baseline_fingerprint": args.baseline_fingerprint,
+            "matches_baseline": None,
+        }
+        failure_reason = f"{type(exc).__name__}: {exc}"
     # Provide a profile-centric compatibility view alongside suite provenance.
     hydrated: dict[str, dict[str, ProfileMetrics]] = {}
     for suite_name, profiles in suites.items():
@@ -150,6 +200,8 @@ def main(argv: list[str] | None = None) -> int:
         notes=args.notes,
         parent_experiment=args.parent_experiment,
         command=[sys.executable, "-m", "mldsafail.benchmark.runner", *(argv or sys.argv[1:])],
+        integrity=integrity,
+        failure_reason=failure_reason,
     )
     if not args.no_record:
         append_record(record, args.output)
