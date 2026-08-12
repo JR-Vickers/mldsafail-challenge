@@ -51,7 +51,7 @@ For the current benchmark contract, record a run with:
 ```sh
 uv run python -m mldsafail.benchmark.runner \
   --suite full \
-  --baseline-fingerprint FINGERPRINT_FROM_COMMAND_ABOVE \
+  --baseline-fingerprint 39f8759284dc86f83daa3660d69a70fa2d5ee221cc5daaa26330b7e62072503c \
   --agent codex \
   --model gpt-5 \
   --hypothesis "describe the tested change" \

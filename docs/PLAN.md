@@ -415,7 +415,7 @@ Example:
   "commit": "def456",
   "agent": "codex",
   "hypothesis": "cache repeated Gram-Schmidt state",
-  "benchmark_version": "0.1.0",
+  "benchmark_version": "0.2.0",
   "correct": true,
   "score": 934128,
   "runtime_seconds": 1.82,
