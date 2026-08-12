@@ -7,7 +7,7 @@
   <div class="hero-stats">
     <div><strong>{{ records|length }}</strong><span>experiments</span></div>
     <div><strong>{{ correct|length }}</strong><span>verified runs</span></div>
-    <div><strong>{% if improvement is not none %}{{ "%.1f"|format(improvement) }}%{% else %}—{% endif %}</strong><span>runtime improvement</span></div>
+    <div><strong>{% if improvement is not none %}{{ "%.1f"|format(improvement) }}%{% else %}—{% endif %}</strong><span>runtime improvement · {{ comparison_scope }}</span></div>
   </div>
 </section>
 
@@ -16,7 +16,7 @@
 <section class="empty"><h2>No experiments yet</h2><p>Run <code>make bench</code> to create the first append-only result.</p></section>
 {% else %}
 <section>
-  <div class="section-heading"><div><p class="eyebrow">Leaderboard</p><h2>Current records</h2></div><p>Lower is better for every displayed metric.</p></div>
+  <div class="section-heading"><div><p class="eyebrow">Leaderboard · {{ comparison_scope }}</p><h2>Current records</h2></div><p>Lower is better. Only directly comparable benchmark scopes are ranked together.</p></div>
   <div class="cards">
   {% for name, label in (("runtime", "Runtime"), ("cost", "Abstract cost"), ("memory", "Peak memory"), ("quality", "Solution quality")) %}
     {% set record = best[name] %}
@@ -29,7 +29,7 @@
 
 <section class="split">
   <article>
-    <p class="eyebrow">Progress</p><h2>Runtime history</h2>
+    <p class="eyebrow">Progress · {{ comparison_scope }}</p><h2>Runtime history</h2>
     {% if history %}<div class="chart" aria-label="Runtime history, earlier experiments on the left">
       {% for point in history %}<a style="height: {{ point.height }}%" title="{{ point.record.get('experiment_id', point.record.get('id')) }}: {{ point.record|metric('runtime') }}" href="{{ url_for('experiment', experiment_id=point.record.get('experiment_id', point.record.get('id'))) }}"><span class="sr-only">{{ point.record|metric('runtime') }}</span></a>{% endfor %}
     </div><div class="axis"><span>Baseline</span><span>Latest</span></div>{% else %}<p class="muted">No runtime measurements recorded.</p>{% endif %}
@@ -41,7 +41,7 @@
 </section>
 
 <section>
-  <div class="section-heading"><div><p class="eyebrow">Trade-offs</p><h2>Pareto frontier</h2></div><p>Verified runs not dominated across their available metrics.</p></div>
+  <div class="section-heading"><div><p class="eyebrow">Trade-offs · {{ comparison_scope }}</p><h2>Pareto frontier</h2></div><p>Comparable verified runs not dominated across the metric vector.</p></div>
   <div class="table-wrap"><table><thead><tr><th>Experiment</th><th>Runtime</th><th>Cost</th><th>Memory</th><th>Quality</th></tr></thead><tbody>
   {% for record in frontier %}<tr><td><a href="{{ url_for('experiment', experiment_id=record.get('experiment_id', record.get('id'))) }}">{{ record.get('experiment_id', record.get('id')) }}</a></td><td>{{ record|metric('runtime') }}</td><td>{{ record|metric('cost') }}</td><td>{{ record|metric('memory') }}</td><td>{{ record|metric('quality') }}</td></tr>{% else %}<tr><td colspan="5">No comparable verified runs.</td></tr>{% endfor %}
   </tbody></table></div>
@@ -50,7 +50,7 @@
 <section>
   <div class="section-heading"><div><p class="eyebrow">Research log</p><h2>Recent experiments</h2></div><p>Failures remain visible and auditable.</p></div>
   <div class="experiment-list">
-  {% for record in records[:12] %}<a class="experiment-row" href="{{ url_for('experiment', experiment_id=record.get('experiment_id', record.get('id'))) }}"><span class="status {{ 'pass' if record.get('correct', record.get('valid')) else 'fail' }}">{{ 'verified' if record.get('correct', record.get('valid')) else 'failed' }}</span><strong>{{ record.get('experiment_id', record.get('id', 'unnamed')) }}</strong><span>{{ record.get('hypothesis', record.get('notes', 'No hypothesis recorded')) }}</span><time>{{ record.get('timestamp', 'unknown time') }}</time></a>{% endfor %}
+  {% for record in records[:12] %}<a class="experiment-row" href="{{ url_for('experiment', experiment_id=record.get('experiment_id', record.get('id'))) }}"><span class="status {{ 'pass' if record.get('correct', record.get('valid')) else 'fail' }}">{{ 'verified' if record.get('correct', record.get('valid')) else 'failed' }}</span><strong>{{ record.get('experiment_id', record.get('id', 'unnamed')) }}<small class="scope-label">{{ record|scope }}</small></strong><span>{{ record.get('hypothesis', record.get('notes', 'No hypothesis recorded')) }}</span><time>{{ record.get('timestamp', 'unknown time') }}</time></a>{% endfor %}
   </div>
 </section>
 {% endif %}

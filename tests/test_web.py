@@ -2,13 +2,22 @@ from __future__ import annotations
 
 from mldsafail.benchmark.comparison import best_per_metric, pareto_frontier
 from mldsafail.benchmark.records import append_record, new_experiment_record
-from mldsafail.web.app import create_app, load_experiments
+from mldsafail.web.app import comparison_cohort, create_app, load_experiments, scope_label
 
 
-def _record(identifier: str, timestamp: str, values, *, correct=True, tags=None, hypothesis=None):
+def _record(
+    identifier: str,
+    timestamp: str,
+    values,
+    *,
+    correct=True,
+    tags=None,
+    hypothesis=None,
+    suites=None,
+):
     record = new_experiment_record(
         benchmark_version="test",
-        suites={"public": {}},
+        suites=suites if suites is not None else {"public": {}},
         profiles={},
         aggregate=values,
         correct=correct,
@@ -79,6 +88,54 @@ def test_dashboard_uses_canonical_comparison_and_reports_corrupt_lines(tmp_path)
     assert "/experiment/faster" in frontier
     assert "/experiment/invalid" not in frontier
     assert "/experiment/partial" not in frontier
+
+
+def test_headline_prefers_full_suite_cohort_over_toy_smoke(tmp_path):
+    path = tmp_path / "experiments.jsonl"
+    full_scope = {
+        "public": {"toy-small": {}, "toy-medium": {}, "toy-large": {}},
+        "hidden": {"toy-small": {}, "toy-medium": {}, "toy-large": {}},
+    }
+    smoke = _record(
+        "toy-smoke", "2026-01-03T00:00:00Z", _metrics(.001, .001, 100, 10, 1),
+        tags=["baseline"], suites={"public": {"toy-small": {}}},
+    )
+    full_baseline = _record(
+        "full-baseline", "2026-01-01T00:00:00Z", _metrics(10, 1, 1000, 1000, 3),
+        tags=["baseline"], suites=full_scope,
+    )
+    full_optimized = _record(
+        "full-optimized", "2026-01-02T00:00:00Z", _metrics(5, .5, 1200, 700, 3),
+        tags=["algorithm"], suites=full_scope,
+    )
+    for record in (full_baseline, full_optimized, smoke):
+        append_record(record, path)
+
+    cohort = comparison_cohort([smoke, full_optimized, full_baseline])
+    assert [record["experiment_id"] for record in cohort] == ["full-optimized", "full-baseline"]
+    assert scope_label(cohort[0]) == "Full · toy-large, toy-medium, toy-small"
+
+    body = create_app(path).test_client().get("/").get_data(as_text=True)
+    assert "50.0%" in body
+    assert "Full · toy-large, toy-medium, toy-small" in body
+    comparison = body.split("Baseline → current", 1)[1].split("Trade-offs", 1)[0]
+    assert "10.0000 s" in comparison
+    assert "5.0000 s" in comparison
+    frontier = body.split("Pareto frontier", 1)[1].split("Research log", 1)[0]
+    assert "/experiment/full-optimized" in frontier
+    assert "/experiment/toy-smoke" not in frontier
+
+
+def test_without_full_suite_latest_scope_is_compared_only_with_itself():
+    public = _record(
+        "public", "2026-01-01T00:00:00Z", _metrics(2, 1, 100, 100, 2),
+        suites={"public": {"toy-small": {}, "toy-medium": {}, "toy-large": {}}},
+    )
+    custom = _record(
+        "custom", "2026-01-02T00:00:00Z", _metrics(1, 1, 100, 100, 2),
+        suites={"custom": {"toy-small": {}}},
+    )
+    assert comparison_cohort([custom, public]) == [custom]
 
 
 def test_history_links_only_rankable_results(tmp_path):

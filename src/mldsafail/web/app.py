@@ -25,6 +25,8 @@ METRICS = {
     "quality": ("solution_quality", "quality"),
 }
 
+ScopeSignature = tuple[tuple[str, tuple[str, ...]], ...]
+
 
 def _mapping(record: dict[str, Any]) -> dict[str, Any]:
     """Return aggregate metrics while accepting old and new record shapes."""
@@ -59,6 +61,68 @@ def is_correct(record: dict[str, Any]) -> bool:
     return value is True
 
 
+def scope_signature(record: dict[str, Any]) -> ScopeSignature:
+    """Return a deterministic suite/profile signature for fair comparisons."""
+    suites = record.get("suites")
+    if isinstance(suites, dict) and suites:
+        return tuple(
+            sorted(
+                (
+                    str(suite),
+                    tuple(sorted(str(profile) for profile in profiles))
+                    if isinstance(profiles, dict)
+                    else (),
+                )
+                for suite, profiles in suites.items()
+            )
+        )
+    profiles = record.get("profiles")
+    names = tuple(sorted(str(profile) for profile in profiles)) if isinstance(profiles, dict) else ()
+    return (("unspecified", names),)
+
+
+def _is_full_scope(signature: ScopeSignature) -> bool:
+    suites = {suite for suite, _profiles in signature}
+    profile_scopes = {profiles for _suite, profiles in signature}
+    return suites == {"public", "hidden"} and len(profile_scopes) == 1
+
+
+def scope_label(record: dict[str, Any]) -> str:
+    signature = scope_signature(record)
+    suites = {suite for suite, _profiles in signature}
+    profiles = sorted({profile for _suite, names in signature for profile in names})
+    if _is_full_scope(signature):
+        prefix = "Full"
+    elif len(suites) == 1:
+        prefix = next(iter(suites)).replace("_", " ").title()
+    else:
+        prefix = " + ".join(suite.replace("_", " ").title() for suite in sorted(suites))
+    return f"{prefix} · {', '.join(profiles)}" if profiles else prefix
+
+
+def comparison_cohort(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Select rankable records with one comparable deterministic scope."""
+    ranked = [record for record in records if aggregate_vector(record) is not None]
+    if not ranked:
+        return []
+    signatures = {scope_signature(record) for record in ranked}
+    full_scopes = [signature for signature in signatures if _is_full_scope(signature)]
+    if full_scopes:
+        selected = max(
+            full_scopes,
+            key=lambda signature: (
+                sum(len(profiles) for _suite, profiles in signature),
+                sum(scope_signature(record) == signature for record in ranked),
+                signature,
+            ),
+        )
+    else:
+        # Records arrive newest first; anchor the fallback cohort to the latest
+        # rankable result while requiring all comparisons to share its scope.
+        selected = scope_signature(ranked[0])
+    return [record for record in ranked if scope_signature(record) == selected]
+
+
 def load_experiments(path: Path) -> tuple[list[dict[str, Any]], int]:
     """Read append-only JSONL, skipping malformed or non-object records."""
     if not path.exists():
@@ -74,8 +138,9 @@ def load_experiments(path: Path) -> tuple[list[dict[str, Any]], int]:
 
 def _view_model(records: list[dict[str, Any]]) -> dict[str, Any]:
     correct = [record for record in records if is_correct(record)]
-    chronological = list(reversed(records))
-    canonical_best = best_per_metric(records)
+    cohort = comparison_cohort(records)
+    chronological = list(reversed(cohort))
+    canonical_best = best_per_metric(cohort)
     best = {
         "runtime": canonical_best.get("total_wall_seconds"),
         "cost": canonical_best.get("abstract_cost"),
@@ -85,7 +150,7 @@ def _view_model(records: list[dict[str, Any]]) -> dict[str, Any]:
 
     baseline = next(
         (record for record in chronological if "baseline" in record.get("tags", []) or record.get("is_baseline")),
-        correct[0] if correct else None,
+        chronological[0] if chronological else None,
     )
     current = best["runtime"] or (correct[0] if correct else None)
     improvement = None
@@ -95,12 +160,11 @@ def _view_model(records: list[dict[str, Any]]) -> dict[str, Any]:
             improvement = (before - after) / before * 100
 
     history = []
-    ranked = [record for record in chronological if aggregate_vector(record) is not None]
-    runtimes = [metric(record, "runtime") for record in ranked]
+    runtimes = [metric(record, "runtime") for record in chronological]
     max_runtime = max((value for value in runtimes if value is not None), default=1)
     for index, record in enumerate(chronological):
         runtime = metric(record, "runtime")
-        if aggregate_vector(record) is not None and runtime is not None:
+        if runtime is not None:
             history.append({"record": record, "height": max(4, runtime / max_runtime * 100), "index": index})
     return {
         "records": records,
@@ -109,8 +173,9 @@ def _view_model(records: list[dict[str, Any]]) -> dict[str, Any]:
         "baseline": baseline,
         "current": current,
         "improvement": improvement,
-        "frontier": benchmark_pareto_frontier(records),
+        "frontier": benchmark_pareto_frontier(cohort),
         "history": history,
+        "comparison_scope": scope_label(cohort[0]) if cohort else "No rankable scope",
     }
 
 
@@ -133,6 +198,8 @@ def create_app(results_path: str | Path | None = None) -> Flask:
         if name in {"cost", "quality"}:
             return f"{value:,.0f}"
         return str(value)
+
+    app.add_template_filter(scope_label, "scope")
 
     @app.get("/")
     def index():

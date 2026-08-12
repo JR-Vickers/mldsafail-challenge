@@ -31,3 +31,5 @@ Representative shape:
 The benchmark writes aggregate values under `aggregate`. The dashboard also accepts historical values at the top level or nested under `aggregate_metrics`, `metrics`, or `summary`. It skips malformed JSONL lines and reports their count instead of hiding the issue or failing the whole view.
 
 Failed, timed-out, invalid, and regressing experiments should include the same provenance fields, set `correct` to false where applicable, and provide `failure_reason`. They are excluded from records and the Pareto frontier but remain visible in recent history.
+
+Comparison scope is derived deterministically from the suite names and profile names stored under `suites`. Full public-plus-hidden evaluations are the preferred official cohort. When no full evaluation exists, the dashboard selects one exact suite/profile signature; it never ranks a one-seed custom run or a single-profile smoke run against a broader evaluation.

@@ -36,6 +36,29 @@ python -m mldsafail.benchmark.runner --profile toy-small --no-record
 
 `make bench` appends a public-suite experiment to the default JSONL log. `make check` and `make web-smoke` do not append a result or leave a server running, so they are suitable for automated validation. The diagnostic `--seed` form requires `--profile`; use `--output PATH` to append to another log and `--no-record` to print without writing.
 
+### Record an official comparison
+
+Official comparisons use every public and hidden profile, a clean committed tree, and the frozen trusted-input fingerprint. Confirm the current fingerprint:
+
+```sh
+uv run python -c 'from mldsafail.benchmark.integrity import compute_trusted_fingerprint; print(compute_trusted_fingerprint())'
+```
+
+For the current benchmark contract, record a run with:
+
+```sh
+uv run python -m mldsafail.benchmark.runner \
+  --suite full \
+  --baseline-fingerprint 2cc9c58633fe20dbeea06f243b638b61b72c19293210a5ad91e4142e4fc69b00 \
+  --agent codex \
+  --model gpt-5 \
+  --hypothesis "describe the tested change" \
+  --tag algorithm \
+  --notes "describe the measured outcome"
+```
+
+If the computed fingerprint differs, do not reuse the example value: review the trusted-file changes and establish a new benchmark baseline. The dashboard ranks full public-plus-hidden records together and never uses a custom, smoke, or public-only run to calculate their headline improvement.
+
 The full suite includes the repository's separated hidden seeds. They discourage seed-specific optimization; they are not intended to be secret from a local repository owner.
 
 ## Benchmark model
