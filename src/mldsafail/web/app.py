@@ -26,6 +26,7 @@ METRICS = {
 }
 
 ScopeSignature = tuple[tuple[str, tuple[str, ...]], ...]
+ComparisonSignature = tuple[ScopeSignature, str]
 
 
 def _mapping(record: dict[str, Any]) -> dict[str, Any]:
@@ -87,6 +88,12 @@ def _is_full_scope(signature: ScopeSignature) -> bool:
     return suites == {"public", "hidden"} and len(profile_scopes) == 1
 
 
+def _comparison_signature(record: dict[str, Any]) -> ComparisonSignature:
+    integrity = record.get("integrity")
+    fingerprint = integrity.get("trusted_fingerprint") if isinstance(integrity, dict) else None
+    return scope_signature(record), str(fingerprint or "legacy")
+
+
 def scope_label(record: dict[str, Any]) -> str:
     signature = scope_signature(record)
     suites = {suite for suite, _profiles in signature}
@@ -105,22 +112,15 @@ def comparison_cohort(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     ranked = [record for record in records if aggregate_vector(record) is not None]
     if not ranked:
         return []
-    signatures = {scope_signature(record) for record in ranked}
-    full_scopes = [signature for signature in signatures if _is_full_scope(signature)]
-    if full_scopes:
-        selected = max(
-            full_scopes,
-            key=lambda signature: (
-                sum(len(profiles) for _suite, profiles in signature),
-                sum(scope_signature(record) == signature for record in ranked),
-                signature,
-            ),
-        )
-    else:
-        # Records arrive newest first; anchor the fallback cohort to the latest
-        # rankable result while requiring all comparisons to share its scope.
-        selected = scope_signature(ranked[0])
-    return [record for record in ranked if scope_signature(record) == selected]
+    # Records arrive newest first. Prefer the newest full benchmark contract;
+    # otherwise anchor to the newest rankable scope. Fingerprints prevent
+    # results from different benchmark implementations being compared.
+    anchor = next(
+        (record for record in ranked if _is_full_scope(scope_signature(record))),
+        ranked[0],
+    )
+    selected = _comparison_signature(anchor)
+    return [record for record in ranked if _comparison_signature(record) == selected]
 
 
 def load_experiments(path: Path) -> tuple[list[dict[str, Any]], int]:

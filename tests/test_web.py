@@ -126,6 +126,28 @@ def test_headline_prefers_full_suite_cohort_over_toy_smoke(tmp_path):
     assert "/experiment/toy-smoke" not in frontier
 
 
+def test_headline_never_mixes_trusted_fingerprints():
+    suites = {
+        "public": {"toy-small": {}},
+        "hidden": {"toy-small": {}},
+    }
+    old = _record("old", "2026-01-01T00:00:00Z", _metrics(10, 1, 1, 10, 1), suites=suites)
+    current_baseline = _record(
+        "baseline", "2026-01-02T00:00:00Z", _metrics(8, 1, 1, 8, 1),
+        suites=suites, tags=["baseline"],
+    )
+    current_best = _record(
+        "best", "2026-01-03T00:00:00Z", _metrics(4, 1, 1, 4, 1), suites=suites,
+    )
+    old["integrity"] = {"trusted_fingerprint": "old"}
+    current_baseline["integrity"] = {"trusted_fingerprint": "current"}
+    current_best["integrity"] = {"trusted_fingerprint": "current"}
+    assert comparison_cohort([current_best, current_baseline, old]) == [
+        current_best,
+        current_baseline,
+    ]
+
+
 def test_without_full_suite_latest_scope_is_compared_only_with_itself():
     public = _record(
         "public", "2026-01-01T00:00:00Z", _metrics(2, 1, 100, 100, 2),
