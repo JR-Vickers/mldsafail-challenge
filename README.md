@@ -24,16 +24,16 @@ The dashboard starts at `http://127.0.0.1:5000`. It reads `results/experiments.j
 ```sh
 make test                         # unit and integration tests
 make bench                        # public deterministic benchmark
-make check                        # tests plus a toy-small benchmark smoke run
+make check                        # tests plus a small-profile benchmark smoke run
 make web                          # local experiment dashboard
 make web-smoke                    # non-blocking dashboard route smoke test
 
-python -m mldsafail.benchmark.runner --profile toy-medium
-python -m mldsafail.benchmark.runner --profile toy-medium --seed 12345
+python -m mldsafail.benchmark.runner --profile medium
+python -m mldsafail.benchmark.runner --profile medium --seed 12345
 python -m mldsafail.benchmark.runner --suite full
 python -m mldsafail.benchmark.runner --suite full --solver reference
 python -m mldsafail.benchmark.runner --suite full --solver lazy
-python -m mldsafail.benchmark.runner --profile toy-small --no-record
+python -m mldsafail.benchmark.runner --profile small --no-record
 ```
 
 `make bench` appends a public-suite experiment to the default JSONL log. `make check` and `make web-smoke` do not append a result or leave a server running, so they are suitable for automated validation. The diagnostic `--seed` form requires `--profile`; use `--output PATH` to append to another log and `--no-record` to print without writing.
@@ -51,7 +51,7 @@ For the current benchmark contract, record a run with:
 ```sh
 uv run python -m mldsafail.benchmark.runner \
   --suite full \
-  --baseline-fingerprint 07b67f885b3728c5c435f3591d465b4e0afa38643ce81259def00b99ba2531fb \
+  --baseline-fingerprint FINGERPRINT_FROM_COMMAND_ABOVE \
   --agent codex \
   --model gpt-5 \
   --hypothesis "describe the tested change" \
@@ -65,9 +65,9 @@ The full suite includes the repository's separated hidden seeds. They discourage
 
 ## Benchmark model
 
-Only fixed, bounded profiles in `config/toy_profiles.toml` can generate instances. The solver receives public `ToyInstance` data and an instrumented cost counter. Diagnostic planted data stays within trusted generation code. A separate verifier decides whether a candidate is valid; invalid candidates receive no scored result.
+Only fixed, bounded profiles in `config/profiles.toml` can generate instances. The solver receives public `ChallengeInstance` data and a trusted operation meter. Diagnostic planted data stays within trusted generation code. A separate verifier decides whether a candidate is valid; invalid or over-limit candidates receive no score. See [docs/CHALLENGE.md](docs/CHALLENGE.md) for the frozen contract.
 
-Successful results retain a full vector rather than a single opaque score:
+The lowest valid headline score wins. It is the versioned weighted operation cost across the selected suite. Successful results also retain diagnostics:
 
 - total and median wall-clock runtime;
 - peak memory;
@@ -101,6 +101,6 @@ experiments/               experiment schema documentation
 
 Optimization agents should edit `solver/` and `math/` by default. Generator, verifier, profile caps, seeds, scoring, and integrity code define the challenge and must not change during an optimization experiment.
 
-For each hypothesis: record the current baseline, make one focused change, run tests and the public suite, run the hidden suite only after a public improvement, then retain only a correctness-preserving Pareto improvement. Revert regressing code but keep its failed experiment record. Make descriptive checkpoint commits; do not push automatically.
+For each hypothesis: record the current baseline, make one focused change, run tests and the public suite, run the hidden suite only after a public score improvement, then retain only a correctness-preserving full-suite score improvement within the fixed resource limits. Revert regressing code but keep its failed experiment record. Make descriptive checkpoint commits; do not push automatically.
 
 The full product intent and acceptance criteria are in [docs/PLAN.md](docs/PLAN.md).

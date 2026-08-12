@@ -174,7 +174,7 @@ For each experiment:
 3. Run `make test` and `make bench` before editing to establish the baseline.
 4. Make the smallest solver or math change that tests the hypothesis.
 5. Run tests and the public suite. Run the full suite only after a public gain.
-6. Keep a change only if it remains correct and improves the Pareto frontier.
+6. Keep a change only if it remains correct, stays within resource limits, and lowers the full-suite headline score.
 7. Record successful and failed experiments; revert regressing code, not the
    evidence that the experiment occurred.
 8. Commit validated checkpoints with a message describing the hypothesis.

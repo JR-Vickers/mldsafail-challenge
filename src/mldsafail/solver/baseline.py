@@ -29,7 +29,7 @@ def solve(instance: ChallengeInstance, cost: OperationMeter) -> Candidate:
 
     # Accumulate cost deltas locally so instrumentation does not dominate the
     # actual row operations under tracemalloc. The finally block preserves the
-    # version-1 counter semantics, including partial work on failure paths.
+    # version-2 meter semantics, including partial work on failure paths.
     additions = multiplications = modular_reductions = basis_updates = 0
     memory_reads = memory_writes = 0
     try:

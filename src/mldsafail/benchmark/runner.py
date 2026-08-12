@@ -126,7 +126,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--profile", choices=("small", "medium", "large"))
     parser.add_argument(
         "--solver", choices=("reference", "balanced", "lazy"), default="lazy",
-        help="baseline-v1 reference, balanced default, or lazy-reduction frontier",
+        help="baseline-v2 reference, balanced solver, or default lazy-reduction frontier",
     )
     parser.add_argument("--seed", type=int, help="diagnostic seed; requires --profile")
     parser.add_argument(

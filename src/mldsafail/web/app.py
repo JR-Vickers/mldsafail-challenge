@@ -29,7 +29,7 @@ METRICS = {
 }
 
 ScopeSignature = tuple[tuple[str, tuple[str, ...]], ...]
-ComparisonSignature = tuple[ScopeSignature, str]
+ComparisonSignature = tuple[ScopeSignature, str, str, str]
 
 
 def _mapping(record: dict[str, Any]) -> dict[str, Any]:
@@ -88,13 +88,21 @@ def scope_signature(record: dict[str, Any]) -> ScopeSignature:
 def _is_full_scope(signature: ScopeSignature) -> bool:
     suites = {suite for suite, _profiles in signature}
     profile_scopes = {profiles for _suite, profiles in signature}
-    return suites == {"public", "hidden"} and len(profile_scopes) == 1
+    return (
+        suites == {"public", "hidden"}
+        and profile_scopes == {("large", "medium", "small")}
+    )
 
 
 def _comparison_signature(record: dict[str, Any]) -> ComparisonSignature:
     integrity = record.get("integrity")
     fingerprint = integrity.get("trusted_fingerprint") if isinstance(integrity, dict) else None
-    return scope_signature(record), str(fingerprint or "legacy")
+    return (
+        scope_signature(record),
+        str(record.get("benchmark_version", "legacy")),
+        str(record.get("schema_version", "legacy")),
+        str(fingerprint or "legacy"),
+    )
 
 
 def scope_label(record: dict[str, Any]) -> str:
@@ -112,16 +120,15 @@ def scope_label(record: dict[str, Any]) -> str:
 
 def comparison_cohort(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Select rankable records with one comparable deterministic scope."""
-    ranked = [record for record in records if rankable_score(record) is not None]
+    ranked = [
+        record for record in records
+        if rankable_score(record) is not None and _is_full_scope(scope_signature(record))
+    ]
     if not ranked:
         return []
-    # Records arrive newest first. Prefer the newest full benchmark contract;
-    # otherwise anchor to the newest rankable scope. Fingerprints prevent
-    # results from different benchmark implementations being compared.
-    anchor = next(
-        (record for record in ranked if _is_full_scope(scope_signature(record))),
-        ranked[0],
-    )
+    # Records arrive newest first. Versions, scope, and fingerprints prevent
+    # different benchmark contracts from being compared.
+    anchor = ranked[0]
     selected = _comparison_signature(anchor)
     return [record for record in ranked if _comparison_signature(record) == selected]
 
