@@ -2,7 +2,7 @@
 
 Every serious benchmark run appends one JSON object to `results/experiments.jsonl`. The log is the MVP datastore and research audit trail: never rewrite it merely because an experiment failed.
 
-Each record contains an experiment ID, ISO-8601 timestamp, schema and benchmark versions, source revision and dirty-tree status, exact command, agent/model and hypothesis, environment metadata, profile metrics, aggregate metrics, verification outcome or failure reason, parent experiment, tags, and a trusted-input integrity fingerprint.
+Each record contains an experiment ID, ISO-8601 timestamp, schema and benchmark versions, selected solver, source revision and dirty-tree status, exact command, agent/model and hypothesis, environment metadata, profile metrics, aggregate metrics, verification outcome or failure reason, parent experiment, tags, and a trusted-input integrity fingerprint.
 
 Representative shape:
 
@@ -17,6 +17,7 @@ Representative shape:
   "command": "python -m mldsafail.benchmark.runner",
   "agent": "codex",
   "hypothesis": "cache repeated reduction state",
+  "solver": "balanced",
   "correct": true,
   "runtime_seconds": 1.82,
   "peak_memory_bytes": 224395264,
@@ -32,4 +33,4 @@ The benchmark writes aggregate values under `aggregate`. The dashboard also acce
 
 Failed, timed-out, invalid, and regressing experiments should include the same provenance fields, set `correct` to false where applicable, and provide `failure_reason`. They are excluded from records and the Pareto frontier but remain visible in recent history.
 
-Comparison scope is derived deterministically from the suite names and profile names stored under `suites`. Full public-plus-hidden evaluations are the preferred official cohort. When no full evaluation exists, the dashboard selects one exact suite/profile signature; it never ranks a one-seed custom run or a single-profile smoke run against a broader evaluation.
+Comparison scope is derived deterministically from the trusted fingerprint plus the suite and profile names stored under `suites`. Full public-plus-hidden evaluations are the preferred official cohort. When no full evaluation exists, the dashboard selects one exact contract/suite/profile signature; it never ranks a one-seed custom run, an older benchmark contract, or a single-profile smoke run against a broader evaluation.

@@ -88,7 +88,7 @@ Do not use this project to recover real secret keys, forge signatures, search fo
 config/                    fixed, bounded toy profiles
 data/                      public and hidden benchmark seeds
 src/mldsafail/trusted/     generator and independent verifier
-src/mldsafail/solver/      baseline and future optimized solvers
+src/mldsafail/solver/      reference, balanced, and lazy-frontier solvers
 src/mldsafail/math/        toy arithmetic and linear algebra
 src/mldsafail/benchmark/   runner, metrics, records, integrity checks
 src/mldsafail/web/         read-only local results dashboard
