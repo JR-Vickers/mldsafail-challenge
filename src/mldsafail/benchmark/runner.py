@@ -22,6 +22,7 @@ from mldsafail.benchmark.records import DEFAULT_RECORDS_PATH, append_record, new
 from mldsafail.benchmark.suites import load_seed_suite, selected_suites
 from mldsafail.models import InstanceMetrics, ProfileMetrics
 from mldsafail.solver import solve
+from mldsafail.solver.lazy import solve as lazy_solve
 
 
 UNSCORED_AGGREGATE = {
@@ -78,12 +79,16 @@ def run_benchmark(
     suite: str = "public",
     profile: str | None = None,
     seed: int | None = None,
+    solver_name: str = "balanced",
 ) -> tuple[dict[str, Any], dict[str, Any], bool]:
     """Run selected instances and return suites, aggregate, correctness."""
 
     if seed is not None and profile is None:
         raise ValueError("--seed requires --profile")
     generate_instance, verify = _trusted_functions()
+    solver = {"balanced": solve, "lazy": lazy_solve}.get(solver_name)
+    if solver is None:
+        raise ValueError(f"unknown solver: {solver_name}")
     selections = ("custom",) if seed is not None else selected_suites(suite)
     results: dict[str, dict[str, ProfileMetrics]] = {}
     for suite_name in selections:
@@ -108,6 +113,10 @@ def run_benchmark(
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--profile", choices=("toy-small", "toy-medium", "toy-large"))
+    parser.add_argument(
+        "--solver", choices=("balanced", "lazy"), default="balanced",
+        help="balanced (default) or experimental lazy-reduction solver",
+    )
     parser.add_argument("--seed", type=int, help="diagnostic seed; requires --profile")
     parser.add_argument(
         "--suite", choices=("public", "hidden", "full"), default="public",
@@ -167,7 +176,8 @@ def main(argv: list[str] | None = None) -> int:
             failure_reason = "trusted-input fingerprint does not match the supplied baseline"
         else:
             suites, aggregate, correct = run_benchmark(
-                suite=args.suite, profile=args.profile, seed=args.seed
+                suite=args.suite, profile=args.profile, seed=args.seed,
+                solver_name=args.solver,
             )
             failure_reason = _profile_failure_reason(suites) if not correct else None
     except Exception as exc:
@@ -202,6 +212,7 @@ def main(argv: list[str] | None = None) -> int:
         command=[sys.executable, "-m", "mldsafail.benchmark.runner", *(argv or sys.argv[1:])],
         integrity=integrity,
         failure_reason=failure_reason,
+        solver=args.solver,
     )
     if not args.no_record:
         append_record(record, args.output)

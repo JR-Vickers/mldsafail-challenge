@@ -8,6 +8,7 @@ from mldsafail.benchmark import runner
 from mldsafail.benchmark.comparison import best_per_metric, dominates, pareto_frontier
 from mldsafail.benchmark.metrics import aggregate_profile, measure_instance
 from mldsafail.benchmark.suites import load_seed_suite, selected_suites
+from mldsafail.benchmark import suites as suites_module
 from mldsafail.models import Candidate, CostCounter, ToyInstance, VerificationResult
 
 
@@ -56,6 +57,16 @@ def test_solver_exception_becomes_failure_metric():
 def test_seed_suites_and_full_semantics():
     assert selected_suites("full") == ("public", "hidden")
     assert set(load_seed_suite("public", "toy-small")) == {"toy-small"}
+
+
+def test_seed_suites_fall_back_to_packaged_resources(monkeypatch):
+    monkeypatch.setattr(
+        suites_module,
+        "SUITE_FILES",
+        {name: suites_module.PROJECT_ROOT / "missing" / path.name
+         for name, path in suites_module.SUITE_FILES.items()},
+    )
+    assert load_seed_suite("hidden", "toy-medium") == {"toy-medium": (9201, 9202)}
 
 
 def record(identifier, values, correct=True):
@@ -121,11 +132,37 @@ def test_cli_records_integrity_mismatch_without_running_benchmark(tmp_path, monk
     assert "fingerprint" in record["failure_reason"]
 
 
+def test_cli_selects_lazy_solver_and_records_name(tmp_path, monkeypatch, capsys):
+    selected = {}
+
+    def fake_run_benchmark(**kwargs):
+        selected.update(kwargs)
+        return {}, dict(runner.UNSCORED_AGGREGATE), False
+
+    monkeypatch.setattr(runner, "run_benchmark", fake_run_benchmark)
+    monkeypatch.setattr(
+        runner,
+        "_integrity_status",
+        lambda baseline: {
+            "trusted_fingerprint": "current",
+            "baseline_fingerprint": baseline,
+            "matches_baseline": None,
+        },
+    )
+    output = tmp_path / "experiments.jsonl"
+    assert runner.main(["--solver", "lazy", "--output", str(output)]) == 1
+    capsys.readouterr()
+    record = json.loads(output.read_text())
+    assert selected["solver_name"] == "lazy"
+    assert record["solver"] == "lazy"
+
+
 @pytest.mark.parametrize(
     "arguments",
     [
         ["--seed", "1"],
         ["--profile", "not-a-profile"],
+        ["--solver", "not-a-solver"],
         ["--profile", "toy-small", "--seed", "1", "--suite", "hidden"],
         ["--profile", "toy-small", "--seed", "1", "--suite", "full"],
     ],

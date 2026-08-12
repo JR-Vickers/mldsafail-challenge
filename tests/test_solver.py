@@ -4,6 +4,7 @@ import pytest
 
 from mldsafail.models import CostCounter, ToyInstance
 from mldsafail.solver import SolverError, solve
+from mldsafail.solver.lazy import solve as lazy_solve
 from mldsafail.trusted.generator import generate_instance
 from mldsafail.trusted.verifier import verify
 
@@ -66,6 +67,23 @@ def test_solver_remains_correct_for_generic_generated_seeds(profile, seed):
     generated = generate_instance(seed, profile)
     candidate = solve(generated, CostCounter())
     assert verify(generated, candidate).valid
+
+
+@pytest.mark.parametrize("solver", (solve, lazy_solve), ids=("balanced", "lazy"))
+@pytest.mark.parametrize("profile", ("toy-small", "toy-medium", "toy-large"))
+@pytest.mark.parametrize("seed", (0, 17, 12345))
+def test_all_solvers_remain_correct_across_profiles(solver, profile, seed):
+    generated = generate_instance(seed, profile)
+    assert verify(generated, solver(generated, CostCounter())).valid
+
+
+def test_lazy_solver_handles_noncanonical_public_values_by_residue():
+    q = 97
+    shifted = instance(
+        matrix=((2 + 3 * q, 1 - 2 * q), (1 + q, 1 + 4 * q)),
+        target=(96 + 5 * q, 96 - 3 * q),
+    )
+    assert lazy_solve(shifted, CostCounter()).coefficients == (0, -1)
 
 
 def test_singular_matrix_is_reported():

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from importlib import resources
 from pathlib import Path
 
 
@@ -23,8 +24,14 @@ def load_seed_suite(name: str, profile: str | None = None) -> dict[str, tuple[in
 
     if name not in SUITE_FILES:
         raise SuiteError(f"unknown seed suite: {name}")
-    with SUITE_FILES[name].open(encoding="utf-8") as handle:
-        raw = json.load(handle)
+    path = SUITE_FILES[name]
+    if path.exists():
+        with path.open(encoding="utf-8") as handle:
+            raw = json.load(handle)
+    else:
+        resource = resources.files("mldsafail.data").joinpath(f"{name}_seeds.json")
+        with resource.open(encoding="utf-8") as handle:
+            raw = json.load(handle)
     if not isinstance(raw, dict):
         raise SuiteError(f"{name} suite must contain a profile mapping")
     suites: dict[str, tuple[int, ...]] = {}

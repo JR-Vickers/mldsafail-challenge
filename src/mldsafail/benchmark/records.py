@@ -108,6 +108,7 @@ def new_experiment_record(
     command: list[str] | None = None,
     integrity: dict[str, Any] | None = None,
     failure_reason: str | None = None,
+    solver: str = "balanced",
 ) -> dict[str, Any]:
     now = datetime.now().astimezone()
     record = {
@@ -117,6 +118,7 @@ def new_experiment_record(
         "timestamp": now.isoformat(),
         "agent": agent,
         "model": model,
+        "solver": solver,
         "hypothesis": hypothesis,
         "tags": tags or ["baseline"],
         "notes": notes,

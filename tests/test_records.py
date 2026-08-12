@@ -33,6 +33,7 @@ def test_append_is_jsonl_and_does_not_replace(tmp_path):
 def test_records_include_reproducibility_metadata():
     record = sample_record()
     assert record["schema_version"] == "1"
+    assert record["solver"] == "balanced"
     assert record["environment"]["architecture"]
     assert record["environment"]["python_version"]
     assert record["environment"]["command"] == ["pytest"]
