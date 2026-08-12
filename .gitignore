@@ -7,5 +7,3 @@ htmlcov/
 dist/
 build/
 *.egg-info/
-results/*.jsonl
-!results/.gitkeep
