@@ -158,6 +158,17 @@ def test_cli_selects_lazy_solver_and_records_name(tmp_path, monkeypatch, capsys)
     assert record["solver"] == "lazy"
 
 
+def test_lazy_selection_runs_a_distinct_cost_model():
+    _balanced_suites, balanced, balanced_correct = runner.run_benchmark(
+        suite="public", profile="toy-medium", solver_name="balanced"
+    )
+    _lazy_suites, lazy, lazy_correct = runner.run_benchmark(
+        suite="public", profile="toy-medium", solver_name="lazy"
+    )
+    assert balanced_correct and lazy_correct
+    assert lazy["abstract_cost"] < balanced["abstract_cost"]
+
+
 @pytest.mark.parametrize(
     "arguments",
     [

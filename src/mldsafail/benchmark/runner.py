@@ -97,7 +97,7 @@ def run_benchmark(
         for profile_name, seeds in mapping.items():
             instances = [generate_instance(seed=value, profile=profile_name) for value in seeds]
             results[suite_name][profile_name] = measure_profile(
-                profile_name, instances, solve, verify
+                profile_name, instances, solver, verify
             )
 
     all_profiles = [value for profiles in results.values() for value in profiles.values()]
