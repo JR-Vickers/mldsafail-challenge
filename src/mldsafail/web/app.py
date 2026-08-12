@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
-import json
 import math
 import os
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from flask import Flask, abort, render_template
+
+from mldsafail.benchmark.comparison import (
+    aggregate_vector,
+    best_per_metric,
+    pareto_frontier as benchmark_pareto_frontier,
+)
+from mldsafail.benchmark.records import read_records
 
 
 DEFAULT_RESULTS = Path(__file__).resolve().parents[3] / "results" / "experiments.jsonl"
@@ -57,57 +63,25 @@ def load_experiments(path: Path) -> tuple[list[dict[str, Any]], int]:
     """Read append-only JSONL, skipping malformed or non-object records."""
     if not path.exists():
         return [], 0
-    records: list[dict[str, Any]] = []
-    malformed = 0
-    with path.open(encoding="utf-8") as stream:
-        for line in stream:
-            if not line.strip():
-                continue
-            try:
-                record = json.loads(line)
-            except (json.JSONDecodeError, UnicodeDecodeError):
-                malformed += 1
-                continue
-            if not isinstance(record, dict):
-                malformed += 1
-                continue
-            records.append(record)
+    # Use the benchmark's canonical tolerant reader. Counting non-empty lines
+    # separately lets the UI report skipped records without duplicating parsing.
+    nonempty_lines = sum(1 for line in path.read_text(encoding="utf-8").splitlines() if line.strip())
+    records = read_records(path)
+    malformed = nonempty_lines - len(records)
     records.sort(key=lambda item: str(item.get("timestamp", "")), reverse=True)
     return records, malformed
-
-
-def pareto_frontier(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Return correct records not dominated on their available core metrics."""
-    eligible = [record for record in records if is_correct(record)]
-    frontier: list[dict[str, Any]] = []
-    for candidate in eligible:
-        candidate_metrics = [metric(candidate, name) for name in METRICS]
-        available = [index for index, value in enumerate(candidate_metrics) if value is not None]
-        if not available:
-            continue
-        dominated = False
-        for other in eligible:
-            if other is candidate:
-                continue
-            other_metrics = [metric(other, name) for name in METRICS]
-            comparable = [index for index in available if other_metrics[index] is not None]
-            if comparable == available and all(
-                other_metrics[index] <= candidate_metrics[index] for index in available
-            ) and any(other_metrics[index] < candidate_metrics[index] for index in available):
-                dominated = True
-                break
-        if not dominated:
-            frontier.append(candidate)
-    return frontier
 
 
 def _view_model(records: list[dict[str, Any]]) -> dict[str, Any]:
     correct = [record for record in records if is_correct(record)]
     chronological = list(reversed(records))
-    best: dict[str, dict[str, Any] | None] = {}
-    for name in METRICS:
-        candidates = [record for record in correct if metric(record, name) is not None]
-        best[name] = min(candidates, key=lambda record: metric(record, name)) if candidates else None
+    canonical_best = best_per_metric(records)
+    best = {
+        "runtime": canonical_best.get("total_wall_seconds"),
+        "cost": canonical_best.get("abstract_cost"),
+        "memory": canonical_best.get("peak_memory_bytes"),
+        "quality": canonical_best.get("solution_quality"),
+    }
 
     baseline = next(
         (record for record in chronological if "baseline" in record.get("tags", []) or record.get("is_baseline")),
@@ -121,11 +95,12 @@ def _view_model(records: list[dict[str, Any]]) -> dict[str, Any]:
             improvement = (before - after) / before * 100
 
     history = []
-    runtimes = [metric(record, "runtime") for record in chronological if is_correct(record)]
+    ranked = [record for record in chronological if aggregate_vector(record) is not None]
+    runtimes = [metric(record, "runtime") for record in ranked]
     max_runtime = max((value for value in runtimes if value is not None), default=1)
     for index, record in enumerate(chronological):
         runtime = metric(record, "runtime")
-        if is_correct(record) and runtime is not None:
+        if aggregate_vector(record) is not None and runtime is not None:
             history.append({"record": record, "height": max(4, runtime / max_runtime * 100), "index": index})
     return {
         "records": records,
@@ -134,7 +109,7 @@ def _view_model(records: list[dict[str, Any]]) -> dict[str, Any]:
         "baseline": baseline,
         "current": current,
         "improvement": improvement,
-        "frontier": pareto_frontier(records),
+        "frontier": benchmark_pareto_frontier(records),
         "history": history,
     }
 

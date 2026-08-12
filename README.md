@@ -13,6 +13,7 @@ uv sync --extra dev
 source .venv/bin/activate
 make test
 make bench
+make web-smoke
 make web
 ```
 
@@ -25,11 +26,15 @@ make test                         # unit and integration tests
 make bench                        # public deterministic benchmark
 make check                        # tests plus a toy-small benchmark smoke run
 make web                          # local experiment dashboard
+make web-smoke                    # non-blocking dashboard route smoke test
 
 python -m mldsafail.benchmark.runner --profile toy-medium
 python -m mldsafail.benchmark.runner --profile toy-medium --seed 12345
 python -m mldsafail.benchmark.runner --suite full
+python -m mldsafail.benchmark.runner --profile toy-small --no-record
 ```
+
+`make bench` appends a public-suite experiment to the default JSONL log. `make check` and `make web-smoke` do not append a result or leave a server running, so they are suitable for automated validation. The diagnostic `--seed` form requires `--profile`; use `--output PATH` to append to another log and `--no-record` to print without writing.
 
 The full suite includes the repository's separated hidden seeds. They discourage seed-specific optimization; they are not intended to be secret from a local repository owner.
 
