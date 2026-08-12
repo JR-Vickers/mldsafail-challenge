@@ -32,8 +32,10 @@ def test_append_is_jsonl_and_does_not_replace(tmp_path):
 
 def test_records_include_reproducibility_metadata():
     record = sample_record()
-    assert record["schema_version"] == "1"
-    assert record["solver"] == "balanced"
+    assert record["schema_version"] == "2"
+    assert record["solver"] == "lazy"
+    assert record["score"] is None
+    assert record["cost_model_version"] == "2"
     assert record["environment"]["architecture"]
     assert record["environment"]["python_version"]
     assert record["environment"]["command"] == ["pytest"]
@@ -69,6 +71,18 @@ def test_invalid_append_does_not_modify_existing_file(tmp_path):
     with pytest.raises(RecordValidationError, match="missing"):
         append_record({"schema_version": "1"}, path)
     assert path.read_bytes() == original
+
+
+def test_version_two_score_is_required_and_consistent():
+    valid = new_experiment_record(
+        benchmark_version="0.2.0", suites={}, profiles={},
+        aggregate={"score": 7}, correct=True, score=7,
+    )
+    validate_record(valid)
+    with pytest.raises(RecordValidationError, match="must have a score"):
+        validate_record(valid | {"score": None, "aggregate": {"score": None}})
+    with pytest.raises(RecordValidationError, match="must not have a score"):
+        validate_record(sample_record() | {"score": 1, "aggregate": {"score": 1}})
 
 
 def test_dirty_git_state_is_recorded(monkeypatch):

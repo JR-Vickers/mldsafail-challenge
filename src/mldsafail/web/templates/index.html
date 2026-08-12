@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero">
-  <p class="eyebrow">Autonomous optimization benchmark</p>
-  <h1>How far can agents push<br><em>toy lattice algorithms?</em></h1>
-  <p>Reproducible experiments. Independent verification. Every success and regression preserved.</p>
+  <p class="eyebrow">Synthetic lattice optimization benchmark</p>
+  <h1>How low can we drive the cost of this<br><em>post-quantum lattice challenge?</em></h1>
+  <p>One immutable challenge. Independent verification. One deterministic score.</p>
   <div class="hero-stats">
     <div><strong>{{ records|length }}</strong><span>experiments</span></div>
     <div><strong>{{ correct|length }}</strong><span>verified runs</span></div>
-    <div><strong>{% if improvement is not none %}{{ "%.1f"|format(improvement) }}%{% else %}—{% endif %}</strong><span>runtime improvement · {{ comparison_scope }}</span></div>
+    <div><strong>{% if improvement is not none %}{{ "%.1f"|format(improvement) }}%{% else %}—{% endif %}</strong><span>score improvement · {{ comparison_scope }}</span></div>
   </div>
 </section>
 
@@ -16,12 +16,11 @@
 <section class="empty"><h2>No experiments yet</h2><p>Run <code>make bench</code> to create the first append-only result.</p></section>
 {% else %}
 <section>
-  <div class="section-heading"><div><p class="eyebrow">Leaderboard · {{ comparison_scope }}</p><h2>Current records</h2></div><p>Lower is better. Only directly comparable benchmark scopes are ranked together.</p></div>
+  <div class="section-heading"><div><p class="eyebrow">Leaderboard · {{ comparison_scope }}</p><h2>Current record</h2></div><p>Lowest valid headline score wins. Diagnostics do not affect ranking.</p></div>
   <div class="cards">
-  {% for name, label in (("runtime", "Runtime"), ("cost", "Abstract cost"), ("memory", "Peak memory"), ("quality", "Solution quality")) %}
-    {% set record = best[name] %}
-    <article class="metric-card"><span>{{ label }}</span><strong>{{ record|metric(name) }}</strong>
-      {% if record %}<a href="{{ url_for('experiment', experiment_id=record.get('experiment_id', record.get('id'))) }}">{{ record.get('experiment_id', record.get('id', 'experiment')) }}</a>{% else %}<small>No verified result</small>{% endif %}
+  {% for name, label in (("score", "Headline score"), ("runtime", "Runtime"), ("memory", "Peak memory"), ("quality", "Solution quality")) %}
+    <article class="metric-card"><span>{{ label }}</span><strong>{{ current|metric(name) }}</strong>
+      {% if current %}<a href="{{ url_for('experiment', experiment_id=current.get('experiment_id', current.get('id'))) }}">{{ current.get('experiment_id', current.get('id', 'experiment')) }}</a>{% else %}<small>No ranked result</small>{% endif %}
     </article>
   {% endfor %}
   </div>
@@ -29,21 +28,21 @@
 
 <section class="split">
   <article>
-    <p class="eyebrow">Progress · {{ comparison_scope }}</p><h2>Runtime history</h2>
-    {% if history %}<div class="chart" aria-label="Runtime history, earlier experiments on the left">
-      {% for point in history %}<a style="height: {{ point.height }}%" title="{{ point.record.get('experiment_id', point.record.get('id')) }}: {{ point.record|metric('runtime') }}" href="{{ url_for('experiment', experiment_id=point.record.get('experiment_id', point.record.get('id'))) }}"><span class="sr-only">{{ point.record|metric('runtime') }}</span></a>{% endfor %}
-    </div><div class="axis"><span>Baseline</span><span>Latest</span></div>{% else %}<p class="muted">No runtime measurements recorded.</p>{% endif %}
+    <p class="eyebrow">Progress · {{ comparison_scope }}</p><h2>Best-known score</h2>
+    {% if history %}<div class="chart" aria-label="Best-known score history, earlier experiments on the left">
+      {% for point in history %}<a style="height: {{ point.height }}%" title="{{ point.record.get('experiment_id', point.record.get('id')) }}: {{ point.record|metric('score') }}" href="{{ url_for('experiment', experiment_id=point.record.get('experiment_id', point.record.get('id'))) }}"><span class="sr-only">{{ point.record|metric('score') }}</span></a>{% endfor %}
+    </div><div class="axis"><span>Baseline</span><span>Current record</span></div>{% else %}<p class="muted">No ranked score measurements recorded.</p>{% endif %}
   </article>
   <article class="comparison">
     <p class="eyebrow">Baseline → current</p><h2>Measured change</h2>
-    <dl><div><dt>Baseline</dt><dd>{{ baseline|metric('runtime') }}</dd></div><div><dt>Current record</dt><dd>{{ current|metric('runtime') }}</dd></div><div><dt>Improvement</dt><dd>{% if improvement is not none %}{{ "%.1f"|format(improvement) }}%{% else %}—{% endif %}</dd></div></dl>
+    <dl><div><dt>Baseline score</dt><dd>{{ baseline|metric('score') }}</dd></div><div><dt>Current score</dt><dd>{{ current|metric('score') }}</dd></div><div><dt>Improvement</dt><dd>{% if improvement is not none %}{{ "%.1f"|format(improvement) }}%{% else %}—{% endif %}</dd></div></dl>
   </article>
 </section>
 
 <section>
-  <div class="section-heading"><div><p class="eyebrow">Trade-offs · {{ comparison_scope }}</p><h2>Pareto frontier</h2></div><p>Comparable verified runs not dominated across the metric vector.</p></div>
-  <div class="table-wrap"><table><thead><tr><th>Experiment</th><th>Runtime</th><th>Cost</th><th>Memory</th><th>Quality</th></tr></thead><tbody>
-  {% for record in frontier %}<tr><td><a href="{{ url_for('experiment', experiment_id=record.get('experiment_id', record.get('id'))) }}">{{ record.get('experiment_id', record.get('id')) }}</a></td><td>{{ record|metric('runtime') }}</td><td>{{ record|metric('cost') }}</td><td>{{ record|metric('memory') }}</td><td>{{ record|metric('quality') }}</td></tr>{% else %}<tr><td colspan="5">No comparable verified runs.</td></tr>{% endfor %}
+  <div class="section-heading"><div><p class="eyebrow">Progress · {{ comparison_scope }}</p><h2>Headline-score frontier</h2></div><p>Each row established a strictly lower comparable score.</p></div>
+  <div class="table-wrap"><table><thead><tr><th>Experiment</th><th>Score</th><th>Runtime</th><th>Memory</th><th>Quality</th></tr></thead><tbody>
+  {% for record in frontier %}<tr><td><a href="{{ url_for('experiment', experiment_id=record.get('experiment_id', record.get('id'))) }}">{{ record.get('experiment_id', record.get('id')) }}</a></td><td>{{ record|metric('score') }}</td><td>{{ record|metric('runtime') }}</td><td>{{ record|metric('memory') }}</td><td>{{ record|metric('quality') }}</td></tr>{% else %}<tr><td colspan="5">No comparable ranked runs.</td></tr>{% endfor %}
   </tbody></table></div>
 </section>
 

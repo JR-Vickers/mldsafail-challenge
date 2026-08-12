@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import json
+import time
 
 import pytest
 
 from mldsafail.benchmark import runner
-from mldsafail.benchmark.comparison import best_per_metric, dominates, pareto_frontier
-from mldsafail.benchmark.metrics import aggregate_profile, measure_instance
+from mldsafail.benchmark.comparison import best_score_record, rankable_score, score_frontier
+from mldsafail.benchmark.metrics import ResourceLimits, aggregate_profile, measure_instance
 from mldsafail.benchmark.suites import load_seed_suite, selected_suites
 from mldsafail.benchmark import suites as suites_module
 from mldsafail.benchmark.cost_model import OperationMeter
@@ -55,6 +56,38 @@ def test_solver_exception_becomes_failure_metric():
     assert result.failure_reason == "RuntimeError: expected"
 
 
+def test_operation_meter_rejects_counter_fabrication():
+    meter = OperationMeter()
+    with pytest.raises(ValueError, match="non-negative"):
+        meter.additions(-1)
+    with pytest.raises(AttributeError):
+        meter.additions = 0  # type: ignore[method-assign]
+
+
+def test_wall_limit_terminates_and_unscored_instance():
+    def slow_solver(_instance, _meter):
+        time.sleep(0.05)
+        return Candidate((1,))
+
+    result = measure_instance(
+        INSTANCE, slow_solver, verifier,
+        ResourceLimits(wall_seconds=0.01, peak_memory_bytes=64 * 1024 * 1024),
+    )
+    assert not result.correct
+    assert result.resource_status == "time_exceeded"
+    assert "wall time" in result.failure_reason
+
+
+def test_memory_limit_invalidates_otherwise_correct_instance():
+    result = measure_instance(
+        INSTANCE, good_solver, verifier,
+        ResourceLimits(wall_seconds=1, peak_memory_bytes=1),
+    )
+    assert not result.correct
+    assert result.resource_status == "memory_exceeded"
+    assert "peak memory" in result.failure_reason
+
+
 def test_seed_suites_and_full_semantics():
     assert selected_suites("full") == ("public", "hidden")
     assert set(load_seed_suite("public", "small")) == {"small"}
@@ -70,19 +103,22 @@ def test_seed_suites_fall_back_to_packaged_resources(monkeypatch):
     assert load_seed_suite("hidden", "medium") == {"medium": (9201, 9202)}
 
 
-def record(identifier, values, correct=True):
-    return {"experiment_id": identifier, "correct": correct, "aggregate": values}
+def record(identifier, score, correct=True, timestamp="2026-01-01"):
+    return {
+        "schema_version": "2", "experiment_id": identifier, "timestamp": timestamp,
+        "correct": correct, "score": score if correct else None,
+        "aggregate": {"score": score if correct else None},
+    }
 
 
-def test_pareto_and_best_per_metric_ignore_invalid():
-    metrics = ("total_wall_seconds", "median_instance_seconds", "peak_memory_bytes", "abstract_cost", "solution_quality")
-    fast = record("fast", dict(zip(metrics, (1, 1, 10, 10, 2), strict=True)))
-    cheap = record("cheap", dict(zip(metrics, (2, 2, 9, 8, 1), strict=True)))
-    worse = record("worse", dict(zip(metrics, (3, 3, 12, 12, 3), strict=True)))
-    invalid = record("invalid", {}, False)
-    assert dominates(fast["aggregate"], worse["aggregate"])
-    assert {item["experiment_id"] for item in pareto_frontier([fast, cheap, worse, invalid])} == {"fast", "cheap"}
-    assert best_per_metric([fast, cheap, invalid])["abstract_cost"] is cheap
+def test_single_score_frontier_ignores_diagnostics_and_invalid_runs():
+    baseline = record("baseline", 100, timestamp="2026-01-01")
+    regression = record("regression", 120, timestamp="2026-01-02")
+    best = record("best", 80, timestamp="2026-01-03")
+    invalid = record("invalid", 1, False, timestamp="2026-01-04")
+    assert rankable_score(invalid) is None
+    assert best_score_record([baseline, regression, best, invalid]) is best
+    assert score_frontier([best, invalid, baseline, regression]) == [baseline, best]
 
 
 def test_cli_serializes_solver_exception_as_unscored_failure(tmp_path, monkeypatch, capsys):
@@ -101,7 +137,8 @@ def test_cli_serializes_solver_exception_as_unscored_failure(tmp_path, monkeypat
     )
     output = tmp_path / "experiments.jsonl"
     result = runner.main([
-        "--profile", "small", "--seed", "12345", "--output", str(output)
+        "--profile", "small", "--seed", "12345", "--solver", "balanced",
+        "--output", str(output)
     ])
     printed = json.loads(capsys.readouterr().out)
     persisted = json.loads(output.read_text())
@@ -109,6 +146,7 @@ def test_cli_serializes_solver_exception_as_unscored_failure(tmp_path, monkeypat
     assert printed == persisted
     assert persisted["correct"] is False
     assert persisted["solver"] == "balanced"
+    assert persisted["score"] is None
     assert persisted["aggregate"]["abstract_cost"] is None
     assert persisted["failure_reason"] == "RuntimeError: solver exploded"
 
@@ -157,6 +195,10 @@ def test_cli_selects_lazy_solver_and_records_name(tmp_path, monkeypatch, capsys)
     record = json.loads(output.read_text())
     assert selected["solver_name"] == "lazy"
     assert record["solver"] == "lazy"
+
+
+def test_cli_defaults_to_current_best_lazy_solver():
+    assert runner.build_parser().parse_args([]).solver == "lazy"
 
 
 def test_lazy_selection_runs_a_distinct_cost_model():

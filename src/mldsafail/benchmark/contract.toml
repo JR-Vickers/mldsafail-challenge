@@ -1,0 +1,4 @@
+benchmark_version = "0.2.0"
+cost_model_version = "2"
+per_instance_wall_seconds = 5.0
+per_instance_peak_memory_bytes = 67108864

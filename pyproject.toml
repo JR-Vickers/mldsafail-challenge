@@ -24,6 +24,7 @@ packages = ["src/mldsafail"]
 "src/mldsafail/data/public_seeds.json" = "mldsafail/data/public_seeds.json"
 "src/mldsafail/data/hidden_seeds.json" = "mldsafail/data/hidden_seeds.json"
 "src/mldsafail/trusted/profiles.toml" = "mldsafail/trusted/profiles.toml"
+"src/mldsafail/benchmark/contract.toml" = "mldsafail/benchmark/contract.toml"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

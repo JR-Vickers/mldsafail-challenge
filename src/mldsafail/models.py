@@ -54,6 +54,7 @@ class InstanceMetrics:
     solution_quality: int | None
     cost: dict[str, Any]
     failure_reason: str | None = None
+    resource_status: str = "within_limits"
 
 
 @dataclass

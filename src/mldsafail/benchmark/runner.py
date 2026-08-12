@@ -17,7 +17,9 @@ from pathlib import Path
 from typing import Any
 
 from mldsafail import __version__
+from mldsafail.benchmark.cost_model import COST_MODEL_VERSION
 from mldsafail.benchmark.metrics import aggregate_profile, measure_profile
+from mldsafail.benchmark.metrics import DEFAULT_RESOURCE_LIMITS
 from mldsafail.benchmark.records import DEFAULT_RECORDS_PATH, append_record, new_experiment_record
 from mldsafail.benchmark.suites import load_seed_suite, selected_suites
 from mldsafail.models import InstanceMetrics, ProfileMetrics
@@ -27,10 +29,12 @@ from mldsafail.solver.reference import solve as reference_solve
 
 
 UNSCORED_AGGREGATE = {
+    "score": None,
     "total_wall_seconds": None,
     "median_instance_seconds": None,
     "peak_memory_bytes": None,
     "abstract_cost": None,
+    "raw_operation_count": None,
     "solution_quality": None,
 }
 
@@ -56,10 +60,12 @@ def _aggregate(profiles: list[ProfileMetrics]) -> dict[str, Any]:
     if not correct:
         return dict(UNSCORED_AGGREGATE)
     return {
+        "score": sum(int(item.cost["total"]) for item in instances),
         "total_wall_seconds": sum(item.wall_seconds for item in instances),
         "median_instance_seconds": statistics.median(item.wall_seconds for item in instances),
         "peak_memory_bytes": max((item.peak_memory_bytes for item in instances), default=0),
         "abstract_cost": sum(int(item.cost["total"]) for item in instances),
+        "raw_operation_count": sum(int(item.cost["raw_total"]) for item in instances),
         "solution_quality": int(statistics.median(qualities)) if qualities else 0,
     }
 
@@ -80,7 +86,7 @@ def run_benchmark(
     suite: str = "public",
     profile: str | None = None,
     seed: int | None = None,
-    solver_name: str = "balanced",
+    solver_name: str = "lazy",
 ) -> tuple[dict[str, Any], dict[str, Any], bool]:
     """Run selected instances and return suites, aggregate, correctness."""
 
@@ -119,7 +125,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--profile", choices=("small", "medium", "large"))
     parser.add_argument(
-        "--solver", choices=("reference", "balanced", "lazy"), default="balanced",
+        "--solver", choices=("reference", "balanced", "lazy"), default="lazy",
         help="baseline-v1 reference, balanced default, or lazy-reduction frontier",
     )
     parser.add_argument("--seed", type=int, help="diagnostic seed; requires --profile")
@@ -218,6 +224,12 @@ def main(argv: list[str] | None = None) -> int:
         integrity=integrity,
         failure_reason=failure_reason,
         solver=args.solver,
+        score=aggregate["score"],
+        cost_model_version=COST_MODEL_VERSION,
+        resource_limits={
+            "per_instance_wall_seconds": DEFAULT_RESOURCE_LIMITS.wall_seconds,
+            "per_instance_peak_memory_bytes": DEFAULT_RESOURCE_LIMITS.peak_memory_bytes,
+        },
     )
     if not args.no_record:
         append_record(record, args.output)

@@ -14,7 +14,8 @@ from typing import Any
 from uuid import uuid4
 
 
-SCHEMA_VERSION = "1"
+SCHEMA_VERSION = "2"
+SUPPORTED_SCHEMA_VERSIONS = frozenset({"1", "2"})
 DEFAULT_RECORDS_PATH = Path(__file__).resolve().parents[3] / "results" / "experiments.jsonl"
 
 
@@ -51,10 +52,27 @@ def validate_record(
             raise RecordValidationError(f"record is missing {field!r}")
         if not isinstance(record[field], expected_type):
             raise RecordValidationError(f"record field {field!r} has the wrong type")
-    if record["schema_version"] != SCHEMA_VERSION:
+    if record["schema_version"] not in SUPPORTED_SCHEMA_VERSIONS:
         raise RecordValidationError(
-            f"unsupported schema version {record['schema_version']!r}; expected {SCHEMA_VERSION!r}"
+            f"unsupported schema version {record['schema_version']!r}; "
+            f"expected one of {sorted(SUPPORTED_SCHEMA_VERSIONS)!r}"
         )
+    if record["schema_version"] == "2":
+        for field, expected_type in {
+            "cost_model_version": str,
+            "resource_limits": dict,
+        }.items():
+            if field not in record or not isinstance(record[field], expected_type):
+                raise RecordValidationError(f"record field {field!r} has the wrong type")
+        score = record.get("score")
+        if score is not None and (isinstance(score, bool) or not isinstance(score, int) or score < 0):
+            raise RecordValidationError("score must be a non-negative integer or null")
+        if record["correct"] and score is None:
+            raise RecordValidationError("a correct version-2 record must have a score")
+        if not record["correct"] and score is not None:
+            raise RecordValidationError("an invalid version-2 record must not have a score")
+        if score != record["aggregate"].get("score"):
+            raise RecordValidationError("top-level and aggregate scores must match")
     if not record["benchmark_version"]:
         raise RecordValidationError("benchmark version must not be empty")
     if expected_benchmark_version is not None and record["benchmark_version"] != expected_benchmark_version:
@@ -108,7 +126,10 @@ def new_experiment_record(
     command: list[str] | None = None,
     integrity: dict[str, Any] | None = None,
     failure_reason: str | None = None,
-    solver: str = "balanced",
+    solver: str = "lazy",
+    score: int | None = None,
+    cost_model_version: str = "2",
+    resource_limits: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     now = datetime.now().astimezone()
     record = {
@@ -124,6 +145,9 @@ def new_experiment_record(
         "notes": notes,
         "parent_experiment": parent_experiment,
         "correct": correct,
+        "score": score,
+        "cost_model_version": cost_model_version,
+        "resource_limits": resource_limits or {},
         "aggregate": aggregate,
         "profiles": profiles or {},
         "suites": suites,

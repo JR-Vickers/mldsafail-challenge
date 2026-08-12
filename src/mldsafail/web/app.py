@@ -10,15 +10,18 @@ from typing import Any
 from flask import Flask, abort, render_template
 
 from mldsafail.benchmark.comparison import (
-    aggregate_vector,
-    best_per_metric,
-    pareto_frontier as benchmark_pareto_frontier,
+    best_score_record,
+    improvement_percent,
+    rankable_score,
+    score_delta,
+    score_frontier,
 )
 from mldsafail.benchmark.records import read_records
 
 
 DEFAULT_RESULTS = Path(__file__).resolve().parents[3] / "results" / "experiments.jsonl"
 METRICS = {
+    "score": ("score",),
     "runtime": ("runtime_seconds", "total_wall_seconds", "wall_seconds"),
     "cost": ("abstract_cost", "total_abstract_cost", "cost"),
     "memory": ("peak_memory_bytes", "peak_memory_mb"),
@@ -109,7 +112,7 @@ def scope_label(record: dict[str, Any]) -> str:
 
 def comparison_cohort(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Select rankable records with one comparable deterministic scope."""
-    ranked = [record for record in records if aggregate_vector(record) is not None]
+    ranked = [record for record in records if rankable_score(record) is not None]
     if not ranked:
         return []
     # Records arrive newest first. Prefer the newest full benchmark contract;
@@ -140,40 +143,34 @@ def _view_model(records: list[dict[str, Any]]) -> dict[str, Any]:
     correct = [record for record in records if is_correct(record)]
     cohort = comparison_cohort(records)
     chronological = list(reversed(cohort))
-    canonical_best = best_per_metric(cohort)
-    best = {
-        "runtime": canonical_best.get("total_wall_seconds"),
-        "cost": canonical_best.get("abstract_cost"),
-        "memory": canonical_best.get("peak_memory_bytes"),
-        "quality": canonical_best.get("solution_quality"),
-    }
+    current = best_score_record(cohort)
 
     baseline = next(
         (record for record in chronological if "baseline" in record.get("tags", []) or record.get("is_baseline")),
         chronological[0] if chronological else None,
     )
-    current = best["runtime"] or (correct[0] if correct else None)
-    improvement = None
-    if baseline and current:
-        before, after = metric(baseline, "runtime"), metric(current, "runtime")
-        if before and after is not None:
-            improvement = (before - after) / before * 100
+    improvement = improvement_percent(current, baseline) if baseline and current else None
 
     history = []
-    runtimes = [metric(record, "runtime") for record in chronological]
-    max_runtime = max((value for value in runtimes if value is not None), default=1)
-    for index, record in enumerate(chronological):
-        runtime = metric(record, "runtime")
-        if runtime is not None:
-            history.append({"record": record, "height": max(4, runtime / max_runtime * 100), "index": index})
+    frontier = score_frontier(cohort)
+    scores = [rankable_score(record) for record in frontier]
+    max_score = max((value for value in scores if value is not None), default=1)
+    for index, record in enumerate(frontier):
+        score = rankable_score(record)
+        if score is not None:
+            history.append({
+                "record": record,
+                "height": max(4, score / max_score * 100),
+                "index": index,
+                "delta": score_delta(record, baseline) if baseline else None,
+            })
     return {
         "records": records,
         "correct": correct,
-        "best": best,
         "baseline": baseline,
         "current": current,
         "improvement": improvement,
-        "frontier": benchmark_pareto_frontier(cohort),
+        "frontier": frontier,
         "history": history,
         "comparison_scope": scope_label(cohort[0]) if cohort else "No rankable scope",
     }
@@ -195,7 +192,7 @@ def create_app(results_path: str | Path | None = None) -> Flask:
             return f"{value:.4f} s"
         if name == "memory":
             return f"{value / (1024 * 1024):.1f} MiB"
-        if name in {"cost", "quality"}:
+        if name in {"score", "cost", "quality"}:
             return f"{value:,.0f}"
         return str(value)
 

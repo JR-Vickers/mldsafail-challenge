@@ -4,7 +4,7 @@
 <section class="detail-hero"><a class="back" href="{{ url_for('index') }}">← All experiments</a><p class="eyebrow">Experiment detail · {{ record|scope }}</p><h1>{{ record.get('experiment_id', record.get('id', 'Unnamed experiment')) }}</h1><p>{{ record.get('hypothesis', 'No hypothesis recorded.') }}</p></section>
 {% if malformed %}<aside class="warning">The log contains {{ malformed }} malformed {{ "line" if malformed == 1 else "lines" }}.</aside>{% endif %}
 <section class="cards compact">
-  {% for name, label in (("runtime", "Runtime"), ("cost", "Abstract cost"), ("memory", "Peak memory"), ("quality", "Solution quality")) %}<article class="metric-card"><span>{{ label }}</span><strong>{{ record|metric(name) }}</strong></article>{% endfor %}
+  {% for name, label in (("score", "Headline score"), ("runtime", "Runtime"), ("memory", "Peak memory"), ("quality", "Solution quality")) %}<article class="metric-card"><span>{{ label }}</span><strong>{{ record|metric(name) }}</strong></article>{% endfor %}
 </section>
 <section class="split detail-grid"><article><p class="eyebrow">Metadata</p><h2>Reproducibility</h2><dl class="metadata">{% for key in ('timestamp', 'commit', 'parent_commit', 'agent', 'model', 'benchmark_version', 'schema_version', 'command') %}{% if record.get(key) is not none %}<div><dt>{{ key|replace('_', ' ')|title }}</dt><dd><code>{{ record.get(key) }}</code></dd></div>{% endif %}{% endfor %}</dl></article><article><p class="eyebrow">Raw record</p><h2>Audit data</h2><pre>{{ record|tojson(indent=2) }}</pre></article></section>
 {% endblock %}
