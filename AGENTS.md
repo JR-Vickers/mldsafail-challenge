@@ -166,3 +166,42 @@ instance = generate_instance(
     seed=12345,
     profile="toy-medium",
 )
+
+```
+
+## Optimization Workflow
+
+Ordinary optimization work is limited to `src/mldsafail/solver/` and
+`src/mldsafail/math/`. Treat the following as benchmark-defining and do not
+change them during a solver experiment:
+
+- `config/`
+- `data/hidden_seeds.json`
+- `src/mldsafail/trusted/`
+- `src/mldsafail/benchmark/`
+
+For each experiment:
+
+1. Activate the environment with `source .venv/bin/activate`.
+2. Start from the current best commit and record a concrete hypothesis.
+3. Run `make test` and `make bench` before editing to establish the baseline.
+4. Make the smallest solver or math change that tests the hypothesis.
+5. Run tests and the public suite. Run the full suite only after a public gain.
+6. Keep a change only if it remains correct and improves the Pareto frontier.
+7. Record successful and failed experiments; revert regressing code, not the
+   evidence that the experiment occurred.
+8. Commit validated checkpoints with a message describing the hypothesis.
+
+Never special-case known seeds, inspect hidden diagnostic state, fabricate
+cost counters, skip verification, or weaken difficulty and scoring. Escalate
+before changing benchmark semantics, the safety boundary, or score meaning.
+
+## Completion Checks
+
+Before handing off a change, run the most relevant focused tests plus:
+
+```sh
+make check
+```
+
+Do not push commits. The repository owner handles publication.
