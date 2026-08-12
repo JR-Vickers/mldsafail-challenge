@@ -4,6 +4,8 @@ from pathlib import Path
 import pytest
 
 from mldsafail.math.lattice import is_invertible
+from mldsafail.math.lattice import mat_vec_mul
+from mldsafail.models import Candidate
 from mldsafail.models import DiagnosticMetadata, ToyInstance
 from mldsafail.trusted.generator import (
     MAX_DIMENSION,
@@ -11,6 +13,8 @@ from mldsafail.trusted.generator import (
     generate_instance_with_diagnostics,
     load_profiles,
 )
+from mldsafail.trusted import generator as generator_module
+from mldsafail.trusted.verifier import verify
 
 
 def test_same_seed_and_profile_are_deterministic() -> None:
@@ -25,6 +29,20 @@ def test_different_seeds_produce_different_public_instances() -> None:
     second = generate_instance(2, "toy-small")
     assert first.instance_id != second.instance_id
     assert first.matrix != second.matrix
+
+
+@pytest.mark.parametrize("profile", ["toy-small", "toy-medium", "toy-large"])
+def test_many_seeds_preserve_generation_and_verification_invariants(profile: str) -> None:
+    identifiers: set[str] = set()
+    for seed in range(25):
+        public, diagnostic = generate_instance_with_diagnostics(seed, profile)
+        assert public.instance_id not in identifiers
+        identifiers.add(public.instance_id)
+        assert all(abs(value) <= public.eta for value in diagnostic.planted_solution)
+        assert mat_vec_mul(
+            public.matrix, diagnostic.planted_solution, public.modulus
+        ) == public.target
+        assert verify(public, Candidate(diagnostic.planted_solution)).valid
 
 
 @pytest.mark.parametrize("profile", ["toy-small", "toy-medium", "toy-large"])
@@ -62,6 +80,20 @@ def test_profile_loader_uses_repo_root_from_any_working_directory(
 ) -> None:
     monkeypatch.chdir(tmp_path)
     assert load_profiles()["toy-small"].dimension == 8
+
+
+def test_packaged_profile_fallback_matches_repository_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source_profiles = load_profiles(generator_module._SOURCE_PROFILE_PATH)
+    packaged_profiles = load_profiles(generator_module._PACKAGED_PROFILE_PATH)
+    assert packaged_profiles == source_profiles
+    monkeypatch.setattr(
+        generator_module,
+        "_SOURCE_PROFILE_PATH",
+        generator_module._SOURCE_PROFILE_PATH.with_name("missing.toml"),
+    )
+    assert load_profiles() == packaged_profiles
 
 
 def test_profile_loader_rejects_oversized_or_malformed_profiles(tmp_path: Path) -> None:

@@ -16,7 +16,13 @@ MAX_DIMENSION = 64
 MAX_MODULUS = 4096
 MAX_ETA = 8
 _PROFILE_FIELDS = frozenset({"dimension", "modulus", "eta", "public_seeds", "hidden_seeds"})
-_DEFAULT_PROFILE_PATH = Path(__file__).resolve().parents[3] / "config" / "toy_profiles.toml"
+_SOURCE_PROFILE_PATH = Path(__file__).resolve().parents[3] / "config" / "toy_profiles.toml"
+_PACKAGED_PROFILE_PATH = Path(__file__).with_name("toy_profiles.toml")
+
+
+def _default_profile_path() -> Path:
+    """Use the editable repository config or the installed package resource."""
+    return _SOURCE_PROFILE_PATH if _SOURCE_PROFILE_PATH.is_file() else _PACKAGED_PROFILE_PATH
 
 
 def _is_prime(value: int) -> bool:
@@ -36,7 +42,7 @@ def load_profiles(path: str | Path | None = None) -> dict[str, ToyProfile]:
     A custom path exists for validation tests and trusted administration; it
     does not permit callers to inject a profile into ``generate_instance``.
     """
-    profile_path = Path(path) if path is not None else _DEFAULT_PROFILE_PATH
+    profile_path = Path(path) if path is not None else _default_profile_path()
     with profile_path.open("rb") as stream:
         raw = tomllib.load(stream)
     if set(raw) != PROFILE_NAMES:
