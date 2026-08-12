@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
-from typing import Any
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
-class ToyProfile:
+class ChallengeProfile:
     name: str
     dimension: int
     modulus: int
@@ -17,7 +16,7 @@ class ToyProfile:
 
 
 @dataclass(frozen=True)
-class ToyInstance:
+class ChallengeInstance:
     instance_id: str
     seed: int
     profile: str
@@ -44,27 +43,6 @@ class VerificationResult:
     valid: bool
     reason: str
     solution_quality: int | None = None
-
-
-@dataclass
-class CostCounter:
-    version: str = "1"
-    additions: int = 0
-    multiplications: int = 0
-    modular_reductions: int = 0
-    basis_updates: int = 0
-    memory_reads: int = 0
-    memory_writes: int = 0
-
-    @property
-    def total(self) -> int:
-        return sum(
-            (self.additions, self.multiplications, self.modular_reductions,
-             self.basis_updates, self.memory_reads, self.memory_writes)
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self) | {"total": self.total}
 
 
 @dataclass

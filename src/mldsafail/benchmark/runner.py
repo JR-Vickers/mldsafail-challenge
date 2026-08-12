@@ -117,7 +117,7 @@ def run_benchmark(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--profile", choices=("toy-small", "toy-medium", "toy-large"))
+    parser.add_argument("--profile", choices=("small", "medium", "large"))
     parser.add_argument(
         "--solver", choices=("reference", "balanced", "lazy"), default="balanced",
         help="baseline-v1 reference, balanced default, or lazy-reduction frontier",

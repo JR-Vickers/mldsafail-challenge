@@ -7,23 +7,23 @@ import time
 import tracemalloc
 from collections.abc import Callable, Iterable
 
+from mldsafail.benchmark.cost_model import OperationMeter
 from mldsafail.models import (
     Candidate,
-    CostCounter,
+    ChallengeInstance,
     InstanceMetrics,
     ProfileMetrics,
-    ToyInstance,
     VerificationResult,
 )
 
-Solver = Callable[[ToyInstance, CostCounter], Candidate]
-Verifier = Callable[[ToyInstance, Candidate], VerificationResult]
+Solver = Callable[[ChallengeInstance, OperationMeter], Candidate]
+Verifier = Callable[[ChallengeInstance, Candidate], VerificationResult]
 
 
-def measure_instance(instance: ToyInstance, solver: Solver, verifier: Verifier) -> InstanceMetrics:
+def measure_instance(instance: ChallengeInstance, solver: Solver, verifier: Verifier) -> InstanceMetrics:
     """Measure one solve and independently verify its output."""
 
-    cost = CostCounter()
+    cost = OperationMeter()
     tracemalloc.start()
     started = time.perf_counter()
     try:
@@ -46,7 +46,7 @@ def measure_instance(instance: ToyInstance, solver: Solver, verifier: Verifier) 
         wall_seconds=elapsed,
         peak_memory_bytes=peak,
         solution_quality=quality,
-        cost=cost.to_dict(),
+        cost=cost.snapshot().to_dict(),
         failure_reason=failure,
     )
 
@@ -73,7 +73,7 @@ def aggregate_profile(profile: str, instances: Iterable[InstanceMetrics]) -> Pro
 
 def measure_profile(
     profile: str,
-    instances: Iterable[ToyInstance],
+    instances: Iterable[ChallengeInstance],
     solver: Solver,
     verifier: Verifier,
 ) -> ProfileMetrics:

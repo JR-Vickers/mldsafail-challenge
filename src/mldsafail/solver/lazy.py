@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from mldsafail.models import Candidate, CostCounter, ToyInstance
+from mldsafail.benchmark.cost_model import OperationMeter
+from mldsafail.models import Candidate, ChallengeInstance
 from mldsafail.solver.baseline import SolverError
 
 
-def solve(instance: ToyInstance, cost: CostCounter) -> Candidate:
+def solve(instance: ChallengeInstance, cost: OperationMeter) -> Candidate:
     """Solve a toy system while deferring reductions in trailing row updates.
 
     This preserves exact intermediate Python integers and reduces only values
@@ -114,9 +115,9 @@ def solve(instance: ToyInstance, cost: CostCounter) -> Candidate:
         memory_writes += n
         return Candidate(coefficients=coefficients)
     finally:
-        cost.additions += additions
-        cost.multiplications += multiplications
-        cost.modular_reductions += modular_reductions
-        cost.basis_updates += basis_updates
-        cost.memory_reads += memory_reads
-        cost.memory_writes += memory_writes
+        cost.additions(additions)
+        cost.multiplications(multiplications)
+        cost.modular_reductions(modular_reductions)
+        cost.basis_updates(basis_updates)
+        cost.memory_reads(memory_reads)
+        cost.memory_writes(memory_writes)

@@ -1,18 +1,18 @@
-[toy-small]
+[small]
 dimension = 8
 modulus = 97
 eta = 2
 public_seeds = 3
 hidden_seeds = 2
 
-[toy-medium]
+[medium]
 dimension = 16
 modulus = 257
 eta = 3
 public_seeds = 3
 hidden_seeds = 2
 
-[toy-large]
+[large]
 dimension = 24
 modulus = 769
 eta = 4

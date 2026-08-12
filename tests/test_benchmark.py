@@ -9,28 +9,29 @@ from mldsafail.benchmark.comparison import best_per_metric, dominates, pareto_fr
 from mldsafail.benchmark.metrics import aggregate_profile, measure_instance
 from mldsafail.benchmark.suites import load_seed_suite, selected_suites
 from mldsafail.benchmark import suites as suites_module
-from mldsafail.models import Candidate, CostCounter, ToyInstance, VerificationResult
+from mldsafail.benchmark.cost_model import OperationMeter
+from mldsafail.models import Candidate, ChallengeInstance, VerificationResult
 
 
-INSTANCE = ToyInstance(
-    instance_id="unit", seed=7, profile="toy-small", dimension=1,
+INSTANCE = ChallengeInstance(
+    instance_id="unit", seed=7, profile="small", dimension=1,
     modulus=97, eta=2, matrix=((1,),), target=(1,),
 )
 
 
-def good_solver(instance: ToyInstance, cost: CostCounter) -> Candidate:
-    cost.additions += 2
+def good_solver(instance: ChallengeInstance, cost: OperationMeter) -> Candidate:
+    cost.additions(2)
     return Candidate((1,))
 
 
-def verifier(instance: ToyInstance, candidate: Candidate) -> VerificationResult:
+def verifier(instance: ChallengeInstance, candidate: Candidate) -> VerificationResult:
     valid = candidate.coefficients == (1,)
     return VerificationResult(valid, "ok" if valid else "wrong", 1 if valid else None)
 
 
 def test_measurement_verifies_and_aggregates():
     result = measure_instance(INSTANCE, good_solver, verifier)
-    aggregate = aggregate_profile("toy-small", [result])
+    aggregate = aggregate_profile("small", [result])
     assert result.correct
     assert aggregate.correct
     assert aggregate.abstract_cost == result.cost["total"] == 2
@@ -39,7 +40,7 @@ def test_measurement_verifies_and_aggregates():
 
 def test_invalid_output_has_no_scored_cost():
     result = measure_instance(INSTANCE, lambda _i, _c: Candidate((2,)), verifier)
-    aggregate = aggregate_profile("toy-small", [result])
+    aggregate = aggregate_profile("small", [result])
     assert not aggregate.correct
     assert aggregate.abstract_cost == 0
     assert aggregate.solution_quality is None
@@ -56,7 +57,7 @@ def test_solver_exception_becomes_failure_metric():
 
 def test_seed_suites_and_full_semantics():
     assert selected_suites("full") == ("public", "hidden")
-    assert set(load_seed_suite("public", "toy-small")) == {"toy-small"}
+    assert set(load_seed_suite("public", "small")) == {"small"}
 
 
 def test_seed_suites_fall_back_to_packaged_resources(monkeypatch):
@@ -66,7 +67,7 @@ def test_seed_suites_fall_back_to_packaged_resources(monkeypatch):
         {name: suites_module.PROJECT_ROOT / "missing" / path.name
          for name, path in suites_module.SUITE_FILES.items()},
     )
-    assert load_seed_suite("hidden", "toy-medium") == {"toy-medium": (9201, 9202)}
+    assert load_seed_suite("hidden", "medium") == {"medium": (9201, 9202)}
 
 
 def record(identifier, values, correct=True):
@@ -100,7 +101,7 @@ def test_cli_serializes_solver_exception_as_unscored_failure(tmp_path, monkeypat
     )
     output = tmp_path / "experiments.jsonl"
     result = runner.main([
-        "--profile", "toy-small", "--seed", "12345", "--output", str(output)
+        "--profile", "small", "--seed", "12345", "--output", str(output)
     ])
     printed = json.loads(capsys.readouterr().out)
     persisted = json.loads(output.read_text())
@@ -160,10 +161,10 @@ def test_cli_selects_lazy_solver_and_records_name(tmp_path, monkeypatch, capsys)
 
 def test_lazy_selection_runs_a_distinct_cost_model():
     _balanced_suites, balanced, balanced_correct = runner.run_benchmark(
-        suite="public", profile="toy-medium", solver_name="balanced"
+        suite="public", profile="medium", solver_name="balanced"
     )
     _lazy_suites, lazy, lazy_correct = runner.run_benchmark(
-        suite="public", profile="toy-medium", solver_name="lazy"
+        suite="public", profile="medium", solver_name="lazy"
     )
     assert balanced_correct and lazy_correct
     assert lazy["abstract_cost"] < balanced["abstract_cost"]
@@ -175,8 +176,8 @@ def test_lazy_selection_runs_a_distinct_cost_model():
         ["--seed", "1"],
         ["--profile", "not-a-profile"],
         ["--solver", "not-a-solver"],
-        ["--profile", "toy-small", "--seed", "1", "--suite", "hidden"],
-        ["--profile", "toy-small", "--seed", "1", "--suite", "full"],
+        ["--profile", "small", "--seed", "1", "--suite", "hidden"],
+        ["--profile", "small", "--seed", "1", "--suite", "full"],
     ],
 )
 def test_cli_rejects_invalid_flag_combinations(arguments):

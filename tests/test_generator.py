@@ -6,7 +6,7 @@ import pytest
 from mldsafail.math.lattice import is_invertible
 from mldsafail.math.lattice import mat_vec_mul
 from mldsafail.models import Candidate
-from mldsafail.models import DiagnosticMetadata, ToyInstance
+from mldsafail.models import ChallengeInstance, DiagnosticMetadata
 from mldsafail.trusted.generator import (
     MAX_DIMENSION,
     generate_instance,
@@ -18,20 +18,20 @@ from mldsafail.trusted.verifier import verify
 
 
 def test_same_seed_and_profile_are_deterministic() -> None:
-    first = generate_instance(12345, "toy-medium")
-    second = generate_instance(12345, "toy-medium")
+    first = generate_instance(12345, "medium")
+    second = generate_instance(12345, "medium")
     assert first == second
     assert asdict(first) == asdict(second)
 
 
 def test_different_seeds_produce_different_public_instances() -> None:
-    first = generate_instance(1, "toy-small")
-    second = generate_instance(2, "toy-small")
+    first = generate_instance(1, "small")
+    second = generate_instance(2, "small")
     assert first.instance_id != second.instance_id
     assert first.matrix != second.matrix
 
 
-@pytest.mark.parametrize("profile", ["toy-small", "toy-medium", "toy-large"])
+@pytest.mark.parametrize("profile", ["small", "medium", "large"])
 def test_many_seeds_preserve_generation_and_verification_invariants(profile: str) -> None:
     identifiers: set[str] = set()
     for seed in range(25):
@@ -45,7 +45,7 @@ def test_many_seeds_preserve_generation_and_verification_invariants(profile: str
         assert verify(public, Candidate(diagnostic.planted_solution)).valid
 
 
-@pytest.mark.parametrize("profile", ["toy-small", "toy-medium", "toy-large"])
+@pytest.mark.parametrize("profile", ["small", "medium", "large"])
 def test_profiles_are_bounded_and_matrices_are_invertible(profile: str) -> None:
     instance = generate_instance(7, profile)
     assert instance.dimension <= MAX_DIMENSION
@@ -57,17 +57,17 @@ def test_unknown_profile_and_invalid_seed_are_rejected() -> None:
     with pytest.raises(ValueError, match="unknown toy profile"):
         generate_instance(1, "ML-DSA-87")
     with pytest.raises(ValueError, match="non-negative"):
-        generate_instance(-1, "toy-small")
+        generate_instance(-1, "small")
     with pytest.raises(ValueError, match="non-negative"):
-        generate_instance(True, "toy-small")
+        generate_instance(True, "small")
     with pytest.raises(ValueError, match="unknown toy profile"):
         generate_instance(1, {"dimension": 8})  # type: ignore[arg-type]
 
 
 def test_public_and_diagnostic_data_are_separate() -> None:
-    public = generate_instance(99, "toy-small")
-    paired_public, diagnostic = generate_instance_with_diagnostics(99, "toy-small")
-    assert isinstance(public, ToyInstance)
+    public = generate_instance(99, "small")
+    paired_public, diagnostic = generate_instance_with_diagnostics(99, "small")
+    assert isinstance(public, ChallengeInstance)
     assert isinstance(diagnostic, DiagnosticMetadata)
     assert public == paired_public
     assert public.instance_id == diagnostic.instance_id
@@ -79,7 +79,7 @@ def test_profile_loader_uses_repo_root_from_any_working_directory(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.chdir(tmp_path)
-    assert load_profiles()["toy-small"].dimension == 8
+    assert load_profiles()["small"].dimension == 8
 
 
 def test_packaged_profile_fallback_matches_repository_config(
@@ -100,19 +100,19 @@ def test_profile_loader_rejects_oversized_or_malformed_profiles(tmp_path: Path) 
     oversized = tmp_path / "oversized.toml"
     oversized.write_text(
         f"""
-[toy-small]
+[small]
 dimension = {MAX_DIMENSION + 1}
 modulus = 97
 eta = 2
 public_seeds = 1
 hidden_seeds = 1
-[toy-medium]
+[medium]
 dimension = 16
 modulus = 257
 eta = 3
 public_seeds = 1
 hidden_seeds = 1
-[toy-large]
+[large]
 dimension = 24
 modulus = 769
 eta = 4
@@ -124,7 +124,7 @@ hidden_seeds = 1
         load_profiles(oversized)
 
     malformed = tmp_path / "malformed.toml"
-    malformed.write_text("[toy-small]\ndimension = 8\n")
+    malformed.write_text("[small]\ndimension = 8\n")
     with pytest.raises(ValueError, match="exactly"):
         load_profiles(malformed)
 

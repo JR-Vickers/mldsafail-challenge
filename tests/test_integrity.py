@@ -14,7 +14,7 @@ from mldsafail.benchmark.integrity import (
 
 def _fixture_tree(root: Path) -> None:
     files = {
-        "config/toy_profiles.toml": b"[toy-small]\ndimension=2\n",
+        "config/profiles.toml": b"[small]\ndimension=2\n",
         "data/hidden_seeds.json": b"[1, 2]\n",
         "data/public_seeds.json": b"not trusted\n",
         "src/mldsafail/trusted/generator.py": b"GENERATOR = 1\n",
@@ -45,13 +45,13 @@ def test_manifest_and_fingerprint_are_deterministic(tmp_path: Path) -> None:
 def test_comparison_reports_added_missing_and_changed(tmp_path: Path) -> None:
     _fixture_tree(tmp_path)
     expected = build_trusted_manifest(tmp_path)
-    (tmp_path / "config/toy_profiles.toml").write_text("changed\n")
+    (tmp_path / "config/profiles.toml").write_text("changed\n")
     (tmp_path / "data/hidden_seeds.json").unlink()
     added = tmp_path / "src/mldsafail/trusted/new_check.py"
     added.write_text("new\n")
 
     difference = compare_trusted_manifest(expected, tmp_path)
-    assert difference.changed == ("config/toy_profiles.toml",)
+    assert difference.changed == ("config/profiles.toml",)
     assert difference.missing == ("data/hidden_seeds.json",)
     assert difference.added == ("src/mldsafail/trusted/new_check.py",)
     assert not difference.matches

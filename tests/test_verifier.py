@@ -6,7 +6,7 @@ from mldsafail.trusted.verifier import verify
 
 
 def test_known_planted_candidate_passes_without_verifier_metadata() -> None:
-    instance, diagnostic = generate_instance_with_diagnostics(42, "toy-medium")
+    instance, diagnostic = generate_instance_with_diagnostics(42, "medium")
     result = verify(instance, Candidate(diagnostic.planted_solution))
     assert result.valid
     assert result.reason == "candidate satisfies the public relation"
@@ -14,7 +14,7 @@ def test_known_planted_candidate_passes_without_verifier_metadata() -> None:
 
 
 def test_mutated_candidate_fails_public_relation() -> None:
-    instance, diagnostic = generate_instance_with_diagnostics(42, "toy-medium")
+    instance, diagnostic = generate_instance_with_diagnostics(42, "medium")
     changed = list(diagnostic.planted_solution)
     changed[0] = changed[0] + 1 if changed[0] < instance.eta else changed[0] - 1
     result = verify(instance, Candidate(tuple(changed)))
@@ -23,7 +23,7 @@ def test_mutated_candidate_fails_public_relation() -> None:
 
 
 def test_malformed_candidates_fail_without_raising() -> None:
-    instance, _ = generate_instance_with_diagnostics(3, "toy-small")
+    instance, _ = generate_instance_with_diagnostics(3, "small")
     cases = [
         object(),
         Candidate(()),
@@ -36,7 +36,7 @@ def test_malformed_candidates_fail_without_raising() -> None:
 
 
 def test_malformed_public_instance_fails_without_raising() -> None:
-    instance, diagnostic = generate_instance_with_diagnostics(5, "toy-small")
+    instance, diagnostic = generate_instance_with_diagnostics(5, "small")
     malformed = replace(instance, matrix=instance.matrix[:-1])
     result = verify(malformed, Candidate(diagnostic.planted_solution))
     assert not result.valid
@@ -44,7 +44,7 @@ def test_malformed_public_instance_fails_without_raising() -> None:
 
 
 def test_arbitrary_or_mutated_instance_data_is_rejected() -> None:
-    instance, diagnostic = generate_instance_with_diagnostics(5, "toy-small")
+    instance, diagnostic = generate_instance_with_diagnostics(5, "small")
     candidate = Candidate(diagnostic.planted_solution)
     cases = [
         replace(instance, profile="custom"),

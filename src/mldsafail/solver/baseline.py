@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-from mldsafail.models import Candidate, CostCounter, ToyInstance
+from mldsafail.benchmark.cost_model import OperationMeter
+from mldsafail.models import Candidate, ChallengeInstance
 
 
 class SolverError(RuntimeError):
     """Raised when a toy instance has no uniquely recoverable solution."""
 
 
-def solve(instance: ToyInstance, cost: CostCounter) -> Candidate:
+def solve(instance: ChallengeInstance, cost: OperationMeter) -> Candidate:
     """Solve ``matrix * coefficients == target (mod modulus)``.
 
     The implementation uses forward elimination followed by back substitution.
@@ -113,9 +114,9 @@ def solve(instance: ToyInstance, cost: CostCounter) -> Candidate:
         memory_writes += n
         return Candidate(coefficients=coefficients)
     finally:
-        cost.additions += additions
-        cost.multiplications += multiplications
-        cost.modular_reductions += modular_reductions
-        cost.basis_updates += basis_updates
-        cost.memory_reads += memory_reads
-        cost.memory_writes += memory_writes
+        cost.additions(additions)
+        cost.multiplications(multiplications)
+        cost.modular_reductions(modular_reductions)
+        cost.basis_updates(basis_updates)
+        cost.memory_reads(memory_reads)
+        cost.memory_writes(memory_writes)

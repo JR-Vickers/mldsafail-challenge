@@ -6,13 +6,13 @@ import hashlib
 import json
 
 from mldsafail.math.lattice import mat_vec_mul
-from mldsafail.models import Candidate, ToyInstance, VerificationResult
+from mldsafail.models import Candidate, ChallengeInstance, VerificationResult
 from mldsafail.trusted.generator import load_profiles
 
 
-def verify(instance: ToyInstance, candidate: Candidate) -> VerificationResult:
+def verify(instance: ChallengeInstance, candidate: Candidate) -> VerificationResult:
     """Validate the public modular relation and the configured short bound."""
-    if not isinstance(instance, ToyInstance):
+    if not isinstance(instance, ChallengeInstance):
         return VerificationResult(False, "instance has the wrong type")
     if not isinstance(candidate, Candidate):
         return VerificationResult(False, "candidate has the wrong type")

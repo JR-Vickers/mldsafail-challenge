@@ -7,7 +7,7 @@ bench:
 	uv run python -m mldsafail.benchmark.runner
 
 check: test
-	uv run python -m mldsafail.benchmark.runner --profile toy-small --no-record
+	uv run python -m mldsafail.benchmark.runner --profile small --no-record
 
 web:
 	uv run python -m mldsafail.web.app

@@ -9,15 +9,15 @@ import tomllib
 from pathlib import Path
 
 from mldsafail.math.lattice import is_invertible, mat_vec_mul
-from mldsafail.models import DiagnosticMetadata, ToyInstance, ToyProfile
+from mldsafail.models import ChallengeInstance, ChallengeProfile, DiagnosticMetadata
 
-PROFILE_NAMES = frozenset({"toy-small", "toy-medium", "toy-large"})
+PROFILE_NAMES = frozenset({"small", "medium", "large"})
 MAX_DIMENSION = 64
 MAX_MODULUS = 4096
 MAX_ETA = 8
 _PROFILE_FIELDS = frozenset({"dimension", "modulus", "eta", "public_seeds", "hidden_seeds"})
-_SOURCE_PROFILE_PATH = Path(__file__).resolve().parents[3] / "config" / "toy_profiles.toml"
-_PACKAGED_PROFILE_PATH = Path(__file__).with_name("toy_profiles.toml")
+_SOURCE_PROFILE_PATH = Path(__file__).resolve().parents[3] / "config" / "profiles.toml"
+_PACKAGED_PROFILE_PATH = Path(__file__).with_name("profiles.toml")
 
 
 def _default_profile_path() -> Path:
@@ -36,7 +36,7 @@ def _is_prime(value: int) -> bool:
     return True
 
 
-def load_profiles(path: str | Path | None = None) -> dict[str, ToyProfile]:
+def load_profiles(path: str | Path | None = None) -> dict[str, ChallengeProfile]:
     """Load and strictly validate the fixed toy profile set.
 
     A custom path exists for validation tests and trusted administration; it
@@ -48,7 +48,7 @@ def load_profiles(path: str | Path | None = None) -> dict[str, ToyProfile]:
     if set(raw) != PROFILE_NAMES:
         raise ValueError(f"profile file must define exactly {sorted(PROFILE_NAMES)}")
 
-    profiles: dict[str, ToyProfile] = {}
+    profiles: dict[str, ChallengeProfile] = {}
     for name in sorted(PROFILE_NAMES):
         values = raw[name]
         if not isinstance(values, dict) or set(values) != _PROFILE_FIELDS:
@@ -66,18 +66,18 @@ def load_profiles(path: str | Path | None = None) -> dict[str, ToyProfile]:
             raise ValueError(f"profile {name!r} has an invalid short-vector bound")
         if values["public_seeds"] < 1 or values["hidden_seeds"] < 1:
             raise ValueError(f"profile {name!r} seed counts must be positive")
-        profiles[name] = ToyProfile(name=name, **values)
+        profiles[name] = ChallengeProfile(name=name, **values)
     return profiles
 
 
 def _rng_for(seed: int, profile: str) -> random.Random:
     if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
         raise ValueError("seed must be a non-negative integer")
-    domain_seed = hashlib.sha256(f"mldsafail:v1:{profile}:{seed}".encode()).digest()
+    domain_seed = hashlib.sha256(f"mldsafail:v2:{profile}:{seed}".encode()).digest()
     return random.Random(int.from_bytes(domain_seed, "big"))
 
 
-def _generate(seed: int, profile_name: str) -> tuple[ToyInstance, DiagnosticMetadata]:
+def _generate(seed: int, profile_name: str) -> tuple[ChallengeInstance, DiagnosticMetadata]:
     profiles = load_profiles()
     try:
         profile = profiles[profile_name]
@@ -113,12 +113,12 @@ def _generate(seed: int, profile_name: str) -> tuple[ToyInstance, DiagnosticMeta
     instance_id = hashlib.sha256(
         json.dumps(public_payload, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()[:24]
-    instance = ToyInstance(instance_id=instance_id, **public_payload)
+    instance = ChallengeInstance(instance_id=instance_id, **public_payload)
     diagnostic = DiagnosticMetadata(instance_id=instance_id, planted_solution=solution)
     return instance, diagnostic
 
 
-def generate_instance(seed: int, profile: str) -> ToyInstance:
+def generate_instance(seed: int, profile: str) -> ChallengeInstance:
     """Generate public challenge data only for a named, bounded toy profile."""
     instance, _diagnostic = _generate(seed, profile)
     return instance
@@ -126,6 +126,6 @@ def generate_instance(seed: int, profile: str) -> ToyInstance:
 
 def generate_instance_with_diagnostics(
     seed: int, profile: str
-) -> tuple[ToyInstance, DiagnosticMetadata]:
+) -> tuple[ChallengeInstance, DiagnosticMetadata]:
     """Trusted test/diagnostic entry point keeping planted data separate."""
     return _generate(seed, profile)
