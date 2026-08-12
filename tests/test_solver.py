@@ -31,6 +31,15 @@ def test_cost_is_deterministic():
     assert first.to_dict() == second.to_dict()
 
 
+def test_cost_accumulates_into_existing_counter():
+    baseline = CostCounter()
+    solve(instance(), baseline)
+    accumulated = CostCounter(additions=10, memory_reads=20)
+    solve(instance(), accumulated)
+    assert accumulated.additions == baseline.additions + 10
+    assert accumulated.memory_reads == baseline.memory_reads + 20
+
+
 def test_forward_elimination_solves_system_requiring_back_substitution():
     toy = instance(
         matrix=((1, 2, 1), (0, 1, 3), (2, 1, 1)),
