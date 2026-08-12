@@ -2,21 +2,27 @@ PLAN.md
 
 1. Project Goal
 
-Build an end-to-end local MVP of mldsa.fail, inspired by the structure and presentation of ecdsa.fail, but focused on autonomous optimization research over deliberately small, synthetic lattice problems motivated by ML-DSA.
+Build an end-to-end local MVP of mldsa.fail, inspired by ecdsa.fail, around a precisely defined optimization challenge over deliberately small, synthetic lattice problems motivated by ML-DSA.
 
-The MVP should answer one core question:
+The primary scientific question is:
 
-Can coding/research agents repeatedly discover, implement, verify, and retain meaningful improvements to lattice-oriented algorithms under a deterministic benchmark?
+How far can we reduce the cost of the best-known valid solution to a fixed lattice/PQC challenge?
 
-The first version should prioritize a working research loop over visual polish. The site should initially emulate the basic structure of ecdsa.fail closely enough that later visual refinement is straightforward.
+The cryptographic optimization problem is the subject of the benchmark. Humans and coding agents are the research machinery: they should be able to modify the implementation, run a hardened verifier, measure one objective score, and contribute validated improvements to a shared frontier. How agents conduct research may later be studied from the resulting history, but it is not the benchmark's central question.
 
-This is a three-day, agent-heavy build. Optimize for clear interfaces, strong tests, reproducibility, and the ability for Codex or similar coding agents to work independently for long stretches.
+The first version should prioritize the ecdsa.fail-like kernel over visual polish or elaborate orchestration:
+
+editable algorithm → immutable harness → rigorous verifier → one meaningful score → baseline → autoresearch loop → frontier
+
+This is a three-day build designed for both human and agent contributors. Optimize for a concrete challenge contract, strong tests, reproducibility, and fast independent iteration.
 
 2. MVP Success Criteria
 
 The MVP is complete when a local user can:
 
-Generate deterministic toy challenge instances.
+Read a precise statement of the challenge, validity conditions, fixed evaluation suite, and score.
+
+Generate deterministic challenge instances.
 
 Run a baseline solver over them.
 
@@ -32,7 +38,7 @@ Display benchmark progress in a local web UI.
 
 Run the full stack on a MacBook Pro M4 Max without external compute.
 
-Give a coding agent the repository and let it safely iterate on the solver without needing constant human guidance.
+Give a human or coding agent the repository and let them safely iterate on the solver without needing changes to the harness.
 
 A minimal happy path should look like:
 
@@ -46,7 +52,7 @@ measure score
     ↓
 record experiment
     ↓
-agent edits solver
+researcher edits solver
     ↓
 rerun benchmark
     ↓
@@ -72,7 +78,7 @@ Wall-clock timing.
 
 Peak memory measurement.
 
-One or more abstract algorithmic cost metrics.
+One versioned abstract algorithmic cost metric for ranking valid results.
 
 Structured experiment logs.
 
@@ -84,7 +90,9 @@ A local leaderboard / record view.
 
 A progress-over-time chart.
 
-Agent-oriented repository documentation.
+Contributor documentation designed for both humans and coding agents.
+
+A single headline score and a best-known-score frontier.
 
 Local-first execution.
 
@@ -114,9 +122,11 @@ Perfect cryptographic fidelity to standardized ML-DSA parameter sets.
 
 A production deployment pipeline.
 
+Agent taxonomy, model comparison, multi-agent tournaments, or orchestration research.
+
 4. Safety Model
 
-The executable benchmark should be structurally limited to repository-generated toy instances.
+The executable benchmark should be structurally limited to repository-generated instances.
 
 The safety boundary should be enforced in code, not merely documented.
 
@@ -128,7 +138,7 @@ Arbitrary cryptographic parameter input is rejected.
 
 The benchmark runner accepts generated instance IDs or seeds, not public keys.
 
-The solver interface consumes the repository's internal toy-instance schema.
+The solver interface consumes the repository's internal instance schema.
 
 Production ML-DSA parameter sets are not exposed as executable attack profiles.
 
@@ -148,7 +158,21 @@ asymptotic comparison.
 
 5. Core Benchmark Design
 
-The benchmark should be separated from the ML-DSA narrative as much as possible.
+The first product decision is the challenge contract. Before optimization begins, freeze and document:
+
+the mathematical problem;
+
+the fixed, bounded instance distribution;
+
+the candidate-output contract;
+
+the validity conditions;
+
+the evaluation suite;
+
+the primary cost metric and aggregation rule.
+
+The benchmark should capture a meaningful ML-DSA-motivated structure while remaining clearly separated from production cryptanalysis. It must be specific enough that two independent implementations receive the same validity decision and score.
 
 Define a clean solver contract:
 
@@ -160,7 +184,7 @@ result = verify(instance, candidate)
 
 The verifier defines correctness.
 
-Recommended first benchmark family
+First benchmark family
 
 Use a planted short-vector / bounded-distance synthetic lattice problem.
 
@@ -178,29 +202,31 @@ Retain diagnostic metadata separately.
 
 Allow correctness to be checked from the challenge relation itself where possible.
 
-This gives the agent a genuine algorithmic search space without requiring interaction with real cryptographic keys.
+The exact search problem and acceptance bound must be finalized during Day 1 rather than left as a family of loosely related experiments. Once the baseline is published, changing them creates a new benchmark version.
+
+This gives researchers a genuine algorithmic search space without requiring interaction with real cryptographic keys.
 
 6. Difficulty Profiles
 
 Start with three fixed profiles:
 
-toy-small
-toy-medium
-toy-large
+small
+medium
+large
 
 The exact parameters can be tuned during implementation.
 
 Example configuration shape:
 
-[toy-small]
+[small]
 dimension = 16
 modulus = 97
 
-[toy-medium]
+[medium]
 dimension = 32
 modulus = 257
 
-[toy-large]
+[large]
 dimension = 48
 modulus = 769
 
@@ -220,7 +246,7 @@ well below practical cryptographic attack sizes.
 
 Keep all profile caps in one file:
 
-config/toy_profiles.toml
+config/profiles.toml
 
 Changing those caps should not count as an optimization.
 
@@ -230,11 +256,17 @@ Correctness is binary and comes first.
 
 An invalid output receives no benchmark score.
 
-After verification succeeds, score the run using multiple metrics rather than relying entirely on wall-clock speed.
+Every valid run receives one deterministic headline score. For the MVP, the score is the total versioned abstract operation cost across the fixed evaluation suite, minimized. The exact operation weights and suite aggregation must be explicit, tested, and frozen with the benchmark version before optimization begins.
+
+Wall-clock time, peak memory, solution quality, and individual operation counts remain visible diagnostics. They help explain improvements and expose unacceptable resource tradeoffs, but they do not create competing definitions of the winner.
 
 Required metrics
 
 correctness;
+
+headline score;
+
+total weighted abstract operation cost;
 
 total wall-clock time;
 
@@ -244,7 +276,7 @@ peak memory;
 
 solution quality;
 
-abstract operation count.
+abstract operation counts by category.
 
 Optional metrics
 
@@ -262,21 +294,7 @@ estimated bit complexity.
 
 Leaderboard philosophy
 
-Do not force every metric into one opaque scalar if doing so hides useful tradeoffs.
-
-Store the full metric vector and display:
-
-best runtime;
-
-best abstract cost;
-
-lowest memory;
-
-best solution quality;
-
-current Pareto frontier.
-
-A single headline score may be added later for presentation.
+Lowest valid headline score wins. Store the full diagnostic vector, but rank submissions and plot progress using the primary score only. If the score later proves scientifically inadequate, revise it through an explicit benchmark-version change and establish a new baseline; do not silently substitute a Pareto frontier or an ad hoc formula.
 
 8. Abstract Cost Model
 
@@ -295,7 +313,7 @@ class Cost:
     memory_reads: int = 0
     memory_writes: int = 0
 
-The purpose is to distinguish:
+The purpose is to provide the hardware-independent headline score and distinguish:
 
 genuine algorithmic improvement;
 
@@ -303,7 +321,7 @@ implementation optimization;
 
 hardware-dependent speedup.
 
-The cost model must be documented and versioned.
+The cost model, weights, aggregation rule, and instrumentation boundary must be documented and versioned. Counters must be produced by trusted instrumentation or otherwise protected against candidate fabrication.
 
 9. Repository Architecture
 
@@ -316,7 +334,7 @@ Recommended layout:
 ├── pyproject.toml
 │
 ├── config/
-│   └── toy_profiles.toml
+│   └── profiles.toml
 │
 ├── src/
 │   ├── math/
@@ -399,13 +417,14 @@ Example:
   "hypothesis": "cache repeated Gram-Schmidt state",
   "benchmark_version": "0.1.0",
   "correct": true,
+  "score": 934128,
   "runtime_seconds": 1.82,
   "peak_memory_mb": 214,
   "abstract_cost": 934128,
   "profiles": {
-    "toy-small": {},
-    "toy-medium": {},
-    "toy-large": {}
+    "small": {},
+    "medium": {},
+    "large": {}
   },
   "notes": "Improves medium and large profiles."
 }
@@ -425,10 +444,10 @@ pytest
 python -m src.benchmark.runner
 
 # run one profile
-python -m src.benchmark.runner --profile toy-medium
+python -m src.benchmark.runner --profile medium
 
 # run with an explicit seed
-python -m src.benchmark.runner --profile toy-medium --seed 12345
+python -m src.benchmark.runner --profile medium --seed 12345
 
 # run full evaluation
 python -m src.benchmark.runner --suite full
@@ -575,11 +594,11 @@ Tag the first validated result:
 
 baseline-v1
 
-16. Agent Optimization Loop
+16. Autoresearch Optimization Loop
 
-The repository should make autonomous iteration easy.
+The repository should make repeated scientific iteration easy for humans, coding agents, and mixed teams. Autoresearch is a core operating mechanism, not the object being scored.
 
-Each agent run should follow:
+Each experiment should follow:
 
 A. Baseline
 
@@ -591,7 +610,7 @@ Write one concrete hypothesis.
 
 Example:
 
-Repeated Gram-Schmidt recomputation dominates toy-large runtime.
+Repeated Gram-Schmidt recomputation dominates large runtime.
 Caching and incrementally updating the orthogonal basis should reduce
 both wall time and abstract operation count.
 
@@ -617,11 +636,11 @@ If the change:
 
 breaks correctness → revert;
 
-regresses materially → revert;
+exceeds a fixed resource limit → reject as unscored;
 
-improves only one metric but worsens another → retain only if Pareto-improving;
+lowers the headline score → keep and advance the shared best implementation;
 
-clearly improves results → keep.
+does not lower the headline score → do not advance the shared best implementation.
 
 H. Record
 
@@ -629,14 +648,14 @@ Append the result to results/experiments.jsonl.
 
 Failed experiments should still be recorded.
 
-17. Git Workflow for Agents
+17. Collaborative Git Workflow
 
 Keep the history easy to audit.
 
 Recommended pattern:
 
 main
- └── experiment/<agent>/<timestamp>
+ └── experiment/<researcher>/<timestamp>
 
 For each serious experiment:
 
@@ -680,8 +699,8 @@ Example:
 
 mldsa.fail
 
-Autonomous agents are optimizing a synthetic
-post-quantum lattice challenge.
+How low can we drive the cost of this
+post-quantum lattice challenge?
 
 Current improvement: 37.4%
 
@@ -691,17 +710,9 @@ Show:
 
 baseline ───────── challenge start ───────── current record
 
-Current records
+Current record
 
-Cards for:
-
-fastest runtime;
-
-lowest abstract cost;
-
-lowest memory;
-
-best solution quality.
+Lead with the lowest valid headline score and its improvement from baseline. Show runtime, memory, solution quality, and operation categories as supporting diagnostics.
 
 Improvement history
 
@@ -723,7 +734,7 @@ Show:
 
 timestamp;
 
-agent;
+researcher or agent;
 
 hypothesis;
 
@@ -737,7 +748,7 @@ Methodology
 
 Short explanation of:
 
-toy instances;
+instances;
 
 verifier;
 
@@ -791,11 +802,11 @@ current best;
 
 baseline delta;
 
-Pareto frontier;
+headline-score frontier;
 
 recent experiments;
 
-best-per-metric;
+diagnostic metrics for the current record;
 
 cumulative improvement.
 
@@ -805,13 +816,15 @@ Keep these calculations deterministic and testable.
 
 Day 1 — Make the benchmark real
 
-Primary goal: a complete research loop exists from generator to score.
+Primary goal: freeze the scientific challenge and produce its first verified score.
 
 Build:
 
 project skeleton;
 
-toy profiles;
+precise challenge statement and solver contract;
+
+profiles;
 
 deterministic generator;
 
@@ -825,6 +838,8 @@ benchmark runner;
 
 metrics;
 
+one versioned headline-score formula;
+
 basic tests;
 
 experiment JSONL writer.
@@ -837,9 +852,9 @@ produces a verified, reproducible baseline result.
 
 Do not prioritize the frontend until this works.
 
-Day 2 — Make agents productive
+Day 2 — Make autoresearch productive
 
-Primary goal: Codex can perform meaningful optimization work autonomously.
+Primary goal: humans and coding agents can make and validate meaningful improvements without modifying the benchmark contract.
 
 Build:
 
@@ -851,7 +866,7 @@ cost instrumentation;
 
 regression comparison;
 
-experiment branch workflow;
+simple experiment workflow;
 
 automatic result recording;
 
@@ -859,9 +874,9 @@ best-result detection;
 
 benchmark-integrity checks;
 
-several obvious optimization opportunities.
+clear editable/trusted boundaries.
 
-Then begin autonomous optimization runs.
+Then begin human- and agent-driven optimization runs.
 
 End-of-day target:
 
@@ -889,7 +904,7 @@ records view;
 
 experiment detail view;
 
-Pareto display;
+headline-score frontier;
 
 methodology section;
 
@@ -901,7 +916,7 @@ one-command local startup.
 
 Spend remaining time on:
 
-additional autonomous optimization runs;
+additional human- or agent-driven optimization runs;
 
 bug fixing;
 
@@ -913,11 +928,11 @@ End-of-day target:
 
 make web
 
-opens a complete local demo showing the history of agents improving the challenge.
+opens a complete local demo showing the baseline, the best-known valid solution, and the history of improvements to the challenge.
 
-22. Parallel Agent Workstreams
+22. Parallel Workstreams
 
-Once the benchmark contract stabilizes, agents can work in parallel.
+Once the benchmark contract stabilizes, human and agent contributors can work in parallel.
 
 Suggested tracks:
 
@@ -977,20 +992,6 @@ record cards;
 
 experiment pages.
 
-Track E — Research analysis
-
-Analyze experiment history for:
-
-repeated discoveries;
-
-failed strategies;
-
-optimization classes;
-
-scaling patterns;
-
-agent differences.
-
 Do not parallelize work that changes the benchmark contract until that contract is stable.
 
 23. Benchmark Integrity Checks
@@ -1013,11 +1014,11 @@ alter the scoring formula;
 
 skip verification;
 
-silently change toy-profile difficulty.
+silently change profile difficulty.
 
 Where practical, hash or otherwise fingerprint trusted benchmark files before an optimization run and report changes.
 
-This does not need to be adversarially secure. It needs to make accidental or agent-induced benchmark corruption obvious.
+This does not need to be adversarially secure. It needs to make accidental or unauthorized benchmark changes obvious.
 
 24. Quantum Resource Estimation
 
@@ -1046,45 +1047,17 @@ extrapolation
 
 Do not present one as another.
 
-A useful eventual feature is to let an agent optimize an abstract reversible algorithm against a resource model without requiring a real quantum computer.
+A useful eventual feature is to let researchers optimize an abstract reversible algorithm against a resource model without requiring a real quantum computer.
 
-25. Research Questions
+25. Secondary Research Opportunities
 
-The system should eventually make it possible to study:
+The experiment history may later support meta-research about how humans and agents search the design space: which improvements generalize, which approaches fail hidden evaluation, whether independent researchers rediscover the same techniques, and what helps progress resume after a plateau.
 
-How quickly do coding agents improve the baseline?
+These are useful studies derived from the benchmark. They must not drive the MVP architecture, complicate the scoring objective, or displace work on the lattice challenge itself.
 
-Which classes of optimization are rediscovered most often?
+26. Experiment Classification
 
-Do different models converge on the same improvements?
-
-Which improvements generalize across dimensions?
-
-How often do apparently good optimizations fail hidden evaluation?
-
-What fraction of gains come from:
-
-algorithm changes;
-
-implementation changes;
-
-numerical tricks;
-
-memory optimization?
-
-Does progress plateau?
-
-Can agents escape a plateau by changing the algorithm rather than tuning the implementation?
-
-How reproducible are independently discovered improvements?
-
-How often do autonomous agents corrupt or game the benchmark?
-
-These questions are part of the project's value, not merely side observations.
-
-26. Experiment Taxonomy
-
-Tag experiments so later analysis is possible.
+Use lightweight tags when they help contributors understand the technical history; do not build an elaborate taxonomy during the MVP.
 
 Suggested tags:
 
@@ -1104,7 +1077,7 @@ failed
 
 Multiple tags may apply.
 
-This makes the history useful as a research dataset.
+This keeps the optimization record searchable and can support later analysis without making agent behavior part of the score.
 
 27. Performance Profiling
 
@@ -1124,7 +1097,7 @@ Allocation / memory profiling.
 
 Abstract operation counts.
 
-Agents should be encouraged to optimize measured bottlenecks instead of guessing.
+Contributors should optimize measured bottlenecks instead of guessing.
 
 28. Reproducibility Metadata
 
@@ -1138,7 +1111,7 @@ machine architecture
 OS
 profile
 seed set
-agent/model
+researcher and, when applicable, agent/model
 run timestamp
 command
 
@@ -1166,7 +1139,7 @@ non-generalizing speedup.
 
 The UI may eventually display them as part of the research history.
 
-This is especially useful when comparing agents: the shape of failed exploration may be as interesting as the winning patches.
+Failed results prevent duplicated work and document the evidence behind changes to the best-known implementation.
 
 30. README Requirements
 
@@ -1220,7 +1193,7 @@ The local project should avoid assumptions that prevent later deployment to mlds
 
 When an implementation choice is ambiguous:
 
-Prefer the option an autonomous coding agent can understand.
+Prefer the option a new human or coding-agent contributor can understand.
 
 Prefer deterministic behavior.
 
@@ -1236,7 +1209,7 @@ Prefer a working vertical slice over architectural completeness.
 
 Defer visual refinement until the benchmark loop is stable.
 
-Agents are authorized to make routine implementation decisions without waiting for human approval.
+Contributors are authorized to make routine solver implementation decisions without changing the trusted benchmark contract.
 
 Escalate only when a decision changes:
 
@@ -1256,7 +1229,7 @@ Repository installs cleanly on the target Mac.
 
 pytest passes.
 
-Toy instances are deterministic.
+Instances are deterministic.
 
 Profiles are hard-bounded.
 
@@ -1270,9 +1243,11 @@ Hidden evaluation works.
 
 Metrics are recorded.
 
+One versioned headline score determines the best-known valid result.
+
 Experiment JSONL is append-only.
 
-At least one optimization can be compared against baseline.
+At least one optimization can be compared objectively against baseline.
 
 Invalid solutions receive no score.
 
@@ -1280,7 +1255,7 @@ Benchmark corruption is detectable.
 
 Local website starts with one command.
 
-Website shows baseline and current best.
+Website shows baseline, current best, and headline-score improvement.
 
 Website shows progress over time.
 
@@ -1298,23 +1273,15 @@ Only pursue these after the vertical slice is solid.
 
 Research
 
-Multi-agent tournament.
-
-Agent-vs-agent branch competition.
-
-Automatic hypothesis extraction from patches.
-
 Optimization transfer across profiles.
 
 Scaling-law analysis.
 
-Novelty detection for rediscovered techniques.
+Analysis of independently rediscovered techniques.
 
 Benchmarking
 
 Multiple lattice challenge families.
-
-More sophisticated Pareto ranking.
 
 Machine-independent normalized cost.
 
@@ -1338,15 +1305,11 @@ Interactive experiment graph.
 
 Patch diffs.
 
-Agent profile pages.
-
 Public read-only leaderboard.
 
 Live experiment feed.
 
 Infrastructure
-
-Sandboxed agent runners.
 
 Parallel experiment workers.
 
@@ -1358,18 +1321,18 @@ None of these should delay the first end-to-end MVP.
 
 35. Final Build Principle
 
-The project should remain centered on one observable loop:
+The project should remain centered on one objectively scored scientific challenge and one observable loop:
 
-hypothesis
+editable algorithm
     ↓
-code
+candidate solution
     ↓
-verification
+immutable verification
     ↓
-measurement
+headline score
     ↓
-evidence
+shared best-known frontier
 
-Everything else exists to make that loop faster, more reliable, easier to audit, or easier to understand.
+Humans and agents advance that loop by forming hypotheses, changing code, and contributing evidence. Everything else exists to make the scientific optimization faster, more reliable, easier to audit, or easier to understand.
 
 If a feature does not strengthen that loop during the MVP sprint, defer it.
