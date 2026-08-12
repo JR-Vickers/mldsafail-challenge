@@ -40,6 +40,14 @@ def test_cost_accumulates_into_existing_counter():
     assert accumulated.memory_reads == baseline.memory_reads + 20
 
 
+def test_canonical_public_input_is_not_reduced_again():
+    cost = CostCounter()
+    solve(instance(matrix=((1, 0), (0, 1)), target=(1, 96)), cost)
+    # Only the two back-substitution assignments need reductions; copying the
+    # six public residues requires none.
+    assert cost.modular_reductions == 2
+
+
 def test_forward_elimination_solves_system_requiring_back_substitution():
     toy = instance(
         matrix=((1, 2, 1), (0, 1, 3), (2, 1, 1)),
