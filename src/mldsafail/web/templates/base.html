@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Local benchmark for agent-driven toy lattice optimization">
+  <title>{% block title %}mldsa.fail{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <a class="wordmark" href="{{ url_for('index') }}">mldsa<span>.fail</span></a>
+    <nav><a href="{{ url_for('index') }}">Records</a><a href="{{ url_for('methodology') }}">Methodology &amp; safety</a></nav>
+  </header>
+  <main>{% block content %}{% endblock %}</main>
+  <footer>Local research benchmark · synthetic toy instances only · no production cryptographic targets</footer>
+</body>
+</html>
