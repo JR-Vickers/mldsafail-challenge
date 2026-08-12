@@ -1,9 +1,6 @@
 # AGENTS.md
 
 ## Behaviors
-Package management is done via uv.  Upon beginning a new session, ensure the venv is active via:
-`source .venv/bin/activate`
-
 Make regular, descriptive git commits upon reaching sensible checkpoints.  Don't push them to main, let me do that manually.
 
 ## Project Overview
@@ -18,12 +15,10 @@ The project explores a question:
 > small, synthetic, reproducible problem instances?
 
 The long-term research interest is post-quantum cryptography, especially
-ML-DSA/Dilithium-like lattice structures. However, this repository is **not**
-intended to recover keys, forge signatures, or attack real cryptographic
-deployments.
+ML-DSA/Dilithium-like lattice structures.
 
 All executable cryptanalytic experiments must operate on deliberately small,
-locally generated toy instances.
+locally generated instances.
 
 Think of this repository as:
 
@@ -32,9 +27,6 @@ Think of this repository as:
 - a reproducibility harness;
 - a leaderboard for algorithmic improvements;
 - a way to study how coding/research agents search an algorithmic design space.
-
-It is not an offensive cryptography toolkit.
-
 
 # 1. Primary Objective
 
@@ -83,14 +75,14 @@ Agents may:
 - implement mathematical operations on those instances;
 - experiment with small-dimensional lattice reduction;
 - implement generic linear algebra and polynomial arithmetic;
-- compare reduction algorithms on toy instances;
+- compare reduction algorithms on instances;
 - optimize memory usage;
 - optimize runtime;
 - optimize abstract operation counts;
 - construct resource estimators;
 - simulate algorithms;
 - inspect NIST specifications;
-- reproduce publicly documented toy examples;
+- reproduce publicly documented examples;
 - analyze asymptotic complexity;
 - implement correctness verifiers;
 - implement benchmark infrastructure;
@@ -102,20 +94,19 @@ Agents may:
 
 Agents must not:
 
-- recover secret keys from real ML-DSA public keys;
 - forge ML-DSA signatures;
 - attack externally supplied cryptographic keys;
 - attack externally supplied signatures;
 - target deployed systems;
 - search the Internet for vulnerable keys;
 - ingest arbitrary third-party cryptographic targets;
-- remove toy-instance restrictions in order to attack practical parameters;
+- remove instance restrictions in order to attack practical parameters;
 - turn the benchmark into a general-purpose ML-DSA cracking utility;
 - provide automated exploitation against production cryptographic parameters.
 
 If a proposed experiment crosses this boundary, replace it with either:
 
-1. a toy-instance experiment; or
+1. an instance experiment; or
 2. a theoretical/resource-estimation experiment.
 
 
@@ -137,7 +128,7 @@ Use the NIST ML-DSA specification to understand concepts such as:
 Where useful, reproduce the *shape* of these mathematical objects at greatly
 reduced dimensions.
 
-For example, a toy configuration might use variables analogous to:
+For example, a configuration might use variables analogous to:
 
     q
     n
@@ -147,14 +138,10 @@ For example, a toy configuration might use variables analogous to:
 
 but with deliberately tiny values.
 
-Toy parameters do not need to correspond to any valid standardized ML-DSA
+Parameters need to correspond to a valid standardized ML-DSA
 parameter set.
 
-Do not silently substitute production ML-DSA parameters into executable
-attack experiments.
-
-
-# 4. Toy Instance Generator
+# 4. Instance Generator
 
 All optimization experiments should begin with instances produced by a
 repository-controlled generator.
@@ -164,7 +151,7 @@ Suggested interface:
 ```python
 instance = generate_instance(
     seed=12345,
-    profile="toy-medium",
+    profile="medium",
 )
 
 ```
