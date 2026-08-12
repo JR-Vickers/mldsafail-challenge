@@ -20,9 +20,9 @@ def _write(cost: CostCounter, count: int = 1) -> None:
 def solve(instance: ToyInstance, cost: CostCounter) -> Candidate:
     """Solve ``matrix * coefficients == target (mod modulus)``.
 
-    The implementation is intentionally unsurprising Gauss-Jordan elimination.
+    The implementation uses forward elimination followed by back substitution.
     It assumes the repository generator creates a square, invertible public
-    matrix.  Every counted operation is deterministic and independent of
+    matrix. Every counted operation is deterministic and independent of
     wall-clock behaviour.
     """
 
@@ -42,7 +42,7 @@ def solve(instance: ToyInstance, cost: CostCounter) -> Candidate:
         _write(cost, n + 1)
 
     for column in range(n):
-        pivot = next((r for r in range(column, n) if augmented[r][column] % q), None)
+        pivot = next((r for r in range(column, n) if augmented[r][column]), None)
         _read(cost, (pivot - column + 1) if pivot is not None else n - column)
         if pivot is None:
             raise SolverError(f"singular matrix at column {column}")
@@ -52,30 +52,28 @@ def solve(instance: ToyInstance, cost: CostCounter) -> Candidate:
             _read(cost, 2 * (n + 1))
             _write(cost, 2 * (n + 1))
 
+        pivot_row = augmented[column]
         _read(cost)
         try:
-            inverse = pow(augmented[column][column], -1, q)
+            inverse = pow(pivot_row[column], -1, q)
         except ValueError as exc:
             raise SolverError(f"non-invertible pivot at column {column}") from exc
 
-        for j in range(column, n + 1):
-            _read(cost)
-            augmented[column][j] = (augmented[column][j] * inverse) % q
-            cost.multiplications += 1
-            cost.modular_reductions += 1
-            _write(cost)
-        cost.basis_updates += 1
-
-        for row in range(n):
-            if row == column:
-                continue
+        # Only rows below the pivot need updating. Keeping the pivot row
+        # unnormalised avoids an otherwise redundant write of its entire tail.
+        for row in range(column + 1, n):
             _read(cost)
             factor = augmented[row][column]
             if factor == 0:
                 continue
-            for j in range(column, n + 1):
+            factor = (factor * inverse) % q
+            cost.multiplications += 1
+            cost.modular_reductions += 1
+            augmented[row][column] = 0
+            _write(cost)
+            for j in range(column + 1, n + 1):
                 _read(cost, 2)
-                product = factor * augmented[column][j]
+                product = factor * pivot_row[j]
                 augmented[row][j] = (augmented[row][j] - product) % q
                 cost.multiplications += 1
                 cost.additions += 1
@@ -83,11 +81,34 @@ def solve(instance: ToyInstance, cost: CostCounter) -> Candidate:
                 _write(cost)
             cost.basis_updates += 1
 
-    residues = [augmented[row][n] for row in range(n)]
-    _read(cost, n)
+    # Solve the resulting upper-triangular system. The inner products are
+    # reduced once per row rather than once per term; Python's exact integers
+    # keep this equivalent while making the reduction count honest.
+    residues = [0] * n
+    _write(cost, n)
+    for row in range(n - 1, -1, -1):
+        row_values = augmented[row]
+        _read(cost)
+        remainder = row_values[n]
+        for column in range(row + 1, n):
+            _read(cost, 2)
+            remainder -= row_values[column] * residues[column]
+            cost.multiplications += 1
+            cost.additions += 1
+        _read(cost)
+        try:
+            inverse = pow(row_values[row], -1, q)
+        except ValueError as exc:
+            raise SolverError(f"non-invertible pivot at row {row}") from exc
+        residues[row] = (remainder * inverse) % q
+        cost.multiplications += 1
+        cost.modular_reductions += 1
+        _write(cost)
+
     # The generator plants small signed coefficients.  Convert their canonical
     # residues back to the centered representative expected by the verifier.
     midpoint = q // 2
     coefficients = tuple(value - q if value > midpoint else value for value in residues)
+    _read(cost, n)
     _write(cost, n)
     return Candidate(coefficients=coefficients)
