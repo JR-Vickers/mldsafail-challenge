@@ -1,0 +1,168 @@
+# AGENTS.md
+
+## Behaviors
+Package management is done via uv.  Upon beginning a new session, ensure the venv is active via:
+`source .venv/bin/activate`
+
+Make regular, descriptive git commits upon reaching sensible checkpoints.  Don't push them to main, let me do that manually.
+
+## Project Overview
+
+This repository is an experimental benchmarking platform inspired by
+ECDSA.fail.
+
+The project explores a question:
+
+> How efficiently can automated research agents improve algorithms and
+> implementations related to lattice-based cryptography when evaluated on
+> small, synthetic, reproducible problem instances?
+
+The long-term research interest is post-quantum cryptography, especially
+ML-DSA/Dilithium-like lattice structures. However, this repository is **not**
+intended to recover keys, forge signatures, or attack real cryptographic
+deployments.
+
+All executable cryptanalytic experiments must operate on deliberately small,
+locally generated toy instances.
+
+Think of this repository as:
+
+- an optimization benchmark;
+- an automated-research environment;
+- a reproducibility harness;
+- a leaderboard for algorithmic improvements;
+- a way to study how coding/research agents search an algorithmic design space.
+
+It is not an offensive cryptography toolkit.
+
+
+# 1. Primary Objective
+
+Build a challenge environment in which an agent can repeatedly:
+
+1. inspect the current implementation;
+2. propose an algorithmic or implementation improvement;
+3. modify the code;
+4. run the benchmark;
+5. verify correctness;
+6. measure resource usage;
+7. record the experiment;
+8. keep improvements and revert regressions.
+
+The benchmark should reward genuine algorithmic progress rather than
+benchmark-specific hacks.
+
+A successful system should eventually support runs resembling:
+
+    baseline
+       ↓
+    agent proposes modification
+       ↓
+    implementation
+       ↓
+    deterministic benchmark
+       ↓
+    verification
+       ↓
+    score
+       ↓
+    experiment log
+       ↓
+    next iteration
+
+
+# 2. Safety Boundary
+
+This boundary is part of the project specification.
+
+## Allowed
+
+Agents may:
+
+- generate synthetic lattice problem instances;
+- implement mathematical operations on those instances;
+- experiment with small-dimensional lattice reduction;
+- implement generic linear algebra and polynomial arithmetic;
+- compare reduction algorithms on toy instances;
+- optimize memory usage;
+- optimize runtime;
+- optimize abstract operation counts;
+- construct resource estimators;
+- simulate algorithms;
+- inspect NIST specifications;
+- reproduce publicly documented toy examples;
+- analyze asymptotic complexity;
+- implement correctness verifiers;
+- implement benchmark infrastructure;
+- visualize optimization progress;
+- compare theoretical attack-cost estimates;
+- use official cryptographic test vectors for correctness testing.
+
+## Not allowed
+
+Agents must not:
+
+- recover secret keys from real ML-DSA public keys;
+- forge ML-DSA signatures;
+- attack externally supplied cryptographic keys;
+- attack externally supplied signatures;
+- target deployed systems;
+- search the Internet for vulnerable keys;
+- ingest arbitrary third-party cryptographic targets;
+- remove toy-instance restrictions in order to attack practical parameters;
+- turn the benchmark into a general-purpose ML-DSA cracking utility;
+- provide automated exploitation against production cryptographic parameters.
+
+If a proposed experiment crosses this boundary, replace it with either:
+
+1. a toy-instance experiment; or
+2. a theoretical/resource-estimation experiment.
+
+
+# 3. Relationship to ML-DSA
+
+ML-DSA should be treated as the motivating cryptographic structure rather than
+as a production target.
+
+Use the NIST ML-DSA specification to understand concepts such as:
+
+- module lattices;
+- polynomial rings;
+- matrix/vector structure;
+- coefficient distributions;
+- modular arithmetic;
+- signature verification;
+- parameter relationships.
+
+Where useful, reproduce the *shape* of these mathematical objects at greatly
+reduced dimensions.
+
+For example, a toy configuration might use variables analogous to:
+
+    q
+    n
+    k
+    l
+    eta
+
+but with deliberately tiny values.
+
+Toy parameters do not need to correspond to any valid standardized ML-DSA
+parameter set.
+
+Do not silently substitute production ML-DSA parameters into executable
+attack experiments.
+
+
+# 4. Toy Instance Generator
+
+All optimization experiments should begin with instances produced by a
+repository-controlled generator.
+
+Suggested interface:
+
+```python
+instance = generate_instance(
+    seed=12345,
+    profile="toy-medium",
+)
