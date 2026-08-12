@@ -41,3 +41,23 @@ def test_malformed_public_instance_fails_without_raising() -> None:
     result = verify(malformed, Candidate(diagnostic.planted_solution))
     assert not result.valid
     assert "instance dimensions" in result.reason
+
+
+def test_arbitrary_or_mutated_instance_data_is_rejected() -> None:
+    instance, diagnostic = generate_instance_with_diagnostics(5, "toy-small")
+    candidate = Candidate(diagnostic.planted_solution)
+    cases = [
+        replace(instance, profile="custom"),
+        replace(instance, dimension=instance.dimension + 1),
+        replace(instance, modulus=instance.modulus + 2),
+        replace(instance, eta=instance.eta + 1),
+        replace(instance, seed=-1),
+        replace(instance, instance_id="forged"),
+        replace(instance, target=(instance.target[0] + 1,) + instance.target[1:]),
+        replace(
+            instance,
+            matrix=((instance.modulus,) + instance.matrix[0][1:],) + instance.matrix[1:],
+        ),
+    ]
+    for malformed in cases:
+        assert not verify(malformed, candidate).valid

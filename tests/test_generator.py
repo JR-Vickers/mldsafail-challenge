@@ -42,6 +42,8 @@ def test_unknown_profile_and_invalid_seed_are_rejected() -> None:
         generate_instance(-1, "toy-small")
     with pytest.raises(ValueError, match="non-negative"):
         generate_instance(True, "toy-small")
+    with pytest.raises(ValueError, match="unknown toy profile"):
+        generate_instance(1, {"dimension": 8})  # type: ignore[arg-type]
 
 
 def test_public_and_diagnostic_data_are_separate() -> None:
@@ -93,3 +95,12 @@ hidden_seeds = 1
     malformed.write_text("[toy-small]\ndimension = 8\n")
     with pytest.raises(ValueError, match="exactly"):
         load_profiles(malformed)
+
+    composite_modulus = tmp_path / "composite.toml"
+    composite_modulus.write_text(
+        oversized.read_text()
+        .replace(f"dimension = {MAX_DIMENSION + 1}", "dimension = 8")
+        .replace("modulus = 97", "modulus = 100")
+    )
+    with pytest.raises(ValueError, match="bounded prime"):
+        load_profiles(composite_modulus)
