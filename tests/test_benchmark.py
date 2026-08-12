@@ -107,6 +107,7 @@ def test_cli_serializes_solver_exception_as_unscored_failure(tmp_path, monkeypat
     assert result == 1
     assert printed == persisted
     assert persisted["correct"] is False
+    assert persisted["solver"] == "balanced"
     assert persisted["aggregate"]["abstract_cost"] is None
     assert persisted["failure_reason"] == "RuntimeError: solver exploded"
 
