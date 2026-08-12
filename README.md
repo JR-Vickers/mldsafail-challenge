@@ -31,6 +31,8 @@ make web-smoke                    # non-blocking dashboard route smoke test
 python -m mldsafail.benchmark.runner --profile toy-medium
 python -m mldsafail.benchmark.runner --profile toy-medium --seed 12345
 python -m mldsafail.benchmark.runner --suite full
+python -m mldsafail.benchmark.runner --suite full --solver reference
+python -m mldsafail.benchmark.runner --suite full --solver lazy
 python -m mldsafail.benchmark.runner --profile toy-small --no-record
 ```
 
@@ -49,7 +51,7 @@ For the current benchmark contract, record a run with:
 ```sh
 uv run python -m mldsafail.benchmark.runner \
   --suite full \
-  --baseline-fingerprint 2cc9c58633fe20dbeea06f243b638b61b72c19293210a5ad91e4142e4fc69b00 \
+  --baseline-fingerprint 07b67f885b3728c5c435f3591d465b4e0afa38643ce81259def00b99ba2531fb \
   --agent codex \
   --model gpt-5 \
   --hypothesis "describe the tested change" \

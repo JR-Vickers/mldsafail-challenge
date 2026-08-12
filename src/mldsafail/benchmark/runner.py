@@ -23,6 +23,7 @@ from mldsafail.benchmark.suites import load_seed_suite, selected_suites
 from mldsafail.models import InstanceMetrics, ProfileMetrics
 from mldsafail.solver import solve
 from mldsafail.solver.lazy import solve as lazy_solve
+from mldsafail.solver.reference import solve as reference_solve
 
 
 UNSCORED_AGGREGATE = {
@@ -86,7 +87,11 @@ def run_benchmark(
     if seed is not None and profile is None:
         raise ValueError("--seed requires --profile")
     generate_instance, verify = _trusted_functions()
-    solver = {"balanced": solve, "lazy": lazy_solve}.get(solver_name)
+    solver = {
+        "reference": reference_solve,
+        "balanced": solve,
+        "lazy": lazy_solve,
+    }.get(solver_name)
     if solver is None:
         raise ValueError(f"unknown solver: {solver_name}")
     selections = ("custom",) if seed is not None else selected_suites(suite)
@@ -114,8 +119,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--profile", choices=("toy-small", "toy-medium", "toy-large"))
     parser.add_argument(
-        "--solver", choices=("balanced", "lazy"), default="balanced",
-        help="balanced (default) or experimental lazy-reduction solver",
+        "--solver", choices=("reference", "balanced", "lazy"), default="balanced",
+        help="baseline-v1 reference, balanced default, or lazy-reduction frontier",
     )
     parser.add_argument("--seed", type=int, help="diagnostic seed; requires --profile")
     parser.add_argument(
