@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import subprocess
 from pathlib import Path
+from datetime import timedelta
 
 import pytest
 from sqlalchemy import create_engine
@@ -9,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from mldsafail.evaluator.docker import docker_command
 from mldsafail.evaluator.envelope import EnvelopeError, sign_envelope, verify_envelope
-from mldsafail.evaluator.queue import claim_job, heartbeat
+from mldsafail.evaluator.queue import claim_job, heartbeat, recover_stale_jobs
 from mldsafail.evaluator.source import assemble_harness, validate_eligible_source
 from mldsafail.web.models import Base, EvaluationJob, Submission, SubmissionState, SubmissionTransition, User
 from mldsafail.web.services import DomainError
@@ -101,3 +102,7 @@ def test_queue_claim_creates_lease_and_transactional_transition(tmp_path):
         assert session.get(Submission, submission.id).state == SubmissionState.VALIDATING.value
         assert heartbeat(session, job.id, "wrong") is False
         assert heartbeat(session, job.id, "worker-1") is True
+        job.lease_expires_at = job.heartbeat_at - timedelta(seconds=1); session.commit()
+        assert recover_stale_jobs(session) == (1, 0)
+        assert job.status == "queued"
+        assert session.get(Submission, submission.id).state == SubmissionState.QUEUED.value

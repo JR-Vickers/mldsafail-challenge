@@ -8,6 +8,7 @@ import socket
 import tempfile
 import time
 from dataclasses import asdict
+from datetime import timedelta
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -106,8 +107,14 @@ class Coordinator:
                 self._reject(database, submission, job, attempt, "invalid_worker_output", str(exception))
             except (OSError, RuntimeError) as exception:
                 attempt.status = "infrastructure_failed"; attempt.failure_class = type(exception).__name__
-                attempt.log = sanitize_log(str(exception)); attempt.finished_at = utcnow(); job.status = "failed"
+                attempt.log = sanitize_log(str(exception)); attempt.finished_at = utcnow()
                 transition_submission(database, submission, SubmissionState.INFRASTRUCTURE_FAILED, "evaluation platform failure")
+                if job.attempts < job.max_attempts:
+                    transition_submission(database, submission, SubmissionState.QUEUED, "retrying platform failure")
+                    job.status = "queued"; job.available_at = utcnow() + timedelta(seconds=5 * job.attempts)
+                    job.lease_owner = None; job.lease_expires_at = None
+                else:
+                    job.status = "failed"
                 database.commit()
             return True
 

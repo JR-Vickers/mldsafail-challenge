@@ -45,6 +45,8 @@ def recover_stale_jobs(session: Session) -> tuple[int, int]:
         submission = session.get(Submission, job.submission_id)
         if job.attempts < job.max_attempts:
             job.status = "queued"; job.available_at = now; job.lease_owner = None; job.lease_expires_at = None
+            transition_submission(session, submission, SubmissionState.INFRASTRUCTURE_FAILED, "worker lease expired")
+            transition_submission(session, submission, SubmissionState.QUEUED, "retrying stale job")
             retried += 1
         else:
             job.status = "failed"
