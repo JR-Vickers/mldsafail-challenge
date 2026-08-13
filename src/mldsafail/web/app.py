@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import math
 import os
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
-from flask import Flask, abort, jsonify, render_template
+from flask import Flask, abort, g, jsonify, redirect, render_template, request, url_for
+from sqlalchemy import select
 
 from mldsafail.benchmark.comparison import (
     best_score_record,
@@ -19,7 +21,11 @@ from mldsafail.benchmark.comparison import (
 from mldsafail.benchmark.records import read_records
 from mldsafail.web.config import load_config
 from mldsafail.web.db import get_session, init_database
+from mldsafail.web.auth import init_auth, login_required, require_csrf
+from mldsafail.web.api import init_api
+from mldsafail.web.models import ApiToken, EvaluationAttempt, EvaluationJob, Submission
 from mldsafail.web.repositories import DatabaseResultRepository, JsonlResultRepository
+from mldsafail.web.services import DomainError, check_rate_limit, create_api_token, revoke_token, sanitize_log
 
 
 DEFAULT_RESULTS = Path(__file__).resolve().parents[3] / "results" / "experiments.jsonl"
@@ -200,8 +206,10 @@ def create_app(
         app.config.update(config)
     configured = results_path or os.environ.get("MLDSAFAIL_RESULTS_PATH") or DEFAULT_RESULTS
     app.config["RESULTS_PATH"] = Path(configured)
-    app.config["PERMANENT_SESSION_LIFETIME"] = app.config.pop("PERMANENT_SESSION_LIFETIME_SECONDS")
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(seconds=app.config.pop("PERMANENT_SESSION_LIFETIME_SECONDS"))
     init_database(app)
+    init_auth(app)
+    init_api(app)
 
     def result_repository():
         if app.config.get("DATABASE_URL"):
@@ -244,6 +252,55 @@ def create_app(
     @app.get("/methodology")
     def methodology():
         return render_template("methodology.html")
+
+    @app.get("/profile")
+    @login_required
+    def profile():
+        return render_template("profile.html")
+
+    @app.get("/tokens")
+    @login_required
+    def tokens():
+        items = get_session().scalars(select(ApiToken).where(ApiToken.user_id == g.current_user.id).order_by(ApiToken.created_at.desc())).all()
+        return render_template("tokens.html", tokens=items)
+
+    @app.post("/tokens")
+    @login_required
+    def token_create():
+        require_csrf()
+        database = get_session()
+        try:
+            check_rate_limit(database, f"token-create:{g.current_user.id}", limit=10, seconds=3600)
+            token, plaintext = create_api_token(database, g.current_user, request.form.get("name", ""))
+        except DomainError as exception:
+            return render_template("tokens.html", tokens=[], error=exception.message), exception.status
+        return render_template("token_created.html", token=token, plaintext=plaintext)
+
+    @app.post("/tokens/<identifier>/revoke")
+    @login_required
+    def token_revoke(identifier):
+        require_csrf()
+        token = get_session().get(ApiToken, identifier)
+        if token is None or token.user_id != g.current_user.id:
+            abort(404)
+        revoke_token(get_session(), token, g.current_user)
+        return redirect(url_for("tokens"))
+
+    @app.get("/submissions")
+    @login_required
+    def submission_history():
+        items = get_session().scalars(select(Submission).where(Submission.user_id == g.current_user.id).order_by(Submission.created_at.desc())).all()
+        return render_template("submissions.html", submissions=items)
+
+    @app.get("/submissions/<identifier>")
+    @login_required
+    def submission_detail(identifier):
+        item = get_session().get(Submission, identifier)
+        if item is None or item.user_id != g.current_user.id:
+            abort(404)
+        job = get_session().scalar(select(EvaluationJob).where(EvaluationJob.submission_id == item.id))
+        attempts = [] if not job else get_session().scalars(select(EvaluationAttempt).where(EvaluationAttempt.job_id == job.id).order_by(EvaluationAttempt.number)).all()
+        return render_template("submission.html", submission=item, attempts=attempts, sanitize_log=sanitize_log)
 
     @app.get("/health/live")
     def health_live():

@@ -1,0 +1,3 @@
+{% extends "base.html" %}
+{% block title %}Submission {{ submission.id }} · mldsa.fail{% endblock %}
+{% block content %}<section><p class="eyebrow">Submission</p><h1>{{ submission.id }}</h1><dl><div><dt>State</dt><dd>{{ submission.state }}</dd></div><div><dt>Repository</dt><dd>{{ submission.repository_url }}</dd></div><div><dt>Commit</dt><dd><code>{{ submission.commit_sha }}</code></dd></div><div><dt>Hypothesis</dt><dd>{{ submission.hypothesis }}</dd></div></dl>{% for attempt in attempts %}<h2>Attempt {{ attempt.number }} · {{ attempt.status }}</h2><pre><code>{{ sanitize_log(attempt.log) }}</code></pre>{% endfor %}</section>{% endblock %}
