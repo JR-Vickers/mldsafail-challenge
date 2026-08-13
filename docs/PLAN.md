@@ -2,7 +2,7 @@ PLAN.md
 
 1. Project Goal
 
-Build an end-to-end local MVP of mldsa.fail, inspired by ecdsa.fail, around a precisely defined optimization challenge over deliberately small, synthetic lattice problems motivated by ML-DSA.
+Build a finished, deployable mldsa.fail challenge product inspired by the participation model and presentation of ecdsa.fail, around a precisely defined optimization challenge over deliberately small, synthetic lattice problems motivated by ML-DSA.
 
 The primary scientific question is:
 
@@ -10,15 +10,15 @@ How far can we reduce the cost of the best-known valid solution to a fixed latti
 
 The cryptographic optimization problem is the subject of the benchmark. Humans and coding agents are the research machinery: they should be able to modify the implementation, run a hardened verifier, measure one objective score, and contribute validated improvements to a shared frontier. How agents conduct research may later be studied from the resulting history, but it is not the benchmark's central question.
 
-The first version should prioritize the ecdsa.fail-like kernel over visual polish or elaborate orchestration:
+The product should preserve the ecdsa.fail-like kernel while supporting both frictionless local research and trustworthy public participation:
 
-editable algorithm → immutable harness → rigorous verifier → one meaningful score → baseline → autoresearch loop → frontier
+editable algorithm → local benchmark → authenticated submission → isolated immutable harness → rigorous verifier → one meaningful score → shared frontier
 
-This is a three-day build designed for both human and agent contributors. Optimize for a concrete challenge contract, strong tests, reproducibility, and fast independent iteration.
+Build in deployable vertical slices designed for both human and agent contributors. Optimize for a concrete challenge contract, strong tests, reproducibility, safe evaluation of untrusted submissions, straightforward operations, and fast independent iteration.
 
-2. MVP Success Criteria
+2. Product Success Criteria
 
-The MVP is complete when a local user can:
+The product is complete when a contributor can:
 
 Read a precise statement of the challenge, validity conditions, fixed evaluation suite, and score.
 
@@ -34,13 +34,23 @@ Save each experiment as structured data.
 
 Compare a new run against the current best result.
 
-Display benchmark progress in a local web UI.
+Use the complete benchmark locally without an account.
 
-Run the full stack on a MacBook Pro M4 Max without external compute.
+Sign into the hosted website, create and revoke a named API token, authenticate the CLI, and submit a reproducible solver revision for official evaluation.
+
+Receive queued, running, accepted, rejected, and failed submission status without trusting client-supplied scores.
+
+Have the submitted solver evaluated in an isolated, resource-limited worker against server-controlled hidden inputs and the immutable benchmark contract.
+
+Display the canonical leaderboard and benchmark progress in both the hosted web product and local read-only UI.
+
+Deploy the web application, database, queue, and workers through a documented, reproducible production configuration.
+
+Run the local benchmark stack on a MacBook Pro M4 Max without external compute.
 
 Give a human or coding agent the repository and let them safely iterate on the solver without needing changes to the harness.
 
-A minimal happy path should look like:
+A local happy path should remain:
 
 generate instances
     ↓
@@ -60,9 +70,27 @@ keep improvement or revert
     ↓
 display progress on website
 
+A hosted participation path should look like:
+
+sign in on the website
+    ↓
+create a named API token
+    ↓
+authenticate the local CLI
+    ↓
+develop and benchmark locally
+    ↓
+submit a commit or bounded solver bundle
+    ↓
+server evaluates it in isolation
+    ↓
+verifier accepts or rejects the result
+    ↓
+accepted score enters the canonical leaderboard
+
 3. Scope
 
-In scope for the MVP
+In scope for the finished product
 
 Synthetic, deterministic lattice challenge generation.
 
@@ -86,7 +114,7 @@ Hidden-seed evaluation.
 
 Basic regression protection.
 
-A local leaderboard / record view.
+A local experiment view and canonical hosted leaderboard.
 
 A progress-over-time chart.
 
@@ -94,7 +122,23 @@ Contributor documentation designed for both humans and coding agents.
 
 A single headline score and a best-known-score frontier.
 
-Local-first execution.
+Account-free local execution.
+
+Web authentication through a maintained OAuth provider, initially GitHub.
+
+Named, scoped, revocable API tokens for CLI authentication.
+
+CLI login, local run, submission, and submission-status commands.
+
+An authenticated submission API with validation, rate limiting, and audit logging.
+
+Persistent storage for users, token metadata, submissions, evaluation jobs, and canonical results.
+
+Server-controlled hidden evaluation.
+
+Isolated, resource-limited workers for untrusted solver submissions.
+
+Reproducible deployment configuration, database migrations, secrets management, health checks, backups, and operator documentation.
 
 Explicitly out of scope
 
@@ -108,21 +152,17 @@ Internet-scale target collection.
 
 Production cryptanalytic tooling.
 
-Distributed compute infrastructure.
-
-Cloud orchestration.
-
-User accounts.
-
 Payments.
 
 Highly polished branding.
 
 Perfect cryptographic fidelity to standardized ML-DSA parameter sets.
 
-A production deployment pipeline.
-
 Agent taxonomy, model comparison, multi-agent tournaments, or orchestration research.
+
+Arbitrary user-uploaded dependencies, unrestricted build scripts, or general-purpose remote code execution.
+
+Enterprise identity providers, organizations, teams, billing, prizes, or financial settlement.
 
 4. Safety Model
 
@@ -202,7 +242,7 @@ Retain diagnostic metadata separately.
 
 Allow correctness to be checked from the challenge relation itself where possible.
 
-The exact search problem and acceptance bound must be finalized during Day 1 rather than left as a family of loosely related experiments. Once the baseline is published, changing them creates a new benchmark version.
+The exact search problem and acceptance bound must be finalized during the benchmark-kernel phase rather than left as a family of loosely related experiments. Once the baseline is published, changing them creates a new benchmark version.
 
 This gives researchers a genuine algorithmic search space without requiring interaction with real cryptographic keys.
 
@@ -256,7 +296,7 @@ Correctness is binary and comes first.
 
 An invalid output receives no benchmark score.
 
-Every valid run receives one deterministic headline score. For the MVP, the score is the total versioned abstract operation cost across the fixed evaluation suite, minimized. The exact operation weights and suite aggregation must be explicit, tested, and frozen with the benchmark version before optimization begins.
+Every valid run receives one deterministic headline score. The score is the total versioned abstract operation cost across the fixed evaluation suite, minimized. The exact operation weights and suite aggregation must be explicit, tested, and frozen with the benchmark version before optimization begins.
 
 Wall-clock time, peak memory, solution quality, and individual operation counts remain visible diagnostics. They help explain improvements and expose unacceptable resource tradeoffs, but they do not create competing definitions of the winner.
 
@@ -404,7 +444,7 @@ The verifier should not be modified during solver optimization.
 
 11. Experiment Storage
 
-Use append-only JSONL for the first version.
+Use append-only JSONL for local research runs. Local use must not require an account, network connection, or database.
 
 Example:
 
@@ -429,7 +469,21 @@ Example:
   "notes": "Improves medium and large profiles."
 }
 
-Do not start with a database unless the JSONL approach becomes genuinely limiting.
+The hosted product requires a transactional database as the source of truth for:
+
+users and OAuth identities;
+
+API-token names, prefixes, hashes, scopes, creation time, last-used time, expiry, and revocation;
+
+submissions and their immutable source reference or uploaded bundle digest;
+
+evaluation jobs, state transitions, worker attempts, and sanitized logs;
+
+verified results and canonical leaderboard eligibility;
+
+benchmark versions and trusted evaluator fingerprints.
+
+Do not import a client JSONL record directly into the canonical leaderboard. The server creates its own experiment record from the worker's verified output. Provide an export format compatible with the local record schema so hosted results remain reproducible and portable.
 
 12. Benchmark Commands
 
@@ -452,6 +506,15 @@ python -m src.benchmark.runner --profile medium --seed 12345
 # run full evaluation
 python -m src.benchmark.runner --suite full
 
+# authenticate the CLI for hosted participation
+mldsafail login <api-token>
+
+# submit the current eligible solver revision
+mldsafail submit
+
+# inspect an evaluation job
+mldsafail status <submission-id>
+
 # start local website
 python -m src.web.app
 
@@ -462,7 +525,7 @@ make bench
 make web
 make check
 
-Agents should not need to memorize a complicated workflow.
+`run` remains account-free and local. `submit` and `status` require a token because they act on the hosted service. The CLI must store tokens in the operating-system credential store when available, fall back to a permission-restricted configuration file only with an explicit warning, and never print a token after login.
 
 13. Public and Hidden Evaluation
 
@@ -474,7 +537,7 @@ Visible to the agent and used for development.
 
 Hidden seeds
 
-Used only by the official evaluation command.
+Kept outside the public repository and used only by official hosted evaluation workers. Maintainers may use a separate administrative path to reproduce an official evaluation; ordinary participant CLIs never receive hidden seeds.
 
 Both must come from the same documented generator distribution.
 
@@ -488,7 +551,7 @@ accidental overfitting;
 
 brittle special cases.
 
-The hidden suite does not need sophisticated secrecy in the local MVP. It only needs enough separation to make benchmark gaming obvious.
+The public and hidden suites must use the same documented distribution. The hosted evaluator records a hidden-suite version or digest without exposing the seeds. Rotation requires an explicit evaluation-suite version change and must not silently mix incomparable leaderboard results.
 
 14. Testing Strategy
 
@@ -560,6 +623,44 @@ metrics are recorded;
 
 experiment records serialize correctly.
 
+Identity and token tests
+
+Verify:
+
+OAuth identities bind to stable provider subjects;
+
+session cookies and CSRF checks protect browser mutations;
+
+token plaintext is returned only at creation and is never persisted or logged;
+
+valid scopes authorize only their intended API operations;
+
+expired, revoked, malformed, and wrong-user tokens fail safely;
+
+rate limits and audit events are applied deterministically.
+
+Submission and worker tests
+
+Verify:
+
+payload bounds, idempotency, and allowed-source manifests are enforced;
+
+path traversal, symlinks, changed trusted files, dependencies, and setup hooks are rejected;
+
+client-supplied scores and result records are ignored;
+
+workers have no outbound network, service credentials, or writable trusted harness;
+
+timeouts, memory excess, worker loss, retry, and cancellation produce the correct states;
+
+hidden data does not appear in participant-visible logs or artifacts;
+
+only a verified worker envelope can create an accepted canonical result.
+
+Deployment tests
+
+Verify migrations on an empty and representative existing database, exercise backup restoration, smoke-test health/readiness behavior, and run the complete OAuth-token-CLI-submission-worker-leaderboard path in staging.
+
 15. Baseline Solver
 
 The first solver should be intentionally clear and unsurprising.
@@ -592,7 +693,7 @@ Do not artificially sabotage it. It should be a competent reference implementati
 
 Tag the first validated result:
 
-baseline-v1
+baseline-v2
 
 16. Autoresearch Optimization Loop
 
@@ -687,7 +788,7 @@ update solver.py
 
 18. Frontend
 
-The first frontend should emulate the structure of ecdsa.fail more than its exact branding.
+The frontend should emulate the structure and participation flow of ecdsa.fail more than its exact branding.
 
 Do not spend the first day tuning colors, fonts, or logos.
 
@@ -758,35 +859,45 @@ hidden evaluation;
 
 safety boundary.
 
-19. Local Web Stack
+Authenticated participant area
 
-Choose simplicity over architectural sophistication.
+Provide:
 
-Good MVP options include:
+GitHub sign-in and sign-out;
 
-Python + FastAPI/Flask + server-rendered templates;
+API-token creation, listing, and revocation;
 
-a tiny static frontend that reads generated JSON;
+one-time display of newly created token secrets;
 
-another minimal framework if it materially reduces implementation time.
+submission history and status;
 
-Avoid creating:
+sanitized evaluator logs and rejection reasons;
 
-a separate frontend deployment pipeline;
+links from accepted submissions to leaderboard records.
 
-a complex API layer;
+Never render token secrets after their creation response. Token-list pages show only the name, non-secret prefix, scopes, dates, last use, and revocation state.
 
-authentication;
+19. Product Stack, Identity, and API Tokens
 
-stateful backend services;
+Use one deployable web application for server-rendered pages and the versioned CLI API unless scale proves that separation is necessary. Retain the existing lightweight Python web stack where practical, but add a supported relational database, background-job queue, and isolated worker service.
 
-unless a concrete requirement appears.
+Authentication policy
 
-For a local MVP, the experiment log itself can be the datastore.
+Use GitHub OAuth for browser identity in the first production version. Store the stable provider subject identifier rather than treating a mutable username or email address as identity. Use secure, HTTP-only, same-site cookies, CSRF protection on browser mutations, short session lifetimes, and explicit sign-out.
 
-20. Website Data Flow
+API-token policy
 
-Prefer:
+Generate tokens with a recognizable non-secret prefix and at least 256 bits of cryptographically secure entropy. Show the secret exactly once. Store only a slow, salted token hash plus the prefix and metadata. Compare credentials in constant time. Tokens must be individually named, revocable, optionally expiring, and scoped; the initial scopes are `submission:write` and `submission:read`. Do not use API tokens for browser sessions.
+
+The CLI sends tokens only over TLS using the Authorization bearer scheme. Never place tokens in URLs, command telemetry, job payloads, evaluator environments, or logs. Apply per-user and per-token rate limits and retain security audit events for creation, use, failed authentication, and revocation.
+
+Submission API
+
+Expose a small versioned API for creating a submission, inspecting status, listing the authenticated user's submissions, and retrieving sanitized logs. Mutating requests require authentication, bounded payload sizes, idempotency keys, and rate limiting. The public leaderboard remains readable without authentication.
+
+20. Local and Hosted Data Flow
+
+Local research remains:
 
 results/experiments.jsonl
           ↓
@@ -795,6 +906,22 @@ results/experiments.jsonl
    derived records
           ↓
       web view
+
+Hosted participation is:
+
+GitHub OAuth → participant account → named API token
+                                   ↓
+CLI submit → authenticated API → immutable submission record
+                                   ↓
+                              evaluation queue
+                                   ↓
+                        isolated disposable worker
+                                   ↓
+              trusted generator + verifier + cost model
+                                   ↓
+                     server-created verified result
+                                   ↓
+                 canonical database → public leaderboard
 
 Derived values should include:
 
@@ -810,11 +937,19 @@ diagnostic metrics for the current record;
 
 cumulative improvement.
 
-Keep these calculations deterministic and testable.
+Keep derived calculations deterministic and testable. The leaderboard must derive only from accepted server-created results matching the same benchmark version, evaluator fingerprint, suite version, and required full scope.
 
-21. Three-Day Build Plan
+Submission source contract
 
-Day 1 — Make the benchmark real
+Accept only the bounded editable solver/math surface defined by the challenge. The initial submission format should be an immutable public Git commit plus repository URL, or a size-limited archive containing only eligible paths and a manifest. Resolve the exact commit, copy only allowed files into a clean evaluator checkout, reject symlinks and path traversal, verify the dependency lock and trusted fingerprint, and record the resulting content digest. Never execute participant-provided setup hooks or accept arbitrary dependencies.
+
+Evaluation isolation
+
+Treat every submission as untrusted code. Run it in a fresh, non-privileged worker with no outbound network, read-only trusted harness, bounded writable scratch space, CPU/time/memory/process/file-size limits, and no platform secrets or API token. Destroy the worker and scratch data after collecting the signed result envelope and sanitized logs. Workers must not have database credentials capable of directly accepting a result; a coordinator validates the worker envelope and performs the state transition.
+
+21. Delivery Plan
+
+Phase 1 — Freeze the benchmark kernel
 
 Primary goal: freeze the scientific challenge and produce its first verified score.
 
@@ -844,15 +979,15 @@ basic tests;
 
 experiment JSONL writer.
 
-End-of-day target:
+Exit criterion:
 
 python -m src.benchmark.runner
 
 produces a verified, reproducible baseline result.
 
-Do not prioritize the frontend until this works.
+Do not prioritize hosted participation until this works.
 
-Day 2 — Make autoresearch productive
+Phase 2 — Make local autoresearch productive
 
 Primary goal: humans and coding agents can make and validate meaningful improvements without modifying the benchmark contract.
 
@@ -878,7 +1013,7 @@ clear editable/trusted boundaries.
 
 Then begin human- and agent-driven optimization runs.
 
-End-of-day target:
+Exit criterion:
 
 multiple recorded experiments;
 
@@ -888,9 +1023,9 @@ failed experiments preserved;
 
 hidden evaluation working.
 
-Day 3 — Make it legible and compelling
+Phase 3 — Build the public read-only product
 
-Primary goal: turn the research loop into a convincing local demonstration.
+Primary goal: turn the research loop into a convincing local and deployable read-only product.
 
 Build:
 
@@ -912,7 +1047,9 @@ basic ecdsa.fail-inspired layout;
 
 README;
 
-one-command local startup.
+one-command local startup;
+
+containerized web deployment and health checks.
 
 Spend remaining time on:
 
@@ -924,11 +1061,83 @@ documentation;
 
 presentation polish.
 
-End-of-day target:
+Exit criterion:
 
 make web
 
-opens a complete local demo showing the baseline, the best-known valid solution, and the history of improvements to the challenge.
+opens a complete local demo, while a documented deployment shows the same baseline, best-known valid solution, and history publicly.
+
+Phase 4 — Add authenticated participation
+
+Primary goal: contributors can authenticate and submit without weakening local usability.
+
+Build:
+
+GitHub OAuth and secure browser sessions;
+
+named API-token lifecycle;
+
+CLI login and credential storage;
+
+versioned submission/status API;
+
+relational schema and migrations;
+
+rate limits and audit events;
+
+participant submission pages.
+
+Exit criterion:
+
+a user can sign in, create and revoke a token, authenticate the CLI, create an immutable queued submission, and inspect its status; no submitted code runs in the web process.
+
+Phase 5 — Add trusted hosted evaluation
+
+Primary goal: accepted submissions can safely enter the canonical leaderboard.
+
+Build:
+
+isolated disposable workers;
+
+server-only hidden suites;
+
+source allowlisting and trusted-checkout assembly;
+
+resource and network isolation;
+
+signed result envelopes and coordinator validation;
+
+retry, timeout, cancellation, and sanitized-log behavior;
+
+canonical leaderboard promotion.
+
+Exit criterion:
+
+an untrusted eligible submission is evaluated end to end, cannot access hidden inputs or service credentials, and appears on the leaderboard only after independent server verification.
+
+Phase 6 — Production hardening and launch
+
+Primary goal: the complete product is operable, recoverable, and safe to expose publicly.
+
+Build:
+
+production configuration and secret injection;
+
+TLS and secure headers;
+
+backup and restore procedures;
+
+monitoring, alerting, structured logs, and queue dashboards;
+
+abuse controls and administrative token/submission revocation;
+
+deployment, rollback, migration, and incident runbooks;
+
+end-to-end staging and load tests.
+
+Exit criterion:
+
+a fresh environment can be deployed from documentation, survives a restore exercise, exposes health signals, and supports the complete browser-to-CLI-to-leaderboard flow.
 
 22. Parallel Workstreams
 
@@ -1018,7 +1227,7 @@ silently change profile difficulty.
 
 Where practical, hash or otherwise fingerprint trusted benchmark files before an optimization run and report changes.
 
-This does not need to be adversarially secure. It needs to make accidental or unauthorized benchmark changes obvious.
+Local integrity checks need to make accidental or unauthorized benchmark changes obvious. Hosted evaluation must additionally enforce the trusted checkout, allowed submission surface, evaluator fingerprint, and isolation boundary rather than trusting participant compliance.
 
 24. Quantum Resource Estimation
 
@@ -1053,11 +1262,11 @@ A useful eventual feature is to let researchers optimize an abstract reversible 
 
 The experiment history may later support meta-research about how humans and agents search the design space: which improvements generalize, which approaches fail hidden evaluation, whether independent researchers rediscover the same techniques, and what helps progress resume after a plateau.
 
-These are useful studies derived from the benchmark. They must not drive the MVP architecture, complicate the scoring objective, or displace work on the lattice challenge itself.
+These are useful studies derived from the benchmark. They must not drive the core product architecture, complicate the scoring objective, or displace work on the lattice challenge itself.
 
 26. Experiment Classification
 
-Use lightweight tags when they help contributors understand the technical history; do not build an elaborate taxonomy during the MVP.
+Use lightweight tags when they help contributors understand the technical history; do not build an elaborate taxonomy into the core product.
 
 Suggested tags:
 
@@ -1114,8 +1323,13 @@ seed set
 researcher and, when applicable, agent/model
 run timestamp
 command
+submission ID and user ID
+source repository, immutable commit, and eligible-source digest
+evaluation job and worker attempt IDs
+evaluator fingerprint and hidden-suite version
+resource-limit outcome
 
-Since development is local on Apple Silicon, record the machine architecture explicitly so wall-clock results are interpretable.
+Record the machine architecture explicitly so diagnostic wall-clock results are interpretable. Hosted leaderboard workers for a benchmark version should use a documented, homogeneous execution class; a worker-class change must not silently mix timing diagnostics.
 
 29. Failure Handling
 
@@ -1135,19 +1349,29 @@ memory explosion;
 
 hidden-seed failure;
 
-non-generalizing speedup.
+non-generalizing speedup;
 
-The UI may eventually display them as part of the research history.
+submission validation failure;
 
-Failed results prevent duplicated work and document the evidence behind changes to the best-known implementation.
+authentication or authorization failure;
+
+queue timeout or worker loss;
+
+evaluator infrastructure failure.
+
+The UI must display them as part of the research and submission history.
+
+Distinguish participant-result failures from infrastructure failures. Invalid output, resource excess, or an ineligible source bundle produces a rejected, unscored submission. Worker loss, platform outage, or evaluator malfunction produces an infrastructure-failed attempt that may be retried and must not count against the participant's result history as a scientific failure.
+
+Failed results prevent duplicated work and document the evidence behind changes to the best-known implementation. Hosted error messages and logs must be sanitized so they do not disclose hidden inputs, filesystem layout, credentials, or internal service details.
 
 30. README Requirements
 
-The README should eventually contain:
+The README should contain:
 
 One-paragraph description.
 
-Screenshot of the local site.
+Screenshots of the public challenge, leaderboard, API-token, and submission-status views.
 
 Quickstart.
 
@@ -1164,6 +1388,12 @@ How to run benchmarks.
 How experiments are recorded.
 
 How to launch the site.
+
+How to sign in, create/revoke an API token, authenticate the CLI, submit, and inspect status.
+
+How official evaluation differs from local benchmarking.
+
+How to deploy, migrate, monitor, back up, restore, and roll back the hosted product.
 
 How agents should interact with the repo.
 
@@ -1183,13 +1413,31 @@ Use the project name:
 
 mldsa.fail
 
-for local branding from the beginning.
+for local and hosted branding.
 
-Do not make public deployment a prerequisite for the MVP.
+Treat deployability as a product requirement, not a future possibility. Keep local development simple, but maintain production-equivalent service boundaries for the web application, relational database, queue, evaluator coordinator, and isolated workers.
 
-The local project should avoid assumptions that prevent later deployment to mldsa.fail, but the first three-day sprint ends successfully even if everything runs only on localhost.
+Provide:
 
-32. Decision Rules During the Sprint
+container images pinned by digest;
+
+declarative service configuration with separate development, staging, and production environments;
+
+database migrations that are forward-safe and have documented rollback or recovery behavior;
+
+platform secret injection with no committed secrets;
+
+TLS termination, secure headers, health/readiness checks, and graceful shutdown;
+
+durable database backups plus a tested restore procedure;
+
+structured logs, metrics, alerts, and retention policies;
+
+a deployment runbook and a one-command local composition for the complete hosted stack.
+
+The production evaluator must be independently scalable from the web process and must never share its untrusted execution environment with the API, database, queue broker, or platform credentials.
+
+32. Decision Rules During Product Development
 
 When an implementation choice is ambiguous:
 
@@ -1203,7 +1451,7 @@ Prefer explicit data structures.
 
 Prefer testable interfaces.
 
-Prefer local execution.
+Preserve account-free local execution while designing hosted paths for safe deployment.
 
 Prefer a working vertical slice over architectural completeness.
 
@@ -1219,11 +1467,15 @@ safety boundaries;
 
 scoring meaning;
 
-major project scope.
+major project scope;
+
+identity, token, submission, or evaluator trust boundaries;
+
+production data retention or operational security.
 
 33. Definition of Done
 
-The three-day MVP is done when all of the following are true:
+The finished product is done when all of the following are true:
 
 Repository installs cleanly on the target Mac.
 
@@ -1253,7 +1505,7 @@ Invalid solutions receive no score.
 
 Benchmark corruption is detectable.
 
-Local website starts with one command.
+Local benchmark and website start without an account.
 
 Website shows baseline, current best, and headline-score improvement.
 
@@ -1266,6 +1518,26 @@ AGENTS.md gives coding agents clear operating rules.
 PLAN.md describes architecture and build order.
 
 README explains how to reproduce the demonstration.
+
+GitHub OAuth creates a stable participant identity with secure browser sessions.
+
+Users can create, view metadata for, and revoke named scoped API tokens; plaintext secrets are shown only once and never stored.
+
+The CLI can authenticate securely, submit eligible immutable source, and inspect submission status.
+
+The API enforces authorization, idempotency, payload bounds, rate limits, and audit logging.
+
+Submitted code runs only in disposable isolated workers with no outbound network, hidden-seed access beyond the running evaluator, or platform credentials.
+
+The server independently generates every canonical score and never trusts client-submitted metrics.
+
+Only accepted full-scope results for one benchmark/evaluator/suite contract enter a leaderboard cohort.
+
+Users can distinguish rejected scientific results from retryable infrastructure failures and view sanitized logs.
+
+Database migrations, backups, restore, deployment, rollback, health checks, monitoring, and operator runbooks are tested in staging.
+
+The hosted product can be deployed reproducibly to mldsa.fail while the complete local workflow remains usable offline.
 
 34. Stretch Goals
 
@@ -1305,19 +1577,21 @@ Interactive experiment graph.
 
 Patch diffs.
 
-Public read-only leaderboard.
-
 Live experiment feed.
+
+Public participant profiles.
 
 Infrastructure
 
-Parallel experiment workers.
+Autoscaling across multiple homogeneous worker pools.
 
-Reproducible Nix/Docker environment.
+Multi-region read replicas and disaster recovery.
 
-CI benchmark checks.
+Additional OAuth providers and hardware-backed administrator authentication.
 
-None of these should delay the first end-to-end MVP.
+CI benchmark checks for non-submission branches.
+
+None of these should delay the finished single-region product.
 
 35. Final Build Principle
 
@@ -1325,9 +1599,11 @@ The project should remain centered on one objectively scored scientific challeng
 
 editable algorithm
     ↓
-candidate solution
+local candidate solution
     ↓
-immutable verification
+authenticated reproducible submission
+    ↓
+isolated immutable verification
     ↓
 headline score
     ↓
@@ -1335,4 +1611,4 @@ shared best-known frontier
 
 Humans and agents advance that loop by forming hypotheses, changing code, and contributing evidence. Everything else exists to make the scientific optimization faster, more reliable, easier to audit, or easier to understand.
 
-If a feature does not strengthen that loop during the MVP sprint, defer it.
+Local research must remain fast and account-free. Hosted infrastructure exists to make public participation attributable, reproducible, safe, and trustworthy. If a feature does not strengthen that loop or make the finished product operable, defer it.
