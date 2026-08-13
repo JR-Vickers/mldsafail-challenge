@@ -10,7 +10,7 @@ from typing import Any
 def rankable_score(record: Mapping[str, Any]) -> int | None:
     """Return a valid version-2 headline score, otherwise ``None``."""
 
-    if record.get("schema_version") != "2" or record.get("correct") is not True:
+    if record.get("schema_version") not in {"2", "hosted-1"} or record.get("correct") is not True:
         return None
     value = record.get("score")
     aggregate = record.get("aggregate")

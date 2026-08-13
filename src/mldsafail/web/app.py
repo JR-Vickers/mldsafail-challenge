@@ -1,4 +1,4 @@
-"""Local, read-only dashboard for benchmark experiment history."""
+"""Application factory for the offline dashboard and hosted challenge."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from flask import Flask, abort, render_template
+from flask import Flask, abort, jsonify, render_template
 
 from mldsafail.benchmark.comparison import (
     best_score_record,
@@ -17,6 +17,9 @@ from mldsafail.benchmark.comparison import (
     score_frontier,
 )
 from mldsafail.benchmark.records import read_records
+from mldsafail.web.config import load_config
+from mldsafail.web.db import get_session, init_database
+from mldsafail.web.repositories import DatabaseResultRepository, JsonlResultRepository
 
 
 DEFAULT_RESULTS = Path(__file__).resolve().parents[3] / "results" / "experiments.jsonl"
@@ -100,7 +103,9 @@ def _comparison_signature(record: dict[str, Any]) -> ComparisonSignature:
     return (
         scope_signature(record),
         str(record.get("benchmark_version", "legacy")),
-        str(record.get("schema_version", "legacy")),
+        # Hosted records use a storage envelope, but the benchmark contract is
+        # still identified by benchmark version and evaluator fingerprint.
+        "2" if record.get("schema_version") == "hosted-1" else str(record.get("schema_version", "legacy")),
         str(fingerprint or "legacy"),
     )
 
@@ -183,10 +188,25 @@ def _view_model(records: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def create_app(results_path: str | Path | None = None) -> Flask:
+def create_app(
+    results_path: str | Path | None = None,
+    *,
+    config_name: str | None = None,
+    config: dict[str, Any] | None = None,
+) -> Flask:
     app = Flask(__name__)
+    app.config.from_mapping(load_config(config_name))
+    if config:
+        app.config.update(config)
     configured = results_path or os.environ.get("MLDSAFAIL_RESULTS_PATH") or DEFAULT_RESULTS
     app.config["RESULTS_PATH"] = Path(configured)
+    app.config["PERMANENT_SESSION_LIFETIME"] = app.config.pop("PERMANENT_SESSION_LIFETIME_SECONDS")
+    init_database(app)
+
+    def result_repository():
+        if app.config.get("DATABASE_URL"):
+            return DatabaseResultRepository(get_session())
+        return JsonlResultRepository(app.config["RESULTS_PATH"])
 
     @app.template_filter("metric")
     def metric_filter(record: dict[str, Any] | None, name: str) -> str:
@@ -207,12 +227,12 @@ def create_app(results_path: str | Path | None = None) -> Flask:
 
     @app.get("/")
     def index():
-        records, malformed = load_experiments(app.config["RESULTS_PATH"])
+        records, malformed = result_repository().records()
         return render_template("index.html", malformed=malformed, **_view_model(records))
 
     @app.get("/experiment/<experiment_id>")
     def experiment(experiment_id: str):
-        records, malformed = load_experiments(app.config["RESULTS_PATH"])
+        records, malformed = result_repository().records()
         record = next(
             (item for item in records if str(item.get("experiment_id", item.get("id", ""))) == experiment_id),
             None,
@@ -224,6 +244,17 @@ def create_app(results_path: str | Path | None = None) -> Flask:
     @app.get("/methodology")
     def methodology():
         return render_template("methodology.html")
+
+    @app.get("/health/live")
+    def health_live():
+        return jsonify(status="ok")
+
+    @app.get("/health/ready")
+    def health_ready():
+        if app.config.get("DATABASE_URL"):
+            from sqlalchemy import text
+            get_session().execute(text("SELECT 1"))
+        return jsonify(status="ready")
 
     return app
 

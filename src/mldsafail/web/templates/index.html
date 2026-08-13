@@ -49,7 +49,7 @@
 <section>
   <div class="section-heading"><div><p class="eyebrow">Research log</p><h2>Recent experiments</h2></div><p>Failures remain visible and auditable.</p></div>
   <div class="experiment-list">
-  {% for record in records[:12] %}<a class="experiment-row" href="{{ url_for('experiment', experiment_id=record.get('experiment_id', record.get('id'))) }}"><span class="status {{ 'pass' if record.get('correct', record.get('valid')) else 'fail' }}">{{ 'verified' if record.get('correct', record.get('valid')) else 'failed' }}</span><strong>{{ record.get('experiment_id', record.get('id', 'unnamed')) }}<small class="scope-label">{{ record|scope }}</small></strong><span>{{ record.get('hypothesis', record.get('notes', 'No hypothesis recorded')) }}</span><time>{{ record.get('timestamp', 'unknown time') }}</time></a>{% endfor %}
+  {% for record in records[:12] %}<a class="experiment-row" href="{{ url_for('experiment', experiment_id=record.get('experiment_id', record.get('id'))) }}"><span class="status {{ 'pass' if record.get('correct', record.get('valid')) else 'fail' }}">{{ 'verified' if record.get('correct', record.get('valid')) else 'failed' }}</span><strong>{{ record.get('participant', {}).get('name', record.get('experiment_id', record.get('id', 'unnamed'))) }}<small class="scope-label">{{ record|scope }}</small></strong><span>{{ record.get('hypothesis', record.get('notes', 'No hypothesis recorded')) }}</span><time>{{ record.get('timestamp', 'unknown time') }}</time></a>{% endfor %}
   </div>
 </section>
 {% endif %}
