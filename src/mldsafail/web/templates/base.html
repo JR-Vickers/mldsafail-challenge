@@ -10,7 +10,7 @@
 <body>
   <header class="site-header">
     <a class="wordmark" href="{{ url_for('index') }}">mldsa<span>.fail</span></a>
-    <nav><a href="{{ url_for('index') }}">Records</a><a href="{{ url_for('methodology') }}">Methodology &amp; safety</a>{% if current_user %}<a href="{{ url_for('submission_history') }}">Submissions</a><a href="{{ url_for('tokens') }}">API tokens</a><a href="{{ url_for('profile') }}">{{ current_user.display_name }}</a>{% elif config.DATABASE_URL %}<a href="{{ url_for('auth.login') }}">Sign in with GitHub</a>{% endif %}</nav>
+    <nav><a href="{{ url_for('index') }}">Records</a><a href="{{ url_for('methodology') }}">Methodology &amp; safety</a>{% if current_user %}<a href="{{ url_for('submission_history') }}">Submissions</a><a href="{{ url_for('tokens') }}">API tokens</a><a href="{{ url_for('profile') }}">{{ current_user.display_name }}</a>{% elif config.DATABASE_URL and config.ALLOW_DEV_AUTH %}<form method="post" action="{{ url_for('auth.dev_login') }}"><button type="submit">Development sign in</button></form>{% elif config.DATABASE_URL %}<a href="{{ url_for('auth.login') }}">Sign in with GitHub</a>{% endif %}</nav>
   </header>
   <main>{% block content %}{% endblock %}</main>
   <footer>Local research benchmark · synthetic toy instances only · no production cryptographic targets</footer>

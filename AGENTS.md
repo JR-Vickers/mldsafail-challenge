@@ -163,7 +163,7 @@ Ordinary optimization work is limited to `src/mldsafail/solver/` and
 change them during a solver experiment:
 
 - `config/`
-- `data/hidden_seeds.json`
+- the evaluator deployment's hidden-seed secret
 - `src/mldsafail/trusted/`
 - `src/mldsafail/benchmark/`
 

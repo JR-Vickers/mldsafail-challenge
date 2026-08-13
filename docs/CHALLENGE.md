@@ -1,6 +1,6 @@
 # Benchmark 0.2 challenge contract
 
-Benchmark `0.2.0` asks a solver to recover a bounded coefficient vector from a
+Benchmark `0.3.0` asks a solver to recover a bounded coefficient vector from a
 small repository-generated modular linear relation. It is a synthetic,
 ML-DSA-motivated optimization problem, not a production cryptanalytic target.
 

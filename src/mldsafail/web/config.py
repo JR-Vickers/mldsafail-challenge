@@ -81,4 +81,10 @@ def load_config(name: str | None = None) -> dict[str, object]:
             raise RuntimeError("MLDSAFAIL_SECRET_KEY is required for hosted environments")
         if not config["DATABASE_URL"]:
             raise RuntimeError("MLDSAFAIL_DATABASE_URL is required for hosted environments")
+        if not config["GITHUB_CLIENT_ID"] or not config["GITHUB_CLIENT_SECRET"]:
+            raise RuntimeError("GitHub OAuth credentials are required for hosted environments")
+        if config["EVALUATOR_FINGERPRINT"] == "development":
+            raise RuntimeError("MLDSAFAIL_EVALUATOR_FINGERPRINT is required for hosted environments")
+        if config["HIDDEN_SUITE_VERSION"] == "unconfigured":
+            raise RuntimeError("MLDSAFAIL_HIDDEN_SUITE_VERSION is required for hosted environments")
     return config

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import base64
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -19,30 +20,30 @@ class WorkerLimits:
     tmpfs: str = "64m"
 
 
-def docker_command(image: str, harness: Path, hidden_seeds: Path, signing_key: Path, metadata: dict[str, str], limits: WorkerLimits = WorkerLimits()) -> list[str]:
+def docker_command(image: str, harness: Path, metadata: dict[str, str], limits: WorkerLimits = WorkerLimits()) -> list[str]:
     command = [
         "docker", "run", "--rm", "--network=none", "--read-only", "--user=65532:65532",
         "--cap-drop=ALL", "--security-opt=no-new-privileges", f"--cpus={limits.cpus}",
         f"--memory={limits.memory}", f"--pids-limit={limits.pids}",
+        "--ulimit=fsize=67108864:67108864", "--stop-timeout=5",
         "--tmpfs", f"/tmp:rw,noexec,nosuid,nodev,size={limits.tmpfs}",
         "--mount", f"type=bind,src={harness.resolve()},dst=/challenge,readonly",
-        "--mount", f"type=bind,src={hidden_seeds.resolve()},dst=/run/secrets/hidden-seeds.json,readonly",
-        "--mount", f"type=bind,src={signing_key.resolve()},dst=/run/secrets/result-key,readonly",
-        "--workdir=/challenge",
+        "--workdir=/challenge", "--interactive",
     ]
-    environment = metadata | {
-        "MLDSAFAIL_HIDDEN_SEEDS_PATH": "/run/secrets/hidden-seeds.json",
-        "MLDSAFAIL_RESULT_KEY_PATH": "/run/secrets/result-key",
-    }
+    environment = metadata | {"PYTHONPATH": "/challenge/src"}
     for name in sorted(environment):
         command.extend(["--env", f"{name}={environment[name]}"])
     command.append(image)
     return command
 
 
-def run_worker(image: str, harness: Path, hidden_seeds: Path, signing_key: Path, metadata: dict[str, str], limits: WorkerLimits = WorkerLimits()) -> dict:
+def run_worker(image: str, harness: Path, signing_key: bytes, instances: list[dict], metadata: dict[str, str], limits: WorkerLimits = WorkerLimits()) -> dict:
+    request_payload = json.dumps({
+        "signing_key": base64.b64encode(signing_key).decode("ascii"),
+        "instances": instances,
+    }, separators=(",", ":"))
     try:
-        completed = subprocess.run(docker_command(image, harness, hidden_seeds, signing_key, metadata, limits), capture_output=True, text=True, timeout=limits.wall_seconds)
+        completed = subprocess.run(docker_command(image, harness, metadata, limits), input=request_payload, capture_output=True, text=True, timeout=limits.wall_seconds)
     except subprocess.TimeoutExpired:
         raise EnvelopeError("worker exceeded wall-time limit") from None
     output = completed.stdout[-65536:]

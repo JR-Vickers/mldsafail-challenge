@@ -1,46 +1,51 @@
-"""Container entrypoint: run the trusted full suite and sign one bounded result."""
+"""Trusted supervisor: isolate solver execution, validate its shape, and sign."""
 
 from __future__ import annotations
 
+import base64
 import json
 import os
-from pathlib import Path
+import subprocess
+import sys
 
-from mldsafail.benchmark.runner import run_benchmark
 from mldsafail.evaluator.envelope import sign_envelope
 
 
 def main() -> int:
-    required = {
-        name: os.environ[name] for name in (
-            "MLDSAFAIL_SOURCE_DIGEST", "MLDSAFAIL_BENCHMARK_VERSION",
-            "MLDSAFAIL_EVALUATOR_FINGERPRINT", "MLDSAFAIL_HIDDEN_SUITE_VERSION",
-            "MLDSAFAIL_WORKER_CLASS", "MLDSAFAIL_RESULT_KEY_PATH",
-        )
-    }
-    failure_class = None
+    request = json.load(sys.stdin)
+    sys.stdin.close()
+    signing_key = base64.b64decode(request.pop("signing_key"), validate=True)
+    # Participant modules are imported only by this child. It receives public
+    # challenge objects, never the signing key, hidden seeds, or service creds.
+    child = subprocess.run(
+        [sys.executable, "-m", "mldsafail.evaluator.solver_child"],
+        input=json.dumps({"instances": request["instances"]}, separators=(",", ":")),
+        capture_output=True, text=True, timeout=280,
+        env={"PATH": os.environ.get("PATH", ""), "PYTHONPATH": "/challenge/src", "PYTHONUNBUFFERED": "1"},
+    )
+    verified, score, failure_class, results = False, None, None, []
     try:
-        _suites, aggregate, verified = run_benchmark(suite="full", solver_name="lazy")
-        score = aggregate["score"] if verified else None
-        diagnostics = {
-            "total_wall_seconds": aggregate.get("total_wall_seconds"),
-            "peak_memory_bytes": aggregate.get("peak_memory_bytes"),
-            "solution_quality": aggregate.get("solution_quality"),
-        }
-        if not verified:
-            failure_class = "verification_failed"
-    except Exception as exception:
-        verified, score, diagnostics, failure_class = False, None, {}, f"worker_error:{type(exception).__name__}"
+        output = json.loads(child.stdout[-262144:])
+        results = output["results"]
+        if child.returncode or not isinstance(results, list) or len(results) != len(request["instances"]):
+            raise ValueError("solver child did not return one result per instance")
+        totals = [item["cost"]["total"] for item in results]
+        if not all(isinstance(value, int) and not isinstance(value, bool) and value >= 0 for value in totals):
+            raise ValueError("solver child returned invalid costs")
+        score, verified = sum(totals), True
+    except (ValueError, KeyError, TypeError, json.JSONDecodeError):
+        failure_class = "invalid_solver_output"
+        results = []
     payload = {
-        "source_digest": required["MLDSAFAIL_SOURCE_DIGEST"],
-        "benchmark_version": required["MLDSAFAIL_BENCHMARK_VERSION"],
-        "evaluator_fingerprint": required["MLDSAFAIL_EVALUATOR_FINGERPRINT"],
-        "hidden_suite_version": required["MLDSAFAIL_HIDDEN_SUITE_VERSION"],
-        "worker_class": required["MLDSAFAIL_WORKER_CLASS"],
-        "verified": verified, "score": score, "diagnostics": diagnostics, "failure_class": failure_class,
+        "source_digest": os.environ["MLDSAFAIL_SOURCE_DIGEST"],
+        "benchmark_version": os.environ["MLDSAFAIL_BENCHMARK_VERSION"],
+        "evaluator_fingerprint": os.environ["MLDSAFAIL_EVALUATOR_FINGERPRINT"],
+        "hidden_suite_version": os.environ["MLDSAFAIL_HIDDEN_SUITE_VERSION"],
+        "worker_class": os.environ["MLDSAFAIL_WORKER_CLASS"],
+        "verified": verified, "score": score,
+        "diagnostics": {"results": results}, "failure_class": failure_class,
     }
-    key = Path(required["MLDSAFAIL_RESULT_KEY_PATH"]).read_bytes()
-    print("MLDSAFAIL_RESULT=" + json.dumps(sign_envelope(payload, key), sort_keys=True, separators=(",", ":")))
+    print("MLDSAFAIL_RESULT=" + json.dumps(sign_envelope(payload, signing_key), sort_keys=True, separators=(",", ":")))
     return 0 if verified else 1
 
 

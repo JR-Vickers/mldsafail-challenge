@@ -79,13 +79,13 @@ def test_signed_envelope_binds_all_provenance():
 
 
 def test_docker_command_applies_isolation_contract(tmp_path):
-    paths = [tmp_path / name for name in ("harness", "hidden.json", "key")]
-    paths[0].mkdir(); paths[1].write_text("{}"); paths[2].write_bytes(b"key")
-    command = docker_command("worker@sha256:" + "a" * 64, *paths, {"MLDSAFAIL_SOURCE_DIGEST": "b" * 64})
+    harness = tmp_path / "harness"; harness.mkdir()
+    command = docker_command("worker@sha256:" + "a" * 64, harness, {"MLDSAFAIL_SOURCE_DIGEST": "b" * 64})
     rendered = " ".join(command)
-    for required in ("--network=none", "--read-only", "--cap-drop=ALL", "no-new-privileges", "--pids-limit=64", "readonly"):
+    for required in ("--network=none", "--read-only", "--cap-drop=ALL", "no-new-privileges", "--pids-limit=64", "--ulimit=fsize=", "readonly"):
         assert required in rendered
     assert "docker.sock" not in rendered and "DATABASE_URL" not in rendered
+    assert "hidden" not in rendered and "result-key" not in rendered
 
 
 def test_queue_claim_creates_lease_and_transactional_transition(tmp_path):

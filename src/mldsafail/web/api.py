@@ -27,6 +27,7 @@ def token_required(scope: str):
     def decorator(view):
         @wraps(view)
         def wrapped(*args, **kwargs):
+            check_rate_limit(get_session(), f"authentication:{request.remote_addr or 'unknown'}", limit=120, seconds=60)
             header = request.headers.get("Authorization", "")
             plaintext = header[7:] if header.startswith("Bearer ") else ""
             verified = verify_api_token(get_session(), plaintext, scope)
@@ -84,12 +85,14 @@ def submissions_list():
 @api.get("/submissions/<identifier>")
 @token_required("submission:read")
 def submissions_get(identifier):
+    check_rate_limit(get_session(), f"status:{g.api_token.id}", limit=120, seconds=60)
     return jsonify(submission=serialize_submission(owned_submission(identifier)))
 
 
 @api.get("/submissions/<identifier>/logs")
 @token_required("submission:read")
 def submissions_logs(identifier):
+    check_rate_limit(get_session(), f"logs:{g.api_token.id}", limit=120, seconds=60)
     item = owned_submission(identifier)
     job = get_session().scalar(select(EvaluationJob).where(EvaluationJob.submission_id == item.id))
     attempts = [] if not job else get_session().scalars(select(EvaluationAttempt).where(EvaluationAttempt.job_id == job.id).order_by(EvaluationAttempt.number)).all()

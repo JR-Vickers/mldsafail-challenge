@@ -29,6 +29,7 @@ ALLOWED_TRANSITIONS = {
     SubmissionState.INFRASTRUCTURE_FAILED: {SubmissionState.QUEUED},
 }
 password_hasher = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=2, hash_len=32, salt_len=16)
+dummy_token_hash = password_hasher.hash("constant-time-invalid-token-check")
 
 
 class DomainError(ValueError):
@@ -65,7 +66,12 @@ def verify_api_token(session: Session, plaintext: str, required_scope: str | Non
         return None
     prefix, secret = match.groups()
     token = session.scalar(select(ApiToken).where(ApiToken.prefix == prefix))
-    if token is None or token.revoked_at is not None:
+    candidate_hash = token.secret_hash if token is not None else dummy_token_hash
+    try:
+        secret_matches = password_hasher.verify(candidate_hash, secret)
+    except (VerifyMismatchError, InvalidHashError):
+        secret_matches = False
+    if token is None or not secret_matches or token.revoked_at is not None:
         return None
     now = utcnow()
     expiry = token.expires_at
@@ -74,11 +80,6 @@ def verify_api_token(session: Session, plaintext: str, required_scope: str | Non
             expiry = expiry.replace(tzinfo=timezone.utc)
         if expiry <= now:
             return None
-    try:
-        if not password_hasher.verify(token.secret_hash, secret):
-            return None
-    except (VerifyMismatchError, InvalidHashError):
-        return None
     if required_scope and required_scope not in token.scopes:
         return None
     token.last_used_at = now

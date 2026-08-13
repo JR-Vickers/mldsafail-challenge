@@ -104,7 +104,9 @@ def login():
 @auth.get("/callback")
 def callback():
     token = oauth.github.authorize_access_token()
-    profile = oauth.github.get("user", token=token).raise_for_status().json()
+    response = oauth.github.get("user", token=token)
+    response.raise_for_status()
+    profile = response.json()
     database = get_session()
     subject = str(profile["id"])
     identity = database.scalar(select(GithubIdentity).where(GithubIdentity.github_subject == subject))

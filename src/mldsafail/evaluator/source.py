@@ -87,12 +87,16 @@ def validate_eligible_source(root: Path, policy: SourcePolicy = SourcePolicy()) 
             raise DomainError("submodules_forbidden", "Git submodules are not accepted.")
         if mode == "120000":
             raise DomainError("symlinks_forbidden", "Symbolic links are not accepted.")
+        if path.name == ".gitmodules":
+            raise DomainError("submodules_forbidden", "Git submodule configuration is not accepted.")
+        disk_path = root.joinpath(*path.parts)
+        if path.name == ".gitattributes" and disk_path.is_file() and b"filter=lfs" in disk_path.read_bytes():
+            raise DomainError("git_lfs_forbidden", "Git LFS configuration is not accepted.")
         eligible = any(path == base or base in path.parents for base in ELIGIBLE_ROOTS)
         if not eligible:
             continue
         if kind != "blob" or path.suffix != ".py":
             raise DomainError("unsupported_file", "Eligible directories may contain Python source files only.")
-        disk_path = root.joinpath(*path.parts)
         if not disk_path.is_file() or disk_path.is_symlink():
             raise DomainError("unsafe_file", "Eligible source did not resolve to a regular file.")
         content = disk_path.read_bytes()

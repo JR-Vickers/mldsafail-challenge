@@ -104,3 +104,12 @@ def test_expired_token_and_log_redaction(tmp_path):
     log = f"failed {plaintext} at /run/secrets/hidden/seeds.json"
     assert plaintext not in sanitize_log(log)
     assert "/run/secrets" not in sanitize_log(log)
+
+
+def test_api_oversized_request_has_machine_error(tmp_path):
+    app = hosted_app(tmp_path)
+    response = app.test_client().post(
+        "/api/v1/submissions", data=b"x" * (65 * 1024), content_type="application/json"
+    )
+    assert response.status_code == 413
+    assert response.json["error"]["code"] == "request_too_large"

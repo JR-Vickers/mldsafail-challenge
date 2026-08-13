@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 import os
 from datetime import timedelta
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +26,7 @@ from mldsafail.web.auth import init_auth, login_required, require_csrf
 from mldsafail.web.api import init_api
 from mldsafail.web.models import ApiToken, EvaluationAttempt, EvaluationJob, Submission
 from mldsafail.web.repositories import DatabaseResultRepository, JsonlResultRepository
+from mldsafail.web.observability import init_observability
 from mldsafail.web.services import DomainError, check_rate_limit, create_api_token, revoke_token, sanitize_log
 
 
@@ -210,6 +212,13 @@ def create_app(
     init_database(app)
     init_auth(app)
     init_api(app)
+    init_observability(app)
+
+    @app.before_request
+    def enforce_request_size():
+        maximum = app.config.get("MAX_CONTENT_LENGTH")
+        if maximum and request.content_length is not None and request.content_length > maximum:
+            abort(413)
 
     def result_repository():
         if app.config.get("DATABASE_URL"):
@@ -271,8 +280,17 @@ def create_app(
         database = get_session()
         try:
             check_rate_limit(database, f"token-create:{g.current_user.id}", limit=10, seconds=3600)
-            token, plaintext = create_api_token(database, g.current_user, request.form.get("name", ""))
-        except DomainError as exception:
+            days_text = request.form.get("expires_days", "").strip()
+            expires_at = None
+            if days_text:
+                days = int(days_text)
+                if not 1 <= days <= 365:
+                    raise DomainError("invalid_expiration", "Expiration must be between 1 and 365 days.")
+                expires_at = datetime.now(timezone.utc) + timedelta(days=days)
+            token, plaintext = create_api_token(database, g.current_user, request.form.get("name", ""), expires_at=expires_at)
+        except (DomainError, ValueError) as exception:
+            if isinstance(exception, ValueError) and not isinstance(exception, DomainError):
+                exception = DomainError("invalid_expiration", "Expiration must be a whole number of days.")
             return render_template("tokens.html", tokens=[], error=exception.message), exception.status
         return render_template("token_created.html", token=token, plaintext=plaintext)
 
@@ -312,6 +330,12 @@ def create_app(
             from sqlalchemy import text
             get_session().execute(text("SELECT 1"))
         return jsonify(status="ready")
+
+    @app.errorhandler(413)
+    def request_too_large(_exception):
+        if request.path.startswith("/api/"):
+            return jsonify(error={"code": "request_too_large", "message": "Request body exceeds the size limit."}), 413
+        return "Request body exceeds the size limit.", 413
 
     return app
 

@@ -1,8 +1,8 @@
 # mldsa.fail challenge
 
-`mldsa.fail` is a local research benchmark for measuring how effectively coding agents improve algorithms over small, synthetic lattice problems. ML-DSA provides mathematical inspiration, but this repository is an optimization challenge—not a key-recovery or signature-forgery tool.
+`mldsa.fail` is a local and hosted research benchmark for measuring how effectively coding agents improve algorithms over small, synthetic lattice problems. ML-DSA provides mathematical inspiration, but this repository is an optimization challenge—not a key-recovery or signature-forgery tool.
 
-The MVP closes a reproducible loop: generate a deterministic toy instance, solve it, verify the candidate independently, measure resources, append the experiment record, and display progress locally.
+Offline use remains account-free and JSONL-backed. The hosted product accepts immutable public GitHub commits, evaluates only eligible solver/math source in disposable rootless Docker workers, and publishes scores created by the trusted server.
 
 ## Quick start
 
@@ -15,9 +15,10 @@ make test
 make bench
 make web-smoke
 make web
+mldsafail run --profile small --no-record
 ```
 
-The dashboard starts at `http://127.0.0.1:5000`. It reads `results/experiments.jsonl`; set `MLDSAFAIL_RESULTS_PATH=/path/to/other.jsonl` to inspect another result log.
+The dashboard starts at `http://127.0.0.1:5000`. It reads `results/experiments.jsonl`; set `MLDSAFAIL_RESULTS_PATH=/path/to/other.jsonl` to inspect another result log. For the local hosted stack, run `make hosted-dev` and open `http://localhost:8080`.
 
 ## Commands
 
@@ -30,9 +31,7 @@ make web-smoke                    # non-blocking dashboard route smoke test
 
 python -m mldsafail.benchmark.runner --profile medium
 python -m mldsafail.benchmark.runner --profile medium --seed 12345
-python -m mldsafail.benchmark.runner --suite full
-python -m mldsafail.benchmark.runner --suite full --solver reference
-python -m mldsafail.benchmark.runner --suite full --solver lazy
+MLDSAFAIL_HIDDEN_SEEDS_PATH=/secure/hidden.json mldsafail run --suite full
 python -m mldsafail.benchmark.runner --profile small --no-record
 ```
 
@@ -46,12 +45,14 @@ Official comparisons use every public and hidden profile, a clean committed tree
 uv run python -c 'from mldsafail.benchmark.integrity import compute_trusted_fingerprint; print(compute_trusted_fingerprint())'
 ```
 
-For the current benchmark contract, record a run with:
+For a maintainer comparison, inject the server-only suite and use the reviewed
+fingerprint for that release:
 
 ```sh
+MLDSAFAIL_HIDDEN_SEEDS_PATH=/secure/hidden.json \
 uv run python -m mldsafail.benchmark.runner \
   --suite full \
-  --baseline-fingerprint 39f8759284dc86f83daa3660d69a70fa2d5ee221cc5daaa26330b7e62072503c \
+  --baseline-fingerprint REVIEWED_FINGERPRINT \
   --agent codex \
   --model gpt-5 \
   --hypothesis "describe the tested change" \
@@ -61,7 +62,20 @@ uv run python -m mldsafail.benchmark.runner \
 
 If the computed fingerprint differs, do not reuse the example value: review the trusted-file changes and establish a new benchmark baseline. The dashboard ranks full public-plus-hidden records together and never uses a custom, smoke, or public-only run to calculate their headline improvement.
 
-The full suite includes the repository's separated hidden seeds. They discourage seed-specific optimization; they are not intended to be secret from a local repository owner.
+The 0.3.0 contract removed hidden seeds from the repository and package. Public runs remain fully offline; hidden/full runs are maintainer-only and require `MLDSAFAIL_HIDDEN_SEEDS_PATH`. Hosted results are separated into cohorts by benchmark version, evaluator fingerprint, hidden-suite version, and worker class.
+
+## Hosted CLI
+
+Create a token in the signed-in web UI, then use the unified command:
+
+```sh
+mldsafail login TOKEN --server https://mldsa.fail
+mldsafail submit --repo https://github.com/OWNER/REPO --commit FULL_40_CHAR_SHA --hypothesis "reduce basis updates"
+mldsafail status SUBMISSION_ID --follow
+mldsafail logout
+```
+
+The secret is stored in the operating-system credential store. A mode-0600 file fallback requires explicit `--allow-plaintext-storage` opt-in. See [docs/OPERATIONS.md](docs/OPERATIONS.md) for TLS, OAuth, deployment, migration, backup/restore, hidden-suite rotation, rollback, and incident response.
 
 ## Benchmark model
 
@@ -86,12 +100,13 @@ Do not use this project to recover real secret keys, forge signatures, search fo
 
 ```text
 config/                    fixed, bounded toy profiles
-data/                      public and hidden benchmark seeds
+data/                      public benchmark seeds only
 src/mldsafail/trusted/     generator and independent verifier
 src/mldsafail/solver/      reference, balanced, and lazy-frontier solvers
 src/mldsafail/math/        toy arithmetic and linear algebra
 src/mldsafail/benchmark/   runner, metrics, records, integrity checks
-src/mldsafail/web/         read-only local results dashboard
+src/mldsafail/web/         local dashboard and hosted web/API
+src/mldsafail/evaluator/   source validation, queue, coordinator, worker
 tests/                     correctness, safety, benchmark, and web tests
 results/experiments.jsonl  append-only research history (generated)
 experiments/               experiment schema documentation

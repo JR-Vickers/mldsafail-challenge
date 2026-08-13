@@ -1,0 +1,87 @@
+name: mldsafail
+services:
+  proxy:
+    image: caddy:2.10.0-alpine
+    restart: unless-stopped
+    ports: ["${HTTP_PORT:-80}:80", "${HTTPS_PORT:-443}:443"]
+    environment:
+      MLDSAFAIL_DOMAIN: ${MLDSAFAIL_DOMAIN:-localhost}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web: {condition: service_healthy}
+
+  web:
+    build: {context: ., dockerfile: Dockerfile}
+    image: mldsafail-web:0.3.0
+    restart: unless-stopped
+    read_only: true
+    tmpfs: ["/tmp:size=32m,noexec,nosuid,nodev"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    environment:
+      MLDSAFAIL_ENV: ${MLDSAFAIL_ENV:-production}
+      MLDSAFAIL_DATABASE_URL: postgresql+psycopg://mldsafail:${POSTGRES_PASSWORD}@db/mldsafail
+      MLDSAFAIL_SECRET_KEY: ${MLDSAFAIL_SECRET_KEY}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      MLDSAFAIL_EVALUATOR_FINGERPRINT: ${MLDSAFAIL_EVALUATOR_FINGERPRINT}
+      MLDSAFAIL_HIDDEN_SUITE_VERSION: ${MLDSAFAIL_HIDDEN_SUITE_VERSION}
+    depends_on:
+      db: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  coordinator:
+    build: {context: ., dockerfile: Dockerfile.coordinator}
+    image: mldsafail-coordinator:0.3.0
+    restart: unless-stopped
+    user: "${EVALUATOR_UID:-1000}:${EVALUATOR_GID:-1000}"
+    read_only: true
+    tmpfs: ["/tmp:size=128m,nosuid,nodev"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    group_add: ["${DOCKER_GID:-1000}"]
+    environment:
+      MLDSAFAIL_DATABASE_URL: postgresql+psycopg://mldsafail:${POSTGRES_PASSWORD}@db/mldsafail
+      MLDSAFAIL_HIDDEN_SEEDS_PATH: ${EVALUATOR_WORK_DIR:-/srv/mldsafail-evaluator}/secrets/hidden-seeds.json
+      MLDSAFAIL_EVALUATOR_WORK_ROOT: ${EVALUATOR_WORK_DIR:-/srv/mldsafail-evaluator}
+      MLDSAFAIL_WORKER_IMAGE: mldsafail-worker:0.3.0
+      MLDSAFAIL_BENCHMARK_VERSION: "0.3.0"
+      MLDSAFAIL_EVALUATOR_FINGERPRINT: ${MLDSAFAIL_EVALUATOR_FINGERPRINT}
+      MLDSAFAIL_HIDDEN_SUITE_VERSION: ${MLDSAFAIL_HIDDEN_SUITE_VERSION}
+      MLDSAFAIL_WORKER_CLASS: rootless-docker-v1
+    volumes:
+      - ${DOCKER_SOCKET:-/run/user/1000/docker.sock}:/var/run/docker.sock
+      - ${EVALUATOR_WORK_DIR:-/srv/mldsafail-evaluator}:${EVALUATOR_WORK_DIR:-/srv/mldsafail-evaluator}
+    depends_on:
+      db: {condition: service_healthy}
+
+  worker-image:
+    build: {context: ., dockerfile: Dockerfile.worker}
+    image: mldsafail-worker:0.3.0
+    profiles: [build]
+
+  db:
+    image: postgres:17.5-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mldsafail
+      POSTGRES_USER: mldsafail
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mldsafail -d mldsafail"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
