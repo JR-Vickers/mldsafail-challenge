@@ -93,14 +93,23 @@ def test_seed_suites_and_full_semantics():
     assert set(load_seed_suite("public", "small")) == {"small"}
 
 
-def test_seed_suites_fall_back_to_packaged_resources(monkeypatch):
+def test_public_suite_falls_back_but_hidden_requires_injected_secret(monkeypatch):
     monkeypatch.setattr(
         suites_module,
         "SUITE_FILES",
         {name: suites_module.PROJECT_ROOT / "missing" / path.name
          for name, path in suites_module.SUITE_FILES.items()},
     )
-    assert load_seed_suite("hidden", "medium") == {"medium": (9201, 9202)}
+    assert set(load_seed_suite("public", "medium")) == {"medium"}
+    with pytest.raises(suites_module.SuiteError, match="maintainer-only"):
+        load_seed_suite("hidden", "medium")
+
+
+def test_hidden_suite_can_be_injected_by_maintainer(tmp_path, monkeypatch):
+    hidden = tmp_path / "hidden.json"
+    hidden.write_text('{"small":[991]}')
+    monkeypatch.setenv("MLDSAFAIL_HIDDEN_SEEDS_PATH", str(hidden))
+    assert load_seed_suite("hidden", "small") == {"small": (991,)}
 
 
 def record(identifier, score, correct=True, timestamp="2026-01-01"):

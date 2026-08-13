@@ -126,7 +126,7 @@ def create_submission(session: Session, user: User, payload: dict, idempotency_k
     hypothesis = str(payload.get("hypothesis", "")).strip()
     notes = str(payload.get("notes", ""))
     tags = payload.get("tags", [])
-    benchmark_version = str(payload.get("benchmark_version", "0.2.0"))
+    benchmark_version = str(payload.get("benchmark_version", "0.3.0"))
     if not hypothesis or len(hypothesis) > 2000 or len(notes) > 5000:
         raise DomainError("invalid_text", "Hypothesis is required and text fields must be within limits.")
     if not isinstance(tags, list) or len(tags) > 10 or not all(isinstance(tag, str) and 0 < len(tag) <= 40 for tag in tags):

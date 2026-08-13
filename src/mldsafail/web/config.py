@@ -19,7 +19,7 @@ class BaseConfig:
     GITHUB_CLIENT_ID: str | None = None
     GITHUB_CLIENT_SECRET: str | None = None
     ALLOW_DEV_AUTH: bool = False
-    BENCHMARK_VERSION: str = "0.2.0"
+    BENCHMARK_VERSION: str = "0.3.0"
     EVALUATOR_FINGERPRINT: str = "development"
     HIDDEN_SUITE_VERSION: str = "unconfigured"
     WORKER_CLASS: str = "rootless-docker-v1"

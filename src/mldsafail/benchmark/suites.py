@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from importlib import resources
 from pathlib import Path
 
@@ -24,14 +25,17 @@ def load_seed_suite(name: str, profile: str | None = None) -> dict[str, tuple[in
 
     if name not in SUITE_FILES:
         raise SuiteError(f"unknown seed suite: {name}")
-    path = SUITE_FILES[name]
+    injected = os.environ.get("MLDSAFAIL_HIDDEN_SEEDS_PATH") if name == "hidden" else None
+    path = Path(injected) if injected else SUITE_FILES[name]
     if path.exists():
         with path.open(encoding="utf-8") as handle:
             raw = json.load(handle)
-    else:
+    elif name == "public":
         resource = resources.files("mldsafail.data").joinpath(f"{name}_seeds.json")
         with resource.open(encoding="utf-8") as handle:
             raw = json.load(handle)
+    else:
+        raise SuiteError("hidden suite is maintainer-only and no hidden seed secret was provided")
     if not isinstance(raw, dict):
         raise SuiteError(f"{name} suite must contain a profile mapping")
     suites: dict[str, tuple[int, ...]] = {}

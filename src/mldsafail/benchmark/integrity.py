@@ -2,7 +2,8 @@
 
 The manifest deliberately excludes solver and result files: solver changes are
 the subject of experiments, while the trusted generator, verifier, profiles,
-hidden suite, and scoring harness define what an experiment means.
+and scoring harness define what an experiment means. Hosted hidden seeds are
+versioned deployment secrets and are deliberately outside this manifest.
 """
 
 from __future__ import annotations
@@ -16,7 +17,6 @@ from typing import Mapping
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 _TRUSTED_PATHS = (
     Path("config"),
-    Path("data/hidden_seeds.json"),
     Path("src/mldsafail/trusted"),
     Path("src/mldsafail/benchmark"),
 )
