@@ -117,7 +117,7 @@ section { margin: 64px 0; }
 .hero h1,
 .detail-hero h1 {
   max-width: 900px;
-  margin: 0.12em 0 0.4em;
+  margin: 0.12em auto 0.4em;
   font: 800 clamp(40px, 6.5vw, 76px)/.98 system-ui, sans-serif;
   letter-spacing: -0.05em;
   color: var(--ink);
