@@ -24,7 +24,7 @@
   <div class="section-heading"><div><p class="eyebrow">Leaderboard · {{ comparison_scope }}</p><h2>Current record</h2></div><p>Lowest valid headline score wins. Diagnostics do not affect ranking.</p></div>
   <div class="cards">
   {% for name, label in (("score", "Headline score"), ("runtime", "Runtime"), ("memory", "Peak memory"), ("quality", "Solution quality")) %}
-    <article class="metric-card"><span>{{ label }}</span><strong>{{ current|metric(name) }}</strong>
+    <article class="metric-card"><span data-tooltip="{{ metric_titles.get(label) }}">{{ label }}</span><strong>{{ current|metric(name) }}</strong>
       {% if current %}<a href="{{ url_for('experiment', experiment_id=current.get('experiment_id', current.get('id'))) }}">{{ current.get('experiment_id', current.get('id', 'experiment')) }}</a>{% else %}<small>No ranked result</small>{% endif %}
     </article>
   {% endfor %}
@@ -40,13 +40,13 @@
   </article>
   <article class="comparison">
     <p class="eyebrow">Baseline → current</p><h2>Measured change</h2>
-    <dl><div><dt>Baseline score</dt><dd>{{ baseline|metric('score') }}</dd></div><div><dt>Current score</dt><dd>{{ current|metric('score') }}</dd></div><div><dt>Improvement</dt><dd>{% if improvement is not none %}{{ "%.1f"|format(improvement) }}%{% else %}—{% endif %}</dd></div></dl>
+    <dl><div><dt data-tooltip="{{ metric_titles.get('Baseline score') }}">Baseline score</dt><dd>{{ baseline|metric('score') }}</dd></div><div><dt data-tooltip="{{ metric_titles.get('Current score') }}">Current score</dt><dd>{{ current|metric('score') }}</dd></div><div><dt data-tooltip="{{ metric_titles.get('Improvement') }}">Improvement</dt><dd>{% if improvement is not none %}{{ "%.1f"|format(improvement) }}%{% else %}—{% endif %}</dd></div></dl>
   </article>
 </section>
 
 <section>
   <div class="section-heading"><div><p class="eyebrow">Progress · {{ comparison_scope }}</p><h2>Headline-score frontier</h2></div><p>Each row established a strictly lower comparable score.</p></div>
-  <div class="table-wrap"><table><thead><tr><th>Experiment</th><th>Score</th><th>Runtime</th><th>Memory</th><th>Quality</th></tr></thead><tbody>
+  <div class="table-wrap"><table><thead><tr><th>Experiment</th><th data-tooltip="{{ metric_titles.get('Score') }}">Score</th><th data-tooltip="{{ metric_titles.get('Runtime') }}">Runtime</th><th data-tooltip="{{ metric_titles.get('Memory') }}">Memory</th><th data-tooltip="{{ metric_titles.get('Quality') }}">Quality</th></tr></thead><tbody>
   {% for record in frontier %}<tr><td><a href="{{ url_for('experiment', experiment_id=record.get('experiment_id', record.get('id'))) }}">{{ record.get('experiment_id', record.get('id')) }}</a></td><td>{{ record|metric('score') }}</td><td>{{ record|metric('runtime') }}</td><td>{{ record|metric('memory') }}</td><td>{{ record|metric('quality') }}</td></tr>{% else %}<tr><td colspan="5">No comparable ranked runs.</td></tr>{% endfor %}
   </tbody></table></div>
 </section>

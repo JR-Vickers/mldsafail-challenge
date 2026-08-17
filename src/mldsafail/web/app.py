@@ -28,6 +28,7 @@ from mldsafail.web.models import ApiToken, EvaluationAttempt, EvaluationJob, Sub
 from mldsafail.web.repositories import DatabaseResultRepository, JsonlResultRepository
 from mldsafail.web.observability import init_observability
 from mldsafail.web.services import DomainError, check_rate_limit, create_api_token, revoke_token, sanitize_log
+from mldsafail.web.tooltip_definitions import METRIC_TITLES as TOOLTIP_TITLES
 
 
 DEFAULT_RESULTS = Path(__file__).resolve().parents[3] / "results" / "experiments.jsonl"
@@ -330,6 +331,10 @@ def create_app(
             from sqlalchemy import text
             get_session().execute(text("SELECT 1"))
         return jsonify(status="ready")
+
+    @app.context_processor
+    def tooltip_context():
+        return {"metric_titles": TOOLTIP_TITLES}
 
     @app.errorhandler(413)
     def request_too_large(_exception):
