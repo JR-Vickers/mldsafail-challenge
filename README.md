@@ -94,16 +94,16 @@ Public and hidden suites use fixed seeds from the same generator distribution. E
 
 All executable experiments operate on deliberately small instances produced by this repository. The program does not accept public keys, signatures, arbitrary matrices, custom modulus/dimension combinations, or production ML-DSA parameters as solver targets.
 
-Do not use this project to recover real secret keys, forge signatures, search for vulnerable keys, target deployed systems, or remove the toy restrictions to attack practical parameters. Work involving real ML-DSA should remain specification study, official correctness vectors, asymptotic analysis, or theoretical resource estimation.
+Do not use this project to recover real secret keys, forge signatures, search for vulnerable keys, target deployed systems, or remove the restrictions to attack practical parameters. Work involving real ML-DSA should remain specification study, official correctness vectors, asymptotic analysis, or theoretical resource estimation.
 
 ## Repository map
 
 ```text
-config/                    fixed, bounded toy profiles
+config/                    fixed, bounded profiles
 data/                      public benchmark seeds only
 src/mldsafail/trusted/     generator and independent verifier
 src/mldsafail/solver/      reference, balanced, and lazy-frontier solvers
-src/mldsafail/math/        toy arithmetic and linear algebra
+src/mldsafail/math/        arithmetic and linear algebra
 src/mldsafail/benchmark/   runner, metrics, records, integrity checks
 src/mldsafail/web/         local dashboard and hosted web/API
 src/mldsafail/evaluator/   source validation, queue, coordinator, worker

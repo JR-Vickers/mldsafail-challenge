@@ -9,10 +9,23 @@
 </head>
 <body>
   <header class="site-header">
-    <a class="wordmark" href="{{ url_for('index') }}">mldsa<span>.fail</span></a>
+    <a class="wordmark" href="{{ url_for('index') }}">mldsa<span>.fail</span><span class="header-by">by</span><img class="header-logo" src="{{ url_for('static', filename='quantus_full_logo.png') }}" alt="Quantus"></a>
     <nav><a href="{{ url_for('index') }}">Records</a><a href="{{ url_for('methodology') }}">Methodology &amp; safety</a>{% if current_user %}<a href="{{ url_for('submission_history') }}">Submissions</a><a href="{{ url_for('tokens') }}">API tokens</a><a href="{{ url_for('profile') }}">{{ current_user.display_name }}</a>{% elif config.DATABASE_URL and config.ALLOW_DEV_AUTH %}<form method="post" action="{{ url_for('auth.dev_login') }}"><button type="submit">Development sign in</button></form>{% elif config.DATABASE_URL %}<a href="{{ url_for('auth.login') }}">Sign in with GitHub</a>{% endif %}</nav>
   </header>
   <main>{% block content %}{% endblock %}</main>
-  <footer>Local research benchmark · synthetic toy instances only · no production cryptographic targets</footer>
+  <footer class="site-footer">
+    <div class="footer-left">A <strong>Quantus</strong> Project</div>
+    <div class="footer-right">
+      <a class="footer-link" href="https://github.com/JR-Vickers/mldsafail-challenge" rel="noopener" target="_blank" aria-label="GitHub">
+        <svg class="footer-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.167 6.839 9.49.5.09.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.24 2.91.946.09-.657.357-1.09.638-1.34-.103-.357-.248-1.094.04-2.1 0 0 .672-.218 2.2.83.656-.18 1.352-.227 2.003-.23s1.346.04 2.003.23c1.53 1.05 2.2 0.83 2.2 0.83.288 1.006.143 1.748.04 2.1.28.25 0.546.593.638 1.34.57 0.301 1.91.075 2.91-.946 0 0 1.531-1.03 1.531-1.03.072 0 .141.014.219.035.344.134.652.422.652.87.002.248-.18.487-.424.615.267.246.556.462.556.462.776 1.144 1.985 1.679 4.065 1.85.156.037.32-.026.396-.11.077-.087.124-.206.124-.336 0-.18-.035-.33-.1-.477.336-.176.626-.446.626-.756 0-.403-.237-.735-.548-1.004.264-.373.503-.863.503-1.408 0-1.393-1.058-2.481-2.49-2.481-1.572 0-2.842 1.123-3.196 2.438 0-.327.05-1.127.103-1.806C14.469 9.05 15.989 8.7 17.96 8.7c5.523 0 10 4.477 10 10 0 .49-.008.973-.024 1.454-.11.582-.382 1.22-.7 1.647-.244.3-.535.554-.859.554-.287 0-.568-.166-.749-.436-.136-.2.02-.345.168-.437.147-.092.297-.193.347-.342.05-.148.06-.34.06-.495 0-.283-.105-.54-.287-.743z"/></svg>
+      </a>
+      <a class="footer-link" href="https://x.com/QuantusNetwork" rel="noopener" target="_blank" aria-label="X (Twitter)">
+        <svg class="footer-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      </a>
+      <a class="footer-link" href="https://www.quantus.com/" rel="noopener" target="_blank" aria-label="Quantus">
+        <img class="footer-icon footer-q" src="{{ url_for('static', filename='quantus_q_logo.png') }}" alt="Quantus">
+      </a>
+    </div>
+  </footer>
 </body>
 </html>

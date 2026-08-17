@@ -11,6 +11,11 @@
   </div>
 </section>
 
+<section>
+  <p class="eyebrow">The task</p>
+  <p>Each run hands a solver a public matrix <code>A</code> and a target <code>t = A·s (mod q)</code>. The solver must recover the short vector <code>s</code> — one whose coefficients all lie inside a small range <code>[-η, η]</code> — while using as few abstract operations as possible. The matrix, the modulus, and the bound are fixed ahead of time by a repository-controlled profile; the solver never sees the planted solution, and an independent verifier checks every candidate from the public data alone.</p>
+</section>
+
 {% if malformed %}<aside class="warning">Skipped {{ malformed }} malformed experiment {{ "line" if malformed == 1 else "lines" }}.</aside>{% endif %}
 {% if not records %}
 <section class="empty"><h2>No experiments yet</h2><p>Run <code>make bench</code> to create the first append-only result.</p></section>
