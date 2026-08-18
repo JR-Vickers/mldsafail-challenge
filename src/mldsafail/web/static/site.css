@@ -101,7 +101,7 @@ nav button:hover {
 section { margin: 64px 0; }
 
 .eyebrow {
-  margin: 0 0 12px;
+  margin: 0 0 4px;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -112,13 +112,14 @@ section { margin: 64px 0; }
 .hero {
   padding: 100px 0 60px;
   margin-top: 0;
-  text-align: center;
+  text-align: left;
 }
 
 .hero h1,
 .detail-hero h1 {
-  max-width: 900px;
-  margin: 0.12em auto 0.4em;
+  max-width: 100%;
+  margin: 0.12em 0 0.4em;
+  text-align: left;
   font: 800 clamp(40px, 6.5vw, 76px)/.98 system-ui, sans-serif;
   letter-spacing: -0.05em;
   color: var(--ink);
