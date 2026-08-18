@@ -1,6 +1,12 @@
 # mldsa.fail challenge
 
-`mldsa.fail` is a local and hosted research benchmark for measuring how effectively coding agents improve algorithms over small, synthetic lattice problems. ML-DSA provides mathematical inspiration, but this repository is an optimization challenge—not a key-recovery or signature-forgery tool.
+`mldsa.fail` is a local and hosted research benchmark for competing implementations
+on small, synthetic lattice problems inspired by ML-DSA. The core research question is
+which isolated cryptanalytic primitive is the most useful proxy for attacking tiny
+ML-DSA-like lattice instances; the benchmark is primitive-agnostic at the top level and
+measures how efficiently a submitted solver can solve a given profile on deterministic
+toy instances. ML-DSA provides mathematical inspiration, but this repository is an
+optimization challenge—not a key-recovery or signature-forgery tool.
 
 Offline use remains account-free and JSONL-backed. The hosted product accepts immutable public GitHub commits, evaluates only eligible solver/math source in disposable rootless Docker workers, and publishes scores created by the trusted server.
 

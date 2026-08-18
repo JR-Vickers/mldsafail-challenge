@@ -3,8 +3,8 @@
 {% block content %}
 <section class="detail-hero">
   <p class="eyebrow">About this challenge</p>
-  <h1>A sandbox for agent-driven lattice optimization.</h1>
-  <p>A benchmark that asks how far automated research agents can push toy post-quantum lattice problems — and records every attempt.</p>
+  <h1>A reproducible benchmark for competing on tiny lattice problems inspired by ML-DSA.</h1>
+  <p>A research environment that asks which computational primitive best proxies attacking small ML-DSA-like lattice instances — and lets manual researchers and coding agents compete on the same deterministic toy instances.</p>
 </section>
 
 <section class="prose">
@@ -14,26 +14,51 @@
     ECDSA.fail. It explores a single question:
   </p>
   <p>
-    <em>How efficiently can automated research agents improve algorithms and
-    implementations related to lattice-based cryptography when evaluated on
-    small, synthetic, reproducible problem instances?</em>
+    <em>Which isolated cryptanalytic subproblem is the most useful proxy for
+    attacking small ML-DSA-like lattice instances — and how efficiently can
+    implementations solve it on deterministic toy instances?</em>
   </p>
   <p>
     The long-term research interest is post-quantum cryptography, especially
-    ML-DSA / Dilithium-like lattice structures. Every executable experiment
-    operates on deliberately small, locally generated instances — never on
-    real cryptographic keys or deployed parameters.
+    ML-DSA / Dilithium-like lattice structures. The transcript that motivated
+    this project proposed lattice basis reduction (LLL/BKZ-style reduction, or
+    whatever reduction procedure turns out to be most relevant) as a candidate
+    primitive to isolate. The benchmark is intentionally primitive-agnostic at
+    the top level: a solver profile is a concrete task, not a claim about the
+    final target. The current codebase does not yet ship a basis-reduction
+    profile; it ships a different concrete task below as a starting point for
+    measurement.
+  </p>
+  <p>
+    The initial concrete task is a bounded short-vector recovery profile: a
+    solver receives a public matrix <code>A</code> and a target
+    <code>t = A·s (mod q)</code> and must recover the short vector <code>s</code>
+    — one whose coefficients lie inside a small range <code>[-η, η]</code>. That
+    profile is shipped so we can start measuring, not because the research
+    question is settled.
+  </p>
+  <p>
+    Every executable experiment operates on deliberately small, locally
+    generated instances — never on real cryptographic keys or deployed
+    parameters. The tiny instances are the point: they are toy proxies chosen
+    so meaningful optimization is measurable, the way a 40-bit toy key would be
+    chosen as an experimental stepping stone rather than a real security target.
   </p>
 
-  <h2>What the challenge actually asks</h2>
+  <h2>What the challenge asks on a given profile</h2>
   <p>
-    Each run hands a solver a public matrix <code>A</code> and a target
-    <code>t = A·s (mod q)</code>. The solver must recover the short vector
-    <code>s</code> — one whose coefficients all lie inside a small range
-    <code>[-η, η]</code> — while using as few abstract operations as possible.
-    The matrix, the modulus, and the bound are fixed ahead of time by a
-    repository-controlled profile; the solver never sees the planted solution,
-    and an independent verifier checks every candidate from the public data alone.
+    Each profile defines a concrete task, a fixed modulus, fixed dimensions, and
+    a fixed bound. For the current first profile, a solver receives a public
+    matrix <code>A</code> and a target <code>t = A·s (mod q)</code>. The solver
+    attempts to recover the hidden short vector <code>s</code> while using as few
+    abstract operations as possible. The matrix, the modulus, and the bound are
+    fixed ahead of time by a repository-controlled profile; the solver never sees
+    the planted solution, and an independent verifier checks every candidate from
+    the public data alone.
+  </p>
+  <p>
+    Future profiles may change the task. The benchmark is supposed to stay
+    flexible enough to isolate a different primitive if the research says so.
   </p>
 
   <h2>How a run works</h2>
@@ -43,13 +68,15 @@
   <ol>
     <li><strong>Generate.</strong> A repository-controlled instance generator
       produces a deterministic problem from a recorded seed.</li>
-    <li><strong>Solve.</strong> A solver (written by an agent or a researcher)
-      attempts to recover the hidden short vector.</li>
+    <li><strong>Solve.</strong> A solver (written by a researcher or a coding
+      agent) attempts the profile's task.</li>
     <li><strong>Verify.</strong> An independent trusted verifier checks the
       candidate against the public data. Incorrect results are rejected.</li>
-    <li><strong>Score.</strong> Valid runs produce a versioned headline score
-      (weighted abstract operation count), plus runtime, memory, and quality
-      diagnostics.</li>
+    <li><strong>Score.</strong> Valid runs produce a versioned headline score.
+      The current scoring mechanism is a weighted abstract operation count; it
+      is an implementation decision, not a decision handed down by the source
+      conversation. Runtime, memory, solution quality, and per-operation
+      breakdowns are retained as diagnostics.</li>
     <li><strong>Record.</strong> The experiment is appended to an immutable
       JSONL log with seeds, environment, source revision, hypothesis, and
       verification result.</li>
@@ -65,16 +92,6 @@
     seed-specific overfitting is exposed.
   </p>
 
-  <h2>Safety boundary</h2>
-  <p>
-    This is a benchmark, not an attack tool. The project never accepts external
-    public keys, signatures, or arbitrary cryptographic targets. Executable
-    experiments are constrained to small synthetic instances and fixed bounded
-    profiles. It must not be used to recover keys, forge signatures, target
-    deployed systems, or turn theoretical ML-DSA structure into production
-    exploitation.
-  </p>
-
   <h2>Who is this for?</h2>
   <p>
     Researchers and agentic coding systems that want a reproducible, fair, and
@@ -82,6 +99,18 @@
     problems. Failures stay visible. Every experiment carries its hypothesis.
     The log is append-only and deterministic — the same inputs always produce
     the same record.
+  </p>
+
+  <h2>Safety boundary</h2>
+  <p>
+    This is a benchmark, not an attack tool. The project never accepts external
+    public keys, signatures, or arbitrary cryptographic targets. Executable
+    experiments are constrained to small synthetic instances and fixed bounded
+    profiles. It must not be used to recover keys, forge signatures, target
+    deployed systems, or turn theoretical ML-DSA structure into production
+    exploitation. Work involving real ML-DSA should remain specification study,
+    official correctness vectors, asymptotic analysis, or theoretical resource
+    estimation.
   </p>
 </section>
 {% endblock %}
