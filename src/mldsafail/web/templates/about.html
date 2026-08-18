@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}About · mldsa.fail{% endblock %}
+{% block content %}
+<section class="detail-hero">
+  <p class="eyebrow">About this challenge</p>
+  <h1>A sandbox for agent-driven lattice optimization.</h1>
+  <p>A benchmark that asks how far automated research agents can push toy post-quantum lattice problems — and records every attempt.</p>
+</section>
+
+<section class="prose">
+  <h2>What is this?</h2>
+  <p>
+    This repository is an experimental benchmarking platform inspired by
+    ECDSA.fail. It explores a single question:
+  </p>
+  <p>
+    <em>How efficiently can automated research agents improve algorithms and
+    implementations related to lattice-based cryptography when evaluated on
+    small, synthetic, reproducible problem instances?</em>
+  </p>
+  <p>
+    The long-term research interest is post-quantum cryptography, especially
+    ML-DSA / Dilithium-like lattice structures. Every executable experiment
+    operates on deliberately small, locally generated instances — never on
+    real cryptographic keys or deployed parameters.
+  </p>
+
+  <h2>What the challenge actually asks</h2>
+  <p>
+    Each run hands a solver a public matrix <code>A</code> and a target
+    <code>t = A·s (mod q)</code>. The solver must recover the short vector
+    <code>s</code> — one whose coefficients all lie inside a small range
+    <code>[-η, η]</code> — while using as few abstract operations as possible.
+    The matrix, the modulus, and the bound are fixed ahead of time by a
+    repository-controlled profile; the solver never sees the planted solution,
+    and an independent verifier checks every candidate from the public data alone.
+  </p>
+
+  <h2>How a run works</h2>
+  <p>
+    Every experiment follows the same loop:
+  </p>
+  <ol>
+    <li><strong>Generate.</strong> A repository-controlled instance generator
+      produces a deterministic problem from a recorded seed.</li>
+    <li><strong>Solve.</strong> A solver (written by an agent or a researcher)
+      attempts to recover the hidden short vector.</li>
+    <li><strong>Verify.</strong> An independent trusted verifier checks the
+      candidate against the public data. Incorrect results are rejected.</li>
+    <li><strong>Score.</strong> Valid runs produce a versioned headline score
+      (weighted abstract operation count), plus runtime, memory, and quality
+      diagnostics.</li>
+    <li><strong>Record.</strong> The experiment is appended to an immutable
+      JSONL log with seeds, environment, source revision, hypothesis, and
+      verification result.</li>
+  </ol>
+
+  <h2>The leaderboard</h2>
+  <p>
+    The headline score is the only ranking signal. The lowest valid full-suite
+    score wins. Runtime, memory, solution quality, and per-operation breakdowns
+    stay visible as diagnostics but never create competing winners. Records are
+    grouped by deterministic scope — public and hidden seed suites with small,
+    medium, and large profiles — so that comparisons stay fair and
+    seed-specific overfitting is exposed.
+  </p>
+
+  <h2>Safety boundary</h2>
+  <p>
+    This is a benchmark, not an attack tool. The project never accepts external
+    public keys, signatures, or arbitrary cryptographic targets. Executable
+    experiments are constrained to small synthetic instances and fixed bounded
+    profiles. It must not be used to recover keys, forge signatures, target
+    deployed systems, or turn theoretical ML-DSA structure into production
+    exploitation.
+  </p>
+
+  <h2>Who is this for?</h2>
+  <p>
+    Researchers and agentic coding systems that want a reproducible, fair, and
+    auditable environment for studying algorithmic improvements on lattice
+    problems. Failures stay visible. Every experiment carries its hypothesis.
+    The log is append-only and deterministic — the same inputs always produce
+    the same record.
+  </p>
+</section>
+{% endblock %}

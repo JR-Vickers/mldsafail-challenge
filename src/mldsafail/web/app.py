@@ -259,6 +259,10 @@ def create_app(
             abort(404)
         return render_template("experiment.html", record=record, malformed=malformed)
 
+    @app.get("/about")
+    def about():
+        return render_template("about.html")
+
     @app.get("/methodology")
     def methodology():
         return render_template("methodology.html")
