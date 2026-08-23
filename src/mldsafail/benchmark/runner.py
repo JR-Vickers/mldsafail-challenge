@@ -26,6 +26,7 @@ from mldsafail.models import InstanceMetrics, ProfileMetrics
 from mldsafail.solver import solve
 from mldsafail.solver.lazy import solve as lazy_solve
 from mldsafail.solver.reference import solve as reference_solve
+from mldsafail.solver.candidate_b import solve as candidate_b_solve
 
 
 UNSCORED_AGGREGATE = {
@@ -97,6 +98,7 @@ def run_benchmark(
         "reference": reference_solve,
         "balanced": solve,
         "lazy": lazy_solve,
+        "candidate_b": candidate_b_solve,
     }.get(solver_name)
     if solver is None:
         raise ValueError(f"unknown solver: {solver_name}")
@@ -125,8 +127,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--profile", choices=("small", "medium", "large"))
     parser.add_argument(
-        "--solver", choices=("reference", "balanced", "lazy"), default="lazy",
-        help="baseline-v2 reference, balanced solver, or default lazy-reduction frontier",
+        "--solver", choices=("reference", "balanced", "lazy", "candidate_b"), default="lazy",
+        help="baseline-v2 reference, balanced solver, default lazy-reduction frontier, or candidate_b lattice-reduction solver",
     )
     parser.add_argument("--seed", type=int, help="diagnostic seed; requires --profile")
     parser.add_argument(
