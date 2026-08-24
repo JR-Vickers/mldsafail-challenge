@@ -68,13 +68,10 @@ def _build_lattice_basis(instance: ChallengeInstance) -> List[List[int]]:
     basis: List[List[int]] = [[0] * m for _ in range(m)]
 
     # First n rows: (e_i, A_col_i, 0)
-    # The middle n coords of a lattice point are: sum_i a_i * (middle of basis[i])
-    # = sum_i a_i * A_col_i = A * a (where a = (a_0,...,a_{n-1}))
-    # So basis[i] must have column i of A in positions [n:j] for j=0..n-1
     for i in range(n):
         basis[i][i] = 1  # e_i part
         for j in range(n):
-            basis[i][n + j] = A[j][i]  # column i of A: A[j][i] is row j, col i
+            basis[i][n + j] = A[j][i]  # column i of A (A[j][i] = row j, col i)
         basis[i][m - 1] = 0
 
     # Next n rows: (0, q*e_i, 0)
@@ -437,7 +434,7 @@ def _search_short_vector(
                 cost.multiplications((n - 1) * n * (n + 1) // 3)
                 cost.modular_reductions(n * n)
                 cost.basis_updates(n)
-            return Candidate(coefficients=coefficients)
+            return coefficients
     except Exception:
         pass  # Fall through to return None
 
