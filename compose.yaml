@@ -15,7 +15,7 @@ services:
 
   web:
     build: {context: ., dockerfile: Dockerfile}
-    image: mldsafail-web:0.3.0
+    image: mldsafail-web:0.4.0
     restart: unless-stopped
     read_only: true
     tmpfs: ["/tmp:size=32m,noexec,nosuid,nodev"]
@@ -39,7 +39,7 @@ services:
 
   coordinator:
     build: {context: ., dockerfile: Dockerfile.coordinator}
-    image: mldsafail-coordinator:0.3.0
+    image: mldsafail-coordinator:0.4.0
     restart: unless-stopped
     user: "${EVALUATOR_UID:-1000}:${EVALUATOR_GID:-1000}"
     read_only: true
@@ -51,8 +51,8 @@ services:
       MLDSAFAIL_DATABASE_URL: postgresql+psycopg://mldsafail:${POSTGRES_PASSWORD}@db/mldsafail
       MLDSAFAIL_HIDDEN_SEEDS_PATH: ${EVALUATOR_WORK_DIR:-/srv/mldsafail-evaluator}/secrets/hidden-seeds.json
       MLDSAFAIL_EVALUATOR_WORK_ROOT: ${EVALUATOR_WORK_DIR:-/srv/mldsafail-evaluator}
-      MLDSAFAIL_WORKER_IMAGE: mldsafail-worker:0.3.0
-      MLDSAFAIL_BENCHMARK_VERSION: "0.3.0"
+      MLDSAFAIL_WORKER_IMAGE: mldsafail-worker:0.4.0
+      MLDSAFAIL_BENCHMARK_VERSION: "0.4.0"
       MLDSAFAIL_EVALUATOR_FINGERPRINT: ${MLDSAFAIL_EVALUATOR_FINGERPRINT}
       MLDSAFAIL_HIDDEN_SUITE_VERSION: ${MLDSAFAIL_HIDDEN_SUITE_VERSION}
       MLDSAFAIL_WORKER_CLASS: rootless-docker-v1
@@ -64,7 +64,7 @@ services:
 
   worker-image:
     build: {context: ., dockerfile: Dockerfile.worker}
-    image: mldsafail-worker:0.3.0
+    image: mldsafail-worker:0.4.0
     profiles: [build]
 
   db:

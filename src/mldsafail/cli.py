@@ -165,7 +165,7 @@ def build_parser() -> argparse.ArgumentParser:
     submission = commands.add_parser("submit", help="submit an immutable public GitHub commit")
     submission.add_argument("--repo", required=True); submission.add_argument("--commit", required=True)
     submission.add_argument("--hypothesis", required=True); submission.add_argument("--notes", default="")
-    submission.add_argument("--tag", action="append"); submission.add_argument("--benchmark-version", default="0.3.0")
+    submission.add_argument("--tag", action="append"); submission.add_argument("--benchmark-version", default="0.4.0")
     submission.add_argument("--idempotency-key"); submission.add_argument("--server"); submission.set_defaults(handler=submit)
     state = commands.add_parser("status", help="show submission state and sanitized logs")
     state.add_argument("submission_id"); state.add_argument("--follow", action="store_true")
