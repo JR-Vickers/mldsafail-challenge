@@ -7,9 +7,13 @@ RUN uv sync --frozen --no-dev --no-editable
 
 FROM python:3.12.10-slim-bookworm
 ENV PATH=/app/.venv/bin:$PATH PYTHONUNBUFFERED=1 MLDSAFAIL_TRUSTED_CHECKOUT=/opt/mldsafail
-RUN apt-get update && apt-get install -y --no-install-recommends docker.io git ca-certificates && rm -rf /var/lib/apt/lists/* && groupadd --system --gid 10001 mldsafail && useradd --system --uid 10001 --gid 10001 --home-dir /nonexistent mldsafail
+RUN apt-get update && apt-get install -y --no-install-recommends docker.io git ca-certificates && rm -rf /var/lib/apt/lists/* && groupadd --system --gid 10001 mldsafail && useradd --system --uid 10001 --gid 10001 --groups root --home-dir /nonexistent mldsafail
 WORKDIR /app
 COPY --from=builder --chown=mldsafail:mldsafail /build/.venv .venv
+COPY --chown=mldsafail:mldsafail alembic.ini ./
+COPY --chown=mldsafail:mldsafail migrations ./migrations
 COPY --chown=mldsafail:mldsafail . /opt/mldsafail
+COPY --chown=mldsafail:mldsafail deploy/start-coordinator.sh ./deploy/start-coordinator.sh
+RUN chmod +x ./deploy/start-coordinator.sh
 USER 10001:10001
-ENTRYPOINT ["python", "-m", "mldsafail.evaluator.coordinator"]
+ENTRYPOINT ["./deploy/start-coordinator.sh"]

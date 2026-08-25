@@ -46,19 +46,19 @@ services:
     tmpfs: ["/tmp:size=128m,nosuid,nodev"]
     security_opt: ["no-new-privileges:true"]
     cap_drop: [ALL]
-    group_add: ["${DOCKER_GID:-1000}"]
+    group_add: ["0"]
     environment:
       MLDSAFAIL_DATABASE_URL: postgresql+psycopg://mldsafail:${POSTGRES_PASSWORD}@db/mldsafail
-      MLDSAFAIL_HIDDEN_SEEDS_PATH: ${EVALUATOR_WORK_DIR:-/srv/mldsafail-evaluator}/secrets/hidden-seeds.json
-      MLDSAFAIL_EVALUATOR_WORK_ROOT: ${EVALUATOR_WORK_DIR:-/srv/mldsafail-evaluator}
+      MLDSAFAIL_HIDDEN_SEEDS_PATH: ${EVALUATOR_WORK_DIR:-/Users/jarrett/dev/mldsafail-evaluator}/secrets/hidden-seeds.json
+      MLDSAFAIL_EVALUATOR_WORK_ROOT: ${EVALUATOR_WORK_DIR:-/Users/jarrett/dev/mldsafail-evaluator}
       MLDSAFAIL_WORKER_IMAGE: mldsafail-worker:0.4.0
       MLDSAFAIL_BENCHMARK_VERSION: "0.4.0"
       MLDSAFAIL_EVALUATOR_FINGERPRINT: ${MLDSAFAIL_EVALUATOR_FINGERPRINT}
       MLDSAFAIL_HIDDEN_SUITE_VERSION: ${MLDSAFAIL_HIDDEN_SUITE_VERSION}
       MLDSAFAIL_WORKER_CLASS: rootless-docker-v1
     volumes:
-      - ${DOCKER_SOCKET:-/run/user/1000/docker.sock}:/var/run/docker.sock
-      - ${EVALUATOR_WORK_DIR:-/srv/mldsafail-evaluator}:${EVALUATOR_WORK_DIR:-/srv/mldsafail-evaluator}
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${EVALUATOR_WORK_DIR:-/Users/jarrett/dev/mldsafail-evaluator}:${EVALUATOR_WORK_DIR:-/Users/jarrett/dev/mldsafail-evaluator}
     depends_on:
       db: {condition: service_healthy}
 

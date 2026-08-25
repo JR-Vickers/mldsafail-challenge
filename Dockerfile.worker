@@ -7,8 +7,9 @@ RUN uv sync --frozen --no-dev --no-editable
 
 FROM python:3.12.10-slim-bookworm
 ENV PATH=/app/.venv/bin:$PATH PYTHONUNBUFFERED=1
-RUN groupadd --system --gid 65532 worker && useradd --system --uid 65532 --gid 65532 --home-dir /nonexistent worker
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/* && groupadd --system --gid 10001 mldsafail && useradd --system --uid 10001 --gid 10001 --home-dir /nonexistent mldsafail
 WORKDIR /app
-COPY --from=builder --chown=65532:65532 /build/.venv .venv
-USER 65532:65532
+COPY --from=builder --chown=mldsafail:mldsafail /build/.venv .venv
+COPY --chown=mldsafail:mldsafail . /opt/mldsafail
+USER 10001:10001
 ENTRYPOINT ["python", "-m", "mldsafail.evaluator.worker"]
