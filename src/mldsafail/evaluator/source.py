@@ -39,20 +39,22 @@ def _git_environment() -> dict[str, str]:
 
 def acquire_commit(repository_url: str, commit_sha: str, destination: Path, policy: SourcePolicy = SourcePolicy()) -> Path:
     repository_url = valid_repository_url(repository_url)
+    file_url = repository_url.startswith("file://")
+    proto_config = "protocol.file.allow=always" if file_url else "protocol.file.allow=never"
+    base_cmd = ["git", "-c", "core.hooksPath=/dev/null", "-c", proto_config]
     if destination.exists() and any(destination.iterdir()):
         raise DomainError("source_destination_not_empty", "Controlled source destination is not empty.")
     destination.mkdir(parents=True, exist_ok=True)
-    command = ["git", "-c", "core.hooksPath=/dev/null", "-c", "protocol.file.allow=never"]
     try:
-        subprocess.run([*command, "init", "--quiet", str(destination)], check=True, env=_git_environment(), timeout=10)
+        subprocess.run([*base_cmd, "init", "--quiet", str(destination)], check=True, env=_git_environment(), timeout=10)
         subprocess.run(
-            [*command, "-C", str(destination), "fetch", "--quiet", "--no-tags", "--depth=1", repository_url, commit_sha],
+            [*base_cmd, "-C", str(destination), "fetch", "--quiet", "--no-tags", "--depth=1", repository_url, commit_sha],
             check=True, env=_git_environment(), timeout=policy.fetch_seconds, capture_output=True,
         )
-        resolved = subprocess.run([*command, "-C", str(destination), "rev-parse", "FETCH_HEAD"], check=True, text=True, capture_output=True, env=_git_environment()).stdout.strip()
+        resolved = subprocess.run([*base_cmd, "-C", str(destination), "rev-parse", "FETCH_HEAD"], check=True, text=True, capture_output=True, env=_git_environment()).stdout.strip()
         if resolved.lower() != commit_sha.lower():
             raise DomainError("commit_mismatch", "Fetched commit does not match the requested SHA.")
-        subprocess.run([*command, "-C", str(destination), "checkout", "--quiet", "--detach", resolved], check=True, env=_git_environment(), timeout=10)
+        subprocess.run([*base_cmd, "-C", str(destination), "checkout", "--quiet", "--detach", resolved], check=True, env=_git_environment(), timeout=10)
     except subprocess.TimeoutExpired:
         raise DomainError("source_timeout", "Repository acquisition exceeded its time limit.") from None
     except subprocess.CalledProcessError:

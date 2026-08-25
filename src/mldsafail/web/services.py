@@ -99,6 +99,12 @@ def revoke_token(session: Session, token: ApiToken, user: User) -> None:
 
 def valid_repository_url(value: str) -> str:
     parsed = urlparse(value)
+    if parsed.scheme == "file":
+        # Local development: allow file:// URLs for testing the pipeline.
+        path = parsed.path
+        if not path or not path.startswith("/"):
+            raise DomainError("invalid_repository", "file:// URL must have an absolute path.")
+        return value
     if parsed.scheme != "https" or parsed.hostname not in {"github.com", "www.github.com"}:
         raise DomainError("invalid_repository", "Repository must be a public GitHub HTTPS URL.")
     parts = [part for part in parsed.path.split("/") if part]
