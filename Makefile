@@ -25,6 +25,7 @@ hosted-down:
 HOSTED_EVALUATOR_DIR ?= /Users/jarrett/dev/mldsafail-evaluator
 
 hosted-setup:
+	rm -f $(HOSTED_EVALUATOR_DIR)/secrets/hidden-seeds.json
 	mkdir -p $(HOSTED_EVALUATOR_DIR)/secrets
 	cp deploy/dev-hidden-seeds.json $(HOSTED_EVALUATOR_DIR)/secrets/hidden-seeds.json
 	chmod 0400 $(HOSTED_EVALUATOR_DIR)/secrets/hidden-seeds.json
