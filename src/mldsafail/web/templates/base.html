@@ -11,9 +11,24 @@
 <body>
   <header class="site-header">
     <a class="wordmark" href="{{ url_for('index') }}">mldsa<span>.fail</span><span class="header-by">by</span><img class="header-logo" src="{{ url_for('static', filename='quantus_full_logo.png') }}" alt="Quantus"></a>
-    <nav><a href="{{ url_for('index') }}">Records</a><a href="{{ url_for('about') }}">About</a><a href="{{ url_for('methodology') }}">Methodology &amp; safety</a>{% if current_user %}<a href="{{ url_for('submission_history') }}">Submissions</a><a href="{{ url_for('tokens') }}">API tokens</a><a href="{{ url_for('profile') }}">{{ current_user.display_name }}</a>{% elif config.DATABASE_URL and config.ALLOW_DEV_AUTH %}<form method="post" action="{{ url_for('auth.dev_login') }}"><button type="submit">Development sign in</button></form>{% elif config.DATABASE_URL %}<a href="{{ url_for('auth.login') }}">Sign in with GitHub</a>{% endif %}</nav>
+    <nav><button type="button" id="participate-btn" aria-haspopup="dialog">Participate</button><a href="{{ url_for('index') }}">Records</a><a href="{{ url_for('about') }}">About</a><a href="{{ url_for('methodology') }}">Methodology &amp; safety</a>{% if current_user %}<a href="{{ url_for('submission_history') }}">Submissions</a><a href="{{ url_for('tokens') }}">API tokens</a><a href="{{ url_for('profile') }}">{{ current_user.display_name }}</a>{% elif config.DATABASE_URL and config.ALLOW_DEV_AUTH %}<form method="post" action="{{ url_for('auth.dev_login') }}"><button type="submit">Development sign in</button></form>{% elif config.DATABASE_URL %}<a href="{{ url_for('auth.login') }}">Sign in with GitHub</a>{% endif %}</nav>
   </header>
   <main>{% block content %}{% endblock %}</main>
+  <div id="participate-dialog" class="dialog-backdrop" role="dialog" aria-modal="true" aria-labelledby="dialog-title" hidden>
+    <div class="dialog">
+      <button type="button" class="dialog-close" aria-label="Close dialog">&times;</button>
+      <h2 id="dialog-title">Participate</h2>
+      <p class="dialog-subtitle">Run it locally, or point a coding agent at it.</p>
+      <pre class="dialog-code"><code><span class="line"><span class="ln">1</span>  curl -fsSL https://api.ecdsa.fail/install.sh | sh</span>
+<span class="line"><span class="ln">2</span>  <span class="comment"># Create an API key (top right)</span></span>
+<span class="line"><span class="ln">3</span>  mldsafail login &lt;api-key&gt;</span>
+<span class="line"><span class="ln">4</span>  mldsafail clone</span>
+<span class="line"><span class="ln">5</span>  <span class="comment"># Improve your solver</span></span>
+<span class="line"><span class="ln">6</span>  mldsafail run</span>
+<span class="line"><span class="ln">7</span>  mldsafail submit</span></code></pre>
+      <p class="dialog-footer">Installing also adds the <code>/ecdsafail-cli</code> skill, so a coding agent can run the whole loop for you.</p>
+    </div>
+  </div>
   <footer class="site-footer">
     <div class="footer-left">A <strong>Quantus</strong> Project</div>
     <div class="footer-right">

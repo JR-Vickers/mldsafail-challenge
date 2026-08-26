@@ -74,4 +74,32 @@
 
   document.addEventListener("dragstart", clear);
   document.addEventListener("keydown", clear);
+
+  /* Participate dialog */
+  (function () {
+    var backdrop = document.getElementById("participate-dialog");
+    var btn = document.getElementById("participate-btn");
+    if (!backdrop || !btn) return;
+    var close = backdrop.querySelector(".dialog-close");
+    var lastFocus = null;
+
+    function open() {
+      lastFocus = document.activeElement;
+      backdrop.removeAttribute("hidden");
+      setTimeout(function () { close.focus(); }, 0);
+    }
+    function closeDialog() {
+      backdrop.setAttribute("hidden", "");
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+
+    btn.addEventListener("click", open);
+    if (close) close.addEventListener("click", closeDialog);
+    backdrop.addEventListener("click", function (e) {
+      if (e.target === backdrop) closeDialog();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !backdrop.hasAttribute("hidden")) closeDialog();
+    });
+  })();
 })();

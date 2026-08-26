@@ -25,7 +25,7 @@ body {
 
 a { color: inherit; text-decoration: none; }
 
-.site-header, main, footer {
+.site-header, main, footer, .dialog-backdrop {
   width: min(1120px, calc(100% - 40px));
   margin: auto;
 }
@@ -498,7 +498,105 @@ pre {
   left: 50%;
   transform: translateX(-50%);
   border: 7px solid transparent;
-  border-top-color: var(--ink);
+  border-top-color: inherit;
+}
+
+/* Participate dialog */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  backdrop-filter: blur(4px);
+}
+.dialog-backdrop[hidden] {
+  display: none;
+}
+.dialog {
+  width: min(560px, calc(100% - 40px));
+  background: #fff;
+  color: #000;
+  border-radius: 12px;
+  padding: 32px;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+.dialog-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: #8a8a8a;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dialog-close:hover {
+  background: #f0f0f0;
+  color: #000;
+}
+.dialog h2 {
+  font-size: 22px;
+  margin: 0 0 4px;
+  color: #000;
+}
+.dialog-subtitle {
+  margin: 0 0 24px;
+  font-size: 14px;
+  color: #666;
+}
+.dialog-code {
+  background: #0a0a0a;
+  border-radius: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  max-height: none;
+  overflow: hidden;
+  padding: 0;
+  margin: 0 0 24px;
+  border: 1px solid #222;
+}
+.dialog-code code {
+  display: block;
+  padding: 16px 20px;
+  font-size: 13px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #f0f0f0;
+  background: transparent;
+  white-space: pre;
+}
+.dialog-code .line {
+  display: block;
+}
+.dialog-code .ln {
+  color: #666;
+  margin-right: 16px;
+  user-select: none;
+}
+.dialog-code .comment {
+  color: #888;
+}
+.dialog-footer {
+  margin: 0;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.6;
+}
+.dialog-footer code {
+  font-size: 12px;
+  background: #eee;
+  padding: 1px 4px;
+  color: #000;
 }
 
 footer {

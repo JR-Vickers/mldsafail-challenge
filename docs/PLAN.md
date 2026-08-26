@@ -564,6 +564,12 @@ make web
 
 # Smoke test (non-blocking)
 make web-smoke
+
+# Start the full hosted stack locally (requires Docker)
+make hosted-dev
+
+# Tear down the hosted stack
+make hosted-down
 ```
 
 ### Check Command
@@ -576,6 +582,12 @@ make check
 ### CLI Commands (Hosted Participation)
 
 ```bash
+# Install the CLI (one-liner, grabs the latest release CLI)
+curl -fsSL https://github.com/JR-Vickers/mldsafail-challenge/raw/main/scripts/install.sh | sh
+
+# Clone a participant workspace (optional; creates a git repo with a baseline solver)
+mldsafail clone [DIR]
+
 # Authenticate
 mldsafail login TOKEN --server https://mldsa.fail
 
@@ -852,6 +864,10 @@ Do not spend the first day tuning colors, fonts, or logos.
 
 - Timestamp, researcher/agent, hypothesis, result, delta, commit
 
+**Participate**
+
+- A "Participate" button in the navigation opens a modal with the current functional getting-started instructions: local `uv sync` workflow for running locally, and hosted CLI commands for when the coordinator is running. The ecdsa.fail-style install script and agent skill are future work and flagged as such.
+
 **Methodology**
 
 - Short explanation of instances, verifier, scoring, hidden evaluation, safety boundary
@@ -937,7 +953,7 @@ Build:
 
 Exit criterion: `uv run python -m mldsafail.benchmark.runner` produces a verified, reproducible baseline result.
 
-**Current status**: The kernel is largely built. The remaining work is hardening tests, resolving the open question about whether lattice reduction should be the direct problem or a solver approach, and establishing the official baseline record.
+**Status**: The kernel is largely built. The remaining work is hardening tests, resolving the open question about whether lattice reduction should be the direct problem or a solver approach, and establishing the official baseline record.
 
 **As of Benchmark 0.4.0 (2026-08-24)**, the following are complete:
 
@@ -950,6 +966,17 @@ Exit criterion: `uv run python -m mldsafail.benchmark.runner` produces a verifie
 - Local website displaying leaderboard and history
 - Evaluator solver_child updated to accept lattice solver
 - Documentation (PLAN.md, CHALLENGE.md) updated
+- Hosted participation infrastructure implemented; dev prototype not yet verified end-to-end
+
+**Plus interactive onboarding (in progress)**:
+
+- Participate button in the navigation bar (done)
+- Modal with current-functional getting-started instructions (done, content to be made honest)
+- `make hosted-dev` starts the full stack including the coordinator (in progress)
+- One-command hidden-seeds setup (in progress)
+- Install script served from the repository (in progress)
+- `mldsafail clone` workspace scaffold (in progress)
+- Honest modal content that shows what works now and flags future work (in progress)
 
 ### Phase 2 — Make Local Autoresearch Productive
 
