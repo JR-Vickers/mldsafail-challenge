@@ -19,14 +19,19 @@
       <button type="button" class="dialog-close" aria-label="Close dialog">&times;</button>
       <h2 id="dialog-title">Participate</h2>
       <p class="dialog-subtitle">Run it locally, or point a coding agent at it.</p>
-      <pre class="dialog-code"><code><span class="line"><span class="ln">1</span>  curl -fsSL https://api.ecdsa.fail/install.sh | sh</span>
-<span class="line"><span class="ln">2</span>  <span class="comment"># Create an API key (top right)</span></span>
-<span class="line"><span class="ln">3</span>  mldsafail login &lt;api-key&gt;</span>
-<span class="line"><span class="ln">4</span>  mldsafail clone</span>
-<span class="line"><span class="ln">5</span>  <span class="comment"># Improve your solver</span></span>
-<span class="line"><span class="ln">6</span>  mldsafail run</span>
-<span class="line"><span class="ln">7</span>  mldsafail submit</span></code></pre>
-      <p class="dialog-footer">Installing also adds the <code>/ecdsafail-cli</code> skill, so a coding agent can run the whole loop for you.</p>
+      <p class="dialog-section-title">Run locally (works now)</p>
+      <pre class="dialog-code"><code><span class="line"><span class="ln">1</span>  git clone https://github.com/JR-Vickers/mldsafail-challenge.git</span>
+<span class="line"><span class="ln">2</span>  cd mldsafail-challenge</span>
+<span class="line"><span class="ln">3</span>  uv sync --extra dev</span>
+<span class="line"><span class="ln">4</span>  source .venv/bin/activate</span>
+<span class="line"><span class="ln">5</span>  make test</span>
+<span class="line"><span class="ln">6</span>  make bench</span>
+<span class="line"><span class="ln">7</span>  make web</span></code></pre>
+      <p class="dialog-section-title">Submit to the hosted challenge</p>
+      <pre class="dialog-code"><code><span class="line"><span class="ln">1</span>  mldsafail login TOKEN --server https://mldsa.fail</span>
+<span class="line"><span class="ln">2</span>  mldsafail submit --repo https://github.com/OWNER/REPO --commit SHA --hypothesis "..."</span>
+<span class="line"><span class="ln">3</span>  mldsafail status SUBMISSION_ID --follow</span></code></pre>
+      <p class="dialog-footer">Installing adds the <code>mldsafail</code> CLI. An agent skill that runs the full loop is future work.</p>
     </div>
   </div>
   <footer class="site-footer">

@@ -978,6 +978,178 @@ Exit criterion: `uv run python -m mldsafail.benchmark.runner` produces a verifie
 - `mldsafail clone` workspace scaffold (in progress)
 - Honest modal content that shows what works now and flags future work (in progress)
 
+### Phase 1c — Interactive Onboarding: Directive
+
+This subsection is the implementation spec for the onboarding work listed above. An agent tasked with "implement Phase 1c" should read this subsection and treat it as the full instruction set.
+
+#### Decisions (do not re-litigate)
+
+1. **Modal content**: show what *actually works now*. Local `uv sync` workflow for running locally; hosted CLI commands for when the coordinator is running. Flag the ecdsa.fail-style install script and agent skill as future work.
+2. **Scope**: Option B — the full onboarding surface. Install script + `clone` scaffold + honest modal + coordinator-start + hidden-seeds automation.
+3. **`make hosted-dev`**: one command → full flow. Start the coordinator too.
+4. **Hidden-seeds setup**: one-command automation (Makefile target/script copies the dev fixture and sets mode 0400). Do not hardcode `/Users/jarrett/...` paths; use the configured work dir with a sensible default.
+5. **Install script**: curl-able from GitHub (raw file in the repo at `scripts/install.sh`), not served dynamically from the web app. Reference it in the modal only as the CLI install one-liner, not as a local-dev requirement.
+6. **`clone` scope**: minimal — git init a directory, write a solver `__init__.py` importing the current best solver's `solve(instance, meter)`, write an empty math `__init__.py`, commit, print path + SHA.
+7. **Eval flow**: Docker flow only for now. Do not build a synchronous dev-eval shortcut.
+8. **Dev cohort labels**: keep `MLDSAFAIL_EVALUATOR_FINGERPRINT=development` and `MLDSAFAIL_HIDDEN_SUITE_VERSION=development-public-fixture` as-is.
+
+#### Work
+
+##### 1. Make `make hosted-dev` start the coordinator
+
+In `Makefile`, wire the coordinator service into the `hosted-dev` target so one command starts db + web + proxy + coordinator. The coordinator service is already defined in `compose.yaml`; `compose.dev.yaml` already overrides its env and mounts the Docker socket and dev hidden-seeds file. You are adding it to the `up` list, not re-defining it. Also verify `hosted-down` tears down the coordinator (it already exists — confirm).
+
+Verify the coordinator's dev-compose environment is coherent with what `coordinator.py:main()` reads from `os.environ`:
+- `MLDSAFAIL_DATABASE_URL` → `postgresql+psycopg://mldsafail:${POSTGRES_PASSWORD}@db/mldsafail`
+- `MLDSAFAIL_HIDDEN_SEEDS_PATH` → mounted dev hidden-seeds file
+- `MLDSAFAIL_EVALUATOR_WORK_ROOT` → host path (must exist or be created)
+- `MLDSAFAIL_WORKER_IMAGE` → `mldsafail-worker:0.4.0`
+- `MLDSAFAIL_BENCHMARK_VERSION` → `0.4.0`
+- `MLDSAFAIL_EVALUATOR_FINGERPRINT` → `development`
+- `MLDSAFAIL_HIDDEN_SUITE_VERSION` → `development-public-fixture`
+- `MLDSAFAIL_WORKER_CLASS` → `rootless-docker-v1`
+
+##### 2. One-command hidden-seeds setup
+
+Add a Makefile target (e.g. `hosted-setup`) that:
+
+- Reads the work dir from the environment with a sensible default (the same default the compose stack uses)
+- Creates `<work-dir>/secrets/`
+- Copies `deploy/dev-hidden-seeds.json` into it as `hidden-seeds.json`
+- Sets mode 0400
+- Is idempotent (skip or overwrite cleanly on re-run; do not error on the second run)
+
+Document the target briefly where a newcomer will find it — the README quick-start or `docs/OPERATIONS.md`, whichever is more discoverable. Keep it short.
+
+##### 3. Install script
+
+Create `scripts/install.sh`. It should:
+
+- Detect the platform (macOS, Linux; fail clearly on unsupported)
+- Install the `mldsafail` CLI. Prefer `uv tool install mldsafail-challenge` if uv is available; fall back gracefully with a clear message if uv is absent. Do not require the repo to be checked out for the primary path.
+- Print next steps: `mldsafail login`, `mldsafail clone`, etc.
+- Be safe to pipe to `sh` (no destructive defaults, no unnecessary sudo, clear error messages).
+
+Do **not** serve this dynamically from the web app. It lives in the repo and is curl-able from the GitHub raw URL.
+
+##### 4. `mldsafail clone` subcommand
+
+Add a `clone` subcommand to `cli.py`. Minimal behavior:
+
+- Optional positional arg `DIR` (default: `mldsafail-workspace` in cwd).
+- `git init` the directory, or fail cleanly if it exists and is non-empty (do not clobber).
+- Write `src/mldsafail/solver/__init__.py` that imports the current best solver and re-exports `solve(instance, meter)`. Currently that is `lazy` — import from `mldsafail.solver.lazy`. Do not hardcode in a brittle way; if there is an obvious "current best" indicator, use it.
+- Write `src/mldsafail/math/__init__.py` (empty).
+- `git add` + `git commit` with a bland message.
+- Print the repo path and the commit SHA, plus a one-line hint for `mldsafail submit --repo file:///path --commit SHA ...`.
+
+Keep it small. No remote configuration, no baseline from the challenge repo, no fancy workspace management.
+
+##### 5. Honest modal content
+
+Update the dialog in `templates/base.html`. The dialog structure, CSS classes, and JS wiring stay exactly as they are — change only the text inside the `<pre><code>` block and the footer paragraph.
+
+The modal should have two clear parts:
+
+**Run locally (works now):**
+```
+git clone https://github.com/JR-Vickers/mldsafail-challenge.git
+cd mldsafail-challenge
+uv sync --extra dev
+source .venv/bin/activate
+make test
+make bench
+make web
+```
+
+**Submit to the hosted challenge (when the coordinator is running and the CLI is installed):**
+```
+mldsafail login TOKEN --server https://mldsa.fail
+mldsafail submit --repo https://github.com/OWNER/REPO \
+    --commit SHA --hypothesis "..."
+mldsafail status SUBMISSION_ID --follow
+```
+
+Footer: "Installing adds the `mldsafail` CLI. An agent skill that runs the full loop is future work."
+
+Do **not** include a local `curl … | sh` line in the local section — we do not have a local install endpoint. The install script is a GitHub-raw curl; reference it only as the CLI-install one-liner (in the CLI commands doc, and optionally as a note in the modal), not as something served from localhost.
+
+Remove every ecdsa.fail reference from the modal: no `api.ecdsa.fail/install.sh`, no `mldsafail clone` as if it existed before this work (it does after this work — that's fine, it's our subcommand), no `/ecdsafail-cli` skill.
+
+##### 6. Update the modal's footer text
+
+The current footer says: "Installing also adds the `/ecdsafail-cli` skill, so a coding agent can run the whole loop for you."
+
+Replace with the honest version above. Do not leave the ecdsa.fail reference.
+
+##### 7. Document the new surface
+
+Add a short note where a newcomer will find it: the README quick-start or `docs/OPERATIONS.md`. Cover:
+
+- `make hosted-setup` (one-time, before `make hosted-dev`)
+- `make hosted-dev` (starts the full stack incl. coordinator)
+- `make hosted-down` (tear down)
+- The dev cohort labels and what they mean (results are dev-cohort, not production)
+- The modal's two paths and what each requires
+
+Keep it short. This is documentation, not a tutorial.
+
+#### Files to touch
+
+- `Makefile` — `hosted-dev` starts coordinator; add `hosted-setup` target
+- `scripts/install.sh` — new file (create)
+- `src/mldsafail/cli.py` — add `clone` subcommand
+- `src/mldsafail/web/templates/base.html` — honest modal content (text only)
+- `docs/OPERATIONS.md` or `README.md` — document `make hosted-setup` / `make hosted-dev` (brief)
+- `docs/PLAN.md` — mark the onboarding items done as you complete them
+
+Do **not** touch:
+- `src/mldsafail/trusted/` (generator, verifier)
+- `src/mldsafail/benchmark/` (runner, cost model, integrity)
+- `config/profiles.toml`, `data/public_seeds.json`
+- Container Dockerfiles, `compose.yaml`, `compose.dev.yaml` (beyond wiring the coordinator into the `up` list in the Makefile)
+- `src/mldsafail/web/` beyond the modal template text (CSS/JS already done)
+- The benchmark or solver code
+
+#### Acceptance criteria
+
+1. `make hosted-setup` creates the hidden-seeds file with mode 0400 and is idempotent.
+2. `make hosted-dev` starts all four services including the coordinator; the coordinator container is running and polling.
+3. `scripts/install.sh` is valid bash, safe to pipe to `sh`, and installs the `mldsafail` CLI.
+4. `mldsafail clone [DIR]` creates a git repo with the two `__init__.py` files, commits, and prints path + SHA.
+5. The modal on the dashboard shows honest content: local `uv sync` workflow, hosted CLI commands, no ecdsa.fail references, footer does not claim a skill exists.
+6. `make web-smoke` still passes.
+7. `make test` still passes — no regressions from the Makefile or CLI changes.
+
+#### Guardrails
+
+- Keep changes small and scoped. This is onboarding polish, not a refactor.
+- The coordinator startup is the riskiest piece — verify the dev-compose env vars match what `coordinator.py:main()` expects. The hidden-seeds file must exist before the coordinator starts, or it fails at init.
+- Don't hardcode `/Users/jarrett/...` paths. Use the env var with a sensible default.
+- The modal change is text-only. Don't change the dialog structure, CSS classes, or JS wiring.
+- Commit with conventional-commit messages. Do not push.
+
+#### Verification sequence
+
+```sh
+make hosted-setup        # one-time setup
+make hosted-down         # clean slate
+make hosted-dev          # start everything
+# wait for containers to be healthy
+curl -s http://localhost:8080/health/ready   # expect {"status":"ready"}
+docker compose --env-file deploy/dev.env -f compose.yaml -f compose.dev.yaml logs coordinator --tail 20
+make web-smoke           # smoke test passes
+make test                # no regressions
+```
+
+Then manually: open the dashboard, click Participate, verify the modal content. Then test the new CLI:
+```sh
+uv run python -m mldsafail.cli clone /tmp/test-clone-workspace
+# verify the repo, the files, the commit
+```
+
+Report what worked, what didn't, and any deviations from this spec.
+
 ### Phase 2 — Make Local Autoresearch Productive
 
 **Goal**: Humans and coding agents can make and validate meaningful improvements without modifying the benchmark contract.

@@ -17,10 +17,17 @@ web-smoke:
 
 hosted-dev:
 	docker compose --env-file deploy/dev.env -f compose.yaml -f compose.dev.yaml --profile build build
-	docker compose --env-file deploy/dev.env -f compose.yaml -f compose.dev.yaml up -d db web proxy
+	docker compose --env-file deploy/dev.env -f compose.yaml -f compose.dev.yaml up -d db web proxy coordinator
 
 hosted-down:
 	docker compose --env-file deploy/dev.env -f compose.yaml -f compose.dev.yaml down
+
+HOSTED_EVALUATOR_DIR ?= /Users/jarrett/dev/mldsafail-evaluator
+
+hosted-setup:
+	mkdir -p $(HOSTED_EVALUATOR_DIR)/secrets
+	cp deploy/dev-hidden-seeds.json $(HOSTED_EVALUATOR_DIR)/secrets/hidden-seeds.json
+	chmod 0400 $(HOSTED_EVALUATOR_DIR)/secrets/hidden-seeds.json
 
 migrate:
 	uv run alembic upgrade head

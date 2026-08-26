@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import stat
+import subprocess
 import sys
 import time
 import uuid
@@ -151,6 +152,51 @@ def status(args) -> int:
         time.sleep(args.interval)
 
 
+def clone_workspace(args) -> int:
+    from pathlib import Path
+
+    dir_path = Path(args.dir).resolve()
+    if dir_path.exists() and any(dir_path.iterdir()):
+        raise CliError(f"target directory already exists and is non-empty: {dir_path}")
+    try:
+        subprocess_run(["git", "init", "-q", str(dir_path)], check=True)
+    except Exception as exc:
+        raise CliError(f"git init failed: {exc}") from exc
+    solver_dir = dir_path / "src" / "mldsafail" / "solver"
+    math_dir = dir_path / "src" / "mldsafail" / "math"
+    solver_dir.mkdir(parents=True, exist_ok=True)
+    math_dir.mkdir(parents=True, exist_ok=True)
+    solver_init = solver_dir / "__init__.py"
+    math_init = math_dir / "__init__.py"
+    solver_init.write_text(
+        '"""Participant solver workspace."""\n'
+        "from mldsafail.solver.lazy import solve\n"
+        '\n'
+        '__all__ = ["solve"]\n'
+    )
+    math_init.write_text('"""Participant math primitives workspace."""\n')
+    try:
+        subprocess_run(["git", "-C", str(dir_path), "add", "."], check=True)
+        subprocess_run(
+            ["git", "-C", str(dir_path), "commit", "-q", "-m", "feat: scaffold participant workspace"],
+            check=True, capture_output=True,
+        )
+    except Exception as exc:
+        raise CliError(f"git commit failed: {exc}") from exc
+    head = subprocess_run(
+        ["git", "-C", str(dir_path), "rev-parse", "HEAD"], check=True, capture_output=True, text=True
+    ).stdout.strip()
+    print(f"Workspace created at {dir_path}")
+    print(f"Commit {head}")
+    print(f"Submit with: mldsafail submit --repo file://{dir_path} --commit {head} --hypothesis \"...\"")
+    return 0
+
+
+def subprocess_run(*args, **kwargs):
+    import subprocess
+    return subprocess.run(*args, **kwargs)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="mldsafail", description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -170,6 +216,9 @@ def build_parser() -> argparse.ArgumentParser:
     state = commands.add_parser("status", help="show submission state and sanitized logs")
     state.add_argument("submission_id"); state.add_argument("--follow", action="store_true")
     state.add_argument("--interval", type=float, default=2.0); state.add_argument("--server"); state.set_defaults(handler=status)
+    clone = commands.add_parser("clone", help="create a participant workspace with a baseline solver")
+    clone.add_argument("dir", nargs="?", default="mldsafail-workspace", help="workspace directory")
+    clone.set_defaults(handler=clone_workspace)
     return parser
 
 

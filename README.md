@@ -26,6 +26,20 @@ mldsafail run --profile small --no-record
 
 The dashboard starts at `http://127.0.0.1:5000`. It reads `results/experiments.jsonl`; set `MLDSAFAIL_RESULTS_PATH=/path/to/other.jsonl` to inspect another result log. For the local hosted stack, run `make hosted-dev` and open `http://localhost:8080`.
 
+### Hosted stack (local prototype)
+
+```sh
+make hosted-setup   # one-time: create the dev hidden-seeds file (mode 0400)
+make hosted-dev     # start Postgres, web, Caddy proxy, and the coordinator
+make hosted-down    # tear down the hosted stack
+```
+
+`make hosted-setup` is idempotent and safe to re-run. It copies `deploy/dev-hidden-seeds.json` into the evaluator work directory (default `/Users/jarrett/dev/mldsafail-evaluator`; override with `HOSTED_EVALUATOR_DIR`) and sets mode 0400. The coordinator requires this file at startup.
+
+`make hosted-dev` now starts all four services — database, web, proxy, and coordinator — in one command. The coordinator polls PostgreSQL for queued submissions, acquires the participant's git commit, validates eligible solver/math source, assembles a trusted harness, and spawns an isolated Docker worker to evaluate it. Dev evaluations are tagged with `evaluator_fingerprint=development` and `hidden_suite_version=development-public-fixture`; they are a local prototype cohort and are not production results.
+
+Docker Desktop must be running on macOS for the coordinator to spawn workers.
+
 ## Commands
 
 ```sh
