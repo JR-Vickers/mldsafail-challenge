@@ -25,8 +25,9 @@ class JsonlResultRepository:
 
 
 class DatabaseResultRepository:
-    def __init__(self, session: Session):
+    def __init__(self, session: Session, jsonl_path: Path | None = None):
         self.session = session
+        self.jsonl_path = jsonl_path
 
     def records(self) -> tuple[list[dict], int]:
         results = self.session.scalars(
@@ -34,7 +35,12 @@ class DatabaseResultRepository:
                 ExperimentResult.accepted_at.desc(), ExperimentResult.id
             )
         ).all()
-        return [self._record(result) for result in results], 0
+        if results:
+            return [self._record(result) for result in results], 0
+        if self.jsonl_path and self.jsonl_path.exists():
+            from mldsafail.web.app import load_experiments
+            return load_experiments(self.jsonl_path)
+        return [], 0
 
     @staticmethod
     def _record(result: ExperimentResult) -> dict:

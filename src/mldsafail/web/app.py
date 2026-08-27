@@ -223,7 +223,7 @@ def create_app(
 
     def result_repository():
         if app.config.get("DATABASE_URL"):
-            return DatabaseResultRepository(get_session())
+            return DatabaseResultRepository(get_session(), app.config["RESULTS_PATH"])
         return JsonlResultRepository(app.config["RESULTS_PATH"])
 
     @app.template_filter("metric")

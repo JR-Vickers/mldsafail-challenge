@@ -50,16 +50,38 @@ compose.yaml uses `group_add: ["0"]` so the coordinator can access the socket.
    hidden seeds file (see "Generating hidden seeds" below).
 
 3. **Build and start all services:**
+   Build the 0.4.0 images first (one-time, or after any source or Compose change):
+   ```sh
+   docker compose --env-file deploy/dev.env --profile build build
+   ```
+   Then start the stack:
    ```sh
    cd mldsafail-challenge
    docker compose --env-file deploy/dev.env up -d db web proxy coordinator
    ```
 
-4. **Verify services are healthy:**
+4. **Verify services are healthy and the public demo is serving:**
    ```sh
    curl -s http://localhost:8080/health/live   # {"status":"ok"}
    curl -s http://localhost:8080/health/ready  # {"status":"ready"}
    docker compose --env-file deploy/dev.env ps
+   ```
+   Then confirm the dashboard renders the public-suite baseline, best-known valid
+   solution, and history. For the 0.4.0 dev stack, the fresh Postgres database is
+   empty, so the web process falls back to `results/experiments.jsonl` and serves
+   the same public-suite records you see with `make web`:
+   ```sh
+   # Homepage: leaderboard, current score, progress chart, frontier, recent records.
+   curl -s http://localhost:8080/ | grep -E '(leaderboard|Headline score|Progress|frontier|experiment-row)'
+
+   # Experiment detail for any ID surfaced on the homepage.
+   EXPERIMENT_ID=$(curl -s http://localhost:8080/ \
+     | grep -oE 'href="/experiment/[^"]+"' | head -1 | sed 's#href="/experiment/##' | sed 's#"##')
+   curl -s "http://localhost:8080/experiment/$EXPERIMENT_ID" | grep -E '(metric-card|provenance|Metadata|Audit)'
+
+   # Static pages render correctly.
+   curl -s http://localhost:8080/about | grep -E '<h1>'
+   curl -s http://localhost:8080/methodology | grep -E '<h1>'
    ```
 
 5. **Sign in (dev mode):**
