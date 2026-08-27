@@ -1,4 +1,4 @@
-"""Experimental triangular solver with lazy modular reduction."""
+"""Experimental triangular solver with lazy modular reduction — with pivot-scan skip."""
 
 from __future__ import annotations
 
@@ -12,6 +12,10 @@ def solve(instance: ChallengeInstance, cost: OperationMeter) -> Candidate:
 
     This preserves exact intermediate Python integers and reduces only values
     that affect pivot selection, elimination factors, or final residues.
+
+    The trusted generator emits canonical residues in [0, q). The pivot row
+    is never modified during elimination, so the first non-zero pivot candidate
+    encountered is already canonical — skip the % q when 0 < raw_pivot < q.
     """
 
     n, q = instance.dimension, instance.modulus
@@ -43,6 +47,13 @@ def solve(instance: ChallengeInstance, cost: OperationMeter) -> Candidate:
                 raw_pivot = augmented[row][column]
                 if raw_pivot == 0:
                     continue
+                # Trusted instances start canonical; the pivot row is never
+                # modified during elimination. When the exact value already sits
+                # in (0, q), the % q would be a no-op — skip it.
+                if 0 < raw_pivot < q:
+                    pivot = row
+                    pivot_value = raw_pivot
+                    break
                 residue = raw_pivot % q
                 modular_reductions += 1
                 if residue:
