@@ -1166,12 +1166,12 @@ Build:
 
 Exit criterion:
 
-- Multiple recorded experiments **partial — one baseline recorded for 0.4.0**
-- At least one validated improvement over baseline **not yet attempted**
+- Multiple recorded experiments **met — three lazy baselines recorded for 0.4.0**
+- At least one validated improvement over baseline **met — 113042 → 110210 via redundant modular-reduction skip**
 - Failed experiments preserved **working**
 - Hidden evaluation working **not yet tested — requires hidden seeds**
 
-**Status**: The local benchmark loop is functional (generate, solve, verify, score, record). What's missing is the hidden-seed evaluation path and meaningful test coverage for the lattice-reduction solver. The public-suite baseline exists but is not "official" in the hosted sense because it lacks hidden-seed coverage.
+**Status**: The local benchmark loop is functional and has produced its first validated improvement. Commit `cc6bfb5` (perf(lazy): skip redundant initial modular reductions on canonical inputs) reduced the public-suite score from 113042 to 110210 by skipping `% q` on values the trusted generator already emits in [0, q). All 127 tests pass, all 9 instances correct, trusted fingerprint unchanged. Modular reductions dropped across all profiles (small 115→43, medium 424→152, large 924→324). What's missing is the hidden-seed evaluation path and stronger test coverage for the lattice-reduction solver.
 
 ### Phase 3 — Build the Public Read-Only Product
 
