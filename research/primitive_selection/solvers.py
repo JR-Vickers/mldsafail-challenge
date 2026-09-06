@@ -131,6 +131,9 @@ def solve_mlwe_primal(instance: MLWEInstance, strategy: str, params: dict[str, A
     if dimension > int(params.get("max_basis_dimension", 128)):
         metrics.counters["dimension_cap_exceeded"] = dimension
         return None
+    if instance.profile == "medium" and instance.eta > int(params.get("medium_max_eta", 1)):
+        metrics.counters["difficulty_cap_exceeded"] = f"medium/eta={instance.eta}"
+        return None
     with metrics.timed("surrounding"):
         basis = mlwe_primal_basis(instance)
     B, _ = _reduce(basis, strategy, params, metrics)
@@ -297,8 +300,9 @@ SOLVERS = {
 
 DEFAULT_PARAMETERS = {
     "exhaustive": {"max_unknowns": 12},
-    "primal-lll": {"delta": 0.99, "cvp_method": "fast", "max_basis_dimension": 128},
-    "primal-bkz": {"block_size": 12, "max_loops": 2, "cvp_method": "fast", "max_basis_dimension": 128},
+    "primal-lll": {"delta": 0.99, "cvp_method": "fast", "max_basis_dimension": 128, "medium_max_eta": 1},
+    "primal-bkz": {"block_size": 12, "max_loops": 2, "cvp_method": "fast", "max_basis_dimension": 128,
+                   "medium_max_eta": 1},
     "hybrid-bdd": {"guess_coefficients": 1, "block_size": 12, "max_loops": 1, "cvp_method": "fast",
                    "max_basis_dimension": 64},
     "lll-short-vector": {"delta": 0.99, "enumeration_limit": 16, "max_basis_dimension": 160},
