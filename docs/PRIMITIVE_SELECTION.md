@@ -83,11 +83,11 @@ dimension/difficulty diagnostic.
 
 | Track and family | Small success | Medium success | Large success | Median successful CPU |
 |---|---:|---:|---:|---:|
-| MLWE primal LLL | 100% | 50% | 0% | 0.033265 s |
-| MLWE primal BKZ | 100% | 50% | 0% | 0.033716 s |
-| MLWE hybrid BDD | 100% | 0% | 0% | 0.042903 s |
-| MSIS LLL / progressive / restart | 100% | 0% | 0% | 0.044207 / 0.053328 / 0.088089 s |
-| Derived-basis LLL / fixed / progressive | 100% | 100% | 0% | 0.460862 / 0.485451 / 0.607808 s |
+| MLWE primal LLL | 100% | 50% | 0% | 0.013567 s |
+| MLWE primal BKZ | 100% | 50% | 0% | 0.014399 s |
+| MLWE hybrid BDD | 100% | 0% | 0% | 0.023758 s |
+| MSIS LLL / progressive / restart | 100% | 0% | 0% | 0.025150 / 0.035423 / 0.072430 s |
+| Derived-basis LLL / fixed / progressive | 100% | 100% | 0% | 0.460584 / 0.491217 / 0.635972 s |
 
 Medium MLWE succeeds only for `eta=1`, hence its 50% profile rate. Exhaustive
 MLWE is valid on the committed `n=2` fixture but deliberately declines every
@@ -147,11 +147,10 @@ review, not a benchmark `0.5.0` contract.
   polynomial to one introduces an unacceptable structural shortcut.
 - Peak RSS includes interpreter/fpylll startup, and phase timings are trusted
   harness instrumentation rather than fplll's internal hardware counters.
-- The development cohort used exact local pins, and every record honestly says
-  `container_image_digest=unavailable`. Afterward, two clean builds of the
-  digest-pinned container reproduced identical fixture IDs and normalized smoke
-  outputs. Development timing remains local-host evidence; validation must run
-  in the container.
+- The development cohort ran in the digest-pinned container and records image
+  digest `sha256:7f37c805b813bf0d7594005d751a0002a305652513becb3e46d8beb1c9dc6394`.
+  Two clean builds separately reproduced identical fixture IDs and normalized
+  smoke outputs. Validation still requires a fresh reviewer nonce.
 - No reviewer nonce has been supplied, so no validation seed was derived and
   no validation result has been generated.
 

@@ -4,16 +4,16 @@ Generated only from the committed JSONL records by `primitive-study report`.
 
 | Track | Solver | Cases | Success | Median successful CPU (s) | Peak RSS (MiB) | Median norm² | Median RHF |
 |---|---|---:|---:|---:|---:|---:|---:|
-| bkz | fixed-bkz | 120 | 66.7% | 0.485451 | 34.2 | n/a | 0.987584 |
-| bkz | lll-only | 120 | 66.7% | 0.460862 | 34.0 | n/a | 0.987584 |
-| bkz | progressive-bkz | 120 | 66.7% | 0.607808 | 40.5 | n/a | 0.987584 |
-| mlwe | exhaustive | 60 | 0.0% | n/a | 19.8 | n/a | n/a |
-| mlwe | hybrid-bdd | 60 | 33.3% | 0.042903 | 26.4 | 38.5 | n/a |
-| mlwe | primal-bkz | 60 | 50.0% | 0.033716 | 28.9 | 52.0 | n/a |
-| mlwe | primal-lll | 60 | 50.0% | 0.033265 | 27.9 | 52.0 | n/a |
-| msis | lll-short-vector | 60 | 33.3% | 0.044207 | 26.0 | 15.0 | n/a |
-| msis | progressive-bkz | 60 | 33.3% | 0.053328 | 26.5 | 15.0 | n/a |
-| msis | restart-bkz | 60 | 33.3% | 0.088089 | 27.0 | 15.0 | n/a |
+| bkz | fixed-bkz | 120 | 66.7% | 0.491217 | 210.6 | n/a | 0.987584 |
+| bkz | lll-only | 120 | 66.7% | 0.460584 | 211.2 | n/a | 0.987584 |
+| bkz | progressive-bkz | 120 | 66.7% | 0.635972 | 208.4 | n/a | 0.987584 |
+| mlwe | exhaustive | 60 | 0.0% | n/a | 206.2 | n/a | n/a |
+| mlwe | hybrid-bdd | 60 | 33.3% | 0.023758 | 199.7 | 38.5 | n/a |
+| mlwe | primal-bkz | 60 | 50.0% | 0.014399 | 204.2 | 52.0 | n/a |
+| mlwe | primal-lll | 60 | 50.0% | 0.013567 | 197.8 | 52.0 | n/a |
+| msis | lll-short-vector | 60 | 33.3% | 0.025150 | 199.7 | 15.0 | n/a |
+| msis | progressive-bkz | 60 | 33.3% | 0.035423 | 207.7 | 15.0 | n/a |
+| msis | restart-bkz | 60 | 33.3% | 0.072430 | 210.6 | 15.0 | n/a |
 
 ## Scaling by profile
 
@@ -21,36 +21,36 @@ CPU medians include verified cases only; `n/a` means that the family reached its
 
 | Track | Solver | Profile | Cases | Success | Median CPU (s) | Peak RSS (MiB) |
 |---|---|---|---:|---:|---:|---:|
-| bkz | fixed-bkz | large | 40 | 0.0% | n/a | 21.9 |
-| bkz | fixed-bkz | medium | 40 | 100.0% | 1.113255 | 34.2 |
-| bkz | fixed-bkz | small | 40 | 100.0% | 0.048535 | 28.1 |
-| bkz | lll-only | large | 40 | 0.0% | n/a | 23.2 |
-| bkz | lll-only | medium | 40 | 100.0% | 1.076187 | 34.0 |
-| bkz | lll-only | small | 40 | 100.0% | 0.047165 | 26.2 |
-| bkz | progressive-bkz | large | 40 | 0.0% | n/a | 21.9 |
-| bkz | progressive-bkz | medium | 40 | 100.0% | 1.322481 | 40.5 |
-| bkz | progressive-bkz | small | 40 | 100.0% | 0.059241 | 28.1 |
-| mlwe | exhaustive | large | 20 | 0.0% | n/a | 18.6 |
-| mlwe | exhaustive | medium | 20 | 0.0% | n/a | 18.5 |
-| mlwe | exhaustive | small | 20 | 0.0% | n/a | 19.8 |
-| mlwe | hybrid-bdd | large | 20 | 0.0% | n/a | 19.7 |
-| mlwe | hybrid-bdd | medium | 20 | 0.0% | n/a | 18.6 |
-| mlwe | hybrid-bdd | small | 20 | 100.0% | 0.042903 | 26.4 |
-| mlwe | primal-bkz | large | 20 | 0.0% | n/a | 19.0 |
-| mlwe | primal-bkz | medium | 20 | 50.0% | 0.353318 | 28.9 |
-| mlwe | primal-bkz | small | 20 | 100.0% | 0.033500 | 25.8 |
-| mlwe | primal-lll | large | 20 | 0.0% | n/a | 18.6 |
-| mlwe | primal-lll | medium | 20 | 50.0% | 0.343097 | 27.9 |
-| mlwe | primal-lll | small | 20 | 100.0% | 0.033025 | 25.6 |
-| msis | lll-short-vector | large | 20 | 0.0% | n/a | 21.1 |
-| msis | lll-short-vector | medium | 20 | 0.0% | n/a | 18.9 |
-| msis | lll-short-vector | small | 20 | 100.0% | 0.044207 | 26.0 |
-| msis | progressive-bkz | large | 20 | 0.0% | n/a | 20.1 |
-| msis | progressive-bkz | medium | 20 | 0.0% | n/a | 19.7 |
-| msis | progressive-bkz | small | 20 | 100.0% | 0.053328 | 26.5 |
-| msis | restart-bkz | large | 20 | 0.0% | n/a | 20.1 |
-| msis | restart-bkz | medium | 20 | 0.0% | n/a | 18.9 |
-| msis | restart-bkz | small | 20 | 100.0% | 0.088089 | 27.0 |
+| bkz | fixed-bkz | large | 40 | 0.0% | n/a | 209.8 |
+| bkz | fixed-bkz | medium | 40 | 100.0% | 1.155544 | 207.2 |
+| bkz | fixed-bkz | small | 40 | 100.0% | 0.031118 | 210.6 |
+| bkz | lll-only | large | 40 | 0.0% | n/a | 211.2 |
+| bkz | lll-only | medium | 40 | 100.0% | 1.111154 | 210.3 |
+| bkz | lll-only | small | 40 | 100.0% | 0.029111 | 206.3 |
+| bkz | progressive-bkz | large | 40 | 0.0% | n/a | 188.4 |
+| bkz | progressive-bkz | medium | 40 | 100.0% | 1.404463 | 208.4 |
+| bkz | progressive-bkz | small | 40 | 100.0% | 0.042770 | 198.9 |
+| mlwe | exhaustive | large | 20 | 0.0% | n/a | 206.2 |
+| mlwe | exhaustive | medium | 20 | 0.0% | n/a | 184.7 |
+| mlwe | exhaustive | small | 20 | 0.0% | n/a | 198.4 |
+| mlwe | hybrid-bdd | large | 20 | 0.0% | n/a | 199.7 |
+| mlwe | hybrid-bdd | medium | 20 | 0.0% | n/a | 198.7 |
+| mlwe | hybrid-bdd | small | 20 | 100.0% | 0.023758 | 198.4 |
+| mlwe | primal-bkz | large | 20 | 0.0% | n/a | 202.1 |
+| mlwe | primal-bkz | medium | 20 | 50.0% | 0.348048 | 204.2 |
+| mlwe | primal-bkz | small | 20 | 100.0% | 0.013982 | 199.7 |
+| mlwe | primal-lll | large | 20 | 0.0% | n/a | 190.1 |
+| mlwe | primal-lll | medium | 20 | 50.0% | 0.334751 | 197.8 |
+| mlwe | primal-lll | small | 20 | 100.0% | 0.013441 | 191.7 |
+| msis | lll-short-vector | large | 20 | 0.0% | n/a | 181.9 |
+| msis | lll-short-vector | medium | 20 | 0.0% | n/a | 199.7 |
+| msis | lll-short-vector | small | 20 | 100.0% | 0.025150 | 199.7 |
+| msis | progressive-bkz | large | 20 | 0.0% | n/a | 207.7 |
+| msis | progressive-bkz | medium | 20 | 0.0% | n/a | 197.8 |
+| msis | progressive-bkz | small | 20 | 100.0% | 0.035423 | 202.1 |
+| msis | restart-bkz | large | 20 | 0.0% | n/a | 210.6 |
+| msis | restart-bkz | medium | 20 | 0.0% | n/a | 206.2 |
+| msis | restart-bkz | small | 20 | 100.0% | 0.072430 | 200.4 |
 
 ## Module-SIS quality at the fixed budget
 
@@ -70,33 +70,33 @@ CPU medians include verified cases only; `n/a` means that the family reached its
 
 | Source | Solver | Profile | Success | Median CPU (s) | Peak RSS (MiB) | Median RHF |
 |---|---|---|---:|---:|---:|---:|
-| mlwe | fixed-bkz | large | 0.0% | n/a | 21.9 | n/a |
-| mlwe | fixed-bkz | medium | 100.0% | 0.965826 | 34.2 | 0.987584 |
-| mlwe | fixed-bkz | small | 100.0% | 0.050932 | 28.1 | 0.976860 |
-| mlwe | lll-only | large | 0.0% | n/a | 23.2 | n/a |
-| mlwe | lll-only | medium | 100.0% | 0.927168 | 34.0 | 0.987584 |
-| mlwe | lll-only | small | 100.0% | 0.049307 | 26.2 | 0.976860 |
-| mlwe | progressive-bkz | large | 0.0% | n/a | 21.9 | n/a |
-| mlwe | progressive-bkz | medium | 100.0% | 1.202124 | 40.5 | 0.987584 |
-| mlwe | progressive-bkz | small | 100.0% | 0.063774 | 28.1 | 0.976860 |
-| msis | fixed-bkz | large | 0.0% | n/a | 20.9 | n/a |
-| msis | fixed-bkz | medium | 100.0% | 1.336975 | 33.0 | 1.018546 |
-| msis | fixed-bkz | small | 100.0% | 0.045854 | 26.8 | 0.988174 |
-| msis | lll-only | large | 0.0% | n/a | 22.4 | n/a |
-| msis | lll-only | medium | 100.0% | 1.303662 | 31.5 | 1.020161 |
-| msis | lll-only | small | 100.0% | 0.044802 | 25.4 | 0.988174 |
-| msis | progressive-bkz | large | 0.0% | n/a | 21.6 | n/a |
-| msis | progressive-bkz | medium | 100.0% | 1.522614 | 37.8 | 1.018379 |
-| msis | progressive-bkz | small | 100.0% | 0.054424 | 26.3 | 0.988174 |
+| mlwe | fixed-bkz | large | 0.0% | n/a | 209.8 | n/a |
+| mlwe | fixed-bkz | medium | 100.0% | 0.989460 | 192.2 | 0.987584 |
+| mlwe | fixed-bkz | small | 100.0% | 0.033538 | 198.7 | 0.976860 |
+| mlwe | lll-only | large | 0.0% | n/a | 211.2 | n/a |
+| mlwe | lll-only | medium | 100.0% | 0.952816 | 202.9 | 0.987584 |
+| mlwe | lll-only | small | 100.0% | 0.031101 | 197.7 | 0.976860 |
+| mlwe | progressive-bkz | large | 0.0% | n/a | 184.6 | n/a |
+| mlwe | progressive-bkz | medium | 100.0% | 1.262731 | 201.6 | 0.987584 |
+| mlwe | progressive-bkz | small | 100.0% | 0.048217 | 198.9 | 0.976860 |
+| msis | fixed-bkz | large | 0.0% | n/a | 196.7 | n/a |
+| msis | fixed-bkz | medium | 100.0% | 1.387082 | 207.2 | 1.018546 |
+| msis | fixed-bkz | small | 100.0% | 0.027607 | 210.6 | 0.988174 |
+| msis | lll-only | large | 0.0% | n/a | 198.6 | n/a |
+| msis | lll-only | medium | 100.0% | 1.334296 | 210.3 | 1.020161 |
+| msis | lll-only | small | 100.0% | 0.026948 | 206.3 | 0.988174 |
+| msis | progressive-bkz | large | 0.0% | n/a | 188.4 | n/a |
+| msis | progressive-bkz | medium | 100.0% | 1.592995 | 208.4 | 1.018379 |
+| msis | progressive-bkz | small | 100.0% | 0.037123 | 198.8 | 0.988174 |
 
 ## Reduction share in end-to-end solvers
 
 | Track | Solver | Median reduction share | Verified cases |
 |---|---|---:|---:|
-| mlwe | primal-bkz | 90.8% | 30 |
-| mlwe | hybrid-bdd | 86.2% | 20 |
-| msis | progressive-bkz | 94.6% | 20 |
-| msis | restart-bkz | 92.9% | 20 |
+| mlwe | primal-bkz | 90.9% | 30 |
+| mlwe | hybrid-bdd | 85.9% | 20 |
+| msis | progressive-bkz | 94.2% | 20 |
+| msis | restart-bkz | 92.2% | 20 |
 
 ## Paired kernel substitutions
 
@@ -104,9 +104,9 @@ Positive values are end-to-end CPU gains from replacing the LLL kernel with the 
 
 | Track | Comparison | Profile | Paired cases | Median gain |
 |---|---|---|---:|---:|
-| mlwe | primal-bkz vs primal-lll | medium | 10 | -3.0% |
-| mlwe | primal-bkz vs primal-lll | small | 20 | -2.0% |
-| msis | progressive-bkz vs lll-short-vector | small | 20 | -21.1% |
+| mlwe | primal-bkz vs primal-lll | medium | 10 | -3.7% |
+| mlwe | primal-bkz vs primal-lll | small | 20 | -6.7% |
+| msis | progressive-bkz vs lll-short-vector | small | 20 | -41.0% |
 
 ## Decision-rule status
 
@@ -118,7 +118,7 @@ The development data meet the 70% reduction-share gate in multiple end-to-end fa
 - Hybrid MLWE is tractable only at the small profile. Primal LLL/BKZ also solve medium/eta=1, but medium/eta=2 and large exceed the frozen applicability limit.
 - All three Module-SIS families verify on small, while seed-dependent enumeration made medium and large unsuitable for the fixed budget.
 - Derived-basis reduction verifies at small and medium; large derived bases exceed the frozen dimension limit.
-- The development run used exact local Python pins and records its image digest as `unavailable`. A later two-build container check reproduced fixture and normalized smoke outputs, but the development timing data remain local-host results; validation must run in the pinned container.
+- The development run was executed in the digest-pinned container; validation must use a fresh reviewer nonce after the freeze.
 
 ## Integrity notes
 
