@@ -308,12 +308,12 @@ DEFAULT_PARAMETERS = {
                    "medium_max_eta": 1},
     "hybrid-bdd": {"guess_coefficients": 1, "block_size": 12, "max_loops": 1, "cvp_method": "fast",
                    "max_basis_dimension": 64},
-    "lll-short-vector": {"delta": 0.99, "enumeration_limit": 16, "max_basis_dimension": 160,
+    "lll-short-vector": {"delta": 0.99, "enumeration_limit": 16, "max_basis_dimension": 64,
                          "medium_max_eta": 1},
-    "progressive-bkz": {"schedule": [5, 10, 15], "enumeration_limit": 16, "max_basis_dimension": 160,
+    "progressive-bkz": {"schedule": [5, 10, 15], "enumeration_limit": 16, "max_basis_dimension": 64,
                         "medium_max_eta": 1},
     "restart-bkz": {"block_size": 12, "max_loops": 1, "restarts": 3, "enumeration_limit": 8,
-                    "max_basis_dimension": 160, "medium_max_eta": 1},
+                    "max_basis_dimension": 64, "medium_max_eta": 1},
     "lll-only": {"delta": 0.99, "max_basis_dimension": 160},
     "fixed-bkz": {"block_size": 12, "max_loops": 2, "max_basis_dimension": 160},
 }
@@ -323,6 +323,8 @@ def run_solver(track: str, solver: str, instance, parameters: dict[str, Any] | N
     if track not in SOLVERS or solver not in SOLVERS[track]:
         raise ValueError(f"unknown solver {solver!r} for track {track!r}")
     params = dict(DEFAULT_PARAMETERS.get(solver, {}))
+    if track == "bkz" and solver == "progressive-bkz":
+        params.update({"max_basis_dimension": 160})
     if parameters:
         params.update(parameters)
     metrics = Instrumentation({}, {"fplll_backend": "fpylll"})
