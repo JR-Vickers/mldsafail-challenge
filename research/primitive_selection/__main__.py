@@ -5,8 +5,9 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from .audit import audit
 from .report import generate
-from .runner import run
+from .runner import DEFAULT_RESULTS, run
 
 
 def parser() -> argparse.ArgumentParser:
@@ -21,6 +22,8 @@ def parser() -> argparse.ArgumentParser:
     report = sub.add_parser("report")
     report.add_argument("--input", type=Path, action="append")
     report.add_argument("--output", type=Path)
+    verify = sub.add_parser("verify-results")
+    verify.add_argument("--input", type=Path, action="append")
     return result
 
 
@@ -32,8 +35,12 @@ def main(argv: list[str] | None = None) -> int:
         if args.cohort == "validation" and not args.nonce:
             raise SystemExit("--nonce is required for the validation cohort")
         path = run(args.cohort, nonce=args.nonce, output=args.output)
-    else:
+    elif args.command == "report":
         path = generate(args.input, args.output)
+    else:
+        paths = args.input or [DEFAULT_RESULTS / "development.jsonl"]
+        print(audit(paths))
+        return 0
     print(path)
     return 0
 

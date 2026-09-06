@@ -11,11 +11,11 @@ Build a focused, deterministic, locally runnable benchmark for competing impleme
 The product is inspired by [ecdsa.fail](https://ecdsa.fail/) in spirit and participation model, but the mathematical content is different:
 
 - ecdsa.fail isolates **elliptic curve point addition** as the bottleneck in Shor's algorithm and scores quantum circuits by **qubit × Toffoli**.
-- This project isolates **lattice reduction** as the step we chose to isolate for attacking ML-DSA, and scores solvers by **abstract operation count** on small synthetic instances.
+- Benchmark `0.4.0` historically isolates **lattice reduction**, while the primitive-selection study tests whether reduction, MLWE recovery, or Module-SIS relation search should organize the next benchmark. No next primitive is frozen without held-out validation and external specialist approval.
 
 The core question:
 
-> If lattice reduction is the binding constraint on attacking ML-DSA, what is the most operation-efficient way to perform it on small, fixed, reproducible instances — and can coding agents drive that cost down in a measurable, verifiable, reproducible way?
+> Which ML-DSA-motivated primitive creates the best safe, measurable optimization benchmark: MLWE recovery, Module-SIS relation search, or basis reduction as a shared kernel?
 
 The benchmark is a **research environment and optimization competition**, not a production cryptanalytic tool. All experiments operate on deliberately small, repository-generated instances. The project does not accept real keys, signatures, arbitrary matrices, or production ML-DSA parameters as solver targets.
 
@@ -71,9 +71,9 @@ The relationship is **inspirational and methodological**, not a direct attack. W
 
 ## 4. The Binding Constraint Hypothesis
 
-### Hypothesis
+### Tested hypothesis
 
-**Lattice reduction is the hardest and most operation-intensive step in attacking ML-DSA, and it should be the focus of this challenge.**
+**Lattice reduction may be the hardest and most operation-intensive shared step in ML-DSA-motivated attacks.** This is a hypothesis under test, not a settled premise for the next benchmark.
 
 This hypothesis is motivated by:
 
@@ -83,7 +83,9 @@ This hypothesis is motivated by:
 
 ### Status of the hypothesis
 
-**Partially confirmed by empirical results on Benchmark 0.4.0.** We built a lattice-reduction benchmark (Kannan embedding + Schnorr-Euchner enumeration on the small profile, Gaussian elimination fallback on medium/large) and measured the results:
+**Tested but not selected.** Benchmark 0.4.0 showed that reduction can be tractable while target search remains binding. The isolated primitive-selection study in `research/primitive_selection/` now compares MLWE recovery, Module-SIS relation search, and derived-basis reduction. Development results show reduction above 70% of measured solver phase CPU in multiple families, but configured BKZ substitutions produced slowdowns rather than the required 20% end-to-end gains. Validation and specialist review are pending; see `docs/PRIMITIVE_SELECTION.md`.
+
+Historical Benchmark 0.4.0 evidence remains relevant:
 
 - **Small profile (n=8, lattice dim=17)**: LLL reduction runs in milliseconds, and SE enumeration finds the target vector within 200K nodes. Lattice reduction is the natural and tractable approach here.
 - **Medium/large profiles (n=16/24, lattice dim=33/49)**: The target vector `(-s, 0, 1)` exists in the reduced lattice, but its representation in the reduced basis requires large coefficients (growing with the modulus and dimension). SE enumeration is infeasible within resource limits (5s wall time, 64 MiB). Gaussian elimination on the modular system remains correct and tractable as a fallback.
@@ -1551,4 +1553,4 @@ Each option trades off fidelity to ML-DSA against simplicity and speed of evalua
 
 *This document is the authoritative project specification. If you find a contradiction between this document and any other file in the repository, treat it as a bug and resolve it by updating the other file to match this document, or by proposing a change to this document if the other file reflects a genuine improvement.*
 
-*Last updated: 2026-08-23*
+*Last updated: 2026-09-06*

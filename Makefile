@@ -1,4 +1,4 @@
-.PHONY: test bench check web web-smoke hosted-dev hosted-down migrate primitive-study-smoke primitive-study-development primitive-study-report
+.PHONY: test bench check web web-smoke hosted-dev hosted-down migrate primitive-study-smoke primitive-study-development primitive-study-report primitive-study-verify
 
 test:
 	uv run pytest
@@ -41,3 +41,6 @@ primitive-study-development:
 
 primitive-study-report:
 	research/primitive_selection/primitive-study report
+
+primitive-study-verify:
+	research/primitive_selection/primitive-study verify-results

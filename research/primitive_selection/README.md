@@ -16,6 +16,7 @@ research/primitive_selection/primitive-study smoke
 research/primitive_selection/primitive-study run --cohort development
 research/primitive_selection/primitive-study run --cohort validation --nonce REVIEWER_NONCE
 research/primitive_selection/primitive-study report
+research/primitive_selection/primitive-study verify-results
 ```
 
 Validation must happen only after code/configuration freeze with a fresh nonce
@@ -25,6 +26,10 @@ fresh subprocess, with one CPU, a 60-second wall deadline, and a 2-GiB address
 space/container limit. The parent randomizes solver order and reports median
 process CPU time; Benchmark 0.4.0's cooperative operation meter is not used.
 
-The container installs exact fpylll/cysignals versions. Every result also stores
-the actual image content digest; this is the reproducibility authority even if
-the upstream base-image tag is later republished.
+The container pins its base image by digest and installs exact fpylll/cysignals
+versions. Every result also stores the built image content digest.
+
+After starting Docker, `research/primitive_selection/rebuild-check.sh` performs
+two clean image builds and compares deterministic fixture IDs and normalized
+smoke outputs. Timing and host metadata are intentionally excluded from that
+comparison.

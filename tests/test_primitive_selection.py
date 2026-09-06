@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import json
 import random
+import statistics
 
 import pytest
 
@@ -165,3 +166,27 @@ def test_validation_seed_derivation_requires_nonce_and_is_profile_separated():
     assert small == validation_seeds("reviewer-nonce-0001", "small")
     assert len(small) == len(set(small)) == 20
     assert set(small).isdisjoint(validation_seeds("reviewer-nonce-0001", "medium"))
+
+
+def test_result_audit_detects_output_tampering(tmp_path):
+    from research.primitive_selection.audit import audit
+
+    repetitions = [{"cpu_seconds": value, "candidate": None} for value in (0.3, 0.1, 0.2)]
+    record = {
+        "schema_version": "1", "study_version": "primitive-selection-v1", "git_revision": "a" * 40,
+        "container_image_digest": "sha256:test", "host": {}, "track": "mlwe", "profile": "small",
+        "seed": 0, "eta": 1, "solver": "x", "solver_parameters": {}, "verification_result": False,
+        "failure_reason": "no candidate", "median_wall_seconds": 0.3,
+        "median_cpu_seconds": statistics.median(r["cpu_seconds"] for r in repetitions),
+        "peak_rss_bytes": 1, "answer_quality": {}, "timeout": False, "memory_limit": False,
+        "diagnostic_counters": {}, "input_digest": "b" * 64,
+        "output_digest": digest([None, None, None]), "source_digest": "c" * 64,
+        "repetitions": repetitions, "cohort": "development", "validation_nonce": None,
+    }
+    path = tmp_path / "results.jsonl"
+    path.write_text(json.dumps(record) + "\n")
+    assert audit([path])["records"] == 1
+    record["output_digest"] = "0" * 64
+    path.write_text(json.dumps(record) + "\n")
+    with pytest.raises(ValueError, match="output digest"):
+        audit([path])
