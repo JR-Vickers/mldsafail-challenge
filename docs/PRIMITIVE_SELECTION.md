@@ -147,9 +147,11 @@ review, not a benchmark `0.5.0` contract.
   polynomial to one introduces an unacceptable structural shortcut.
 - Peak RSS includes interpreter/fpylll startup, and phase timings are trusted
   harness instrumentation rather than fplll's internal hardware counters.
-- The Docker daemon was unavailable on the development host. Exact local pins
-  were used, and every record honestly says `container_image_digest=unavailable`.
-  The two-build reproduction script therefore remains unexecuted.
+- The development cohort used exact local pins, and every record honestly says
+  `container_image_digest=unavailable`. Afterward, two clean builds of the
+  digest-pinned container reproduced identical fixture IDs and normalized smoke
+  outputs. Development timing remains local-host evidence; validation must run
+  in the container.
 - No reviewer nonce has been supplied, so no validation seed was derived and
   no validation result has been generated.
 
@@ -161,6 +163,9 @@ research/primitive_selection/primitive-study verify-results
 research/primitive_selection/primitive-study report
 research/primitive_selection/rebuild-check.sh
 ```
+
+The two-build check completed on 2026-09-06; its image IDs and fixture digest
+are recorded in `research/primitive_selection/results/REPRODUCIBILITY.md`.
 
 After external review freezes the code/configuration, the reviewer supplies a
 fresh nonce and runs:

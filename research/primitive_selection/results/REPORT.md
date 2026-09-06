@@ -118,7 +118,7 @@ The development data meet the 70% reduction-share gate in multiple end-to-end fa
 - Hybrid MLWE is tractable only at the small profile. Primal LLL/BKZ also solve medium/eta=1, but medium/eta=2 and large exceed the frozen applicability limit.
 - All three Module-SIS families verify on small, while seed-dependent enumeration made medium and large unsuitable for the fixed budget.
 - Derived-basis reduction verifies at small and medium; large derived bases exceed the frozen dimension limit.
-- The development run used exact local Python pins because Docker was unavailable; its image digest is recorded as `unavailable`, so it cannot substitute for the required container rebuild and validation run.
+- The development run used exact local Python pins and records its image digest as `unavailable`. A later two-build container check reproduced fixture and normalized smoke outputs, but the development timing data remain local-host results; validation must run in the pinned container.
 
 ## Integrity notes
 
