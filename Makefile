@@ -1,4 +1,4 @@
-.PHONY: test bench check web web-smoke hosted-dev hosted-down migrate
+.PHONY: test bench check web web-smoke hosted-dev hosted-down migrate primitive-study-smoke primitive-study-development primitive-study-report
 
 test:
 	uv run pytest
@@ -32,3 +32,12 @@ hosted-setup:
 
 migrate:
 	uv run alembic upgrade head
+
+primitive-study-smoke:
+	research/primitive_selection/primitive-study smoke
+
+primitive-study-development:
+	research/primitive_selection/primitive-study run --cohort development
+
+primitive-study-report:
+	research/primitive_selection/primitive-study report

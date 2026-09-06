@@ -11,10 +11,12 @@ from research.primitive_selection.embedding import derive_bkz, mlwe_embedding, m
 from research.primitive_selection.generator import generate_mlwe, generate_msis
 from research.primitive_selection.models import (
     BKZInstance,
+    MLWEInstance,
     RecoveredSecret,
     ReducedBasis,
     ShortRelation,
     canonical_json,
+    digest,
     instance_from_dict,
 )
 from research.primitive_selection.ring import add, mat_vec_mul, negacyclic_mul
@@ -130,3 +132,36 @@ def test_bkz_verifier_checks_exact_transformation_and_unimodularity():
     altered_basis[0][0] += 1
     result = verify_bkz(instance, ReducedBasis(tuple(map(tuple, altered_basis)), identity))
     assert "not U times" in result["failure_reason"]
+
+
+def test_known_tiny_mlwe_fixture_is_solved_by_brute_force_and_lattice():
+    pytest.importorskip("fpylll")
+    from research.primitive_selection.solvers import run_solver
+
+    A = ((((1, 0),),))
+    t = ((0, 1),)
+    draft = MLWEInstance("fixture", 0, 2, 5, 1, 1, 1, A, t)
+    instance = MLWEInstance("fixture", 0, 2, 5, 1, 1, 1, A, t, digest(draft.payload()))
+    for solver in ("exhaustive", "primal-lll"):
+        candidate, _, _ = run_solver("mlwe", solver, instance)
+        assert verify_mlwe(instance, candidate)["verified"]
+
+
+def test_public_solver_payloads_exclude_planted_witnesses():
+    mlwe = generate_mlwe("small", 7, 1)
+    msis = generate_msis("small", 7, 1)
+    mlwe_json = canonical_json(mlwe.public.to_dict())
+    msis_json = canonical_json(msis.public.to_dict())
+    assert b"planted" not in mlwe_json and b"s1" not in mlwe_json and b"s2" not in mlwe_json
+    assert b"planted" not in msis_json and b"relation" not in msis_json.replace(b"relation_quality_target", b"")
+
+
+def test_validation_seed_derivation_requires_nonce_and_is_profile_separated():
+    from research.primitive_selection.runner import validation_seeds
+
+    with pytest.raises(ValueError, match="nonce"):
+        validation_seeds("short", "small")
+    small = validation_seeds("reviewer-nonce-0001", "small")
+    assert small == validation_seeds("reviewer-nonce-0001", "small")
+    assert len(small) == len(set(small)) == 20
+    assert set(small).isdisjoint(validation_seeds("reviewer-nonce-0001", "medium"))

@@ -1,0 +1,22 @@
+#!/bin/sh
+set -eu
+
+repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
+image=${PRIMITIVE_STUDY_IMAGE:-mldsafail-primitive-study:1}
+revision=$(git -C "$repo_dir" rev-parse HEAD)
+if test -n "$(git -C "$repo_dir" status --porcelain --untracked-files=no)"; then
+  dirty=true
+else
+  dirty=false
+fi
+
+docker build --tag "$image" \
+  --build-arg "RESEARCH_GIT_REVISION=$revision" \
+  --build-arg "RESEARCH_GIT_DIRTY=$dirty" \
+  --file "$repo_dir/research/primitive_selection/Dockerfile" "$repo_dir" >/dev/null
+digest=$(docker image inspect --format '{{.Id}}' "$image")
+
+exec docker run --rm --cpus=1 --memory=2g \
+  --env "PRIMITIVE_STUDY_IMAGE_DIGEST=$digest" \
+  --volume "$repo_dir/research/primitive_selection/results:/study/research/primitive_selection/results" \
+  "$image" "$@"
