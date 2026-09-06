@@ -127,6 +127,10 @@ def _secret_from_vector(instance: MLWEInstance, vector: tuple[int, ...]) -> Reco
 
 
 def solve_mlwe_primal(instance: MLWEInstance, strategy: str, params: dict[str, Any], metrics: Instrumentation):
+    dimension = (instance.l + instance.k) * instance.n
+    if dimension > int(params.get("max_basis_dimension", 128)):
+        metrics.counters["dimension_cap_exceeded"] = dimension
+        return None
     with metrics.timed("surrounding"):
         basis = mlwe_primal_basis(instance)
     B, _ = _reduce(basis, strategy, params, metrics)
@@ -136,7 +140,7 @@ def solve_mlwe_primal(instance: MLWEInstance, strategy: str, params: dict[str, A
     target_flat = tuple(x for poly in instance.t for x in poly)
     target = (0,) * variables + target_flat
     with metrics.timed("enumeration"):
-        closest = tuple(int(x) for x in CVP.closest_vector(B, target, method="proved"))
+        closest = tuple(int(x) for x in CVP.closest_vector(B, target, method=str(params.get("cvp_method", "fast"))))
         metrics.counters["enumeration_candidates"] = 1
     with metrics.timed("surrounding"):
         s1_flat = closest[:variables]
@@ -197,9 +201,14 @@ def solve_mlwe_hybrid(instance: MLWEInstance, params: dict[str, Any], metrics: I
     M = coefficient_matrix(instance)
     equations = instance.k * instance.n
     full_H = M
+    dimension = len(full_H[0]) - min(int(params.get("guess_coefficients", 1)), len(full_H[0]) - 1) + equations
+    if dimension > int(params.get("max_basis_dimension", 64)):
+        metrics.counters["dimension_cap_exceeded"] = dimension
+        return None
     target = tuple(x for poly in instance.t for x in poly)
     guessed = min(int(params.get("guess_coefficients", 1)), len(full_H[0]) - 1)
-    for guess in itertools.product(range(-instance.eta, instance.eta + 1), repeat=guessed):
+    guess_values = (0,) + tuple(x for magnitude in range(1, instance.eta + 1) for x in (-magnitude, magnitude))
+    for guess in itertools.product(guess_values, repeat=guessed):
         residual = tuple((target[r] - sum(full_H[r][c] * guess[c] for c in range(guessed))) % instance.q
                          for r in range(equations))
         reduced_H = tuple(row[guessed:] for row in full_H)
@@ -209,7 +218,7 @@ def solve_mlwe_hybrid(instance: MLWEInstance, params: dict[str, Any], metrics: I
         variables = len(full_H[0]) - guessed
         with metrics.timed("enumeration"):
             closest = tuple(int(x) for x in CVP.closest_vector(
-                B, (0,) * variables + residual, method="proved"))
+                B, (0,) * variables + residual, method=str(params.get("cvp_method", "fast"))))
             metrics.counters["enumeration_candidates"] = metrics.counters.get("enumeration_candidates", 0) + 1
         remainder = closest[:variables]
         s1_flat = guess + remainder
@@ -233,6 +242,9 @@ def _relation_from_vector(instance: MSISInstance, vector: tuple[int, ...]) -> Sh
 
 def solve_msis(instance: MSISInstance, strategy: str, params: dict[str, Any], metrics: Instrumentation):
     basis = msis_embedding(instance)
+    if len(basis) > int(params.get("max_basis_dimension", 160)):
+        metrics.counters["dimension_cap_exceeded"] = len(basis)
+        return None
     attempts = int(params.get("restarts", 1))
     rng = random.Random(f"{instance.instance_id}:{strategy}:{attempts}")
     best = None
@@ -256,6 +268,9 @@ def solve_msis(instance: MSISInstance, strategy: str, params: dict[str, Any], me
 
 
 def solve_bkz(instance: BKZInstance, strategy: str, params: dict[str, Any], metrics: Instrumentation):
+    if len(instance.basis) > int(params.get("max_basis_dimension", 160)):
+        metrics.counters["dimension_cap_exceeded"] = len(instance.basis)
+        return None
     B, U = _reduce(instance.basis, strategy, params, metrics)
     return ReducedBasis(_tuples(B), _tuples(U))
 
@@ -282,14 +297,16 @@ SOLVERS = {
 
 DEFAULT_PARAMETERS = {
     "exhaustive": {"max_unknowns": 12},
-    "primal-lll": {"delta": 0.99, "enumeration_limit": 16},
-    "primal-bkz": {"block_size": 12, "max_loops": 2, "enumeration_limit": 16},
-    "hybrid-bdd": {"guess_coefficients": 1, "block_size": 12, "max_loops": 1, "enumeration_limit": 8},
-    "lll-short-vector": {"delta": 0.99, "enumeration_limit": 16},
-    "progressive-bkz": {"schedule": [5, 10, 15], "enumeration_limit": 16},
-    "restart-bkz": {"block_size": 12, "max_loops": 1, "restarts": 3, "enumeration_limit": 8},
-    "lll-only": {"delta": 0.99},
-    "fixed-bkz": {"block_size": 12, "max_loops": 2},
+    "primal-lll": {"delta": 0.99, "cvp_method": "fast", "max_basis_dimension": 128},
+    "primal-bkz": {"block_size": 12, "max_loops": 2, "cvp_method": "fast", "max_basis_dimension": 128},
+    "hybrid-bdd": {"guess_coefficients": 1, "block_size": 12, "max_loops": 1, "cvp_method": "fast",
+                   "max_basis_dimension": 64},
+    "lll-short-vector": {"delta": 0.99, "enumeration_limit": 16, "max_basis_dimension": 160},
+    "progressive-bkz": {"schedule": [5, 10, 15], "enumeration_limit": 16, "max_basis_dimension": 160},
+    "restart-bkz": {"block_size": 12, "max_loops": 1, "restarts": 3, "enumeration_limit": 8,
+                    "max_basis_dimension": 160},
+    "lll-only": {"delta": 0.99, "max_basis_dimension": 160},
+    "fixed-bkz": {"block_size": 12, "max_loops": 2, "max_basis_dimension": 160},
 }
 
 
