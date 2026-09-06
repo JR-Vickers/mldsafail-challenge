@@ -248,6 +248,9 @@ def solve_msis(instance: MSISInstance, strategy: str, params: dict[str, Any], me
     if len(basis) > int(params.get("max_basis_dimension", 160)):
         metrics.counters["dimension_cap_exceeded"] = len(basis)
         return None
+    if instance.profile == "medium" and instance.eta > int(params.get("medium_max_eta", 1)):
+        metrics.counters["difficulty_cap_exceeded"] = f"medium/eta={instance.eta}"
+        return None
     attempts = int(params.get("restarts", 1))
     rng = random.Random(f"{instance.instance_id}:{strategy}:{attempts}")
     best = None
@@ -305,10 +308,12 @@ DEFAULT_PARAMETERS = {
                    "medium_max_eta": 1},
     "hybrid-bdd": {"guess_coefficients": 1, "block_size": 12, "max_loops": 1, "cvp_method": "fast",
                    "max_basis_dimension": 64},
-    "lll-short-vector": {"delta": 0.99, "enumeration_limit": 16, "max_basis_dimension": 160},
-    "progressive-bkz": {"schedule": [5, 10, 15], "enumeration_limit": 16, "max_basis_dimension": 160},
+    "lll-short-vector": {"delta": 0.99, "enumeration_limit": 16, "max_basis_dimension": 160,
+                         "medium_max_eta": 1},
+    "progressive-bkz": {"schedule": [5, 10, 15], "enumeration_limit": 16, "max_basis_dimension": 160,
+                        "medium_max_eta": 1},
     "restart-bkz": {"block_size": 12, "max_loops": 1, "restarts": 3, "enumeration_limit": 8,
-                    "max_basis_dimension": 160},
+                    "max_basis_dimension": 160, "medium_max_eta": 1},
     "lll-only": {"delta": 0.99, "max_basis_dimension": 160},
     "fixed-bkz": {"block_size": 12, "max_loops": 2, "max_basis_dimension": 160},
 }
