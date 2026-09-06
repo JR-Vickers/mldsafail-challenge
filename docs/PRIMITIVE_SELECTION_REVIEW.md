@@ -26,8 +26,8 @@ must not be recorded as specialist approval.
 - Reproducible generated analysis: `results/REPORT.md`
 - Proposed decision and limitations: `docs/PRIMITIVE_SELECTION.md`
 
-The development data identify their exact harness revision as
-`a0509b05aaa9dce0470d668b2352ce61301cdf29` and include a source digest in every
+The container development data identify their exact harness revision as
+`b33f229338695fcccfba415245058deb772a5a8f` and include a source digest in every
 record. Later report/documentation commits do not rewrite that provenance.
 
 ## Blocking review questions
