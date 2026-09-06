@@ -146,6 +146,8 @@ def test_known_tiny_mlwe_fixture_is_solved_by_brute_force_and_lattice():
     for solver in ("exhaustive", "primal-lll"):
         candidate, _, _ = run_solver("mlwe", solver, instance)
         assert verify_mlwe(instance, candidate)["verified"]
+    with pytest.raises(ValueError, match="evaluator-only"):
+        instance_from_dict(instance.to_dict())
 
 
 def test_public_solver_payloads_exclude_planted_witnesses():
