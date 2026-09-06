@@ -47,6 +47,27 @@ def mlwe_embedding(instance: MLWEInstance) -> tuple[tuple[int, ...], ...]:
     return tuple(tuple(row) for row in basis)
 
 
+def mlwe_primal_basis(instance: MLWEInstance) -> tuple[tuple[int, ...], ...]:
+    """q-ary primal basis used for BDD/CVP secret recovery."""
+    instance.validate()
+    M = coefficient_matrix(instance)
+    equations = instance.k * instance.n
+    variables = instance.l * instance.n
+    dimension = variables + equations
+    basis = []
+    for col in range(variables):
+        row = [0] * dimension
+        row[col] = 1
+        for eq in range(equations):
+            row[variables + eq] = M[eq][col]
+        basis.append(row)
+    for eq in range(equations):
+        row = [0] * dimension
+        row[variables + eq] = instance.q
+        basis.append(row)
+    return tuple(tuple(row) for row in basis)
+
+
 def msis_embedding(instance: MSISInstance) -> tuple[tuple[int, ...], ...]:
     """q-ary relation lattice containing (z,0) when A*z = 0 mod q."""
     instance.validate()

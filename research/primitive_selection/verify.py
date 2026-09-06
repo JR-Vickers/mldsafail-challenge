@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import math
-from fractions import Fraction
 from typing import Any
 
 from .models import BKZInstance, MLWEInstance, MSISInstance, RecoveredSecret, ReducedBasis, ShortRelation
@@ -58,11 +57,16 @@ def verify_msis(instance: MSISInstance, candidate: ShortRelation) -> dict[str, A
 
 
 def determinant(matrix: tuple[tuple[int, ...], ...]) -> int:
+    """Exact fraction-free Bareiss determinant."""
     n = len(matrix)
-    work = [[Fraction(x) for x in row] for row in matrix]
+    if any(len(row) != n for row in matrix):
+        raise ValueError("determinant requires a square matrix")
+    if n == 0:
+        return 1
+    work = [list(row) for row in matrix]
     sign = 1
-    value = Fraction(1)
-    for col in range(n):
+    previous = 1
+    for col in range(n - 1):
         pivot = next((row for row in range(col, n) if work[row][col]), None)
         if pivot is None:
             return 0
@@ -70,15 +74,13 @@ def determinant(matrix: tuple[tuple[int, ...], ...]) -> int:
             work[pivot], work[col] = work[col], work[pivot]
             sign *= -1
         pivot_value = work[col][col]
-        value *= pivot_value
         for row in range(col + 1, n):
-            factor = work[row][col] / pivot_value
             for j in range(col + 1, n):
-                work[row][j] -= factor * work[col][j]
-    result = value * sign
-    if result.denominator != 1:
-        raise ValueError("integer matrix had non-integral determinant")
-    return result.numerator
+                numerator = work[row][j] * pivot_value - work[row][col] * work[col][j]
+                work[row][j] = numerator // previous
+            work[row][col] = 0
+        previous = pivot_value
+    return sign * work[-1][-1]
 
 
 def _matmul(left: tuple[tuple[int, ...], ...], right: tuple[tuple[int, ...], ...]) -> tuple[tuple[int, ...], ...]:
