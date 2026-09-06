@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mldsafail.local/schemas/primitive-selection/candidate-v1.json",
+  "title": "Primitive selection candidate",
+  "oneOf": [
+    {"type": "object", "required": ["tag", "s1", "s2"], "additionalProperties": false,
+     "properties": {"tag": {"const": "recovered_secret"}, "s1": {"type": "array"}, "s2": {"type": "array"}}},
+    {"type": "object", "required": ["tag", "z"], "additionalProperties": false,
+     "properties": {"tag": {"const": "short_relation"}, "z": {"type": "array"}}},
+    {"type": "object", "required": ["tag", "basis", "transformation"], "additionalProperties": false,
+     "properties": {"tag": {"const": "reduced_basis"}, "basis": {"type": "array"},
+       "transformation": {"type": "array"}}}
+  ]
+}
