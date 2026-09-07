@@ -110,7 +110,7 @@ Positive values are end-to-end CPU gains from replacing the LLL kernel with the 
 
 ## Decision-rule status
 
-The development data meet the 70% reduction-share gate in multiple end-to-end families, but the paired substitutions do not establish a 20% gain at two sizes. No recommendation is frozen: validation results from a post-freeze reviewer nonce and external specialist approval are absent.
+The development data meet the 70% reduction-share gate in multiple end-to-end families, but the paired substitutions do not establish a 20% gain at two sizes. No recommendation is frozen: validation results from a post-freeze reviewer nonce and agent specialist-review approval are absent.
 
 ## Negative results and limitations
 

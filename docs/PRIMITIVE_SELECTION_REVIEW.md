@@ -1,16 +1,46 @@
-# External Lattice-Cryptography Review Packet
+# Agent Lattice-Cryptography Review Packet
 
 ## Review status
 
-- Reviewer: pending
-- Affiliation or relevant expertise: pending
+- Review agent/model and session identifier: pending
+- Reviewed commit and source/configuration digests: pending
+- Review scope and limitations: pending
 - Review date: pending
 - Decision: pending
 - Fresh validation nonce: pending; do not create one before the harness and
   solver configuration are frozen for review
 
-External approval is a mandatory gate. Repository tests and automated analysis
-must not be recorded as specialist approval.
+An agent conducts this specialist review and may approve the next primitive
+after completing the review and held-out validation. External human specialist
+approval is optional. Label the outcome as an agent review, not human expert
+certification. Passing repository tests alone does not constitute approval.
+
+## Review procedure and required evidence
+
+1. Begin a dedicated review session and record the agent/model and exact revision.
+   Independently inspect the materials below rather than adopting the existing
+   recommendation as a conclusion.
+2. Answer every blocking review question with code references, mathematical
+   reasoning, relevant primary-source citations, and reproducible checks where
+   applicable. Actively probe shortcuts, especially direct modular solving of
+   the planted MSIS construction, using only repository-generated synthetic
+   instances within the existing safety boundary.
+3. Log findings, severity, evidence, and proposed resolutions. Check fixes and
+   rerun affected development experiments before closing blocking findings.
+   Reconcile the narrative recommendation with the raw-data-generated report.
+4. Once blocking findings are resolved, record the frozen implementation and
+   configuration revision/digests. Only then generate a fresh random nonce
+   (for example, 32 random bytes encoded as hex). Record its creation time and
+   freeze reference; do not choose it by inspecting derived seeds or outcomes.
+5. Rebuild the container and run the validation cohort with 20 seeds per profile
+   using that nonce. Preserve all results, audit the records, regenerate the
+   report, and evaluate the held-out evidence against the existing decision rule.
+6. Record a dated approval or withholding decision with supporting evidence and
+   limitations. If implementation/configuration changes are needed after
+   validation, preserve the failed evidence and use a new freeze and fresh nonce.
+
+This packet assigns the review; its pending fields do not represent completed
+review or authorization to claim validation has already occurred.
 
 ## Materials
 

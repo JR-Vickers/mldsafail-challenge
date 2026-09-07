@@ -11,7 +11,7 @@ Build a focused, deterministic, locally runnable benchmark for competing impleme
 The product is inspired by [ecdsa.fail](https://ecdsa.fail/) in spirit and participation model, but the mathematical content is different:
 
 - ecdsa.fail isolates **elliptic curve point addition** as the bottleneck in Shor's algorithm and scores quantum circuits by **qubit × Toffoli**.
-- Benchmark `0.4.0` historically isolates **lattice reduction**, while the primitive-selection study tests whether reduction, MLWE recovery, or Module-SIS relation search should organize the next benchmark. No next primitive is frozen without held-out validation and external specialist approval.
+- Benchmark `0.4.0` historically isolates **lattice reduction**, while the primitive-selection study tests whether reduction, MLWE recovery, or Module-SIS relation search should organize the next benchmark. No next primitive is frozen without held-out validation and approval from an agent assigned to conduct the lattice-cryptography specialist review.
 
 The core question:
 
@@ -97,6 +97,29 @@ This finding motivates the hybrid design: make lattice reduction the primary met
 1. A better embedding where the target's reduced-basis coefficients are small
 2. Stronger reduction (BKZ) that produces a basis where the target is more accessible
 3. Improved enumeration techniques that can handle larger coefficient ranges
+
+### Agent-conducted specialist review
+
+A dedicated review agent conducts the lattice-cryptography specialist review.
+External human specialist approval is optional, not a prerequisite for selecting
+the next primitive. The review remains pending until the agent produces the
+evidence and decision required by [the review packet](PRIMITIVE_SELECTION_REVIEW.md).
+
+The review agent must independently examine the definitions, generator,
+embeddings, verifier, solver families, resource caps, and decision analysis;
+actively test for structural shortcuts on repository-generated synthetic
+instances; and record findings with code references, mathematical reasoning,
+reproducible checks, and relevant primary sources. Passing tests alone does not
+constitute review approval. Record the agent/model, reviewed revision, findings,
+resolutions, and final decision, and identify the result as an agent review.
+
+Resolve blocking findings and rerun affected development experiments before
+freezing the implementation and configuration. After that freeze, the review
+agent generates a fresh random validation nonce and runs the rebuilt-container
+validation cohort of 20 seeds per profile. It then assesses the held-out results
+against the existing decision rule and records approval or remaining blockers.
+Changes prompted by validation require a new freeze and fresh nonce; preserve
+earlier results and do not tune against or selectively discard validation seeds.
 
 ### Candidate solver approaches tested
 

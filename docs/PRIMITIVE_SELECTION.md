@@ -4,17 +4,19 @@
 
 The harness and complete development cohort are implemented. The provisional
 choice is **Module-SIS short-relation search**, but the primitive is **not
-selected or frozen**. Two mandatory gates remain external to this repository:
+selected or frozen**. Two mandatory gates remain:
 
-1. a lattice-cryptography specialist must review the definitions, embeddings,
+1. an agent assigned to the lattice-cryptography specialist review must review the definitions, embeddings,
    planted-relation construction, verifier, and decision analysis; and
-2. that reviewer must provide a fresh nonce after the implementation/configuration
+2. that review agent must generate a fresh random nonce after the implementation/configuration
    freeze, after which the 20-seed-per-profile validation cohort must run in the
    rebuilt container.
 
 This distinction matters. The development evidence is enough to reject BKZ as
 the organizing primitive under the stated decision rule, but it is not a
-substitute for held-out validation or specialist approval.
+substitute for held-out validation or agent review approval. External human
+specialist approval is optional. The review procedure and required evidence are
+defined in [the review packet](PRIMITIVE_SELECTION_REVIEW.md).
 
 ## Scope and safety
 
@@ -143,7 +145,7 @@ review, not a benchmark `0.5.0` contract.
 - Fixed/progressive BKZ did not improve end-to-end runtime and generally did
   not improve the measured first-vector quality enough to justify its cost.
 - The planted MSIS construction makes the relation lattice nontrivial and
-  reproducible, but a specialist must decide whether fixing the last relation
+  reproducible, but the review agent must assess whether fixing the last relation
   polynomial to one introduces an unacceptable structural shortcut.
 - Peak RSS includes interpreter/fpylll startup, and phase timings are trusted
   harness instrumentation rather than fplll's internal hardware counters.
@@ -166,8 +168,8 @@ research/primitive_selection/rebuild-check.sh
 The two-build check completed on 2026-09-06; its image IDs and fixture digest
 are recorded in `research/primitive_selection/results/REPRODUCIBILITY.md`.
 
-After external review freezes the code/configuration, the reviewer supplies a
-fresh nonce and runs:
+After the review agent resolves blocking findings and records the frozen
+code/configuration, it generates a fresh random nonce and runs:
 
 ```sh
 research/primitive_selection/primitive-study run --cohort validation --nonce REVIEWER_NONCE

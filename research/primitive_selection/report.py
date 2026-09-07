@@ -129,7 +129,7 @@ def render(records: list[dict[str, Any]], cohort: str) -> str:
                   if share is not None and share >= .70 and cases]
     lines += ["", "## Decision-rule status", ""]
     if not validation:
-        lines.append("The development data meet the 70% reduction-share gate in multiple end-to-end families, but the paired substitutions do not establish a 20% gain at two sizes. No recommendation is frozen: validation results from a post-freeze reviewer nonce and external specialist approval are absent.")
+        lines.append("The development data meet the 70% reduction-share gate in multiple end-to-end families, but the paired substitutions do not establish a 20% gain at two sizes. No recommendation is frozen: validation results from a post-freeze reviewer nonce and agent specialist-review approval are absent.")
     elif len(qualifying) < 2:
         lines.append("BKZ/block-SVP does not satisfy the 70% dominance gate in two materially different solvers; compare MLWE and MSIS with the weighted rubric.")
     else:
