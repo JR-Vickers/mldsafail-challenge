@@ -1,0 +1,23 @@
+{
+  "reviewed_revision": "c60e1d069b97006aa22793921e9a2c5a64100edf",
+  "checked_at": "2026-09-07T06:02:34.935027+00:00",
+  "make_check": {
+    "tests_passed": 144,
+    "benchmark_version": "0.4.0",
+    "small_score": 3901
+  },
+  "legacy_audit": {
+    "records": 780,
+    "verified": 380,
+    "timeouts": 0,
+    "memory_limits": 0
+  },
+  "report_byte_reproduction": true,
+  "raw_sha256": "ed6107793f54a0578c7a9d802119152c59ede1171f9dc2a39a178a22c25f250e",
+  "report_sha256": "f48fcde2402d923f119f7d06d04f5bf19fe8febc105dc0615f52e9f7e8aadea5",
+  "original_measurement_revision": "b33f229338695fcccfba415245058deb772a5a8f",
+  "limitations": [
+    "Original auditor trusts stored verification flags and does not establish completeness; strengthened audit pending.",
+    "Unrelated untracked files present at start; not inspected or modified."
+  ]
+}
