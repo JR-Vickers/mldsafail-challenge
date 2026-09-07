@@ -83,7 +83,7 @@ This hypothesis is motivated by:
 
 ### Status of the hypothesis
 
-**Tested but not selected.** Benchmark 0.4.0 showed that reduction can be tractable while target search remains binding. The isolated primitive-selection study in `research/primitive_selection/` now compares MLWE recovery, Module-SIS relation search, and derived-basis reduction. Development results show reduction above 70% of measured solver phase CPU in multiple families, but configured BKZ substitutions produced slowdowns rather than the required 20% end-to-end gains. Validation and specialist review are pending; see `docs/PRIMITIVE_SELECTION.md`.
+**Tested but not selected.** Benchmark 0.4.0 showed that reduction can be tractable while target search remains binding. The isolated primitive-selection study in `research/primitive_selection/` now compares MLWE recovery, Module-SIS relation search, and derived-basis reduction. The initial agent review found seed reconstruction, direct recovery of the planted Module-SIS relation, and an inflated reduction-share interpretation. Module-SIS v1 is disqualified and primitive selection remains incomplete pending repaired development evidence and held-out validation; see `docs/PRIMITIVE_SELECTION.md`.
 
 Historical Benchmark 0.4.0 evidence remains relevant:
 

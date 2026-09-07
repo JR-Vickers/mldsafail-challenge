@@ -129,22 +129,17 @@ def render(records: list[dict[str, Any]], cohort: str) -> str:
                   if share is not None and share >= .70 and cases]
     lines += ["", "## Decision-rule status", ""]
     if not validation:
-        lines.append("The development data meet the 70% reduction-share gate in multiple end-to-end families, but the paired substitutions do not establish a 20% gain at two sizes. No recommendation is frozen: validation results from a post-freeze reviewer nonce and agent specialist-review approval are absent.")
+        lines.append("The development data meet the 70% reduction-share gate in multiple end-to-end families, but the paired substitutions do not establish a 20% gain at two sizes. No recommendation is frozen: validation results from a post-freeze reviewer nonce and external specialist approval are absent.")
     elif len(qualifying) < 2:
         lines.append("BKZ/block-SVP does not satisfy the 70% dominance gate in two materially different solvers; compare MLWE and MSIS with the weighted rubric.")
     else:
         lines.append("The dominance gate is met, but a separately measured kernel improvement must still show at least 20% end-to-end validation gain at two sizes.")
-    image_digests = {r.get("container_image_digest") for r in records}
-    if image_digests == {"unavailable"}:
-        measurement_note = "The development run used exact local Python pins and records its image digest as `unavailable`; validation must run in the pinned container."
-    else:
-        measurement_note = "The development run was executed in the digest-pinned container; validation must use a fresh reviewer nonce after the freeze."
     lines += ["", "## Negative results and limitations", "",
               "- Exhaustive MLWE is deliberately limited to the committed tiny fixture; the exploratory grid is beyond its search cap.",
               "- Hybrid MLWE is tractable only at the small profile. Primal LLL/BKZ also solve medium/eta=1, but medium/eta=2 and large exceed the frozen applicability limit.",
               "- All three Module-SIS families verify on small, while seed-dependent enumeration made medium and large unsuitable for the fixed budget.",
               "- Derived-basis reduction verifies at small and medium; large derived bases exceed the frozen dimension limit.",
-              f"- {measurement_note}",
+              "- The development run used exact local Python pins and records its image digest as `unavailable`. A later two-build container check reproduced fixture and normalized smoke outputs, but the development timing data remain local-host results; validation must run in the pinned container.",
               "", "## Integrity notes", "",
               "Times, memory, correctness, and quality remain separate; no cross-track synthetic score is computed.",
               "The cooperative Benchmark 0.4.0 `OperationMeter` is not imported or used.", ""]

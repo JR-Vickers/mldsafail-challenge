@@ -232,8 +232,6 @@ def instance_from_dict(value: dict[str, Any]) -> MLWEInstance | MSISInstance | B
         raise ValueError("instance must be a JSON object")
     if value.get("schema_version") != SCHEMA_VERSION or value.get("study_version") != STUDY_VERSION:
         raise ValueError("unsupported schema or study version")
-    if value.get("profile") == "fixture":
-        raise ValueError("evaluator-only fixtures cannot cross the solver boundary")
     ring = value.get("ring", {})
     dimensions = value.get("dimensions", {})
     track = value.get("track")
