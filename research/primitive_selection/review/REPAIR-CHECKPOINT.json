@@ -1,0 +1,191 @@
+{
+  "configuration": {
+    "development_seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "etas": [
+      1,
+      2
+    ],
+    "limits": {
+      "cpu_cores": 1,
+      "memory_bytes": 2147483648,
+      "wall_seconds": 60
+    },
+    "payload_schema_version": "2",
+    "portfolio": {
+      "bkz": [
+        "lll-only",
+        "fixed-bkz",
+        "progressive-bkz"
+      ],
+      "mlwe": [
+        "exhaustive",
+        "direct-linear",
+        "primal-lll",
+        "primal-bkz",
+        "hybrid-bdd"
+      ],
+      "msis": [
+        "direct-linear",
+        "sparse-relation",
+        "lll-short-vector",
+        "progressive-bkz",
+        "restart-bkz"
+      ]
+    },
+    "profiles": {
+      "large": {
+        "k": 3,
+        "l": 2,
+        "msis_cols": 4,
+        "msis_rows": 3,
+        "n": 16,
+        "q": 193
+      },
+      "medium": {
+        "k": 2,
+        "l": 2,
+        "msis_cols": 3,
+        "msis_rows": 2,
+        "n": 8,
+        "q": 97
+      },
+      "small": {
+        "k": 2,
+        "l": 1,
+        "msis_cols": 3,
+        "msis_rows": 2,
+        "n": 4,
+        "q": 97
+      }
+    },
+    "result_schema_version": "2",
+    "solver_parameters": {
+      "direct-linear": {
+        "max_candidates": 1000000
+      },
+      "exhaustive": {
+        "max_candidates": 1000000
+      },
+      "fixed-bkz": {
+        "block_size": 12,
+        "max_basis_dimension": 160,
+        "max_loops": 2
+      },
+      "hybrid-bdd": {
+        "block_size": 12,
+        "decoder": "babai",
+        "guess_coefficients": 1,
+        "max_basis_dimension": 128,
+        "max_loops": 1
+      },
+      "lll-only": {
+        "delta": 0.99,
+        "max_basis_dimension": 160
+      },
+      "lll-short-vector": {
+        "delta": 0.99,
+        "enumeration_limit": 16,
+        "max_basis_dimension": 64
+      },
+      "primal-bkz": {
+        "block_size": 12,
+        "cvp_method": "fast",
+        "max_basis_dimension": 128,
+        "max_eta2_basis_dimension": 64,
+        "max_loops": 2
+      },
+      "primal-lll": {
+        "cvp_method": "fast",
+        "delta": 0.99,
+        "max_basis_dimension": 128,
+        "max_eta2_basis_dimension": 64
+      },
+      "progressive-bkz": {
+        "enumeration_limit": 16,
+        "max_basis_dimension": 64,
+        "schedule": [
+          5,
+          10,
+          15
+        ]
+      },
+      "restart-bkz": {
+        "block_size": 12,
+        "enumeration_limit": 8,
+        "max_basis_dimension": 64,
+        "max_loops": 1,
+        "restarts": 3
+      },
+      "sparse-relation": {}
+    },
+    "study_version": "primitive-selection-v2",
+    "timing_protocol": {
+      "aggregation": "median successful measured process CPU time",
+      "case_order": "deterministic cohort/nonce-domain-separated shuffle",
+      "measured_repetitions": 3,
+      "processes": "fresh subprocess for every warmup and measured repetition",
+      "warmups": 1
+    }
+  },
+  "container_smoke": {
+    "independent_audit": "passed",
+    "no_candidate": 2,
+    "records": 16,
+    "verified": 14
+  },
+  "created_at": "2026-09-08T01:55:14.188709+00:00",
+  "development_audit": {
+    "counts": {
+      "applicability_cap": 120,
+      "memory_limits": 0,
+      "no_candidate": 123,
+      "records": 960,
+      "success": 717,
+      "timeouts": 0,
+      "verified": 717
+    },
+    "raw_sha256": "70b87590896da4e3af3e83003b8fbad7040df9b40bf931f313141f09828440d4",
+    "run_id": "20260908T015636Z-64f6da9501f3478f8edf986f965e9513",
+    "status": "passed"
+  },
+  "historical_raw_sha256": "ed6107793f54a0578c7a9d802119152c59ede1171f9dc2a39a178a22c25f250e",
+  "legacy_independent_audit": {
+    "applicability_caps": 400,
+    "memory_failures": 0,
+    "records": 780,
+    "timeouts": 0,
+    "verified": 380
+  },
+  "local_make_check": {
+    "benchmark_version": "0.4.0",
+    "note": "Additional research-only tests added afterward pass focused suite; final make check still required.",
+    "passed": true,
+    "score": 3901,
+    "tests_passed": 218
+  },
+  "pinned_container_tests": {
+    "image": "sha256:59dcfc904ac66c02c16034e1ba9e305cca0a47950df02762bf5ca4319c150801",
+    "passed": true,
+    "tests_passed": 94
+  },
+  "source_commit": "9ad9423f7325b73383d250eb48353c3bd816da40",
+  "source_digest": "24e45c29e8abf088d5b4a0528cc9a5fb8dd87c502b451720c4c4095f95b69d26",
+  "source_scope_check": "git diff initial revision for src/config/deploy/compose/pyproject/uv.lock is empty",
+  "unresolved_gates": [
+    "two clean build reproduction",
+    "committed freeze and reviewer nonce",
+    "1920-case held-out validation and final agent approval",
+    "final completion checks"
+  ]
+}

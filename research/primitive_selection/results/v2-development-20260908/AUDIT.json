@@ -1,0 +1,14 @@
+{
+  "counts": {
+    "applicability_cap": 120,
+    "memory_limits": 0,
+    "no_candidate": 123,
+    "records": 960,
+    "success": 717,
+    "timeouts": 0,
+    "verified": 717
+  },
+  "raw_sha256": "70b87590896da4e3af3e83003b8fbad7040df9b40bf931f313141f09828440d4",
+  "run_id": "20260908T015636Z-64f6da9501f3478f8edf986f965e9513",
+  "status": "passed"
+}

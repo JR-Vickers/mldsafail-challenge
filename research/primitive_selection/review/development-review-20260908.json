@@ -1,0 +1,176 @@
+{
+  "bkz_gate_evidence": {
+    "distinct_dominant_families": 0,
+    "dominance_gate": false,
+    "eligible": false,
+    "gain_at_two_sizes_gate": false,
+    "interpretation": "runtime consumption alone is not evidence of improvement; unsuccessful pairs are retained in all-pair counts",
+    "paired_gains": {
+      "mlwe": {
+        "large": {
+          "all_pairs": 20,
+          "interval95": [
+            -0.08414357939596873,
+            0.05366309951824849
+          ],
+          "joint_successes": 10,
+          "median_seed_gain": -0.026131216352142328
+        },
+        "medium": {
+          "all_pairs": 20,
+          "interval95": [
+            -0.19071518820514233,
+            0.17700611659397925
+          ],
+          "joint_successes": 20,
+          "median_seed_gain": -0.05279859821636118
+        },
+        "small": {
+          "all_pairs": 20,
+          "interval95": [
+            -0.163706714230771,
+            0.06485999614013963
+          ],
+          "joint_successes": 20,
+          "median_seed_gain": -0.01603369356677281
+        }
+      },
+      "msis": {
+        "large": {
+          "all_pairs": 20,
+          "interval95": null,
+          "joint_successes": 0,
+          "median_seed_gain": null
+        },
+        "medium": {
+          "all_pairs": 20,
+          "interval95": [
+            -0.9743651063265677,
+            -0.3120394532454551
+          ],
+          "joint_successes": 20,
+          "median_seed_gain": -0.4227698862500395
+        },
+        "small": {
+          "all_pairs": 20,
+          "interval95": [
+            -0.2204309931436237,
+            0.11605704259947508
+          ],
+          "joint_successes": 20,
+          "median_seed_gain": -0.18806961884959933
+        }
+      }
+    },
+    "shares": {
+      "mlwe/hybrid-bdd": {
+        "family": "guess-babai",
+        "interval95": [
+          0.2658945485654536,
+          0.7476510633901076
+        ],
+        "median_share": 0.5072382318018545,
+        "seed_clusters": 30
+      },
+      "mlwe/primal-bkz": {
+        "family": "primal-cvp",
+        "interval95": [
+          0.28616883727429765,
+          0.7542459387225491
+        ],
+        "median_share": 0.5357150477973789,
+        "seed_clusters": 30
+      },
+      "msis/progressive-bkz": {
+        "family": "relation-enumeration",
+        "interval95": [
+          0.2748579209028974,
+          0.6853757397770832
+        ],
+        "median_share": 0.4752977045835252,
+        "seed_clusters": 20
+      },
+      "msis/restart-bkz": {
+        "family": "relation-enumeration",
+        "interval95": [
+          0.26909867210455185,
+          0.7016027961066758
+        ],
+        "median_share": 0.4700644376969907,
+        "seed_clusters": 20
+      }
+    },
+    "structural_disqualification": "MLWE-derived objective has trivial norm-squared-two vectors; MSIS source distribution is shortcut-prone"
+  },
+  "configuration_digest": "4625e878086446bb698b750c2f60cf8df20819dbf2e4c2c8439648bd2db19fbd",
+  "container_image_digest": "sha256:59dcfc904ac66c02c16034e1ba9e305cca0a47950df02762bf5ca4319c150801",
+  "dependency_digest": "c942b0aacf2afbc007ca0ab3510f29a7d3db0b769f3e2f0a99a3673067fd2734",
+  "evidence_sha256": {
+    "AUDIT.json": "5b39ce376aaec05fb9b87bf5a09d395c78cb958844e139add94a35c2ba65807a",
+    "CONCLUSION.json": "1e793d963d162abd620867d0053bf46ae4c9b8dee6eedc873b3a3453f72cc8e7",
+    "REPORT.md": "6d44bb7926251d835a1cbb9041b507aae941419409dc6f4b2d119011d003b593",
+    "development.jsonl": "70b87590896da4e3af3e83003b8fbad7040df9b40bf931f313141f09828440d4",
+    "development.jsonl.manifest.json": "dd72b787a4bb3c3b9df345d77458c46695bf61396e2f6d8331d60fd73e6aba61"
+  },
+  "independent_review_checks": {
+    "additional_regenerated_non_bkz_verifications": 2400,
+    "all_bkz_reverification": "reviewed strict same-container audit independently regenerates source basis and checks every stored exact transformation; no independent duplicate full-BKZ run by review agent",
+    "conclusion_reproduction": "JSON-normalized fields and numbers identical",
+    "distinct_non_bkz_instance_candidate_pairs": 273,
+    "raw_completeness_and_counts": "960;717success,123no_candidate,120declaredcaps;zerootherstatuses",
+    "report_reproduction": "byte-identical with prescribed PYTHONHASHSEED=0"
+  },
+  "mlwe_numeric_evidence": {
+    "baseline_gate": true,
+    "difficulty_gate": true,
+    "direct_linear_rates": {
+      "large/eta1": 0.0,
+      "medium/eta1": 0.0,
+      "medium/eta2": 0.0,
+      "small/eta1": 0.0,
+      "small/eta2": 0.0
+    },
+    "direct_shortcut_gate": true,
+    "exhaustive_headroom_gate": true,
+    "invalid_answers": 0,
+    "level_cpu_ratio": 56.716471481552404,
+    "numeric_eligibility": true,
+    "rates": {
+      "large/eta1/exhaustive": 0.0,
+      "large/eta1/hybrid-bdd": 1.0,
+      "large/eta1/primal-lll": 1.0,
+      "medium/eta1/exhaustive": 0.0,
+      "medium/eta1/hybrid-bdd": 1.0,
+      "medium/eta1/primal-lll": 1.0,
+      "medium/eta2/exhaustive": 0.0,
+      "medium/eta2/hybrid-bdd": 0.9,
+      "medium/eta2/primal-lll": 1.0,
+      "small/eta1/exhaustive": 1.0,
+      "small/eta1/hybrid-bdd": 1.0,
+      "small/eta1/primal-lll": 1.0,
+      "small/eta2/exhaustive": 1.0,
+      "small/eta2/hybrid-bdd": 1.0,
+      "small/eta2/primal-lll": 1.0
+    },
+    "second_family_gate": true,
+    "separate_required_gates": [
+      "reviewer approval",
+      "audited held-out evidence"
+    ]
+  },
+  "nonce_generated": false,
+  "pre_freeze_disposition": "Accept reviewed repairs and candidate specification conditional on successful two-clean-build reproduction and committed freeze provenance. No final selection approval.",
+  "remaining_mandatory_gates": [
+    "two-clean-build reproduction",
+    "committed freeze manifest",
+    "fresh post-freeze reviewer nonce",
+    "complete audited held-out cohort satisfying unchanged criteria",
+    "dated final agent approval"
+  ],
+  "reviewed_at": "2026-09-08T12:53:37.510417+00:00",
+  "reviewer_model": "Codex; GPT-6 family description supplied; exact runtime build not exposed",
+  "reviewer_session": "/root/primitive_review",
+  "run_id": "20260908T015636Z-64f6da9501f3478f8edf986f965e9513",
+  "source_digest": "24e45c29e8abf088d5b4a0528cc9a5fb8dd87c502b451720c4c4095f95b69d26",
+  "source_revision": "9ad9423f7325b73383d250eb48353c3bd816da40"
+}

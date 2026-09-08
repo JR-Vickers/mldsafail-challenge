@@ -1,0 +1,14 @@
+{
+  "counts": {
+    "applicability_cap": 400,
+    "memory_limits": 0,
+    "records": 780,
+    "success": 380,
+    "timeouts": 0,
+    "verified": 380
+  },
+  "historical_verifier_semantics": "v1, including relation-only MSIS correctness",
+  "raw_sha256": "ed6107793f54a0578c7a9d802119152c59ede1171f9dc2a39a178a22c25f250e",
+  "run_id": "legacy:primitive-selection-v1:development:b33f229338695fcccfba415245058deb772a5a8f",
+  "status": "passed"
+}
