@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mldsafail.local/schemas/primitive-selection/result-v2.json",
+  "title": "Primitive selection evaluator record v2 (not solver input)",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "study_version",
+    "git_revision",
+    "container_image_digest",
+    "host",
+    "track",
+    "profile",
+    "seed",
+    "eta",
+    "solver",
+    "solver_parameters",
+    "verification_result",
+    "failure_reason",
+    "median_wall_seconds",
+    "median_cpu_seconds",
+    "peak_rss_bytes",
+    "answer_quality",
+    "timeout",
+    "memory_limit",
+    "diagnostic_counters",
+    "input_digest",
+    "output_digest",
+    "source_digest",
+    "repetitions",
+    "run_id",
+    "git_dirty",
+    "cohort",
+    "case_index",
+    "source_track",
+    "validation_nonce",
+    "instance_id",
+    "configuration_digest",
+    "dependency_digest",
+    "warmups",
+    "warmup_output_digest",
+    "status",
+    "status_counts",
+    "limits",
+    "timing_protocol",
+    "recorded_at",
+    "phase_cpu_seconds"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "2"
+    },
+    "study_version": {
+      "const": "primitive-selection-v2"
+    },
+    "track": {
+      "enum": [
+        "mlwe",
+        "msis",
+        "bkz"
+      ]
+    },
+    "profile": {
+      "enum": [
+        "small",
+        "medium",
+        "large"
+      ]
+    },
+    "eta": {
+      "enum": [
+        1,
+        2
+      ]
+    },
+    "verification_result": {
+      "type": "boolean"
+    },
+    "timeout": {
+      "type": "boolean"
+    },
+    "memory_limit": {
+      "type": "boolean"
+    },
+    "peak_rss_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "repetitions": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "warmups": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 32
+    },
+    "status": {
+      "enum": [
+        "success",
+        "applicability_cap",
+        "timeout",
+        "memory_failure",
+        "crash",
+        "invalid_answer",
+        "no_candidate",
+        "mixed"
+      ]
+    },
+    "case_index": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}

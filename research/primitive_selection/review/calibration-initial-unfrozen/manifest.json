@@ -1,0 +1,44 @@
+{
+  "status": "exploratory-unfrozen-incomplete-provenance",
+  "record_count": 72,
+  "expected_records": 72,
+  "study_version": "primitive-selection-v1 generator with proposed smaller profiles, experimental v2 algorithms",
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "profiles": {
+    "small": {
+      "n": 4,
+      "q": 97,
+      "k": 2,
+      "l": 1,
+      "msis_rows": 2,
+      "msis_cols": 3
+    },
+    "medium": {
+      "n": 8,
+      "q": 97,
+      "k": 2,
+      "l": 2,
+      "msis_rows": 2,
+      "msis_cols": 3
+    },
+    "large": {
+      "n": 16,
+      "q": 193,
+      "k": 3,
+      "l": 2,
+      "msis_rows": 3,
+      "msis_cols": 4
+    }
+  },
+  "wall_limit_seconds": 60,
+  "memory_limit_bytes": 2147483648,
+  "measurement_repetitions": 1,
+  "warmups": 0,
+  "records_sha256": "6b933e5a23bef205cd9934b629cd9e9177af8e1c2c0dc024c69188f7c9faf4ed",
+  "limitation": "Working-tree algorithm changes preceded source-snapshot infrastructure; exact source snapshot and creation-start timestamp were not captured. Driver and all 72 original measurements retained. Excluded from final scientific cohort, not claimed reproducible source evidence. Subsequent v2 calibration snapshots and full cohorts supersede this exploration.",
+  "finding": "At n16,k3,l2,q193,eta2, LLL/CVP timed out at60seconds for development seeds0,1; BKZ/CVP succeeded for all3. Conservative shared CVP eta2 dimension64 applicability cap introduced; capped BKZ cases are not measured failures."
+}

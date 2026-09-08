@@ -438,3 +438,93 @@ unresolved gates before a reviewed freeze. F02 is a final disqualification of
 the v1 planted distribution, not a waived scientific failure. No nonce or
 held-out approval is issued. A repaired MLWE candidate can be reviewed on its
 own development evidence, followed by an immutable freeze and fresh validation.
+
+## Repair review in progress: v2, 2026-09-07
+
+The reviewer independently inspected the proposed seedless dataclasses,
+strict public-field parser, eta-separated generator streams, both MSIS norm
+checks, restored v1 archive, cohort auditor, failure classification, and
+proposed decision/ranking module. The archived original Python source digest
+now reproduces the original measurement digest
+`747181075905c955a3fb72fa2925c6c8d7368a09175ac958760d2c6b63e26877`.
+
+The independent probe
+[`contract_probe_v2.py`](../research/primitive_selection/review/contract_probe_v2.py)
+runs with:
+
+```sh
+source .venv/bin/activate
+python -m research.primitive_selection.review.contract_probe_v2 > /tmp/contract-v2-rerun.json
+```
+
+Its retained working-source diagnostic
+[`contract-v2.json`](../research/primitive_selection/review/contract-v2.json)
+records its exact source digest and confirms 240 public round trips, 240
+rejected seed injections, 60 valid generated MLWE witnesses, 60 valid generated
+MSIS witnesses, 60 rejected q-unit relations, 60 rejected zero relations, and
+15,625 exhaustive bounded/unbounded candidate comparisons against independent
+tiny MLWE coefficient equations. This supports the code remedies for F01 and
+F03; closure still requires the final repaired development and validation
+cohorts under the frozen implementation. Source/revision identity in this
+probe records a working-tree review, not a clean final freeze.
+
+The reviewer accepts a pre-freeze expansion from 13 to 16 case combinations per
+profile/eta/seed to include MLWE direct modular solving, MSIS direct modular
+recovery, and sparse relation search. This makes the complete development and
+validation cohorts 960 and 1,920 records, respectively; the original portfolio
+subset remains 780 and 1,560 records. The frozen manifest must enumerate both
+counts and the actual complete grid. Adding simple methods to the common
+1-warm-up/3-repetition harness gives them the same provenance and resource
+checks. It does not revive the disqualified planted MSIS construction.
+
+The proposed MLWE challenge cells are small/eta 1, small/eta 2, medium/eta 1,
+and medium/eta 2; large is a retained stress comparison. Subject to final
+calibration evidence, the reviewer accepts the following viability gates for
+freezing: reference success at least 90% in every challenge cell; a genuinely
+different exhaustive or hybrid family at least 80% in one challenge cell;
+at least two distinct degrees; medium/small median complete reference CPU
+ratio at least 2; a nonstarter challenge level beyond the fixed exhaustive cap;
+and no invalid submitted candidates. Direct modular success at least 90% in
+every challenge cell would disqualify the formulation as insufficiently useful
+for this challenge. These are minimum empirical viability thresholds, not a
+cryptographic hardness statement. The same thresholds must hold on untouched
+validation seeds; failure must remain visible.
+
+Additional integration issues reported to the implementation agent include
+using `status` consistently in eligibility/ranking (including mixed cases with
+an invalid repetition), checking exact dependency sets and frozen metadata in
+the auditor, required successful-worker resource evidence, and Wilson
+intervals for per-cell success. These must be verified in the final code before
+F04–F06/F08 closure. No validation nonce or freeze approval has been issued.
+
+## Development-only difficulty repair review: 2026-09-08
+
+The proposed four-cell small/medium challenge **failed its proposed 2x
+complete-reference-runtime separation gate** on the retained 72-case
+calibration. The reviewer recomputed the raw records in
+`review/calibration-v2-mlwe-01/records.jsonl`: primal-LLL median complete CPU was
+0.0262535 s on pooled small/eta 1 and 2 (six seed/eta cases), 0.032911 s on
+pooled medium/eta 1 and 2 (six cases), and 0.325584 s on large/eta 1 (three
+cases). The medium/small ratio is **1.253585**, below 2. The large/eta-1 versus
+pooled-small ratio is **12.401546**. These are diagnostic calibration
+observations with one timed invocation per case, not the final three-repeat
+cohort or validation evidence. The original records are retained.
+
+The reviewer accepts the following **pre-freeze repair proposal**, rather than
+waiving the failed criterion: include large/eta 1 as a fifth equally weighted
+ranked challenge cell, retain large/eta 2 as unranked stress evidence, and
+require the predeclared large/eta-1 reference median divided by pooled-small
+reference median to be at least 2. All five challenge cells must independently
+meet the 90% reference-success threshold on all development seeds and again on
+untouched validation seeds. The different-family threshold, practical
+exhaustive-headroom check, zero-invalid-answer requirement, direct-shortcut
+check, safety caps, BKZ gates, and fallback eligibility ordering are unchanged.
+Medium provides an intermediate level and exhaustive-search headroom; its
+calibration does not independently establish a 2x runtime level.
+
+This is a changed proposed challenge/ranking configuration before any freeze or
+reviewer nonce. Full development must establish large/eta-1 applicability under
+the repaired common measurement configuration. The reviewer has not approved
+freezing or selecting the candidate from the three calibration seeds. A failed
+full-development or held-out gate remains a failed gate and cannot be closed
+by referring to this provisional acceptance.

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import ctypes
 import hashlib
 import importlib.metadata
 import json
@@ -68,37 +67,12 @@ def _git_revision() -> tuple[str, bool]:
     return revision, dirty
 
 
-def _source_files():
-    paths = list(PACKAGE.glob("*.py")) + list((PACKAGE / "schemas").glob("*.json"))
-    paths += [PACKAGE / name for name in ("Dockerfile", "requirements.txt", "primitive-study", "rebuild-check.sh")]
-    paths += list((ROOT / "tests").glob("test_primitive*.py"))
-    return sorted(paths)
-
-
 def _source_digest() -> str:
     sha = hashlib.sha256()
-    for path in _source_files():
-        sha.update(path.relative_to(ROOT).as_posix().encode() + b"\0" + path.read_bytes())
-    return sha.hexdigest()
-
-
-def committed_source_digest(revision: str) -> str:
-    paths = _source_files()
-    request = "".join(f"{revision}:{path.relative_to(ROOT).as_posix()}\n" for path in paths).encode()
-    result = subprocess.run(["git", "cat-file", "--batch"], cwd=ROOT, input=request,
-                            capture_output=True, check=False)
-    if result.returncode:
-        raise ValueError("cannot inspect recorded source revision")
-    remaining = result.stdout
-    sha = hashlib.sha256()
-    for path in paths:
-        header, remaining = remaining.split(b"\n", 1)
-        fields = header.split()
-        if len(fields) != 3 or fields[1] != b"blob":
-            raise ValueError("recorded revision lacks research source files")
-        size = int(fields[2])
-        contents, remaining = remaining[:size], remaining[size + 1:]
-        sha.update(path.relative_to(ROOT).as_posix().encode() + b"\0" + contents)
+    paths = list(PACKAGE.glob("*.py")) + list((PACKAGE / "schemas").glob("*.json"))
+    paths += [PACKAGE / name for name in ("Dockerfile", "requirements.txt", "primitive-study", "rebuild-check.sh")]
+    for path in sorted(paths):
+        sha.update(path.relative_to(PACKAGE).as_posix().encode() + b"\0" + path.read_bytes())
     return sha.hexdigest()
 
 
@@ -123,59 +97,19 @@ def configuration() -> dict[str, Any]:
 
 
 def dependency_provenance() -> dict[str, Any]:
-    versions, artifacts, native_paths = {}, {}, {}
+    versions = {}
     for line in (PACKAGE / "requirements.txt").read_text().splitlines():
         if "==" not in line or line.lstrip().startswith("#"):
             continue
         name, pin = line.strip().split("==", 1)
         try:
-            distribution = importlib.metadata.distribution(name)
-            installed = distribution.version
+            installed = importlib.metadata.version(name)
         except importlib.metadata.PackageNotFoundError:
             installed = "missing"
-            distribution = None
         versions[name] = {"required": pin, "installed": installed}
-        if name in ("fpylll", "cysignals"):
-            binaries = {}
-            for entry in distribution.files if distribution is not None else ():
-                relative = str(entry)
-                if ".so" not in relative and not relative.endswith(".dylib"):
-                    continue
-                path = Path(distribution.locate_file(entry))
-                binaries[relative] = file_digest(path)
-                if any(library in path.name for library in ("libgmp", "libmpfr", "libfplll")):
-                    native_paths[path.name] = path
-            artifacts[name] = binaries
-    # Wheels normally vendor these libraries. Also identify system copies loaded
-    # by the actual backend on Linux, where a wheel can use external GMP/MPFR.
-    if Path("/proc/self/maps").exists():
-        try:
-            __import__("fpylll")
-        except ImportError:
-            pass
-        for line in Path("/proc/self/maps").read_text().splitlines():
-            fields = line.split()
-            if fields and fields[-1].startswith("/"):
-                path = Path(fields[-1])
-                if any(library in path.name for library in ("libgmp", "libmpfr", "libfplll")) and path.is_file():
-                    native_paths[path.name] = path
-    native = {}
-    for name, path in sorted(native_paths.items()):
-        item = {"sha256": file_digest(path)}
-        try:
-            library = ctypes.CDLL(str(path))
-            if "libgmp" in name:
-                item["version"] = ctypes.c_char_p.in_dll(library, "__gmp_version").value.decode()
-            elif "libmpfr" in name:
-                library.mpfr_get_version.restype = ctypes.c_char_p
-                item["version"] = library.mpfr_get_version().decode()
-        except (OSError, ValueError, AttributeError) as exc:
-            item["version_probe_error"] = type(exc).__name__
-        native[name] = item
     return {"requirements_sha256": file_digest(PACKAGE / "requirements.txt"),
             "dockerfile_sha256": file_digest(PACKAGE / "Dockerfile"),
-            "python": platform.python_version(), "packages": versions,
-            "binary_artifacts": artifacts, "native_libraries": native}
+            "python": platform.python_version(), "packages": versions}
 
 
 def _instance(case: Case):
@@ -206,9 +140,6 @@ def _invoke(instance, solver: str, parameters: dict[str, Any] | None = None) -> 
                 "partial_stderr": (exc.stderr or b"").decode(errors="replace")[-2000:],
                 "error": "wall-time limit exceeded"}
     wall = time.perf_counter() - started
-    if wall > WALL_LIMIT_SECONDS:
-        return {"status": "timeout", "timeout": True, "memory_limit": False,
-                "evaluator_wall_seconds": wall, "error": "wall-time limit exceeded"}
     if completed.returncode:
         return {"status": "crash", "timeout": False, "memory_limit": False,
                 "evaluator_wall_seconds": wall, "returncode": completed.returncode,
@@ -281,14 +212,11 @@ def manifest_path(output: Path) -> Path:
 
 
 def _write_json(path: Path, value: dict[str, Any], *, exclusive: bool = False) -> None:
-    destination = path if exclusive else path.with_name(path.name + f".{uuid.uuid4().hex}.tmp")
-    with destination.open("x") as handle:
+    with path.open("x" if exclusive else "w") as handle:
         json.dump(value, handle, sort_keys=True, indent=2)
         handle.write("\n")
         handle.flush()
         os.fsync(handle.fileno())
-    if not exclusive:
-        destination.replace(path)
 
 
 def check_freeze(freeze: Path, nonce_record: Path, nonce: str) -> dict[str, Any]:
@@ -298,9 +226,8 @@ def check_freeze(freeze: Path, nonce_record: Path, nonce: str) -> dict[str, Any]
         raise ValueError("frozen source/configuration differs from running study")
     if frozen.get("dependency_provenance") != dependency_provenance():
         raise ValueError("frozen dependencies differ from running study")
-    from .decision import RANKING_RULE, SELECTION_CRITERIA
-    if frozen.get("selection_criteria") != SELECTION_CRITERIA or frozen.get("ranking_rule") != RANKING_RULE:
-        raise ValueError("freeze must match committed selection criteria and ranking rule")
+    if not frozen.get("selection_criteria") or not frozen.get("ranking_rule"):
+        raise ValueError("freeze must specify selection criteria and ranking rule")
     if frozen.get("expected_case_counts") != {"development": len(cases_for("development")),
                                                "validation": len(cases_for("validation", nonce))}:
         raise ValueError("freeze case counts differ from running study")
@@ -316,16 +243,12 @@ def check_freeze(freeze: Path, nonce_record: Path, nonce: str) -> dict[str, Any]
     # Outside git (container), compare the archived freeze digest and injected committed revision.
     if (ROOT / ".git").exists():
         relative = freeze.resolve().relative_to(ROOT).as_posix()
-        if committed_source_digest(revision) != frozen["source_digest"]:
-            raise ValueError("freeze commit differs from frozen source")
         committed = subprocess.run(["git", "show", f"{revision}:{relative}"], cwd=ROOT, capture_output=True, check=False)
         if committed.returncode or hashlib.sha256(committed.stdout).hexdigest() != file_digest(freeze):
             raise ValueError("freeze is not identical to referenced committed artifact")
     elif _git_revision()[0] != revision:
         raise ValueError("validation image must identify the freeze commit")
-    return {"freeze_sha256": file_digest(freeze), "freeze_file_text": freeze.read_text(),
-            "freeze_path": freeze.resolve().relative_to(ROOT).as_posix(),
-            "freeze": frozen, "reviewer_nonce": reviewer}
+    return {"freeze_sha256": file_digest(freeze), "freeze": frozen, "reviewer_nonce": reviewer}
 
 
 def run(cohort: str, nonce: str | None = None, output: Path | None = None,
@@ -348,9 +271,6 @@ def run(cohort: str, nonce: str | None = None, output: Path | None = None,
     if output.exists() or partial.exists() or manifest_path(output).exists():
         raise FileExistsError(f"refusing to overwrite run evidence: {output}")
     config, dependencies = configuration(), dependency_provenance()
-    if cohort == "validation" and (os.environ.get("PRIMITIVE_STUDY_IMAGE_DIGEST", "unavailable") == "unavailable"
-                                   or any(p["required"] != p["installed"] for p in dependencies["packages"].values())):
-        raise ValueError("validation requires pinned dependencies and a recorded container image")
     metadata = {
         "schema_version": RESULT_SCHEMA_VERSION, "study_version": STUDY_VERSION,
         "run_id": run_id, "git_revision": revision, "git_dirty": dirty,
@@ -384,13 +304,8 @@ def run(cohort: str, nonce: str | None = None, output: Path | None = None,
                 handle.flush()
                 os.fsync(handle.fileno())
                 manifest["completed_case_count"] = number
-                _write_json(manifest_path(output), manifest)
                 print(f"[{number}/{len(all_cases)}] {case.track}/{case.profile}/eta{case.eta}/{case.solver}: "
                       f"{aggregate['status']}", file=sys.stderr)
-        if _source_digest() != metadata["source_digest"] or digest(configuration()) != metadata["configuration_digest"]:
-            raise RuntimeError("study source/configuration changed during run; evidence remains partial")
-        if digest(dependency_provenance()) != metadata["dependency_digest"]:
-            raise RuntimeError("installed dependencies changed during run; evidence remains partial")
         partial.rename(output)
         manifest.update({"state": "complete", "completed_at": datetime.now(UTC).isoformat(),
                          "records_sha256": file_digest(output)})

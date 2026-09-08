@@ -20,5 +20,6 @@ ENV PRIMITIVE_STUDY_GIT_REVISION=$RESEARCH_GIT_REVISION \
 
 WORKDIR /study
 COPY research /study/research
+COPY tests/test_primitive*.py /study/tests/
 
 ENTRYPOINT ["python", "-m", "research.primitive_selection"]

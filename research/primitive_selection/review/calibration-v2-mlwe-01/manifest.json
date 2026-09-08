@@ -1,0 +1,127 @@
+{
+  "schema_version": "calibration-v1",
+  "run_id": "b5f794e8ddad4f13a3120b4386fa6cc7",
+  "created_at": "2026-09-07T06:09:41.718855+00:00",
+  "kind": "mlwe",
+  "status": "complete",
+  "interpretation": "exploratory, one observation per case; excluded from final cohort analysis",
+  "git_revision": "c88a1c9e9eb9afa63be10f55e4e7e62be6b6d447",
+  "source_digests": {
+    "__init__.py": "2eea5c0cc3853a410e90f2a560c6e16d3d29bf8bbfffa286779e12879adb4d9f",
+    "__main__.py": "28769ad323e1287d4900a145ec402cc7e43d7a49da652533c8b2d659f6c158a3",
+    "audit.py": "a0fb57dac8bd9bc0896443375e11d8a3dd4b411cab5f07d27c9cbaba010a4a04",
+    "calibration.py": "95d76266a58b2e51775703e37d862e2d327955323823398dcbb67fac2b76dc60",
+    "constants.py": "d7c02a3e029e83a3fe39216443818cf71aa3df921b7aa547b6f183f4fdef1321",
+    "embedding.py": "c9c72314dbfd2d6a1bea9c03a98707792c0cc2aa01960dd8222ffb285534395c",
+    "generator.py": "f84988f5244c462f25b1ed879617a7525c7315595b87f0534eea286c61e2070e",
+    "models.py": "4212448226c795927a7186484b35d959aabcb653dae0099a83d43f74dcf92bf3",
+    "report.py": "ceec9016fb06ddb53aea07b85c86bdaeb46f53774b6c1c93d32fd42259de503e",
+    "ring.py": "f4bb4cbab49cde98b968d4d0d58ec29c746e473d94f6b3c47f39b73befdc47c4",
+    "runner.py": "f0b87e7619986acd28979968f0138992f528632ba406adb84640b36e266a12d4",
+    "simple_baselines.py": "f9ca3adf112d5419dc7f83b00caaa2d2a699dbc4a88a5d3cc01af71694791255",
+    "solvers.py": "f92d006ed13bbdd5cc982edf5805d581dd581bdaf5d46887b90dc8143bd8f702",
+    "verify.py": "0e245a0c325d7b5ddcdbbd1a96f1569f1079928532cdc58b02ea1ccfba64a6e5",
+    "worker.py": "36f9cf456068d84337cfcf2c1068eff9ba707d99ddb14b5bbf5f947dfa3e7516"
+  },
+  "profiles": {
+    "small": {
+      "n": 4,
+      "q": 97,
+      "k": 2,
+      "l": 1,
+      "msis_rows": 2,
+      "msis_cols": 3
+    },
+    "medium": {
+      "n": 8,
+      "q": 97,
+      "k": 2,
+      "l": 2,
+      "msis_rows": 2,
+      "msis_cols": 3
+    },
+    "large": {
+      "n": 16,
+      "q": 193,
+      "k": 3,
+      "l": 2,
+      "msis_rows": 3,
+      "msis_cols": 4
+    }
+  },
+  "solver_parameters": {
+    "exhaustive": {
+      "max_candidates": 1000000
+    },
+    "primal-lll": {
+      "delta": 0.99,
+      "cvp_method": "fast",
+      "max_basis_dimension": 128,
+      "max_eta2_basis_dimension": 64
+    },
+    "primal-bkz": {
+      "block_size": 12,
+      "max_loops": 2,
+      "cvp_method": "fast",
+      "max_basis_dimension": 128,
+      "max_eta2_basis_dimension": 64
+    },
+    "hybrid-bdd": {
+      "guess_coefficients": 1,
+      "block_size": 12,
+      "max_loops": 1,
+      "decoder": "babai",
+      "max_basis_dimension": 128
+    },
+    "lll-short-vector": {
+      "delta": 0.99,
+      "enumeration_limit": 16,
+      "max_basis_dimension": 64
+    },
+    "progressive-bkz": {
+      "schedule": [
+        5,
+        10,
+        15
+      ],
+      "enumeration_limit": 16,
+      "max_basis_dimension": 64
+    },
+    "restart-bkz": {
+      "block_size": 12,
+      "max_loops": 1,
+      "restarts": 3,
+      "enumeration_limit": 8,
+      "max_basis_dimension": 64
+    },
+    "lll-only": {
+      "delta": 0.99,
+      "max_basis_dimension": 160
+    },
+    "fixed-bkz": {
+      "block_size": 12,
+      "max_loops": 2,
+      "max_basis_dimension": 160
+    }
+  },
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "etas": [
+    1,
+    2
+  ],
+  "wall_limit_seconds": 60,
+  "memory_limit_bytes": 2147483648,
+  "dependencies": {
+    "fpylll": "0.6.4",
+    "cysignals": "1.12.5"
+  },
+  "configuration_digest": "89cbce5be49effedac7acae5abf68a728225ade5ab57158b61360dcd945f3bd6",
+  "record_count": 72,
+  "expected_records": 72,
+  "completed_at": "2026-09-07T06:09:48.624943+00:00",
+  "records_sha256": "549463752fcf66bc8fdc68684343b3e387b65eec74a9f356eebff8b7c18f0cb4"
+}

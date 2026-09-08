@@ -1,0 +1,382 @@
+{
+  "cohort": "smoke",
+  "completed_at": "2026-09-08T01:50:07.816831+00:00",
+  "completed_case_count": 16,
+  "configuration": {
+    "development_seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "etas": [
+      1,
+      2
+    ],
+    "limits": {
+      "cpu_cores": 1,
+      "memory_bytes": 2147483648,
+      "wall_seconds": 60
+    },
+    "payload_schema_version": "2",
+    "portfolio": {
+      "bkz": [
+        "lll-only",
+        "fixed-bkz",
+        "progressive-bkz"
+      ],
+      "mlwe": [
+        "exhaustive",
+        "direct-linear",
+        "primal-lll",
+        "primal-bkz",
+        "hybrid-bdd"
+      ],
+      "msis": [
+        "direct-linear",
+        "sparse-relation",
+        "lll-short-vector",
+        "progressive-bkz",
+        "restart-bkz"
+      ]
+    },
+    "profiles": {
+      "large": {
+        "k": 3,
+        "l": 2,
+        "msis_cols": 4,
+        "msis_rows": 3,
+        "n": 16,
+        "q": 193
+      },
+      "medium": {
+        "k": 2,
+        "l": 2,
+        "msis_cols": 3,
+        "msis_rows": 2,
+        "n": 8,
+        "q": 97
+      },
+      "small": {
+        "k": 2,
+        "l": 1,
+        "msis_cols": 3,
+        "msis_rows": 2,
+        "n": 4,
+        "q": 97
+      }
+    },
+    "result_schema_version": "2",
+    "solver_parameters": {
+      "direct-linear": {
+        "max_candidates": 1000000
+      },
+      "exhaustive": {
+        "max_candidates": 1000000
+      },
+      "fixed-bkz": {
+        "block_size": 12,
+        "max_basis_dimension": 160,
+        "max_loops": 2
+      },
+      "hybrid-bdd": {
+        "block_size": 12,
+        "decoder": "babai",
+        "guess_coefficients": 1,
+        "max_basis_dimension": 128,
+        "max_loops": 1
+      },
+      "lll-only": {
+        "delta": 0.99,
+        "max_basis_dimension": 160
+      },
+      "lll-short-vector": {
+        "delta": 0.99,
+        "enumeration_limit": 16,
+        "max_basis_dimension": 64
+      },
+      "primal-bkz": {
+        "block_size": 12,
+        "cvp_method": "fast",
+        "max_basis_dimension": 128,
+        "max_eta2_basis_dimension": 64,
+        "max_loops": 2
+      },
+      "primal-lll": {
+        "cvp_method": "fast",
+        "delta": 0.99,
+        "max_basis_dimension": 128,
+        "max_eta2_basis_dimension": 64
+      },
+      "progressive-bkz": {
+        "enumeration_limit": 16,
+        "max_basis_dimension": 64,
+        "schedule": [
+          5,
+          10,
+          15
+        ]
+      },
+      "restart-bkz": {
+        "block_size": 12,
+        "enumeration_limit": 8,
+        "max_basis_dimension": 64,
+        "max_loops": 1,
+        "restarts": 3
+      },
+      "sparse-relation": {}
+    },
+    "study_version": "primitive-selection-v2",
+    "timing_protocol": {
+      "aggregation": "median successful measured process CPU time",
+      "case_order": "deterministic cohort/nonce-domain-separated shuffle",
+      "measured_repetitions": 3,
+      "processes": "fresh subprocess for every warmup and measured repetition",
+      "warmups": 1
+    }
+  },
+  "configuration_digest": "4625e878086446bb698b750c2f60cf8df20819dbf2e4c2c8439648bd2db19fbd",
+  "container_image_digest": "unavailable",
+  "created_at": "2026-09-08T01:50:04.895967+00:00",
+  "dependency_digest": "e470f3f7cd5aefc9e701f600fb8a8580b133d5b20b28a530d26cf0eb79fa3c03",
+  "dependency_provenance": {
+    "binary_artifacts": {
+      "cysignals": {
+        "cysignals/alarm.cpython-312-darwin.so": "2ab5344927aaec70a35e6dfe48bcc66cb7b07d27c94839ba4aa8e77a9662f755",
+        "cysignals/pselect.cpython-312-darwin.so": "eb66079fd166c5f45233398dfa6fdca9bf5522a3e6460cc8932b4f95cf2a31d2",
+        "cysignals/pysignals.cpython-312-darwin.so": "75c78881f6a1efa71190ef8a05bd7e16eea02f4b7b91df265efafbc406e661bc",
+        "cysignals/signals.cpython-312-darwin.so": "ae768e836d0d779e86e7dc5fede7c41fb16376799e8bb946be092b6da5ebba34",
+        "cysignals/tests.cpython-312-darwin.so": "49b30fa61652a6b2010b43869a3d11e5f0620fcf7d37ec5bbef62a6f50d98f38"
+      },
+      "fpylll": {
+        "fpylll/.dylibs/libfplll.9.dylib": "75a8ccfa619b1bc432cb89d34348eb0ffbd9e67f465bc91d2274d286b01f3ae6",
+        "fpylll/.dylibs/libgmp.10.dylib": "320c340eab17136461cafc4e2cc34c9f83ac78b51810f7ca17821d02032035ff",
+        "fpylll/.dylibs/libmpfr.6.dylib": "6d114cedf735fee0249b584d4c269206d781cfdfc47b5874f59617f1b7b3722a",
+        "fpylll/config.cpython-312-darwin.so": "0e8af98dda0b9187a6e7a1cb59210f753f29da7c675baf94282a4bdf3289b30f",
+        "fpylll/fplll/bkz.cpython-312-darwin.so": "136717d69914b8b83ba003a3d2fff6dfb31e1ff0126332ec2e4660ee9013c367",
+        "fpylll/fplll/bkz_param.cpython-312-darwin.so": "6847586b13baa69ea82e13221760d4ed09e91dd18f81e6a2aa342ae42a00a27a",
+        "fpylll/fplll/enumeration.cpython-312-darwin.so": "cda5732946099d9106d3dfc86a5fe199ed3918498c9efdd8199db30db8c5b598",
+        "fpylll/fplll/gso.cpython-312-darwin.so": "24124819dc76a32d2a552d659601145acb7ef355fc2ccdedd1ea131509556c05",
+        "fpylll/fplll/integer_matrix.cpython-312-darwin.so": "ba9b7bceb10a97f88e382a0fd76d4b95d5c1e4ab2c9eb3d46f43da7dd0db9f15",
+        "fpylll/fplll/lll.cpython-312-darwin.so": "c351d0ddf4625c45bc9ec0b3a1eec0e790753cf9bc361f58527f87715e7f5d11",
+        "fpylll/fplll/pruner.cpython-312-darwin.so": "743812214d2ead2f89a29d90336e768660c5932e817c29c0e9439362a884a70e",
+        "fpylll/fplll/svpcvp.cpython-312-darwin.so": "a4aa7da70ebd2dc3ba81af3d11289fb25359f96d1b2e0bc6a3bd11940084409d",
+        "fpylll/fplll/wrapper.cpython-312-darwin.so": "fae1f98348f4b1b7a28e8dd9e3f0f1833cd53be19e1058f8d5829b01f4bc30f0",
+        "fpylll/gmp/pylong.cpython-312-darwin.so": "0975b340f2e35c0c01df65b39bc1c6bea4156a671841c2c8413bd4da003e1cc2",
+        "fpylll/io.cpython-312-darwin.so": "670a350195d5842da534be595d84030abf0f9284ddb2785d81f13a1e8523ded9",
+        "fpylll/numpy.cpython-312-darwin.so": "03af2486d2bba7e41bfc3207ca344d69e5dc80771e63747f86b3118031a0f09c",
+        "fpylll/util.cpython-312-darwin.so": "e87a3b8ac265cb54a2444944a845e7a6bbf42365b5237a479fc0607db59c148b"
+      }
+    },
+    "dockerfile_sha256": "d3e36d69df90bb78ff5126c9a55f395ccb12cc3a82978967bb4860af85fabd20",
+    "native_libraries": {
+      "libfplll.9.dylib": {
+        "sha256": "75a8ccfa619b1bc432cb89d34348eb0ffbd9e67f465bc91d2274d286b01f3ae6"
+      },
+      "libgmp.10.dylib": {
+        "sha256": "320c340eab17136461cafc4e2cc34c9f83ac78b51810f7ca17821d02032035ff",
+        "version": "6.3.0"
+      },
+      "libmpfr.6.dylib": {
+        "sha256": "6d114cedf735fee0249b584d4c269206d781cfdfc47b5874f59617f1b7b3722a",
+        "version": "4.2.1"
+      }
+    },
+    "packages": {
+      "cysignals": {
+        "installed": "1.12.5",
+        "required": "1.12.5"
+      },
+      "fpylll": {
+        "installed": "0.6.4",
+        "required": "0.6.4"
+      },
+      "iniconfig": {
+        "installed": "2.3.0",
+        "required": "2.3.0"
+      },
+      "packaging": {
+        "installed": "26.3",
+        "required": "26.3"
+      },
+      "pluggy": {
+        "installed": "1.6.0",
+        "required": "1.6.0"
+      },
+      "pygments": {
+        "installed": "2.20.0",
+        "required": "2.20.0"
+      },
+      "pytest": {
+        "installed": "8.4.2",
+        "required": "8.4.2"
+      }
+    },
+    "python": "3.12.10",
+    "requirements_sha256": "c0a2360072abf816758c21e26c150a281e80932561ff79a953932c542579da43"
+  },
+  "expected_case_count": 16,
+  "expected_cases": [
+    {
+      "eta": 1,
+      "profile": "small",
+      "seed": 0,
+      "solver": "progressive-bkz",
+      "source_track": null,
+      "track": "msis"
+    },
+    {
+      "eta": 1,
+      "profile": "small",
+      "seed": 0,
+      "solver": "progressive-bkz",
+      "source_track": "mlwe",
+      "track": "bkz"
+    },
+    {
+      "eta": 1,
+      "profile": "small",
+      "seed": 0,
+      "solver": "progressive-bkz",
+      "source_track": "msis",
+      "track": "bkz"
+    },
+    {
+      "eta": 1,
+      "profile": "small",
+      "seed": 0,
+      "solver": "lll-only",
+      "source_track": "mlwe",
+      "track": "bkz"
+    },
+    {
+      "eta": 1,
+      "profile": "small",
+      "seed": 0,
+      "solver": "primal-lll",
+      "source_track": null,
+      "track": "mlwe"
+    },
+    {
+      "eta": 1,
+      "profile": "small",
+      "seed": 0,
+      "solver": "lll-only",
+      "source_track": "msis",
+      "track": "bkz"
+    },
+    {
+      "eta": 1,
+      "profile": "small",
+      "seed": 0,
+      "solver": "fixed-bkz",
+      "source_track": "mlwe",
+      "track": "bkz"
+    },
+    {
+      "eta": 1,
+      "profile": "small",
+      "seed": 0,
+      "solver": "fixed-bkz",
+      "source_track": "msis",
+      "track": "bkz"
+    },
+    {
+      "eta": 1,
+      "profile": "small",
+      "seed": 0,
+      "solver": "direct-linear",
+      "source_track": null,
+      "track": "mlwe"
+    },
+    {
+      "eta": 1,
+      "profile": "small",
+      "seed": 0,
+      "solver": "sparse-relation",
+      "source_track": null,
+      "track": "msis"
+    },
+    {
+      "eta": 1,
+      "profile": "small",
+      "seed": 0,
+      "solver": "lll-short-vector",
+      "source_track": null,
+      "track": "msis"
+    },
+    {
+      "eta": 1,
+      "profile": "small",
+      "seed": 0,
+      "solver": "restart-bkz",
+      "source_track": null,
+      "track": "msis"
+    },
+    {
+      "eta": 1,
+      "profile": "small",
+      "seed": 0,
+      "solver": "direct-linear",
+      "source_track": null,
+      "track": "msis"
+    },
+    {
+      "eta": 1,
+      "profile": "small",
+      "seed": 0,
+      "solver": "exhaustive",
+      "source_track": null,
+      "track": "mlwe"
+    },
+    {
+      "eta": 1,
+      "profile": "small",
+      "seed": 0,
+      "solver": "hybrid-bdd",
+      "source_track": null,
+      "track": "mlwe"
+    },
+    {
+      "eta": 1,
+      "profile": "small",
+      "seed": 0,
+      "solver": "primal-bkz",
+      "source_track": null,
+      "track": "mlwe"
+    }
+  ],
+  "git_dirty": true,
+  "git_revision": "bf08de81ab7355f64f5d68f138676a3a29dfb269",
+  "host": {
+    "cpu_count": 16,
+    "machine": "arm64",
+    "platform": "macOS-15.7.7-arm64-arm-64bit",
+    "python": "3.12.10"
+  },
+  "limits": {
+    "cpu_cores": 1,
+    "memory_bytes": 2147483648,
+    "wall_seconds": 60
+  },
+  "records_sha256": "2364173217c86933f8abe427e7788e6a192d44321404c01ac816611164348f63",
+  "run_id": "20260908T015004Z-d9e8be5672d74e36a2a0d6dfa8d901c3",
+  "schema_version": "2",
+  "source_digest": "a7ee2fba18603744a4f520eef1eabf9afbb9572030eef7d5cf84b23b844ef1cb",
+  "state": "complete",
+  "study_version": "primitive-selection-v2",
+  "timing_protocol": {
+    "aggregation": "median successful measured process CPU time",
+    "case_order": "deterministic cohort/nonce-domain-separated shuffle",
+    "measured_repetitions": 3,
+    "processes": "fresh subprocess for every warmup and measured repetition",
+    "warmups": 1
+  },
+  "validation_nonce": null
+}

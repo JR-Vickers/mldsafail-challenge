@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 import random
 import statistics
 from collections import Counter, defaultdict
@@ -43,32 +42,6 @@ def _bootstrap(observations, statistic=statistics.mean):
     return distribution[49], distribution[1949]
 
 
-def _success_interval(values):
-    # Every fully specified cell has one Bernoulli result per seed. Wilson retains
-    # uncertainty at 0/n and n/n; use clustered bootstrap only for fractional clusters.
-    if not values:
-        return None
-    if all(value in (0, 1) for value in values):
-        n, z = len(values), 1.959963984540054
-        p = statistics.mean(values)
-        denominator = 1 + z * z / n
-        middle = (p + z * z / (2 * n)) / denominator
-        half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / denominator
-        return max(0.0, middle - half), min(1.0, middle + half)
-    return _bootstrap(values)
-
-
-def _quantiles(values):
-    usable = sorted(value for value in values if value is not None)
-    if not usable:
-        return None
-    def at(p):
-        position = (len(usable) - 1) * p
-        lower = math.floor(position)
-        return usable[lower] + (usable[min(lower + 1, len(usable) - 1)] - usable[lower]) * (position - lower)
-    return at(.1), at(.5), at(.9)
-
-
 def _interval_text(interval, percent=False):
     if interval is None:
         return "n/a"
@@ -96,16 +69,14 @@ def summarize(records: list[dict[str, Any]], keys=("track", "solver")):
         row = dict(zip(keys, group, strict=True))
         statuses = Counter(_status(value) for value in values)
         row.update({"cases": len(values), "seed_clusters": len(rates), "statuses": statuses,
-                    "success_rate": statistics.mean(rates), "success_interval": _success_interval(rates),
+                    "success_rate": statistics.mean(rates), "success_interval": _bootstrap(rates),
                     "median_cpu": _median(value["median_cpu_seconds"] for value in successful),
                     "cpu_interval": _bootstrap(_seed_values(successful, lambda r: r["median_cpu_seconds"]), statistics.median),
                     "peak_rss": max(value["peak_rss_bytes"] for value in values),
                     "median_norm_squared": _median(_quality(value, "norm_squared") for value in successful),
                     "median_rhf": _median(_quality(value, "root_hermite_factor") for value in successful),
                     "norm_interval": _bootstrap(_seed_values(successful, lambda r: _quality(r, "norm_squared")), statistics.median),
-                    "rhf_interval": _bootstrap(_seed_values(successful, lambda r: _quality(r, "root_hermite_factor")), statistics.median),
-                    "norm_quantiles": _quantiles(_quality(value, "norm_squared") for value in successful),
-                    "rhf_quantiles": _quantiles(_quality(value, "root_hermite_factor") for value in successful)})
+                    "rhf_interval": _bootstrap(_seed_values(successful, lambda r: _quality(r, "root_hermite_factor")), statistics.median)})
         rows.append(row)
     return rows
 
@@ -143,7 +114,7 @@ def _paired_gains(records, track, baseline, challenger):
 def render(records: list[dict[str, Any]], cohort: str) -> str:
     lines = [f"# Primitive-selection {cohort} audited report", "",
              "Generated from complete raw cohorts after input regeneration, independent candidate verification, and aggregate checks.", "",
-             "Success intervals for individual cells use 95% Wilson intervals; other intervals use deterministic 95% percentile bootstrap intervals (2,000 resamples) over seed-level observations. Three timing repetitions are one instance, not three. Small samples limit inference. Cross-track quality has no common score.", "",
+             "Intervals are deterministic 95% percentile bootstrap intervals (2,000 resamples) over seed-level observations; three timing repetitions are one instance, not three. Zero-width bootstrap intervals at 0%/100% are empirical resampling limits, not proof of population certainty. Small samples limit inference. Cross-track quality has no common score.", "",
              "Successful timing uses the median measured process CPU; each process includes solver work and independent verification but excludes interpreter startup. Parent wall timing includes startup. Quality is reduced to a median per seed before summary. `n/a` means no usable observations; the outcome table supplies the reason.", ""]
     cohorts = defaultdict(list)
     for record in records:
@@ -165,22 +136,16 @@ def render(records: list[dict[str, Any]], cohort: str) -> str:
             counts = row["statuses"]
             lines.append(f"| {row['track']} | {row['solver']} | {row['cases']} | " + " | ".join(str(counts[key]) for key in
                          ("success", "applicability_cap", "timeout", "memory_failure", "crash", "invalid_answer", "no_candidate", "mixed")) + " |")
-        measured_counts = Counter(classify_result(repetition) for value in values for repetition in value["repetitions"])
-        warmup_counts = Counter(classify_result(repetition) for value in values for repetition in value.get("warmups", []))
-        lines += ["", "Measured repetition outcomes (three per case; not independent problem instances): " +
-                  ", ".join(f"{status}={count}" for status, count in sorted(measured_counts.items())) + ".",
-                  "Warmup outcomes: " + (", ".join(f"{status}={count}" for status, count in sorted(warmup_counts.items()))
-                                        or "not retained in the historical v1 cohort") + "."]
         lines += ["", "### Quality and complete-process reduction share", "",
                   "Reduction share divides instrumented reduction CPU by complete measured process CPU, including verification and overhead. A large share establishes runtime consumption only. It does not establish an end-to-end gain from improving reduction.", "",
-                  "| Track/source | Solver | Profile/eta | Norm² p10/p50/p90 (median 95% CI) | RHF p10/p50/p90 (median 95% CI) | Reduction share (95% CI) |",
+                  "| Track/source | Solver | Profile/eta | Median norm² (95% CI) | Median RHF (95% CI) | Reduction share (95% CI) |",
                   "|---|---|---|---|---|---|"]
         for row in summarize(values, keys):
             matching = [r for r in values if all(r.get(k) == row[k] for k in keys) and r["verification_result"]]
             shares = _seed_values(matching, reduction_share)
             lines.append(f"| {row['track']}/{row['source_track'] or '-'} | {row['solver']} | {row['profile']}/{row['eta']} | "
-                         f"{'/'.join(_fmt(v, 1) for v in row['norm_quantiles']) if row['norm_quantiles'] else 'n/a'} {_interval_text(row['norm_interval'])} | "
-                         f"{'/'.join(_fmt(v, 6) for v in row['rhf_quantiles']) if row['rhf_quantiles'] else 'n/a'} {_interval_text(row['rhf_interval'])} | "
+                         f"{_fmt(row['median_norm_squared'], 1)} {_interval_text(row['norm_interval'])} | "
+                         f"{_fmt(row['median_rhf'], 6)} {_interval_text(row['rhf_interval'])} | "
                          f"{_fmt(_median(shares), 6)} {_interval_text(_bootstrap(shares, statistics.median), True)} |")
         lines += ["", "### Paired complete-solver comparisons", "",
                   "Positive gains mean lower complete CPU on cases solved by both methods. All eligible pair counts are shown, including unsolved pairs. Conditioning on joint success can bias timing comparisons; failure and quality columns must be considered. These strategy comparisons do not isolate a causal reduction-only change.", "",
@@ -190,30 +155,6 @@ def render(records: list[dict[str, Any]], cohort: str) -> str:
             for profile, eta, total, count, gain, interval, delta in _paired_gains(values, track, old, new):
                 lines.append(f"| {track} | {new} / {old} | {profile}/{eta} | {total} | {count} | "
                              f"{'n/a' if gain is None else f'{gain:.1%}'} {_interval_text(interval, True)} | {_fmt(delta, 1)} |")
-    development = [r for r in records if r["cohort"] == "development"]
-    validation = [r for r in records if r["cohort"] == "validation"]
-    if development and validation:
-        lines += ["", "## Development versus held-out validation", "",
-                  "Cells are compared within the same study version. Success difference is validation minus development, with a two-sample seed bootstrap interval; it is not a paired-seed estimate. The preceding tables retain timing, quality, reduction-share, and failure distributions separately for each cohort.", "",
-                  "| Version | Track/source | Solver | Profile/eta | Development n | Validation n | Success difference (95% CI) | Successful CPU ratio validation/development |",
-                  "|---|---|---|---|---:|---:|---|---:|"]
-        keys = ("study_version", "track", "source_track", "solver", "profile", "eta")
-        old = {tuple(row[k] for k in keys): row for row in summarize(development, keys)}
-        new = {tuple(row[k] for k in keys): row for row in summarize(validation, keys)}
-        for key in sorted(old.keys() | new.keys(), key=str):
-            left, right = old.get(key), new.get(key)
-            if not left or not right:
-                continue
-            left_values = [int(r["verification_result"]) for r in development if tuple(r.get(k) for k in keys) == key]
-            right_values = [int(r["verification_result"]) for r in validation if tuple(r.get(k) for k in keys) == key]
-            rng = random.Random("primitive-selection-cohort-difference-v2")
-            distribution = sorted(statistics.mean(rng.choices(right_values, k=len(right_values))) -
-                                  statistics.mean(rng.choices(left_values, k=len(left_values))) for _ in range(2000))
-            delta = right["success_rate"] - left["success_rate"]
-            ratio = right["median_cpu"] / left["median_cpu"] if left["median_cpu"] and right["median_cpu"] else None
-            lines.append(f"| {key[0]} | {key[1]}/{key[2] or '-'} | {key[3]} | {key[4]}/{key[5]} | "
-                         f"{left['cases']} | {right['cases']} | {delta:.1%} "
-                         f"{_interval_text((distribution[49], distribution[1949]), True)} | {_fmt(ratio, 4)} |")
     lines += ["", "## Study decision", "",
               "This report computes descriptive evidence only. Eligibility, scientific gates, primitive selection, and agent approval must be recorded separately under the committed freeze. Neither a complete cohort nor high reduction share waives a failed gate.", ""]
     return "\n".join(lines)

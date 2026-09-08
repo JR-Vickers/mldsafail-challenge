@@ -19,8 +19,6 @@ def parser() -> argparse.ArgumentParser:
     execute.add_argument("--cohort", choices=("development", "validation"), required=True)
     execute.add_argument("--nonce", help="fresh reviewer nonce; required for validation")
     execute.add_argument("--output", type=Path)
-    execute.add_argument("--freeze", type=Path, help="committed freeze manifest for validation")
-    execute.add_argument("--nonce-record", type=Path, help="reviewer nonce provenance JSON")
     report = sub.add_parser("report")
     report.add_argument("--input", type=Path, action="append")
     report.add_argument("--output", type=Path)
@@ -32,12 +30,11 @@ def parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     if args.command == "smoke":
-        path = run("development", output=args.output, smoke=True)
+        path = run("development", output=args.output, smoke=True, repetitions=1)
     elif args.command == "run":
         if args.cohort == "validation" and not args.nonce:
             raise SystemExit("--nonce is required for the validation cohort")
-        path = run(args.cohort, nonce=args.nonce, output=args.output,
-                   freeze=args.freeze, nonce_record=args.nonce_record)
+        path = run(args.cohort, nonce=args.nonce, output=args.output)
     elif args.command == "report":
         path = generate(args.input, args.output)
     else:

@@ -1,0 +1,17 @@
+{
+  "counts": {
+    "exhaustive_tiny_candidate_comparisons": 15625,
+    "planted_mlwe_valid": 60,
+    "planted_msis_valid": 60,
+    "public_roundtrips": 240,
+    "q_unit_rejected": 60,
+    "seed_injections_rejected": 240,
+    "zero_relation_rejected": 60
+  },
+  "created_at": "2026-09-07T11:50:31.726924+00:00",
+  "deterministic_instance_ids_digest": "dc480ddbfa196cfcd91caa466749e9b7887082a28e208d9faa46f84bdd131ceb",
+  "reviewed_revision": "bf08de81ab7355f64f5d68f138676a3a29dfb269",
+  "reviewer_session": "/root/primitive_review",
+  "scope": "working-source development diagnostics; not freeze acceptance or validation",
+  "source_digest": "7bac6b4a12ff6d303d2fcd4527ed81a040e0958e33887dc62a412eef185d48de"
+}

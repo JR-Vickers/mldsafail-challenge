@@ -294,44 +294,14 @@ def solve_bkz(instance: BKZInstance, strategy: str, params: dict[str, Any], metr
     return ReducedBasis(_tuples(B), _tuples(U))
 
 
-def solve_direct_linear(instance, params: dict[str, Any], metrics: Instrumentation):
-    """Complete-solver adapter for the public-input modular baseline."""
-    from .simple_baselines import solve_mlwe_direct, solve_msis_direct
-
-    with metrics.timed("linear_solving"):
-        if isinstance(instance, MLWEInstance):
-            candidate, counters = solve_mlwe_direct(instance)
-            if candidate is not None and any(abs(x) > instance.eta for poly in candidate.s1 + candidate.s2 for x in poly):
-                # Elimination satisfies congruences, but may miss shortness.
-                # This is an actual no-answer result, not an applicability cap.
-                candidate = None
-                counters["algebraic_candidate_outside_bound"] = 1
-        else:
-            candidate, counters = solve_msis_direct(instance, int(params.get("max_candidates", 1_000_000)))
-    metrics.counters.update(counters)
-    return candidate
-
-
-def solve_sparse_relation(instance: MSISInstance, _params: dict[str, Any], metrics: Instrumentation):
-    from .simple_baselines import solve_msis_sparse
-
-    with metrics.timed("relation_search"):
-        candidate, counters = solve_msis_sparse(instance)
-    metrics.counters.update(counters)
-    return candidate
-
-
 SOLVERS = {
     "mlwe": {
         "exhaustive": lambda i, p, m: solve_mlwe_exhaustive(i, p, m),
-        "direct-linear": solve_direct_linear,
         "primal-lll": lambda i, p, m: solve_mlwe_primal(i, "lll", p, m),
         "primal-bkz": lambda i, p, m: solve_mlwe_primal(i, "bkz", p, m),
         "hybrid-bdd": solve_mlwe_hybrid,
     },
     "msis": {
-        "direct-linear": solve_direct_linear,
-        "sparse-relation": solve_sparse_relation,
         "lll-short-vector": lambda i, p, m: solve_msis(i, "lll", p, m),
         "progressive-bkz": lambda i, p, m: solve_msis(i, "progressive", p, m),
         "restart-bkz": lambda i, p, m: solve_msis(i, "bkz", {**p, "restarts": p.get("restarts", 3)}, m),
@@ -346,8 +316,6 @@ SOLVERS = {
 
 DEFAULT_PARAMETERS = {
     "exhaustive": {"max_candidates": 1_000_000},
-    "direct-linear": {"max_candidates": 1_000_000},
-    "sparse-relation": {},
     "primal-lll": {"delta": 0.99, "cvp_method": "fast", "max_basis_dimension": 128,
                    "max_eta2_basis_dimension": 64},
     "primal-bkz": {"block_size": 12, "max_loops": 2, "cvp_method": "fast", "max_basis_dimension": 128,
@@ -373,7 +341,6 @@ def run_solver(track: str, solver: str, instance, parameters: dict[str, Any] | N
         params.update({"max_basis_dimension": 160})
     if parameters:
         params.update(parameters)
-    metrics = Instrumentation({}, {"solver_backend": "python" if solver in (
-        "exhaustive", "direct-linear", "sparse-relation") else "fpylll"})
+    metrics = Instrumentation({}, {"fplll_backend": "fpylll"})
     candidate = SOLVERS[track][solver](instance, params, metrics)
     return candidate, params, metrics

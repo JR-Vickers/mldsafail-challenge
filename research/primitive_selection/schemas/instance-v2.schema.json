@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mldsafail.local/schemas/primitive-selection/instance-v2.json",
+  "title": "Primitive selection instance",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/mlwe"
+    },
+    {
+      "$ref": "#/$defs/msis"
+    },
+    {
+      "$ref": "#/$defs/bkz"
+    }
+  ],
+  "$defs": {
+    "ring": {
+      "type": "object",
+      "required": [
+        "modulus",
+        "degree",
+        "polynomial"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "modulus": {
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 257
+        },
+        "degree": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32
+        },
+        "polynomial": {
+          "const": "x^n+1"
+        }
+      }
+    },
+    "base": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "study_version",
+        "track",
+        "profile",
+        "instance_id"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "2"
+        },
+        "study_version": {
+          "const": "primitive-selection-v2"
+        },
+        "profile": {
+          "enum": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        "instance_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "mlwe": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/base"
+        },
+        {
+          "type": "object",
+          "required": [
+            "ring",
+            "dimensions",
+            "eta",
+            "A",
+            "t"
+          ],
+          "properties": {
+            "track": {
+              "const": "mlwe"
+            },
+            "ring": {
+              "$ref": "#/$defs/ring"
+            },
+            "dimensions": {
+              "type": "object"
+            },
+            "eta": {
+              "enum": [
+                1,
+                2
+              ]
+            },
+            "A": {
+              "type": "array"
+            },
+            "t": {
+              "type": "array"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "msis": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/base"
+        },
+        {
+          "type": "object",
+          "required": [
+            "ring",
+            "dimensions",
+            "eta",
+            "A",
+            "relation_quality_target"
+          ],
+          "properties": {
+            "track": {
+              "const": "msis"
+            },
+            "ring": {
+              "$ref": "#/$defs/ring"
+            },
+            "dimensions": {
+              "type": "object"
+            },
+            "eta": {
+              "enum": [
+                1,
+                2
+              ]
+            },
+            "A": {
+              "type": "array"
+            },
+            "relation_quality_target": {
+              "type": "object"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "bkz": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/base"
+        },
+        {
+          "type": "object",
+          "required": [
+            "source",
+            "basis"
+          ],
+          "properties": {
+            "track": {
+              "const": "bkz"
+            },
+            "source": {
+              "type": "object"
+            },
+            "basis": {
+              "type": "array",
+              "maxItems": 384
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}
