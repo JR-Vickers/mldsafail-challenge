@@ -1,0 +1,204 @@
+{
+  "cohorts": [
+    {
+      "bkz": {
+        "distinct_dominant_families": 0,
+        "dominance_gate": false,
+        "eligible": false,
+        "gain_at_two_sizes_gate": false,
+        "interpretation": "runtime consumption alone is not evidence of improvement; unsuccessful pairs are retained in all-pair counts",
+        "paired_gains": {
+          "mlwe": {
+            "large": {
+              "all_pairs": 40,
+              "interval95": [
+                -0.047016937008469206,
+                -0.03667356759982532
+              ],
+              "joint_successes": 20,
+              "median_seed_gain": -0.0433992294168114
+            },
+            "medium": {
+              "all_pairs": 40,
+              "interval95": [
+                -0.08611693417419586,
+                -0.05161623553648209
+              ],
+              "joint_successes": 40,
+              "median_seed_gain": -0.06159664976174445
+            },
+            "small": {
+              "all_pairs": 40,
+              "interval95": [
+                -0.021502047320123285,
+                -0.001473388979500806
+              ],
+              "joint_successes": 40,
+              "median_seed_gain": -0.010593760526599244
+            }
+          },
+          "msis": {
+            "large": {
+              "all_pairs": 40,
+              "interval95": null,
+              "joint_successes": 0,
+              "median_seed_gain": null
+            },
+            "medium": {
+              "all_pairs": 40,
+              "interval95": [
+                -0.4212470965881717,
+                -0.3996078977775089
+              ],
+              "joint_successes": 39,
+              "median_seed_gain": -0.4110120089440481
+            },
+            "small": {
+              "all_pairs": 40,
+              "interval95": [
+                -0.23425764102212132,
+                -0.20087342024124716
+              ],
+              "joint_successes": 39,
+              "median_seed_gain": -0.22740500531890878
+            }
+          }
+        },
+        "shares": {
+          "mlwe/hybrid-bdd": {
+            "family": "guess-babai",
+            "interval95": [
+              0.49874043000237334,
+              0.5191829166798101
+            ],
+            "median_share": 0.5062682547178805,
+            "seed_clusters": 60
+          },
+          "mlwe/primal-bkz": {
+            "family": "primal-cvp",
+            "interval95": [
+              0.5311742385878242,
+              0.5521350119525463
+            ],
+            "median_share": 0.5430623165894369,
+            "seed_clusters": 60
+          },
+          "msis/progressive-bkz": {
+            "family": "relation-enumeration",
+            "interval95": [
+              0.2808508361016122,
+              0.6857903823286159
+            ],
+            "median_share": 0.4824614931758024,
+            "seed_clusters": 40
+          },
+          "msis/restart-bkz": {
+            "family": "relation-enumeration",
+            "interval95": [
+              0.2698216960958261,
+              0.7008328932593959
+            ],
+            "median_share": 0.48665593605938007,
+            "seed_clusters": 40
+          }
+        },
+        "structural_disqualification": "MLWE-derived objective has trivial norm-squared-two vectors; MSIS source distribution is shortcut-prone"
+      },
+      "cohort": "validation",
+      "ineligible_submissions": {},
+      "mlwe": {
+        "baseline_gate": true,
+        "difficulty_gate": true,
+        "direct_linear_rates": {
+          "large/eta1": 0.0,
+          "medium/eta1": 0.0,
+          "medium/eta2": 0.0,
+          "small/eta1": 0.0,
+          "small/eta2": 0.0
+        },
+        "direct_shortcut_gate": true,
+        "exhaustive_headroom_gate": true,
+        "invalid_answers": 0,
+        "level_cpu_ratio": 58.05591906661698,
+        "numeric_eligibility": true,
+        "rates": {
+          "large/eta1/exhaustive": 0.0,
+          "large/eta1/hybrid-bdd": 1.0,
+          "large/eta1/primal-lll": 1.0,
+          "medium/eta1/exhaustive": 0.0,
+          "medium/eta1/hybrid-bdd": 1.0,
+          "medium/eta1/primal-lll": 1.0,
+          "medium/eta2/exhaustive": 0.0,
+          "medium/eta2/hybrid-bdd": 0.95,
+          "medium/eta2/primal-lll": 1.0,
+          "small/eta1/exhaustive": 1.0,
+          "small/eta1/hybrid-bdd": 1.0,
+          "small/eta1/primal-lll": 1.0,
+          "small/eta2/exhaustive": 1.0,
+          "small/eta2/hybrid-bdd": 1.0,
+          "small/eta2/primal-lll": 1.0
+        },
+        "second_family_gate": true,
+        "separate_required_gates": [
+          "reviewer approval",
+          "audited held-out evidence"
+        ]
+      },
+      "msis": {
+        "eligible": false,
+        "reason": "direct modular planted-answer recovery"
+      },
+      "ranking": [
+        {
+          "interval95": [
+            1.0,
+            1.0
+          ],
+          "rank": 1,
+          "score": 1.0,
+          "submission": "primal-lll"
+        },
+        {
+          "interval95": [
+            1.030419723985388,
+            1.0487938228028226
+          ],
+          "rank": 2,
+          "score": 1.0390780049651362,
+          "submission": "primal-bkz"
+        },
+        {
+          "interval95": [
+            0.9663257600647928,
+            1.2550065300811597
+          ],
+          "rank": 3,
+          "score": 1.0576443476578004,
+          "submission": "hybrid-bdd"
+        },
+        {
+          "interval95": [
+            22.12617486658158,
+            23.0489080354342
+          ],
+          "rank": 4,
+          "score": 22.58634241852672,
+          "submission": "exhaustive"
+        },
+        {
+          "interval95": [
+            3243.838394567385,
+            3296.2861360701054
+          ],
+          "rank": 5,
+          "score": 3270.4797111880753,
+          "submission": "direct-linear"
+        }
+      ],
+      "records": 1920,
+      "run_id": "20260908T130104Z-d9d15de1ba7b452a879ee6f8bd3391e0",
+      "study_version": "primitive-selection-v2"
+    }
+  ],
+  "decision_status": "numeric evidence only; dedicated reviewer approval is a separate mandatory gate"
+}

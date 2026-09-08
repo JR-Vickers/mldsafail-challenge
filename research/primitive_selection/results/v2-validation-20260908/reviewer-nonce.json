@@ -1,0 +1,17 @@
+{
+  "created_at": "2026-09-08T13:00:14.881555+00:00",
+  "creation_method": "One secrets.token_hex(32) call after independent committed-freeze and two-clean-build evidence verification; no validation seeds derived or inspected by reviewer.",
+  "freeze_commit": "4bfcd079068bdfc8035532f4b92d9743a96be1f1",
+  "freeze_sha256": "a682ffe79987e22f5ee0308b5bab208278e11eb53817b86622c9145e2acd69f6",
+  "nonce": "3365a87e8bdff6d2c927a1f27993dec8228e363bbcc6e2237dd0e0ee3c013078",
+  "pre_freeze_disposition": "Approved to execute unchanged held-out validation; final primitive-selection approval remains withheld pending its audited results.",
+  "reviewer_model": "Codex; GPT-6 family description supplied by session instructions; exact runtime model build not exposed",
+  "reviewer_session": "/root/primitive_review",
+  "verified_evidence": {
+    "configuration_digest": "4625e878086446bb698b750c2f60cf8df20819dbf2e4c2c8439648bd2db19fbd",
+    "dependency_digest": "c942b0aacf2afbc007ca0ab3510f29a7d3db0b769f3e2f0a99a3673067fd2734",
+    "expected_validation_records": 1920,
+    "source_digest": "24e45c29e8abf088d5b4a0528cc9a5fb8dd87c502b451720c4c4095f95b69d26",
+    "two_clean_builds": "identical fixture bytes and all16 normalized warmup/measured outputs,14 successes and2 no-candidate outcomes per build"
+  }
+}

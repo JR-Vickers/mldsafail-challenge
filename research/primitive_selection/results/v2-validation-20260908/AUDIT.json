@@ -1,0 +1,16 @@
+{
+  "counts": {
+    "applicability_cap": 239,
+    "invalid_answer": 6,
+    "memory_limits": 0,
+    "mixed": 1,
+    "no_candidate": 244,
+    "records": 1920,
+    "success": 1430,
+    "timeouts": 1,
+    "verified": 1430
+  },
+  "raw_sha256": "7ec8e5a20590e18d28a8ccc4ba9ed614b17427f05667abc91ca75c94b8b9b9f6",
+  "run_id": "20260908T130104Z-d9d15de1ba7b452a879ee6f8bd3391e0",
+  "status": "passed"
+}

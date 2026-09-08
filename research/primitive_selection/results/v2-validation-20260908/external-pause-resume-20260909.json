@@ -1,0 +1,22 @@
+{
+  "action": "unpause same validation container after user requested resume",
+  "completed_cases_before_resume": 367,
+  "container_id": "b181fb4b27442bd78016e7bdee7ee259c7eace1e51efbe386354330676b67729",
+  "observed_at": "2026-09-08T19:56:28.246763+00:00",
+  "observed_state": {
+    "Dead": false,
+    "Error": "",
+    "ExitCode": 0,
+    "FinishedAt": "0001-01-01T00:00:00Z",
+    "OOMKilled": false,
+    "Paused": true,
+    "Pid": 86397,
+    "Restarting": false,
+    "Running": true,
+    "StartedAt": "2026-09-08T13:01:04.520174002Z",
+    "Status": "paused"
+  },
+  "pause_initiator": "not known to this research agent",
+  "pause_started_at": "not available from container inspection",
+  "scientific_handling": "retain all outcomes, including any wall timeout following pause; no seeds/settings/source changed"
+}
