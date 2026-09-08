@@ -1,6 +1,6 @@
 # Research v2 challenge specification
 
-Status: proposed MLWE bounded recovery, pending freeze and held-out agent approval. This specifies the scientific choices for the next benchmark. Benchmark 0.4.0 remains unchanged.
+This contract specifies MLWE bounded recovery and all scientific choices for the next benchmark. Its freeze and approval status are recorded in [the research decision](PRIMITIVE_SELECTION.md); this specification is retained unchanged once frozen. Benchmark 0.4.0 remains unchanged.
 
 ## Mathematical task
 

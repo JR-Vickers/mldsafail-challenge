@@ -1,0 +1,431 @@
+{
+  "configuration": {
+    "development_seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "etas": [
+      1,
+      2
+    ],
+    "limits": {
+      "cpu_cores": 1,
+      "memory_bytes": 2147483648,
+      "wall_seconds": 60
+    },
+    "payload_schema_version": "2",
+    "portfolio": {
+      "bkz": [
+        "lll-only",
+        "fixed-bkz",
+        "progressive-bkz"
+      ],
+      "mlwe": [
+        "exhaustive",
+        "direct-linear",
+        "primal-lll",
+        "primal-bkz",
+        "hybrid-bdd"
+      ],
+      "msis": [
+        "direct-linear",
+        "sparse-relation",
+        "lll-short-vector",
+        "progressive-bkz",
+        "restart-bkz"
+      ]
+    },
+    "profiles": {
+      "large": {
+        "k": 3,
+        "l": 2,
+        "msis_cols": 4,
+        "msis_rows": 3,
+        "n": 16,
+        "q": 193
+      },
+      "medium": {
+        "k": 2,
+        "l": 2,
+        "msis_cols": 3,
+        "msis_rows": 2,
+        "n": 8,
+        "q": 97
+      },
+      "small": {
+        "k": 2,
+        "l": 1,
+        "msis_cols": 3,
+        "msis_rows": 2,
+        "n": 4,
+        "q": 97
+      }
+    },
+    "result_schema_version": "2",
+    "solver_parameters": {
+      "direct-linear": {
+        "max_candidates": 1000000
+      },
+      "exhaustive": {
+        "max_candidates": 1000000
+      },
+      "fixed-bkz": {
+        "block_size": 12,
+        "max_basis_dimension": 160,
+        "max_loops": 2
+      },
+      "hybrid-bdd": {
+        "block_size": 12,
+        "decoder": "babai",
+        "guess_coefficients": 1,
+        "max_basis_dimension": 128,
+        "max_loops": 1
+      },
+      "lll-only": {
+        "delta": 0.99,
+        "max_basis_dimension": 160
+      },
+      "lll-short-vector": {
+        "delta": 0.99,
+        "enumeration_limit": 16,
+        "max_basis_dimension": 64
+      },
+      "primal-bkz": {
+        "block_size": 12,
+        "cvp_method": "fast",
+        "max_basis_dimension": 128,
+        "max_eta2_basis_dimension": 64,
+        "max_loops": 2
+      },
+      "primal-lll": {
+        "cvp_method": "fast",
+        "delta": 0.99,
+        "max_basis_dimension": 128,
+        "max_eta2_basis_dimension": 64
+      },
+      "progressive-bkz": {
+        "enumeration_limit": 16,
+        "max_basis_dimension": 64,
+        "schedule": [
+          5,
+          10,
+          15
+        ]
+      },
+      "restart-bkz": {
+        "block_size": 12,
+        "enumeration_limit": 8,
+        "max_basis_dimension": 64,
+        "max_loops": 1,
+        "restarts": 3
+      },
+      "sparse-relation": {}
+    },
+    "study_version": "primitive-selection-v2",
+    "timing_protocol": {
+      "aggregation": "median successful measured process CPU time",
+      "case_order": "deterministic cohort/nonce-domain-separated shuffle",
+      "measured_repetitions": 3,
+      "processes": "fresh subprocess for every warmup and measured repetition",
+      "warmups": 1
+    }
+  },
+  "configuration_digest": "4625e878086446bb698b750c2f60cf8df20819dbf2e4c2c8439648bd2db19fbd",
+  "created_at": "2026-09-08T12:57:45.221994+00:00",
+  "dependency_digest": "c942b0aacf2afbc007ca0ab3510f29a7d3db0b769f3e2f0a99a3673067fd2734",
+  "dependency_provenance": {
+    "binary_artifacts": {
+      "cysignals": {
+        "cysignals/alarm.cpython-312-aarch64-linux-gnu.so": "f2cd9fc971dcffc88e2e0585b72cd11bcfd5360fb63f42fa9ed0dad24d8f6734",
+        "cysignals/pselect.cpython-312-aarch64-linux-gnu.so": "be86de375e7aded39a42bf005a9ef1d62b2ed2c800f976d8dfa2141f9c2d646b",
+        "cysignals/pysignals.cpython-312-aarch64-linux-gnu.so": "c88e2a033d8695c8f677028d6b18d15a1bf1a9d4fca73b4f0f67ede4229fc537",
+        "cysignals/signals.cpython-312-aarch64-linux-gnu.so": "2adab7400efee6ea52971643568f10b14f71742dad239c61144db168d2e82089",
+        "cysignals/tests.cpython-312-aarch64-linux-gnu.so": "ae3ac70608ed4bca01bd2682ae9c6aab988a204a291e8e39a581e036332baf39"
+      },
+      "fpylll": {
+        "fpylll.libs/libfplll-344d5376.so.9.0.0": "97770ffe479e33108a9195b767d19bc4ec208700f57d964652489668dd87f7f8",
+        "fpylll.libs/libgmp-d76a4877.so.10.5.0": "33a3f259ab719a41cef9b40935664585251b27cfaaefefdc19f62a0767c36be6",
+        "fpylll.libs/libmpfr-a9b036b7.so.6.2.1": "c474c105137a43936b32d3ce1157c36224813c4ff745f0d7fe6e939d37311f24",
+        "fpylll/config.cpython-312-aarch64-linux-gnu.so": "69749cb9d3d3c5fa639f5072f64595ee8919f91538c8d198cd55af7e7e586269",
+        "fpylll/fplll/bkz.cpython-312-aarch64-linux-gnu.so": "18e6bc9477762ba8a657986648a420f11de39b7f101be34fa67822405ce79f97",
+        "fpylll/fplll/bkz_param.cpython-312-aarch64-linux-gnu.so": "8110359f3f20b09e4ad0de86ddb4ac7e2d3b9f9654f4718e030398812a0828c7",
+        "fpylll/fplll/enumeration.cpython-312-aarch64-linux-gnu.so": "34445cfd8cbedadb982bee0753dfca993e35f095bed55c4a4d7b933241f844cd",
+        "fpylll/fplll/gso.cpython-312-aarch64-linux-gnu.so": "d5961c93d1d12d4f508ea01e88ade086f31d8fe7a5939070dfb08e1902286083",
+        "fpylll/fplll/integer_matrix.cpython-312-aarch64-linux-gnu.so": "bab1f3713d0baf1b039c8c39b30ee57a3e8eb732c7e60bbf72d548db51d1cce4",
+        "fpylll/fplll/lll.cpython-312-aarch64-linux-gnu.so": "0dbb1c6f8f7379ca1755cf71e13cfd1bf05c479e10f084a5a027d350d54a2b24",
+        "fpylll/fplll/pruner.cpython-312-aarch64-linux-gnu.so": "4e68dbf622f13eec8317a10e5d38a26bcd0dd49f0781d7b1c91bda75cb38585d",
+        "fpylll/fplll/svpcvp.cpython-312-aarch64-linux-gnu.so": "95d092d7620fcfff78b44886cd3551dd25c41dd82aa91741b04e9cb67917a6fd",
+        "fpylll/fplll/wrapper.cpython-312-aarch64-linux-gnu.so": "8eb8e17313946f748fb0c64e9487067bb19e04cbe4acd732176f98a7cee57d82",
+        "fpylll/gmp/pylong.cpython-312-aarch64-linux-gnu.so": "85cef4edb5cda330ab33344cef6e29ca9efe6e97f9a0721a00d02c784b63288a",
+        "fpylll/io.cpython-312-aarch64-linux-gnu.so": "373803f5951a8eb3a54e6143c7acd771c2234fd3b12a477af2f97fe93a7918f7",
+        "fpylll/numpy.cpython-312-aarch64-linux-gnu.so": "9e3979b858cbe671d128a8a43918ed88e1e57d0cb1a8f7e162d0293176382333",
+        "fpylll/util.cpython-312-aarch64-linux-gnu.so": "eefb81aae23aaeb81d896320055f4777e421af30a15a4cafaf2950ab0245603b"
+      }
+    },
+    "dockerfile_sha256": "d3e36d69df90bb78ff5126c9a55f395ccb12cc3a82978967bb4860af85fabd20",
+    "native_libraries": {
+      "libfplll-344d5376.so.9.0.0": {
+        "sha256": "97770ffe479e33108a9195b767d19bc4ec208700f57d964652489668dd87f7f8"
+      },
+      "libgmp-d76a4877.so.10.5.0": {
+        "sha256": "33a3f259ab719a41cef9b40935664585251b27cfaaefefdc19f62a0767c36be6",
+        "version": "6.3.0"
+      },
+      "libmpfr-a9b036b7.so.6.2.1": {
+        "sha256": "c474c105137a43936b32d3ce1157c36224813c4ff745f0d7fe6e939d37311f24",
+        "version": "4.2.1"
+      }
+    },
+    "packages": {
+      "cysignals": {
+        "installed": "1.12.5",
+        "required": "1.12.5"
+      },
+      "fpylll": {
+        "installed": "0.6.4",
+        "required": "0.6.4"
+      },
+      "iniconfig": {
+        "installed": "2.3.0",
+        "required": "2.3.0"
+      },
+      "packaging": {
+        "installed": "26.3",
+        "required": "26.3"
+      },
+      "pluggy": {
+        "installed": "1.6.0",
+        "required": "1.6.0"
+      },
+      "pygments": {
+        "installed": "2.20.0",
+        "required": "2.20.0"
+      },
+      "pytest": {
+        "installed": "8.4.2",
+        "required": "8.4.2"
+      }
+    },
+    "python": "3.12.10",
+    "requirements_sha256": "c0a2360072abf816758c21e26c150a281e80932561ff79a953932c542579da43"
+  },
+  "development_evidence": {
+    "audit_sha256": "5b39ce376aaec05fb9b87bf5a09d395c78cb958844e139add94a35c2ba65807a",
+    "conclusion_sha256": "1e793d963d162abd620867d0053bf46ae4c9b8dee6eedc873b3a3453f72cc8e7",
+    "records_path": "research/primitive_selection/results/v2-development-20260908/development.jsonl",
+    "records_sha256": "70b87590896da4e3af3e83003b8fbad7040df9b40bf931f313141f09828440d4",
+    "report_sha256": "6d44bb7926251d835a1cbb9041b507aae941419409dc6f4b2d119011d003b593",
+    "run_id": "20260908T015636Z-64f6da9501f3478f8edf986f965e9513"
+  },
+  "expected_case_counts": {
+    "development": 960,
+    "validation": 1920
+  },
+  "fallback_assessment": {
+    "bkz": {
+      "eligible": false,
+      "points": null,
+      "reason": "structural objective and failed complete-runtime dominance/gain gates"
+    },
+    "eligibility_before_scoring": true,
+    "mlwe": {
+      "interpretation": "retained judgmental historical rubric, refreshed evidence rationale in committed review packet; sole eligible candidate",
+      "points": {
+        "diversity": 18,
+        "headroom": 13,
+        "measurement": 10,
+        "relevance": 29,
+        "safety": 10,
+        "verification": 14
+      },
+      "total": 94
+    },
+    "msis": {
+      "eligible": false,
+      "points": null,
+      "reason": "direct modular planted-answer recovery"
+    }
+  },
+  "freeze_schema_version": "1",
+  "portfolio_counts": {
+    "added_simple_combinations": 3,
+    "development_original_subset": 780,
+    "original_combinations": 13,
+    "ranked_validation_mlwe_cases": 100,
+    "validation_added_simple": 360,
+    "validation_original_subset": 1560
+  },
+  "production_compatibility": "benchmark0.4.0 and hosted integration unchanged",
+  "ranking_rule": {
+    "case_success": "all three measured repetitions independently verified and within limits",
+    "challenge_cells": [
+      [
+        "small",
+        1
+      ],
+      [
+        "small",
+        2
+      ],
+      [
+        "medium",
+        1
+      ],
+      [
+        "medium",
+        2
+      ],
+      [
+        "large",
+        1
+      ]
+    ],
+    "comparison_scope": "same frozen version, cases, pinned dependencies, and dedicated host; never cross tracks",
+    "correctness": "exact complete A*s1+s2=t mod q; integral coefficients in [-eta,eta]",
+    "failed_case_cost_seconds": 60.0,
+    "failure_treatment": "any cap, timeout, memory failure, crash or no candidate makes entire case cost 60 seconds",
+    "invalid_treatment": "any malformed or mathematically invalid candidate makes submission ineligible",
+    "measurement_assumptions": "one warmup and three fresh worker subprocesses; one CPU, 60s wall, 2GiB; cooperative solver code",
+    "objective": "minimize equally-cell-weighted geometric mean of case CPU/reference CPU ratios",
+    "reference_solver": "primal-lll",
+    "score_uncertainty": "95% percentile interval from 2000 paired profile-seed cluster bootstrap draws; keep eta and solver pairs together; RNG label primitive-ranking-v2",
+    "successful_case_cost": "max(1e-6, median complete worker CPU across three repetitions)",
+    "tie": "sort raw scores ascending; each group's minimum anchors scores at most 1.01 times that minimum; competitive ranks, display ties by submission ID; no quality tie-break",
+    "track": "mlwe"
+  },
+  "reproduction": {
+    "fixtures_sha256": "f6723d500e423182e43f94933a3f512346d97ae2701bfee0160032e83763a352",
+    "images": {
+      "a": "sha256:f46046e18a98e4931daeeb57a8216f9c73255f65d52fb12ca70d24dc8f21d048",
+      "b": "sha256:e6501f82a4db9dcdfa898e4bf88f54bb3d3bcc0e71c316fc45114013f7ecfedc"
+    },
+    "path": "research/primitive_selection/results/v2-reproduction-20260908",
+    "result_sha256": "a573ea7a6776aa0259dfa531728ce8a7050c67b97b2edd969471ca1a2447a9e9"
+  },
+  "review": {
+    "development_acceptance": "accepted conditional on two-clean-build reproduction, now passed",
+    "model": "Codex / GPT-6 family description; exact runtime build not exposed",
+    "packet_path": "docs/PRIMITIVE_SELECTION_REVIEW.md",
+    "packet_sha256": "e3af50dc41b83d6b4929343f41dfbb522eb050815c7b53ff1020f0693b3dcbe2",
+    "session": "/root/primitive_review"
+  },
+  "selection_criteria": {
+    "approval": "dedicated reviewer must accept all blocking dispositions and validation evidence",
+    "bkz_complete_solver_gain": 0.2,
+    "bkz_gain_distinct_sizes": 2,
+    "bkz_gain_pairing": "same track/profile/eta/seed, both verified, same surrounding solver",
+    "bkz_gain_statistic": "per profile: median over seeds of mean fractional CPU gain across jointly successful eta cases; two distinct profiles required",
+    "bkz_kernel_share": 0.7,
+    "bkz_materially_different_end_to_end_families": 2,
+    "bkz_share_denominator": "complete worker CPU including verification; median repetition fraction per case, mean eta fractions per profile/seed, median over seed clusters",
+    "bkz_structural_limitation": "MLWE-derived embedding contains trivial norm-squared-2 rows",
+    "candidate": "mlwe",
+    "challenge_cells": [
+      [
+        "small",
+        1
+      ],
+      [
+        "small",
+        2
+      ],
+      [
+        "medium",
+        1
+      ],
+      [
+        "medium",
+        2
+      ],
+      [
+        "large",
+        1
+      ]
+    ],
+    "direct_modular_disqualification_success_every_cell": 0.9,
+    "fallback_tie_band_points": 5,
+    "fallback_tie_preference": "msis, only if eligible",
+    "fallback_weights": {
+      "diversity": 20,
+      "headroom": 15,
+      "measurement": 10,
+      "relevance": 30,
+      "safety": 10,
+      "verification": 15
+    },
+    "harder_than_exhaustive": "at least one challenge level exceeds the fixed exhaustive applicability cap",
+    "invalid_answers_allowed": 0,
+    "level_cpu_ratio_profiles": [
+      "large",
+      "small"
+    ],
+    "minimum_distinct_degrees": 2,
+    "minimum_level_median_cpu_ratio": 2.0,
+    "msis_disposition": "disqualified: square planted prefix admits modular recovery",
+    "reference_solver": "primal-lll",
+    "reference_success_per_challenge_cell": 0.9,
+    "second_families": [
+      "exhaustive",
+      "hybrid-bdd"
+    ],
+    "second_family_success_on_at_least_one_cell": 0.8,
+    "stress_cells": [
+      [
+        "large",
+        2
+      ]
+    ],
+    "uncertainty": "95% seed-cluster bootstrap intervals; Wilson intervals for per-cell success",
+    "validation_problem_seeds_per_profile": 20
+  },
+  "source_digest": "24e45c29e8abf088d5b4a0528cc9a5fb8dd87c502b451720c4c4095f95b69d26",
+  "source_files": {
+    "research/primitive_selection/Dockerfile": "d3e36d69df90bb78ff5126c9a55f395ccb12cc3a82978967bb4860af85fabd20",
+    "research/primitive_selection/__init__.py": "2eea5c0cc3853a410e90f2a560c6e16d3d29bf8bbfffa286779e12879adb4d9f",
+    "research/primitive_selection/__main__.py": "39ba389d3dbea6e267a26bd2291de139fb3167eb532a541f45c00402e0c69f5c",
+    "research/primitive_selection/audit.py": "c376731e482bcf5e509f7dd01af4204c6e5ad28035afa26643ab380c1bb7303b",
+    "research/primitive_selection/calibration.py": "bbf9cbd95a75f664f660c5e9dafca2629676240e65df15bf9ab2243457eed40c",
+    "research/primitive_selection/conclusion.py": "53c4ee4aae960488ad0dd4dcef743fd314ec07845ade61e45b2d656cc50696f9",
+    "research/primitive_selection/constants.py": "d7c02a3e029e83a3fe39216443818cf71aa3df921b7aa547b6f183f4fdef1321",
+    "research/primitive_selection/decision.py": "c67c91f48dcf2f4cf4c11d52792c6b909c5b701e6bdcc266414a84045f9dc89d",
+    "research/primitive_selection/embedding.py": "c9c72314dbfd2d6a1bea9c03a98707792c0cc2aa01960dd8222ffb285534395c",
+    "research/primitive_selection/generator.py": "f84988f5244c462f25b1ed879617a7525c7315595b87f0534eea286c61e2070e",
+    "research/primitive_selection/models.py": "4212448226c795927a7186484b35d959aabcb653dae0099a83d43f74dcf92bf3",
+    "research/primitive_selection/primitive-study": "03b0bb28f59394684e4740cd35b9c8cca514b75b57fc03469767252bd5464cb3",
+    "research/primitive_selection/rebuild-check.sh": "51a6d0b04d6ae3bec80c8a555d07b3f8463752b6a5a35427af760a1649a6960d",
+    "research/primitive_selection/report.py": "f85d58cd8ae16bcf92b4bcb837603a06f9dba230bfe5d2bea0b38ff02a143b64",
+    "research/primitive_selection/requirements.txt": "c0a2360072abf816758c21e26c150a281e80932561ff79a953932c542579da43",
+    "research/primitive_selection/ring.py": "f4bb4cbab49cde98b968d4d0d58ec29c746e473d94f6b3c47f39b73befdc47c4",
+    "research/primitive_selection/runner.py": "78d6ff47c9e959d2f9b99e4580c5b97ce65329031a93961c49e9ee0b23a318f8",
+    "research/primitive_selection/schemas/candidate-v1.schema.json": "77bd07efe86a1fdf758218abfdd8a54701700cc873ff1cc2aa4a36fc148f2875",
+    "research/primitive_selection/schemas/candidate-v2.schema.json": "9afb3ff8cea5d6e544bb93cd3803abeddfe9a20efeb6d02b9bd7e8c137a3e0e0",
+    "research/primitive_selection/schemas/instance-v1.schema.json": "64a443540b5c056048bc25e5d2fa4b53162ee1538049ec7c02e5483e4f17567e",
+    "research/primitive_selection/schemas/instance-v2.schema.json": "b00ff733310d81088717183ce7236d0a09b7ec3e216b31fbbd7549dc9b7e5843",
+    "research/primitive_selection/schemas/result-v1.schema.json": "0ff77bdd1f614542c8b987f4b45ec80673f9a9d25caf783c19b267f981ef4ad1",
+    "research/primitive_selection/schemas/result-v2.schema.json": "fe5f8b09a7e0d73567682af2f5a1b8f4299a04f6edc5baef429a660073c2b4f3",
+    "research/primitive_selection/simple_baselines.py": "f8d1b287fc90fd9e6eb767ad35d027fd5388d77d45304234c6a6873c30e8cefb",
+    "research/primitive_selection/solvers.py": "0fdd4b81d209137cd635b69776913a63c400a66de5b836f1dd99409c260a5382",
+    "research/primitive_selection/verify.py": "0e245a0c325d7b5ddcdbbd1a96f1569f1079928532cdc58b02ea1ccfba64a6e5",
+    "research/primitive_selection/worker.py": "36f9cf456068d84337cfcf2c1068eff9ba707d99ddb14b5bbf5f947dfa3e7516",
+    "tests/test_primitive_algorithms.py": "13ec6a96cef13eb387b5da26ffb60492e79d1880a7fe9377474dbe607e9b7486",
+    "tests/test_primitive_contracts.py": "b00dbfabeea69e05b5dcd4f0a6551e6d9c1188978aa9fd327e5ffd1b6d422537",
+    "tests/test_primitive_decision.py": "3dd97dd7939d90a6941c60452808135d6c722d89bc6e441dc430282d6fd5f12d",
+    "tests/test_primitive_measurement.py": "b7701f1e630fde25abe16d1143e17f3ca294822944de9308b2e6cceaed4acf77",
+    "tests/test_primitive_selection.py": "0569eb287002abb8ac176499f7c7093598e68787a71836661421a22a67b19177"
+  },
+  "source_revision": "9ad9423f7325b73383d250eb48353c3bd816da40",
+  "specification": {
+    "path": "docs/PRIMITIVE_SELECTION_SPEC.md",
+    "sha256": "b5b5ae1e87b593ca0b093d60e1e9547255a53c8b652deb0a916e1860521431bd"
+  },
+  "study_version": "primitive-selection-v2",
+  "validation_status": "not started; reviewer must create a fresh nonce after this manifest is committed"
+}

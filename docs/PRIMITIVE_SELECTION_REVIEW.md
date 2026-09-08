@@ -3,10 +3,10 @@
 ## Review status
 
 - Review agent/model and session identifier: Codex / GPT-6 family description; exact runtime build not exposed; `/root/primitive_review`
-- Reviewed commit: `c60e1d069b97006aa22793921e9a2c5a64100edf`; source/configuration digests below
+- Reviewed commits: initial `c60e1d069b97006aa22793921e9a2c5a64100edf`, repaired `9ad9423f7325b73383d250eb48353c3bd816da40`; source/configuration digests below
 - Review scope: mathematical definitions, code, adversarial synthetic probes, raw development evidence; limitations below
-- Review date: 2026-09-07
-- Decision: initial approval withheld; blocking findings below; no primitive selected
+- Review dates: 2026-09-07 and 2026-09-08
+- Current decision: repaired development accepted for freeze conditional on two-clean-build reproduction; final selection approval withheld pending held-out evidence
 - Fresh validation nonce: pending; do not create one before the harness and
   solver configuration are frozen for review
 
@@ -81,16 +81,16 @@ record. Later report/documentation commits do not rewrite that provenance.
 
 | ID | Severity | Finding | Resolution commit | Experiments rerun | Reviewer disposition |
 |---|---|---|---|---|---|
-| F01 | blocking | Public seed reconstructs MLWE/MSIS answers | pending | required | open |
-| F02 | blocking | Planted MSIS reduces to square modular solve | exclusion required | 60 adversarial fixtures | v1 distribution disqualified |
-| F03 | blocking | MSIS success lacks norm-bound correctness gate | pending | required | open |
-| F04 | blocking | Audit trusts incomplete/unverified cohorts | pending | required | open |
-| F05 | blocking | Useful difficulty and solver coverage unestablished | pending | required | open |
-| F06 | blocking | Kernel-share denominator omits runtime | pending | raw 780 recalculated | BKZ gate failed |
-| F07 | high | BKZ first-vector objective has trivial structural floor | exclusion required | 60 basis fixtures/raw 120 cases | current objective disqualified |
-| F08 | high | Resource/failure categories and intervals ambiguous | pending | required | open |
-| F09 | medium | Stale summary and eligibility-free fallback scores | pending | raw report comparison | open |
-| F10 | medium | Standard-parameter/distribution claims need scope | pending | primary specifications | clarification required |
+| F01 | blocking | Public seed reconstructs MLWE/MSIS answers | 9ad9423 | complete v2 development | repair accepted; held-out boundary check pending |
+| F02 | blocking | Planted MSIS reduces to square modular solve | 9ad9423 exclusion | adversarial and v2 direct baselines | planted distribution disqualified |
+| F03 | blocking | MSIS success lacks norm-bound correctness gate | 9ad9423 | complete v2 development | repair accepted |
+| F04 | blocking | Audit trusts incomplete/unverified cohorts | 9ad9423 | strict full-cohort audit | repair accepted; held-out audit pending |
+| F05 | blocking | Useful difficulty and solver coverage unestablished | 9ad9423 | 960-case v2 development | development gates pass; validation pending |
+| F06 | blocking | Kernel-share denominator omits runtime | 9ad9423 | historical and v2 recomputation | correction accepted; BKZ gates failed |
+| F07 | high | BKZ first-vector objective has trivial structural floor | 9ad9423 exclusion | historical and v2 comparator evidence | current objective disqualified |
+| F08 | high | Resource/failure categories and intervals ambiguous | 9ad9423 | tests and complete v2 audit | repair accepted; clean-build reproduction pending |
+| F09 | medium | Stale summary and eligibility-free fallback scores | 9ad9423 | report/conclusion reproduction | development narrative accepted |
+| F10 | medium | Standard-parameter/distribution claims need scope | 9ad9423 | primary specification and 2026 errata | structural-analogue scope accepted |
 
 A blocking finding is resolved only after the reviewer accepts the change and
 all affected development/validation experiments have been rerun. Any such
