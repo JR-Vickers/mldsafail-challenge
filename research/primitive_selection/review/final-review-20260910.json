@@ -1,0 +1,465 @@
+{
+  "alternative_gates": {
+    "development": {
+      "bkz": {
+        "distinct_dominant_families": 0,
+        "dominance_gate": false,
+        "eligible": false,
+        "gain_at_two_sizes_gate": false,
+        "interpretation": "runtime consumption alone is not evidence of improvement; unsuccessful pairs are retained in all-pair counts",
+        "paired_gains": {
+          "mlwe": {
+            "large": {
+              "all_pairs": 20,
+              "interval95": [
+                -0.08414357939596873,
+                0.05366309951824849
+              ],
+              "joint_successes": 10,
+              "median_seed_gain": -0.026131216352142328
+            },
+            "medium": {
+              "all_pairs": 20,
+              "interval95": [
+                -0.19071518820514233,
+                0.17700611659397925
+              ],
+              "joint_successes": 20,
+              "median_seed_gain": -0.05279859821636118
+            },
+            "small": {
+              "all_pairs": 20,
+              "interval95": [
+                -0.163706714230771,
+                0.06485999614013963
+              ],
+              "joint_successes": 20,
+              "median_seed_gain": -0.01603369356677281
+            }
+          },
+          "msis": {
+            "large": {
+              "all_pairs": 20,
+              "interval95": null,
+              "joint_successes": 0,
+              "median_seed_gain": null
+            },
+            "medium": {
+              "all_pairs": 20,
+              "interval95": [
+                -0.9743651063265677,
+                -0.3120394532454551
+              ],
+              "joint_successes": 20,
+              "median_seed_gain": -0.4227698862500395
+            },
+            "small": {
+              "all_pairs": 20,
+              "interval95": [
+                -0.2204309931436237,
+                0.11605704259947508
+              ],
+              "joint_successes": 20,
+              "median_seed_gain": -0.18806961884959933
+            }
+          }
+        },
+        "shares": {
+          "mlwe/hybrid-bdd": {
+            "family": "guess-babai",
+            "interval95": [
+              0.2658945485654536,
+              0.7476510633901076
+            ],
+            "median_share": 0.5072382318018545,
+            "seed_clusters": 30
+          },
+          "mlwe/primal-bkz": {
+            "family": "primal-cvp",
+            "interval95": [
+              0.28616883727429765,
+              0.7542459387225491
+            ],
+            "median_share": 0.5357150477973789,
+            "seed_clusters": 30
+          },
+          "msis/progressive-bkz": {
+            "family": "relation-enumeration",
+            "interval95": [
+              0.2748579209028974,
+              0.6853757397770832
+            ],
+            "median_share": 0.4752977045835252,
+            "seed_clusters": 20
+          },
+          "msis/restart-bkz": {
+            "family": "relation-enumeration",
+            "interval95": [
+              0.26909867210455185,
+              0.7016027961066758
+            ],
+            "median_share": 0.4700644376969907,
+            "seed_clusters": 20
+          }
+        },
+        "structural_disqualification": "MLWE-derived objective has trivial norm-squared-two vectors; MSIS source distribution is shortcut-prone"
+      },
+      "msis": {
+        "eligible": false,
+        "reason": "direct modular planted-answer recovery"
+      }
+    },
+    "validation": {
+      "bkz": {
+        "distinct_dominant_families": 0,
+        "dominance_gate": false,
+        "eligible": false,
+        "gain_at_two_sizes_gate": false,
+        "interpretation": "runtime consumption alone is not evidence of improvement; unsuccessful pairs are retained in all-pair counts",
+        "paired_gains": {
+          "mlwe": {
+            "large": {
+              "all_pairs": 40,
+              "interval95": [
+                -0.047016937008469206,
+                -0.03667356759982532
+              ],
+              "joint_successes": 20,
+              "median_seed_gain": -0.0433992294168114
+            },
+            "medium": {
+              "all_pairs": 40,
+              "interval95": [
+                -0.08611693417419586,
+                -0.05161623553648209
+              ],
+              "joint_successes": 40,
+              "median_seed_gain": -0.06159664976174445
+            },
+            "small": {
+              "all_pairs": 40,
+              "interval95": [
+                -0.021502047320123285,
+                -0.001473388979500806
+              ],
+              "joint_successes": 40,
+              "median_seed_gain": -0.010593760526599244
+            }
+          },
+          "msis": {
+            "large": {
+              "all_pairs": 40,
+              "interval95": null,
+              "joint_successes": 0,
+              "median_seed_gain": null
+            },
+            "medium": {
+              "all_pairs": 40,
+              "interval95": [
+                -0.4212470965881717,
+                -0.3996078977775089
+              ],
+              "joint_successes": 39,
+              "median_seed_gain": -0.4110120089440481
+            },
+            "small": {
+              "all_pairs": 40,
+              "interval95": [
+                -0.23425764102212132,
+                -0.20087342024124716
+              ],
+              "joint_successes": 39,
+              "median_seed_gain": -0.22740500531890878
+            }
+          }
+        },
+        "shares": {
+          "mlwe/hybrid-bdd": {
+            "family": "guess-babai",
+            "interval95": [
+              0.49874043000237334,
+              0.5191829166798101
+            ],
+            "median_share": 0.5062682547178805,
+            "seed_clusters": 60
+          },
+          "mlwe/primal-bkz": {
+            "family": "primal-cvp",
+            "interval95": [
+              0.5311742385878242,
+              0.5521350119525463
+            ],
+            "median_share": 0.5430623165894369,
+            "seed_clusters": 60
+          },
+          "msis/progressive-bkz": {
+            "family": "relation-enumeration",
+            "interval95": [
+              0.2808508361016122,
+              0.6857903823286159
+            ],
+            "median_share": 0.4824614931758024,
+            "seed_clusters": 40
+          },
+          "msis/restart-bkz": {
+            "family": "relation-enumeration",
+            "interval95": [
+              0.2698216960958261,
+              0.7008328932593959
+            ],
+            "median_share": 0.48665593605938007,
+            "seed_clusters": 40
+          }
+        },
+        "structural_disqualification": "MLWE-derived objective has trivial norm-squared-two vectors; MSIS source distribution is shortcut-prone"
+      },
+      "msis": {
+        "eligible": false,
+        "reason": "direct modular planted-answer recovery"
+      }
+    }
+  },
+  "approval_scope": "Exactly the frozen primitive-selection-v2 five ranked cells, public contract, sampler, verifier, resource protocol, reference solver and ranking; scientific migration specification complete. Production integration is later work.",
+  "audit": {
+    "cohorts": [
+      {
+        "counts": {
+          "applicability_cap": 120,
+          "memory_limits": 0,
+          "no_candidate": 123,
+          "records": 960,
+          "success": 717,
+          "timeouts": 0,
+          "verified": 717
+        },
+        "raw_sha256": "70b87590896da4e3af3e83003b8fbad7040df9b40bf931f313141f09828440d4",
+        "run_id": "20260908T015636Z-64f6da9501f3478f8edf986f965e9513",
+        "status": "passed"
+      },
+      {
+        "counts": {
+          "applicability_cap": 239,
+          "invalid_answer": 6,
+          "memory_limits": 0,
+          "mixed": 1,
+          "no_candidate": 244,
+          "records": 1920,
+          "success": 1430,
+          "timeouts": 1,
+          "verified": 1430
+        },
+        "raw_sha256": "7ec8e5a20590e18d28a8ccc4ba9ed614b17427f05667abc91ca75c94b8b9b9f6",
+        "run_id": "20260908T130104Z-d9d15de1ba7b452a879ee6f8bd3391e0",
+        "status": "passed"
+      }
+    ],
+    "status": "passed"
+  },
+  "checks_reported_by_main_agent": {
+    "historical_benchmark_0_4_score": 3901,
+    "make_check_tests_passed": 221,
+    "pinned_research_tests_passed": 94,
+    "two_clean_build_fixture_and_normalized_smoke_match": true
+  },
+  "configuration_digest": "4625e878086446bb698b750c2f60cf8df20819dbf2e4c2c8439648bd2db19fbd",
+  "decided_at": "2026-09-10T08:44:14.529390+00:00",
+  "decision": "approve",
+  "dependency_digest": "c942b0aacf2afbc007ca0ab3510f29a7d3db0b769f3e2f0a99a3673067fd2734",
+  "evidence_sha256": {
+    "research/primitive_selection/freeze/v2.json": "a682ffe79987e22f5ee0308b5bab208278e11eb53817b86622c9145e2acd69f6",
+    "research/primitive_selection/results/v2-development-20260908/development.jsonl": "70b87590896da4e3af3e83003b8fbad7040df9b40bf931f313141f09828440d4",
+    "research/primitive_selection/results/v2-final/AUDIT.json": "59d94c27fdccf811ec0b5049ed6ef49720cee3a4a253eb9f498ea05c3aad94e5",
+    "research/primitive_selection/results/v2-final/CONCLUSION.json": "240526672146844653773bf6e5149e0f07edf47763339faec8d97bb3e93bd492",
+    "research/primitive_selection/results/v2-final/REPORT.md": "08b7fb032e2191b0568200fcb900730342889b2143d02348234d0f27ea635ca7",
+    "research/primitive_selection/results/v2-final/REPRODUCTION.json": "537b360f8a5c2a1b49c25b7030b36844a18b91cac916977ba98fd75f734dd001",
+    "research/primitive_selection/results/v2-validation-20260908/external-pause-resume-20260909.json": "68dfa694c772a3cb64f657bb7c78659b4476d784edc39f6be2dc446c30cd61ff",
+    "research/primitive_selection/results/v2-validation-20260908/reviewer-nonce.json": "e4177ee6d1c98ee2ef20fe04ce74c3f114cf559a10f460c83abcec5ffc6cb20b",
+    "research/primitive_selection/results/v2-validation-20260908/validation.jsonl": "7ec8e5a20590e18d28a8ccc4ba9ed614b17427f05667abc91ca75c94b8b9b9f6",
+    "research/primitive_selection/results/v2-validation-20260908/validation.jsonl.manifest.json": "b86fbe30efc9c5739420c712293a8a1381416b7aec2b7f2373b62c544ac3a7eb",
+    "research/primitive_selection/review/final-reproduction-20260910.json": "7ece31eac8941c28946c47d8149aed14f5d7026919a4a64a23378f90a89f9097",
+    "research/primitive_selection/review/reproduce_final_v2.py": "b0d75f45e67f6c9e88eba9bc5ea3fd6bb91b9f8234a30afd78e891efce572689"
+  },
+  "excluded_comparator_invalid_outputs": {
+    "cases": 6,
+    "disposition": "Correctly rejected, retained, and not eligible for selection; no MLWE invalid output.",
+    "instance_count": 2,
+    "measured_repetitions": 18,
+    "reason": "infinity norm 3 exceeds bound 2 although squared norms 26<=29 and 20<=20",
+    "track": "msis"
+  },
+  "findings": {
+    "F01": {
+      "disposition": "closed_repaired_and_validated",
+      "rationale": "Seedless strict payload, evaluator-only regeneration metadata, documented cooperative boundary, and unchanged validated source."
+    },
+    "F02": {
+      "disposition": "closed_by_disqualification",
+      "rationale": "Planted MSIS remains excluded before scoring; its modular recovery shortcut is retained and reproduced."
+    },
+    "F03": {
+      "disposition": "closed_repaired_and_validated",
+      "rationale": "Verifier enforces both bounds; six held-out MSIS outputs with infinity norm 3 > 2 correctly rejected and retained."
+    },
+    "F04": {
+      "disposition": "closed_repaired_and_validated",
+      "rationale": "Complete 960/1,920 runs independently audited against regeneration, exact source basis/candidates, all grids/digests/aggregates and frozen provenance."
+    },
+    "F05": {
+      "disposition": "closed_heldout_gates_passed",
+      "rationale": "Five reference cells 20/20 each; distinct exhaustive/CVP/hybrid approaches applicable; 58.055919x level ratio; no MLWE invalid answers."
+    },
+    "F06": {
+      "disposition": "closed_methodology_and_alternative_exclusion",
+      "rationale": "Complete-CPU/seed-paired interpretation fixed; BKZ 70% dominance and 20% two-size gain gates visibly fail on both cohorts."
+    },
+    "F07": {
+      "disposition": "closed_by_disqualification",
+      "rationale": "Trivial derived-basis objective excluded; arithmetic provenance remains independently checked."
+    },
+    "F08": {
+      "disposition": "closed_with_disclosed_external_interruption",
+      "rationale": "Pinned resource protocol and two-clean-build checks passed; case 368 external-pause timeout retained as mixed, penalized under unchanged rule, never interpreted as algorithm runtime."
+    },
+    "F09": {
+      "disposition": "closed_reconciled_and_reproduced",
+      "rationale": "Original measurements/narrative retained; final generated cross-cohort tables, uncertainty and unchanged eligible-only fallback reproduced."
+    },
+    "F10": {
+      "disposition": "closed_scope_clarified",
+      "rationale": "Tiny structural analogue only; fixed caps/profile/parser and official 2026 errata review accepted; no production ML-DSA hardness claim."
+    }
+  },
+  "independent_reviewer_checks": {
+    "bkz_verification_scope": "Inspected exact verification implementation and independently reran both complete strict cohort audits, including every BKZ transformation/unimodularity check, in the matching frozen image under 1 CPU and 2 GiB.",
+    "development_additional_candidate_verifications": 2400,
+    "final_conclusion": "JSON-normalized fields and numbers reproduced exactly",
+    "final_report": "byte-identical reproduction with prescribed PYTHONHASHSEED=0",
+    "full_matching_image_reproduction": "review/final-reproduction-20260910.json; exit 0; 2,880 records; exact audit, report bytes, and JSON-normalized conclusions",
+    "validation_additional_candidate_verifications": 4799,
+    "validation_distinct_instance_candidate_pairs": 547,
+    "validation_error_without_candidate_checked": 1
+  },
+  "limitations": [
+    "20 held-out seeds per profile; 20/20 Wilson lower 95% limit about 83.9%, not proof of population success >= 90%.",
+    "Bootstrap clusters seeds, retaining paired eta/solver observations; repetitions are timing replicates only.",
+    "External pause and host timing variation limit precise wall-runtime interpretation; full case outcomes retained.",
+    "Cooperative code boundary is not a hostile-code sandbox; production must isolate evaluator state.",
+    "No cryptographic hardness, production-parameter security, signature forging, or human specialist certification claim.",
+    "Known disqualified MSIS comparator still emits six rejected bound-invalid held-out candidates; it is excluded from the selected challenge."
+  ],
+  "no_scientific_changes_after_freeze": true,
+  "nonce_creation_timestamp": "2026-09-08T13:00:14.881555+00:00",
+  "nonce_protocol": "One 32-byte CSPRNG nonce generated after independently verified committed freeze; no validation seeds examined before generation; same nonce retained through complete run.",
+  "pause_disposition": {
+    "case": "mlwe/exhaustive/large/eta1",
+    "case_index": 368,
+    "decision": "Retained without rerun or exclusion. External interruption is not algorithm runtime; candidate already outside exhaustive applicability so frozen failed-case penalty unchanged. No threshold waived.",
+    "frozen_case_cost_seconds": 60,
+    "interrupted_parent_wall_seconds": 16596.542774143003,
+    "statuses": [
+      "applicability_cap",
+      "timeout",
+      "applicability_cap"
+    ]
+  },
+  "primary_sources": [
+    "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.204.pdf",
+    "https://csrc.nist.gov/files/pubs/fips/204/final/docs/fips-204-potential-updates.xlsx",
+    "https://perso.ens-lyon.fr/damien.stehle/downloads/MSIS.pdf",
+    "https://cims.nyu.edu/~regev/papers/qcrypto.pdf",
+    "https://fpylll.readthedocs.io/en/latest/modules.html",
+    "https://fplll.github.io/fplll/svpcvp_8h.html",
+    "https://github.com/fplll/fpylll/blob/0.6.4/src/fpylll/fplll/bkz_param.pyx"
+  ],
+  "review_kind": "agent review, not human expert certification",
+  "review_schema_version": "1",
+  "reviewed_evidence_revision": "cbf777a57855bfbcca1e347f83028716e202e7d2",
+  "reviewed_freeze_revision": "4bfcd079068bdfc8035532f4b92d9743a96be1f1",
+  "reviewed_source_revision": "9ad9423f7325b73383d250eb48353c3bd816da40",
+  "reviewer_model": "Codex; GPT-6 family description supplied by session instructions; exact runtime model build not exposed",
+  "reviewer_session": "/root/primitive_review",
+  "scientific_gates": {
+    "development": {
+      "baseline_gate": true,
+      "difficulty_gate": true,
+      "direct_linear_rates": {
+        "large/eta1": 0.0,
+        "medium/eta1": 0.0,
+        "medium/eta2": 0.0,
+        "small/eta1": 0.0,
+        "small/eta2": 0.0
+      },
+      "direct_shortcut_gate": true,
+      "exhaustive_headroom_gate": true,
+      "invalid_answers": 0,
+      "level_cpu_ratio": 56.716471481552404,
+      "numeric_eligibility": true,
+      "rates": {
+        "large/eta1/exhaustive": 0.0,
+        "large/eta1/hybrid-bdd": 1.0,
+        "large/eta1/primal-lll": 1.0,
+        "medium/eta1/exhaustive": 0.0,
+        "medium/eta1/hybrid-bdd": 1.0,
+        "medium/eta1/primal-lll": 1.0,
+        "medium/eta2/exhaustive": 0.0,
+        "medium/eta2/hybrid-bdd": 0.9,
+        "medium/eta2/primal-lll": 1.0,
+        "small/eta1/exhaustive": 1.0,
+        "small/eta1/hybrid-bdd": 1.0,
+        "small/eta1/primal-lll": 1.0,
+        "small/eta2/exhaustive": 1.0,
+        "small/eta2/hybrid-bdd": 1.0,
+        "small/eta2/primal-lll": 1.0
+      },
+      "second_family_gate": true,
+      "separate_required_gates": [
+        "reviewer approval",
+        "audited held-out evidence"
+      ],
+      "separate_required_gates_disposition": "held-out audit passed and this dated agent approval supplied"
+    },
+    "validation": {
+      "baseline_gate": true,
+      "difficulty_gate": true,
+      "direct_linear_rates": {
+        "large/eta1": 0.0,
+        "medium/eta1": 0.0,
+        "medium/eta2": 0.0,
+        "small/eta1": 0.0,
+        "small/eta2": 0.0
+      },
+      "direct_shortcut_gate": true,
+      "exhaustive_headroom_gate": true,
+      "invalid_answers": 0,
+      "level_cpu_ratio": 58.05591906661698,
+      "numeric_eligibility": true,
+      "rates": {
+        "large/eta1/exhaustive": 0.0,
+        "large/eta1/hybrid-bdd": 1.0,
+        "large/eta1/primal-lll": 1.0,
+        "medium/eta1/exhaustive": 0.0,
+        "medium/eta1/hybrid-bdd": 1.0,
+        "medium/eta1/primal-lll": 1.0,
+        "medium/eta2/exhaustive": 0.0,
+        "medium/eta2/hybrid-bdd": 0.95,
+        "medium/eta2/primal-lll": 1.0,
+        "small/eta1/exhaustive": 1.0,
+        "small/eta1/hybrid-bdd": 1.0,
+        "small/eta1/primal-lll": 1.0,
+        "small/eta2/exhaustive": 1.0,
+        "small/eta2/hybrid-bdd": 1.0,
+        "small/eta2/primal-lll": 1.0
+      },
+      "second_family_gate": true,
+      "separate_required_gates": [
+        "reviewer approval",
+        "audited held-out evidence"
+      ],
+      "separate_required_gates_disposition": "held-out audit passed and this dated agent approval supplied"
+    }
+  },
+  "selected_primitive": "toy module-LWE bounded secret-and-error recovery",
+  "source_digest": "24e45c29e8abf088d5b4a0528cc9a5fb8dd87c502b451720c4c4095f95b69d26",
+  "unresolved_blocking_findings": [],
+  "validation_image_digest": "sha256:f83a4df16a464b8cecb2561732b9c5643c0f085a0e390b93c71eda659f4aa540"
+}

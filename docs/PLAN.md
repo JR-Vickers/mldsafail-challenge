@@ -11,7 +11,7 @@ Build a focused, deterministic, locally runnable benchmark for competing impleme
 The product is inspired by [ecdsa.fail](https://ecdsa.fail/) in spirit and participation model, but the mathematical content is different:
 
 - ecdsa.fail isolates **elliptic curve point addition** as the bottleneck in Shor's algorithm and scores quantum circuits by **qubit × Toffoli**.
-- Benchmark `0.4.0` historically isolates **lattice reduction**, while the primitive-selection study tests whether reduction, MLWE recovery, or Module-SIS relation search should organize the next benchmark. No next primitive is frozen without held-out validation and approval from an agent assigned to conduct the lattice-cryptography specialist review.
+- Benchmark `0.4.0` historically isolates **lattice reduction**, while the primitive-selection study tests whether reduction, MLWE recovery, or Module-SIS relation search should organize the next benchmark. MLWE bounded recovery is frozen and agent-approved for the next benchmark after held-out validation; see [the research decision](PRIMITIVE_SELECTION.md).
 
 The core question:
 
@@ -83,7 +83,7 @@ This hypothesis is motivated by:
 
 ### Status of the hypothesis
 
-**Tested but not selected.** Benchmark 0.4.0 showed that reduction can be tractable while target search remains binding. The isolated primitive-selection study in `research/primitive_selection/` now compares MLWE recovery, Module-SIS relation search, and derived-basis reduction. The initial agent review found seed reconstruction, direct recovery of the planted Module-SIS relation, and an inflated reduction-share interpretation. Module-SIS v1 is disqualified and primitive selection remains incomplete pending repaired development evidence and held-out validation; see `docs/PRIMITIVE_SELECTION.md`.
+**Tested but not selected.** Benchmark 0.4.0 showed that reduction can be tractable while target search remains binding. The isolated primitive-selection study in `research/primitive_selection/` now compares MLWE recovery, Module-SIS relation search, and derived-basis reduction. The initial agent review found seed reconstruction, direct recovery of the planted Module-SIS relation, and an inflated reduction-share interpretation. The planted Module-SIS distribution and derived-basis BKZ objective are disqualified. MLWE bounded recovery passed the frozen gates on 960 development and 1,920 held-out cases and received agent approval on 2026-09-10; see `docs/PRIMITIVE_SELECTION.md`. Production migration remains separate implementation work.
 
 Historical Benchmark 0.4.0 evidence remains relevant:
 
@@ -102,8 +102,9 @@ This finding motivates the hybrid design: make lattice reduction the primary met
 
 A dedicated review agent conducts the lattice-cryptography specialist review.
 External human specialist approval is optional, not a prerequisite for selecting
-the next primitive. The review remains pending until the agent produces the
-evidence and decision required by [the review packet](PRIMITIVE_SELECTION_REVIEW.md).
+the next primitive. The dedicated agent completed that review and approved
+MLWE bounded recovery on 2026-09-10; the dated evidence and all finding
+dispositions are in [the review packet](PRIMITIVE_SELECTION_REVIEW.md).
 
 The review agent must independently examine the definitions, generator,
 embeddings, verifier, solver families, resource caps, and decision analysis;

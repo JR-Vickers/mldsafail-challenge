@@ -1,0 +1,52 @@
+{
+  "clean_build_reproduction": "research/primitive_selection/results/v2-reproduction-20260908/reproduction.json",
+  "cohort_audits": {
+    "development_v2": 960,
+    "original_v1": 780,
+    "status": "passed",
+    "validation_v2": 1920
+  },
+  "completed_at": "2026-09-10T08:52:24.005126+00:00",
+  "evidence_revision": "cbf777a57855bfbcca1e347f83028716e202e7d2",
+  "final_reproduction": {
+    "records": 2880,
+    "report_sha256": "08b7fb032e2191b0568200fcb900730342889b2143d02348234d0f27ea635ca7",
+    "status": "passed"
+  },
+  "freeze_revision": "4bfcd079068bdfc8035532f4b92d9743a96be1f1",
+  "frozen_scientific_files_matched": 32,
+  "frozen_specification_matched": true,
+  "logs": {
+    "final-report-reproduction.log": "fdda06a7d7d8d639eb7e736029e513d4fa787f8f9c7348b8858cacbf32f9036d",
+    "helper-json-comparison-failure.log": "f82f63f987ea80dcdb4035e5c5402002a41bd5f4940c01a861fcfd918dac1920",
+    "make-check.log": "2eea662856570f43901d20c5ed0f451fb3fdee81ff5eb2fa8559c7c911abf22b",
+    "pinned-research-tests.log": "f7772f6da5f36c7d10c31cb5bb94ca44b76a8f5798c5cdad1e9c1f8e476366fc",
+    "v1-report-reproduction.log": "9d851ea421af1ce848d497a72aaaa7d6612c7a459969fe533e34b08ff06b8f1f"
+  },
+  "make_check": {
+    "exit_code": 0,
+    "historical_benchmark_score": 3901,
+    "tests_passed": 221
+  },
+  "pinned_research_tests": {
+    "exit_code": 0,
+    "image": "mldsafail-primitive-study:validation-v2",
+    "tests_passed": 94
+  },
+  "production_paths_checked": [
+    "src",
+    "config",
+    "deploy",
+    "compose.yaml",
+    "compose.dev.yaml",
+    "pyproject.toml",
+    "uv.lock"
+  ],
+  "production_paths_unchanged_from": "c60e1d069b97006aa22793921e9a2c5a64100edf",
+  "retained_helper_failure": "First added evidence-reader comparison failed on Python tuple versus JSON array identity after successful audit/report match; fixed by JSON normalization, with failure log retained. No scientific source or raw outcome changed.",
+  "review_decision": "approve",
+  "review_evidence": "research/primitive_selection/review/final-review-20260910.json",
+  "skipped_required_checks": [],
+  "status": "passed",
+  "unresolved_blocking_gates": []
+}

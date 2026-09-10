@@ -3,12 +3,11 @@
 ## Review status
 
 - Review agent/model and session identifier: Codex / GPT-6 family description; exact runtime build not exposed; `/root/primitive_review`
-- Reviewed commits: initial `c60e1d069b97006aa22793921e9a2c5a64100edf`, repaired `9ad9423f7325b73383d250eb48353c3bd816da40`; source/configuration digests below
-- Review scope: mathematical definitions, code, adversarial synthetic probes, raw development evidence; limitations below
-- Review dates: 2026-09-07 and 2026-09-08
-- Current decision: repaired development accepted for freeze conditional on two-clean-build reproduction; final selection approval withheld pending held-out evidence
-- Fresh validation nonce: pending; do not create one before the harness and
-  solver configuration are frozen for review
+- Reviewed commits: initial `c60e1d069b97006aa22793921e9a2c5a64100edf`, repaired source `9ad9423f7325b73383d250eb48353c3bd816da40`, scientific freeze `4bfcd079068bdfc8035532f4b92d9743a96be1f1`, final evidence `cbf777a57855bfbcca1e347f83028716e202e7d2`; digests below
+- Review scope: mathematical definitions, code, adversarial synthetic probes, complete development and held-out evidence, frozen specification, and reproduction; limitations below
+- Review dates: 2026-09-07 through 2026-09-10
+- Current decision: **approved** on 2026-09-10 for the exact frozen five-cell toy Module-LWE challenge; no unresolved blocking findings. See the final dated decision and finding dispositions below.
+- Fresh validation nonce: generated once after the committed freeze at `2026-09-08T13:00:14.881555+00:00`; provenance is recorded in [reviewer-nonce.json](../research/primitive_selection/results/v2-validation-20260908/reviewer-nonce.json).
 
 An agent conducts this specialist review and may approve the next primitive
 after completing the review and held-out validation. External human specialist
@@ -39,8 +38,9 @@ certification. Passing repository tests alone does not constitute approval.
    limitations. If implementation/configuration changes are needed after
    validation, preserve the failed evidence and use a new freeze and fresh nonce.
 
-This packet assigns the review; its pending fields do not represent completed
-review or authorization to claim validation has already occurred.
+The procedure above governed the completed review. Earlier dated withholding
+statements below preserve the study history; the final dated decision records
+the completed validation and current approval.
 
 ## Materials
 
@@ -81,16 +81,16 @@ record. Later report/documentation commits do not rewrite that provenance.
 
 | ID | Severity | Finding | Resolution commit | Experiments rerun | Reviewer disposition |
 |---|---|---|---|---|---|
-| F01 | blocking | Public seed reconstructs MLWE/MSIS answers | 9ad9423 | complete v2 development | repair accepted; held-out boundary check pending |
-| F02 | blocking | Planted MSIS reduces to square modular solve | 9ad9423 exclusion | adversarial and v2 direct baselines | planted distribution disqualified |
-| F03 | blocking | MSIS success lacks norm-bound correctness gate | 9ad9423 | complete v2 development | repair accepted |
-| F04 | blocking | Audit trusts incomplete/unverified cohorts | 9ad9423 | strict full-cohort audit | repair accepted; held-out audit pending |
-| F05 | blocking | Useful difficulty and solver coverage unestablished | 9ad9423 | 960-case v2 development | development gates pass; validation pending |
-| F06 | blocking | Kernel-share denominator omits runtime | 9ad9423 | historical and v2 recomputation | correction accepted; BKZ gates failed |
-| F07 | high | BKZ first-vector objective has trivial structural floor | 9ad9423 exclusion | historical and v2 comparator evidence | current objective disqualified |
-| F08 | high | Resource/failure categories and intervals ambiguous | 9ad9423 | tests and complete v2 audit | repair accepted; clean-build reproduction pending |
-| F09 | medium | Stale summary and eligibility-free fallback scores | 9ad9423 | report/conclusion reproduction | development narrative accepted |
-| F10 | medium | Standard-parameter/distribution claims need scope | 9ad9423 | primary specification and 2026 errata | structural-analogue scope accepted |
+| F01 | blocking | Public seed reconstructs MLWE/MSIS answers | 9ad9423 | boundary regressions and complete v2 cohorts | closed: repaired and validated |
+| F02 | blocking | Planted MSIS reduces to square modular solve | 9ad9423 exclusion | adversarial and v2 direct baselines | closed by disqualification |
+| F03 | blocking | MSIS success lacks norm-bound correctness gate | 9ad9423 | complete v2 cohorts; six held-out violations rejected | closed: repaired and validated |
+| F04 | blocking | Audit trusts incomplete/unverified cohorts | 9ad9423 | strict 960/1,920 audits and independent reproduction | closed: repaired and validated |
+| F05 | blocking | Useful difficulty and solver coverage unestablished | 9ad9423 | complete development and held-out gates | closed: unchanged eligibility gates pass |
+| F06 | blocking | Kernel-share denominator omits runtime | 9ad9423 | historical and complete v2 recomputation | closed: interpretation repaired; BKZ gates remain failed |
+| F07 | high | BKZ first-vector objective has trivial structural floor | 9ad9423 exclusion | historical and v2 comparator evidence | closed by disqualification |
+| F08 | high | Resource/failure categories and intervals ambiguous | 9ad9423 | timeout/failure tests, clean builds, complete audit | closed with disclosed external interruption |
+| F09 | medium | Stale summary and eligibility-free fallback scores | 9ad9423 | final report/conclusion reproduction | closed: reconciled and reproduced |
+| F10 | medium | Standard-parameter/distribution claims need scope | 9ad9423 | primary specification and 2026 errata | closed: structural-analogue scope clarified |
 
 A blocking finding is resolved only after the reviewer accepts the change and
 all affected development/validation experiments have been rerun. Any such
@@ -662,3 +662,214 @@ choice necessary before implementation **if** unchanged held-out evidence
 supports selection. Final approval remains withheld until the reproduction,
 committed freeze, post-freeze nonce, complete validation audit, and dated final
 review are finished.
+
+## Final independent agent decision: approved, 2026-09-10
+
+**I approve toy Module-LWE bounded secret-and-error recovery as the selected
+primitive for the next challenge, exactly as specified by the committed v2
+freeze.** The five ranked cells, generator distribution, public contract,
+independent correctness rules, reference solver, resource protocol, ranking,
+seed protocol, and migration specification require no further scientific
+choices before implementation. There are **no unresolved blocking findings for
+this selected challenge**. Production integration remains later work;
+Benchmark 0.4.0 and the hosted integration are unchanged.
+
+This is the independent decision of the dedicated agent session
+`/root/primitive_review`, identifying itself as Codex with the supplied GPT-6
+family description. The exact runtime model build is not exposed. This is an
+agent review, not human specialist certification, a hardness proof, or an
+assessment of deployed ML-DSA systems. Earlier withholding and conditional
+statements in this packet document the study's history and are superseded by
+this dated decision; their measurements and failed gates remain preserved.
+
+The reviewed evidence revision is
+`cbf777a57855bfbcca1e347f83028716e202e7d2`. The scientific freeze is
+`4bfcd079068bdfc8035532f4b92d9743a96be1f1`, containing source revision
+`9ad9423f7325b73383d250eb48353c3bd816da40` and source digest
+`24e45c29e8abf088d5b4a0528cc9a5fb8dd87c502b451720c4c4095f95b69d26`.
+The unchanged freeze-file SHA-256 is
+`a682ffe79987e22f5ee0308b5bab208278e11eb53817b86622c9145e2acd69f6`.
+The machine-readable decision, evidence hashes, source links, model/session
+limitations, and detailed dispositions are in
+[`final-review-20260910.json`](../research/primitive_selection/review/final-review-20260910.json).
+
+### Freeze, validation, and reproducibility evidence
+
+Before generating validation randomness, the reviewer checked every listed
+source/specification/configuration digest against the committed freeze and
+independently compared the two clean builds' fixture bytes and all 16
+normalized solver cases, including warmup and measured candidate/status
+outputs. Both builds produced 14 successful smoke cases and two no-candidate
+simple-baseline cases with identical normalized outputs and matching pinned
+binary dependencies. The conditional reproduction gate was therefore met.
+
+The reviewer then created exactly one fresh 32-byte nonce at
+`2026-09-08T13:00:14.881555+00:00`, recorded in
+[`reviewer-nonce.json`](../research/primitive_selection/results/v2-validation-20260908/reviewer-nonce.json),
+after the freeze commit and without deriving or inspecting validation seeds.
+The ensuing validation used that same nonce, the frozen source/configuration,
+and the frozen dependency artifacts. No solver/profile/selection change,
+seed selection, favorable rerun, or threshold amendment occurred after freeze.
+
+The final matching-image strict audits passed the complete **960 development
+and 1,920 validation records**, including regenerated instances, public-input
+hashes, complete randomized case grids, exact stored-candidate verification,
+quality recomputation, BKZ transformation/unimodularity checks, resource and
+provenance checks, and every aggregate. Validation raw SHA-256 is
+`7ec8e5a20590e18d28a8ccc4ba9ed614b17427f05667abc91ca75c94b8b9b9f6`;
+its run identity is `20260908T130104Z-d9d15de1ba7b452a879ee6f8bd3391e0`.
+The original 780-record v1 cohort remains separate and retains its original
+measurement provenance and weaker historical MSIS success definition.
+
+The reviewer additionally regenerated and independently verified **4,799
+candidate-bearing MLWE/MSIS warmup/measured outputs** in validation, covering
+547 distinct instance/candidate pairs, and checked the single error output
+without a candidate. Together with the earlier 2,400 development checks, this
+corroborates the strict audit's complete-candidate evidence. The reviewer then independently reran both complete strict cohort audits,
+including every BKZ transformation/unimodularity check, in the matching frozen
+container under one CPU and 2 GiB. All 2,880 records passed; the generated audit
+matched exactly, the combined report reproduced byte-for-byte with the
+prescribed `PYTHONHASHSEED=0`, and the combined conclusion reproduced identically
+after JSON normalization of tuple/list representations. The command, image and
+script digests, limits, exit status, and result are preserved in
+[`final-reproduction-20260910.json`](../research/primitive_selection/review/final-reproduction-20260910.json). The report SHA-256 is
+`08b7fb032e2191b0568200fcb900730342889b2143d02348234d0f27ea635ca7`.
+
+The final packet includes the passing
+[`AUDIT.json`](../research/primitive_selection/results/v2-final/AUDIT.json),
+[`REPORT.md`](../research/primitive_selection/results/v2-final/REPORT.md),
+[`CONCLUSION.json`](../research/primitive_selection/results/v2-final/CONCLUSION.json),
+and [independent-interpreter reproduction evidence](../research/primitive_selection/results/v2-final/REPRODUCTION.json).
+The main agent's completion checks report 94 passing focused tests with pinned
+research dependencies and `make check` with 221 passing tests; historical
+Benchmark 0.4.0 still reports score 3901. Frozen scientific source and the frozen
+specification were not modified during this final review.
+
+### Unchanged scientific gates and measured tradeoffs
+
+| Ranked cell | Development reference | Held-out reference | Held-out reference median CPU, 95% seed interval | Held-out hybrid |
+|---|---:|---:|---|---:|
+| small, eta 1 | 10/10 | 20/20 | 0.005890 s [0.005817, 0.006027] | 20/20 |
+| small, eta 2 | 10/10 | 20/20 | 0.005883 s [0.005840, 0.005950] | 20/20 |
+| medium, eta 1 | 10/10 | 20/20 | 0.013011 s [0.012829, 0.013282] | 20/20 |
+| medium, eta 2 | 10/10 | 20/20 | 0.013375 s [0.013081, 0.013758] | 19/20 |
+| large, eta 1 | 10/10 | 20/20 | 0.341701 s [0.332260, 0.345768] | 20/20 |
+
+All five held-out reference success rates exceed the frozen 90% empirical
+threshold. The large/eta-1 versus pooled-small reference CPU ratio is
+**58.055919**, compared with **56.716471** in development; both exceed the
+unchanged 2x requirement. The failed earlier four-cell calibration remains a
+recorded negative result, not a waived gate. Exhaustive search solves all 40
+held-out small cases, substantially faster than the lattice reference, and
+uniformly exceeds its practical assignment cap on medium/large. Direct modular
+MLWE solving produces no bounded solutions in all 120 validation instances.
+Thus the formulation is not credited for an unmeasured advantage over the
+included simple baselines.
+
+The distinct coefficient-guessing/Babai approach solves 99/100 ranked held-out
+cases, compared with 49/50 in development. Its medium/eta-2 success changes
+from 90% to 95%; the seed-level uncertainty on that difference is broad and
+does not establish a population improvement. On the unranked large/eta-2 stress
+cell it solves 17/20, versus 8/10 development, while the primal CVP references
+uniformly declare their frozen cap. These are useful speed/success tradeoffs
+and concrete remaining optimization opportunities, not grounds to alter the
+ranked cell set after validation.
+
+Quality remains a diagnostic for the bounded feasibility task. The reference
+median squared norms for the five cells change from development
+`8, 23, 22, 63.5, 51` to held-out `7, 25.5, 21, 66, 54` respectively. The
+report retains distribution quantiles and seed-level intervals; both vectors'
+coefficient bounds and every equation were independently verified. No
+particular planted witness or norm improvement is required for acceptance.
+
+The frozen five-cell ranking gives held-out scores: primal LLL **1.0000**,
+primal BKZ **1.0391** (95% seed-cluster interval **[1.0304, 1.0488]**), and
+hybrid **1.0576** (**[0.9663, 1.2550]**). Lower is better. The hybrid's one
+no-candidate ranked case receives the unchanged 60-second case penalty, so
+successful-case speed alone does not establish a better complete submission.
+The approximate hybrid interval crosses the reference score; it does not
+establish superiority. Exhaustive and direct modular methods score **22.5863**
+and **3270.4797** because all ranked cells and their unsolved penalties remain
+included. No anchored ties occur among these point estimates. These scores
+are within-track research comparisons on the common frozen environment, not
+hardware-independent costs or a cross-primitive score.
+
+Twenty held-out seeds per profile remain a small sample: a 20/20 cell has a
+95% Wilson interval of approximately **[83.9%, 100%]**. Approval applies the
+frozen observed-success threshold; it does not assert a 90% population-success
+lower confidence bound. Bootstrap intervals resample seed clusters, retaining
+paired eta/solver observations; timing repetitions are not additional problem
+instances. The reference's self-normalized score interval [1,1] is an algebraic
+identity, not a claim that its execution time has no uncertainty.
+
+### Retained unfavorable outcomes and alternative rejection
+
+Validation outcomes are **1,430 success, 244 no-candidate, 239 applicability
+cap, six invalid-answer cases, and one mixed case**. The mixed case contains
+one timeout. There are no recorded crashes or memory failures. Exclusive
+category totals and the timeout-containing-case count must both be read; the
+mixed row does not make the timeout disappear.
+
+All six invalid-answer cases belong to the already-disqualified MSIS lattice
+comparators: three strategies on each of two eta-2 instances. Their returned
+infinity norm is 3 against a bound of 2, even though their squared norms satisfy
+26<=29 and 20<=20. The reviewer independently confirmed these failures. The
+corrected verifier rejects all of them, the records remain in the cohort, and
+MSIS receives no eligible fallback score. There are **zero invalid MLWE
+answers**. Accepting the MLWE challenge does not approve or repair those
+excluded comparator outputs, and does not waive the selected track's
+correctness gate.
+
+The external container pause affected case 368, MLWE/exhaustive/large/eta 1.
+Its measured outcomes are cap, timeout, cap; the timeout's recorded parent
+wall interval is **16,596.542774 seconds**. Container state documented an
+external pause with unknown initiator. That elapsed interval is interrupted
+evaluator wall time, not algorithm runtime or evidence of exhaustive-search
+computation for that duration. The same run resumed; no affected seed,
+repetition, or case was rerun or dropped. Its entire-case cost remains the
+frozen **60 seconds**, which the other applicability-cap repetitions would
+also require. Continuing the unchanged run applies the existing failure rule;
+it creates no exception to a scientific threshold. The interruption limits
+precise wall-time interpretation and is expressly included in this approval.
+
+Both BKZ scientific gates still **fail**: zero distinct families reach the
+frozen aggregate 70% complete-CPU dominance threshold and no paired comparison
+shows a 20% gain at two sizes. Held-out MLWE BKZ substitutions give median
+seed-level gains **-1.06%, -6.16%, -4.34%** at small, medium, large; these are
+slowdowns. The respective 95% seed intervals are approximately
+[-2.15%, -0.15%], [-8.61%, -5.16%], and [-4.70%, -3.67%]. High reduction shares
+within particular large-profile cells indicate runtime consumption, not a
+causal complete-solver benefit from improving reduction. The trivial derived
+basis objective and shortcut-prone MSIS source also independently preclude
+organizing this challenge around those BKZ comparators.
+
+MLWE is therefore preferred because it alone passes the reviewed eligibility
+gates on both development and held-out data while offering a bounded exact
+feasibility verifier, useful difficulty levels, and multiple applicable
+approaches. Planted MSIS fails its formulation/shortcut gate; the current BKZ
+objective and dominance/gain gates fail. The historical judgmental MLWE
+fallback score remains 94 with the frozen weights. Ineligible alternatives
+receive no score, so the five-point MSIS tie preference is never invoked.
+
+### Final disposition of every finding
+
+| ID | Final disposition | Evidence and consequence |
+|---|---|---|
+| F01 | Closed: repaired and validated. | Strict seedless public payload, evaluator regeneration metadata, domain-separated sampling, boundary regressions, and unchanged held-out implementation. Cooperative file/seed restrictions remain explicit. |
+| F02 | Closed by disqualification. | Planted MSIS modular recovery is retained and reproduced; that construction cannot enter selection or production migration. |
+| F03 | Closed: verifier repaired and validated. | Both shortness bounds are enforced. All six held-out MSIS violations are rejected and retained; excluded solver failures are not relabeled as successes. |
+| F04 | Closed: measurement integrity repaired and validated. | Complete 960/1,920 grids, immutable identities, interruption evidence, frozen provenance, independent candidate/basis verification, and report reproduction pass. |
+| F05 | Closed: unchanged held-out eligibility gates pass. | Five reference cells each 20/20, distinct applicable approaches, exhaustive headroom, 58.055919x level ratio, and no selected-track invalid answers. |
+| F06 | Closed: interpretation repaired; alternative gates remain failed. | Complete-CPU denominator and seed-level pairing fixed; both BKZ thresholds are applied and fail visibly on both cohorts. |
+| F07 | Closed by disqualification. | The trivial first-vector objective cannot organize the next challenge; exact lattice provenance remains comparator evidence. |
+| F08 | Closed with disclosed external interruption. | Pinned artifacts/limits, timeout/failure tests, two clean builds, and full validation audit pass. Case 368 remains mixed/timeout with its frozen penalty and no algorithm-runtime claim. |
+| F09 | Closed: narrative reconciled and reproduced. | Original data and failed calibration retained; final tables, uncertainty, ranking and eligibility-first fallback derive from complete raw cohorts. |
+| F10 | Closed: scope and specification clarified. | Tiny fixed profiles, unchanged caps, coefficient-ring arithmetic, official errata assessment, and structural-analogue limits are explicit. |
+
+All seven original review questions are answered by the mathematical review,
+adversarial probes, and the final dispositions above. No claim is made that
+these tiny instances inherit production hardness, that the cooperative
+research environment contains hostile solver code, or that the selected task
+forges signatures. The concrete migration specification must enforce evaluator
+isolation in its later production implementation. Those stated boundaries are
+limitations of the approved research scope, not unresolved scientific choices.

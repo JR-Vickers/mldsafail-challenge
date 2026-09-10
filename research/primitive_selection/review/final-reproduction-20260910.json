@@ -1,0 +1,27 @@
+{
+  "audit_json_match": true,
+  "command": "docker run --rm --cpus=1 --memory=2g --entrypoint python --volume \"$PWD/research/primitive_selection/results:/study/research/primitive_selection/results:ro\" --volume \"$PWD/research/primitive_selection/review/reproduce_final_v2.py:/study/research/primitive_selection/review/reproduce_final_v2.py:ro\" mldsafail-primitive-study:validation-v2 -m research.primitive_selection.review.reproduce_final_v2",
+  "completed_at": "2026-09-10T08:52:16.698079+00:00",
+  "conclusion_json_normalized_match": true,
+  "cpu_limit": 1,
+  "exit_code": 0,
+  "image_digest": "sha256:f83a4df16a464b8cecb2561732b9c5643c0f085a0e390b93c71eda659f4aa540",
+  "memory_limit_bytes": 2147483648,
+  "pythonhashseed": "0",
+  "raw_candidates_rewritten": false,
+  "report_byte_match": true,
+  "review_schema_version": "1",
+  "reviewed_evidence_revision": "cbf777a57855bfbcca1e347f83028716e202e7d2",
+  "reviewed_freeze_revision": "4bfcd079068bdfc8035532f4b92d9743a96be1f1",
+  "reviewer_session": "/root/primitive_review",
+  "scope": "Full 960 development and 1,920 validation records re-audited before in-memory candidate projection; frozen report and conclusion reproduced. JSON normalization only reconciles Python tuple versus serialized list representations.",
+  "script_path": "research/primitive_selection/review/reproduce_final_v2.py",
+  "script_sha256": "b0d75f45e67f6c9e88eba9bc5ea3fd6bb91b9f8234a30afd78e891efce572689",
+  "status": "passed",
+  "stdout": {
+    "records": 2880,
+    "report_sha256": "08b7fb032e2191b0568200fcb900730342889b2143d02348234d0f27ea635ca7",
+    "status": "passed"
+  },
+  "strict_audit_all_candidates_and_exact_bkz_basis_checks": true
+}
