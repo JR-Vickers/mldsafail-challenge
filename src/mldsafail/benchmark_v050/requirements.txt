@@ -1,0 +1,2 @@
+cysignals==1.12.5
+fpylll==0.6.4
