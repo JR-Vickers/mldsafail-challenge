@@ -42,6 +42,7 @@ def solve(public_instance):
     ('def solve(x):\n    raise RuntimeError("probe crash")\n', 'crash'),
     ('import os\ndef solve(x):\n    os._exit(3)\n', 'crash'),
     ('def solve(x):\n    return {"tag":"recovered_secret","s1":[],"s2":[]}\n', 'invalid_answer'),
+    ('def solve(x):\n    return {"tag":"recovered_secret","s1":[[float("nan")]],"s2":[]}\n', 'invalid_answer'),
     ('def solve(x):\n    return bytearray(3 * 1024**3)\n', 'memory_failure'),
     ('def solve(x):\n    print("x" * 3000000)\n    return None\n', 'crash'),
 ])

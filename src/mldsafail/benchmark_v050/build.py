@@ -12,10 +12,16 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--tag", default=IMAGE)
     parser.add_argument("--no-cache", action="store_true")
+    parser.add_argument("--wheel-dir", type=Path, help="optional offline wheels; pinned hashes are still enforced")
     args = parser.parse_args()
     root = Path(__file__).parent
     with tempfile.TemporaryDirectory(prefix="mlwe-build-") as tmp:
         context = Path(tmp)
+        wheels = context / "wheels"
+        wheels.mkdir()
+        if args.wheel_dir:
+            for wheel in args.wheel_dir.glob("*.whl"):
+                shutil.copyfile(wheel, wheels / wheel.name)
         package = context / "mldsafail" / "benchmark_v050"
         package.mkdir(parents=True)
         (package.parent / "__init__.py").write_text("")

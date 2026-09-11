@@ -45,7 +45,7 @@ def main():
         solver_cpu = time.process_time() - started
         started = time.process_time()
         try:
-            candidate = json.loads(json.dumps(candidate))
+            candidate = json.loads(json.dumps(candidate, allow_nan=False))
         except (TypeError, ValueError, OverflowError):
             candidate = {"invalid_unserializable_candidate": True}
         verification = verify_candidate(instance, candidate)
