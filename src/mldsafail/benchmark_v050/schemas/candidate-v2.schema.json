@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://mldsafail.local/schemas/primitive-selection/candidate-v2.json",
-  "title": "Primitive selection candidate",
+  "$id": "https://mldsafail.local/schemas/0.5.0/candidate-v2.json",
+  "title": "MLWE candidate (frozen research v2 wire contract)",
   "oneOf": [
     {
       "type": "object",
@@ -19,42 +19,6 @@
           "type": "array"
         },
         "s2": {
-          "type": "array"
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "tag",
-        "z"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "tag": {
-          "const": "short_relation"
-        },
-        "z": {
-          "type": "array"
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "tag",
-        "basis",
-        "transformation"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "tag": {
-          "const": "reduced_basis"
-        },
-        "basis": {
-          "type": "array"
-        },
-        "transformation": {
           "type": "array"
         }
       }

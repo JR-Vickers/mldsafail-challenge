@@ -1,2 +1,2 @@
-cysignals==1.12.5
-fpylll==0.6.4
+cysignals==1.12.5 --hash=sha256:9c8011f72efc59fda3cf72096e7cdfc00f415629252c161c29eb721427a666a8
+fpylll==0.6.4 --hash=sha256:ed5b1ddbab1605b8c8ea4797609a74655244820ab01273e12bafa371f3e9df96

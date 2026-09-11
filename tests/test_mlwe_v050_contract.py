@@ -43,3 +43,21 @@ def test_score_equivalence():
     assert scoring.ranking_interval(rows, 'hybrid-bdd') == decision.ranking_interval(rows, 'hybrid-bdd')
     scores = {'a':1, 'b':1.009, 'c':1.018, 'd':1.03}
     assert scoring.ranked_groups(scores) == decision.ranked_groups(scores)
+
+
+def test_zero_and_equation_rejection():
+    generated = generator.generate_mlwe('small', 0, 1)
+    zero = {'tag': 'recovered_secret', 's1': [[0]*4], 's2': [[0]*4]*2}
+    assert not verify.verify_candidate(generated.public, zero)['verified']
+    payload = wire(generated.public.to_dict())
+    payload['t'] = [[0]*4]*2
+    del payload['instance_id']
+    payload['instance_id'] = models.digest(payload)
+    assert verify.verify_candidate(models.instance_from_dict(payload), zero)['verified']
+    valid = wire(models.RecoveredSecret(generated.planted_s1, generated.planted_s2).to_dict())
+    for field in ('s1','s2'):
+        bad = copy.deepcopy(valid); bad[field][0].pop()
+        assert not verify.verify_candidate(generated.public, bad)['verified']
+    bad = copy.deepcopy(valid)
+    bad['s2'][0][0] = -1 if bad['s2'][0][0] != -1 else 1
+    assert not verify.verify_candidate(generated.public, bad)['verified']

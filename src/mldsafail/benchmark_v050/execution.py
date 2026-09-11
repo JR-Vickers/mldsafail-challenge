@@ -5,6 +5,7 @@ import hashlib
 import json
 import math
 import os
+import platform
 from pathlib import Path
 import selectors
 import subprocess
@@ -31,6 +32,8 @@ def fingerprint():
 
 
 def environment(image=IMAGE):
+    if platform.python_version() != "3.12.10":
+        raise ValueError("the frozen sampler requires evaluator Python 3.12.10")
     inspected = json.loads(command(["docker", "image", "inspect", image]))[0]
     image_id = inspected["Id"]
     label = inspected["Config"].get("Labels", {}).get("org.mldsafail.trusted")
@@ -127,6 +130,7 @@ def invoke(instance, solver, image_id, solver_dir=None, deadline=WALL_LIMIT_SECO
             process.kill()
         process.wait(timeout=10)
         elapsed = time.perf_counter() - started
+        timeout = timeout or elapsed > deadline
         state_result = subprocess.run(["docker", "inspect", "--format", "{{json .State}}", name], capture_output=True, text=True, timeout=10)
         state = json.loads(state_result.stdout) if state_result.returncode == 0 else {}
         try:

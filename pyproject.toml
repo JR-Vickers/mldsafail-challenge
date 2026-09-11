@@ -20,6 +20,7 @@ dependencies = [
 dev = ["pytest>=8.3,<9"]
 
 [project.scripts]
+mldsafail-mlwe = "mldsafail.benchmark_v050.cli:main"
 mldsafail = "mldsafail.cli:main"
 mldsafail-admin = "mldsafail.admin:main"
 mldsafail-bench = "mldsafail.benchmark.runner:main"

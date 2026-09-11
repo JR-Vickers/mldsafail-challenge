@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mldsafail.local/schemas/0.5.0/manifest.json",
+  "type": "object",
+  "required": [
+    "benchmark_version",
+    "kind",
+    "id",
+    "created_utc",
+    "settings",
+    "environment",
+    "cases"
+  ],
+  "properties": {
+    "benchmark_version": {
+      "const": "0.5.0"
+    },
+    "kind": {},
+    "id": {},
+    "created_utc": {},
+    "settings": {},
+    "environment": {},
+    "cases": {}
+  }
+}

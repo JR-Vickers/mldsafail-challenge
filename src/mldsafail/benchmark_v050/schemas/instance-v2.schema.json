@@ -1,16 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://mldsafail.local/schemas/primitive-selection/instance-v2.json",
-  "title": "Primitive selection instance",
+  "$id": "https://mldsafail.local/schemas/0.5.0/instance-v2.json",
+  "title": "MLWE instance (frozen research v2 wire contract)",
   "oneOf": [
     {
       "$ref": "#/$defs/mlwe"
-    },
-    {
-      "$ref": "#/$defs/msis"
-    },
-    {
-      "$ref": "#/$defs/bkz"
     }
   ],
   "$defs": {
@@ -102,74 +96,6 @@
             },
             "t": {
               "type": "array"
-            }
-          }
-        }
-      ],
-      "unevaluatedProperties": false
-    },
-    "msis": {
-      "allOf": [
-        {
-          "$ref": "#/$defs/base"
-        },
-        {
-          "type": "object",
-          "required": [
-            "ring",
-            "dimensions",
-            "eta",
-            "A",
-            "relation_quality_target"
-          ],
-          "properties": {
-            "track": {
-              "const": "msis"
-            },
-            "ring": {
-              "$ref": "#/$defs/ring"
-            },
-            "dimensions": {
-              "type": "object"
-            },
-            "eta": {
-              "enum": [
-                1,
-                2
-              ]
-            },
-            "A": {
-              "type": "array"
-            },
-            "relation_quality_target": {
-              "type": "object"
-            }
-          }
-        }
-      ],
-      "unevaluatedProperties": false
-    },
-    "bkz": {
-      "allOf": [
-        {
-          "$ref": "#/$defs/base"
-        },
-        {
-          "type": "object",
-          "required": [
-            "source",
-            "basis"
-          ],
-          "properties": {
-            "track": {
-              "const": "bkz"
-            },
-            "source": {
-              "type": "object"
-            },
-            "basis": {
-              "type": "array",
-              "maxItems": 384
             }
           }
         }
