@@ -79,3 +79,27 @@ def test_failure_penalty_and_invalid():
     row = ev.aggregate(case, 'test', [good, good, {'status':'invalid_answer'}, good])
     with pytest.raises(ValueError): ev.case_cost(row)
     with pytest.raises(ValueError): ev.aggregate(case, 'test', [good])
+
+
+def test_partial_run_reverification(tmp_path):
+    folder, m = fixture_run(tmp_path)
+    epoch = ev.manifest('epoch', m['environment'], m['cases'])
+    m['epoch_manifest_sha256'] = ev.sha(epoch)
+    (folder / 'manifest.json').write_bytes(ev.encoded(m))
+    (folder / 'records' / '000-3.json').unlink()
+    result = ev.partial_diagnostics(folder, epoch)
+    assert result['verified_records'] == 19 and result['missing_records'] == 1
+    assert result['ranking'] is False and result['complete'] is False
+    path = folder / 'records' / '000-1.json'
+    data = ev.read(path)
+    data['result']['candidate']['s1'][0][0] += 1
+    path.write_bytes(ev.encoded(data))
+    with pytest.raises(ValueError): ev.partial_diagnostics(folder, epoch)
+
+
+def test_incompatible_epoch(tmp_path):
+    folder, m = fixture_run(tmp_path)
+    epoch = ev.directory(tmp_path / 'epoch')
+    em = ev.manifest('epoch', m['environment'], m['cases'])
+    ev.write(epoch / 'manifest.json', em)
+    with pytest.raises(ValueError): ev.audit_run(folder, epoch, check_complete=False)

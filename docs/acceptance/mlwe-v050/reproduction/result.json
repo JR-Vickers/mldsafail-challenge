@@ -1,0 +1,11 @@
+{
+  "cases": 36,
+  "dependency_artifacts_match": true,
+  "fixture_match": true,
+  "images": {
+    "mldsafail-mlwe:rebuild-a": "sha256:be96a698b90b59af3f103b9e9f173244230c967d2d441a0655f0fd24e171b722",
+    "mldsafail-mlwe:rebuild-b": "sha256:c9aedf00612d5afe67f4a6eee41144ced73261337fcf8999c6fdf2da967ab3d8",
+    "mldsafail-primitive-study:validation-v2": "sha256:f83a4df16a464b8cecb2561732b9c5643c0f085a0e390b93c71eda659f4aa540"
+  },
+  "normalized_output_match": true
+}

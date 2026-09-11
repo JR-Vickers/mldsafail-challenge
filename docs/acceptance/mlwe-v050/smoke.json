@@ -1,0 +1,43 @@
+{
+  "benchmark_version": "0.5.0",
+  "case_status_counts": {
+    "success": 5
+  },
+  "cases": 5,
+  "cells": {
+    "large/eta1": {
+      "cases": 1,
+      "successes": 1,
+      "successful_median_cpu_seconds": 0.33572778999999997
+    },
+    "medium/eta1": {
+      "cases": 1,
+      "successes": 1,
+      "successful_median_cpu_seconds": 0.016005417000000008
+    },
+    "medium/eta2": {
+      "cases": 1,
+      "successes": 1,
+      "successful_median_cpu_seconds": 0.016688583999999992
+    },
+    "small/eta1": {
+      "cases": 1,
+      "successes": 1,
+      "successful_median_cpu_seconds": 0.007488499999999995
+    },
+    "small/eta2": {
+      "cases": 1,
+      "successes": 1,
+      "successful_median_cpu_seconds": 0.007254791999999996
+    }
+  },
+  "eligible": true,
+  "ranking": false,
+  "repetition_status_counts": {
+    "success": 15
+  },
+  "run_id": "616ec194d4d843e9bad27049c4f9250a",
+  "warmup_status_counts": {
+    "success": 5
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "baseline_gate": true,
+  "difficulty_gate": true,
+  "direct_linear_rates": {
+    "large/eta1": 0.0,
+    "medium/eta1": 0.0,
+    "medium/eta2": 0.0,
+    "small/eta1": 0.0,
+    "small/eta2": 0.0
+  },
+  "direct_shortcut_gate": true,
+  "exhaustive_headroom_gate": true,
+  "invalid_answers": 0,
+  "level_cpu_ratio": 49.5985368067279,
+  "numeric_eligibility": true,
+  "rates": {
+    "large/eta1/exhaustive": 0.0,
+    "large/eta1/hybrid-bdd": null,
+    "large/eta1/primal-lll": 1.0,
+    "medium/eta1/exhaustive": 0.0,
+    "medium/eta1/hybrid-bdd": null,
+    "medium/eta1/primal-lll": 1.0,
+    "medium/eta2/exhaustive": 0.0,
+    "medium/eta2/hybrid-bdd": null,
+    "medium/eta2/primal-lll": 1.0,
+    "small/eta1/exhaustive": 1.0,
+    "small/eta1/hybrid-bdd": null,
+    "small/eta1/primal-lll": 1.0,
+    "small/eta2/exhaustive": 1.0,
+    "small/eta2/hybrid-bdd": null,
+    "small/eta2/primal-lll": 1.0
+  },
+  "second_family_gate": true,
+  "separate_required_gates": [
+    "reviewer approval",
+    "audited held-out evidence"
+  ]
+}

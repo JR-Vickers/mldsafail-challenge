@@ -3,6 +3,8 @@ import argparse
 import json
 from pathlib import Path
 import subprocess
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from mldsafail.benchmark_v050.generator import generate_mlwe
 from mldsafail.benchmark_v050.models import canonical_json

@@ -1,0 +1,12 @@
+{
+  "benchmark_version": "0.5.0",
+  "baseline_tests": 221,
+  "baseline_full_score": 110201,
+  "final_tests": 240,
+  "docker_tests": 8,
+  "historical_small_score": 3901,
+  "historical_trusted_fingerprint": "bc70d64d7334e8de3c87480604d12070ed0d041f93a0af6aa98ef1eaff5ce8a4",
+  "trusted_fingerprint": "b6f92231843fcb90695669108f0cc02d747ae0614eb9b3d25cddae602e092eee",
+  "baseline_commit": "c4c99b87c40af0fdc819ba0134943c2352866026",
+  "implementation_commit": "07d8d86"
+}

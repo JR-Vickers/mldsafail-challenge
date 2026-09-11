@@ -1,0 +1,40 @@
+{
+  "architecture": "aarch64",
+  "native_packages": "libgmp10:arm64\t2:6.2.1+dfsg1-1.1\nlibmpfr6:arm64\t4.2.0-1\n",
+  "packages": {
+    "cysignals": "1.12.5",
+    "fpylll": "0.6.4"
+  },
+  "python": "3.12.10",
+  "sha256": {
+    "/usr/lib/aarch64-linux-gnu/libgmp.so.10": "391b336ee37cd47a1d4748ba2d15bd125c1a082864f7bca9c92612f8a0ac305e",
+    "/usr/lib/aarch64-linux-gnu/libgmp.so.10.4.1": "391b336ee37cd47a1d4748ba2d15bd125c1a082864f7bca9c92612f8a0ac305e",
+    "/usr/lib/aarch64-linux-gnu/libmpfr.so.6": "14bcf2c0d44a6cac083fc1aca9540a57245c5220bec0917a0701d5d1eda5b6e6",
+    "/usr/lib/aarch64-linux-gnu/libmpfr.so.6.2.0": "14bcf2c0d44a6cac083fc1aca9540a57245c5220bec0917a0701d5d1eda5b6e6",
+    "/usr/local/bin/python3.12": "7863a4d5e03fde7791c7f8c2c304cf3522f435e19745364ad18a6b7a0458af57",
+    "/usr/local/lib/python3.12/site-packages/cysignals/alarm.cpython-312-aarch64-linux-gnu.so": "f2cd9fc971dcffc88e2e0585b72cd11bcfd5360fb63f42fa9ed0dad24d8f6734",
+    "/usr/local/lib/python3.12/site-packages/cysignals/pselect.cpython-312-aarch64-linux-gnu.so": "be86de375e7aded39a42bf005a9ef1d62b2ed2c800f976d8dfa2141f9c2d646b",
+    "/usr/local/lib/python3.12/site-packages/cysignals/pysignals.cpython-312-aarch64-linux-gnu.so": "c88e2a033d8695c8f677028d6b18d15a1bf1a9d4fca73b4f0f67ede4229fc537",
+    "/usr/local/lib/python3.12/site-packages/cysignals/signals.cpython-312-aarch64-linux-gnu.so": "2adab7400efee6ea52971643568f10b14f71742dad239c61144db168d2e82089",
+    "/usr/local/lib/python3.12/site-packages/cysignals/tests.cpython-312-aarch64-linux-gnu.so": "ae3ac70608ed4bca01bd2682ae9c6aab988a204a291e8e39a581e036332baf39",
+    "/usr/local/lib/python3.12/site-packages/fpylll.libs/libfplll-344d5376.so.9.0.0": "97770ffe479e33108a9195b767d19bc4ec208700f57d964652489668dd87f7f8",
+    "/usr/local/lib/python3.12/site-packages/fpylll.libs/libgmp-d76a4877.so.10.5.0": "33a3f259ab719a41cef9b40935664585251b27cfaaefefdc19f62a0767c36be6",
+    "/usr/local/lib/python3.12/site-packages/fpylll.libs/libmpfr-a9b036b7.so.6.2.1": "c474c105137a43936b32d3ce1157c36224813c4ff745f0d7fe6e939d37311f24",
+    "/usr/local/lib/python3.12/site-packages/fpylll/config.cpython-312-aarch64-linux-gnu.so": "69749cb9d3d3c5fa639f5072f64595ee8919f91538c8d198cd55af7e7e586269",
+    "/usr/local/lib/python3.12/site-packages/fpylll/fplll/bkz.cpython-312-aarch64-linux-gnu.so": "18e6bc9477762ba8a657986648a420f11de39b7f101be34fa67822405ce79f97",
+    "/usr/local/lib/python3.12/site-packages/fpylll/fplll/bkz_param.cpython-312-aarch64-linux-gnu.so": "8110359f3f20b09e4ad0de86ddb4ac7e2d3b9f9654f4718e030398812a0828c7",
+    "/usr/local/lib/python3.12/site-packages/fpylll/fplll/enumeration.cpython-312-aarch64-linux-gnu.so": "34445cfd8cbedadb982bee0753dfca993e35f095bed55c4a4d7b933241f844cd",
+    "/usr/local/lib/python3.12/site-packages/fpylll/fplll/gso.cpython-312-aarch64-linux-gnu.so": "d5961c93d1d12d4f508ea01e88ade086f31d8fe7a5939070dfb08e1902286083",
+    "/usr/local/lib/python3.12/site-packages/fpylll/fplll/integer_matrix.cpython-312-aarch64-linux-gnu.so": "bab1f3713d0baf1b039c8c39b30ee57a3e8eb732c7e60bbf72d548db51d1cce4",
+    "/usr/local/lib/python3.12/site-packages/fpylll/fplll/lll.cpython-312-aarch64-linux-gnu.so": "0dbb1c6f8f7379ca1755cf71e13cfd1bf05c479e10f084a5a027d350d54a2b24",
+    "/usr/local/lib/python3.12/site-packages/fpylll/fplll/pruner.cpython-312-aarch64-linux-gnu.so": "4e68dbf622f13eec8317a10e5d38a26bcd0dd49f0781d7b1c91bda75cb38585d",
+    "/usr/local/lib/python3.12/site-packages/fpylll/fplll/svpcvp.cpython-312-aarch64-linux-gnu.so": "95d092d7620fcfff78b44886cd3551dd25c41dd82aa91741b04e9cb67917a6fd",
+    "/usr/local/lib/python3.12/site-packages/fpylll/fplll/wrapper.cpython-312-aarch64-linux-gnu.so": "8eb8e17313946f748fb0c64e9487067bb19e04cbe4acd732176f98a7cee57d82",
+    "/usr/local/lib/python3.12/site-packages/fpylll/gmp/pylong.cpython-312-aarch64-linux-gnu.so": "85cef4edb5cda330ab33344cef6e29ca9efe6e97f9a0721a00d02c784b63288a",
+    "/usr/local/lib/python3.12/site-packages/fpylll/io.cpython-312-aarch64-linux-gnu.so": "373803f5951a8eb3a54e6143c7acd771c2234fd3b12a477af2f97fe93a7918f7",
+    "/usr/local/lib/python3.12/site-packages/fpylll/numpy.cpython-312-aarch64-linux-gnu.so": "9e3979b858cbe671d128a8a43918ed88e1e57d0cb1a8f7e162d0293176382333",
+    "/usr/local/lib/python3.12/site-packages/fpylll/util.cpython-312-aarch64-linux-gnu.so": "eefb81aae23aaeb81d896320055f4777e421af30a15a4cafaf2950ab0245603b",
+    "/wheels/cysignals-1.12.5-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl": "9c8011f72efc59fda3cf72096e7cdfc00f415629252c161c29eb721427a666a8",
+    "/wheels/fpylll-0.6.4-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl": "ed5b1ddbab1605b8c8ea4797609a74655244820ab01273e12bafa371f3e9df96"
+  }
+}

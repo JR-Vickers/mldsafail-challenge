@@ -1,0 +1,257 @@
+uv run pytest
+....................................................................ssss [ 29%]
+ssss.................................................................... [ 58%]
+........................................................................ [ 87%]
+................................                                         [100%]
+240 passed, 8 skipped in 6.04s
+uv run python -m mldsafail.benchmark.runner --profile small --no-record
+{
+  "agent": "unknown",
+  "aggregate": {
+    "abstract_cost": 3901,
+    "median_instance_seconds": 0.0016152081079781055,
+    "peak_memory_bytes": 10944512,
+    "raw_operation_count": 3901,
+    "score": 3901,
+    "solution_quality": 2,
+    "total_wall_seconds": 0.004827999044209719
+  },
+  "benchmark_version": "0.4.0",
+  "correct": true,
+  "cost_model_version": "2",
+  "environment": {
+    "architecture": "arm64",
+    "command": [
+      "/Users/jarrett/dev/mldsafail-challenge/.venv/bin/python3",
+      "-m",
+      "mldsafail.benchmark.runner",
+      "--profile",
+      "small",
+      "--no-record"
+    ],
+    "dependency_lock_sha256": "8ad262e3fb15d681570bacdcfd3a8b87bc9f795432bbba580786ab5c266cadc3",
+    "git_commit": "07d8d8669833de91e728311a7149f3e5af604a2b",
+    "git_dirty": true,
+    "os": "macOS-15.7.7-arm64-arm-64bit",
+    "python_implementation": "CPython",
+    "python_version": "3.12.10"
+  },
+  "experiment_id": "20260911T213724-b5b85e0e",
+  "failure_reason": null,
+  "hypothesis": "baseline benchmark run",
+  "integrity": {
+    "baseline_fingerprint": null,
+    "matches_baseline": null,
+    "trusted_fingerprint": "bc70d64d7334e8de3c87480604d12070ed0d041f93a0af6aa98ef1eaff5ce8a4"
+  },
+  "model": "unknown",
+  "notes": "",
+  "parent_experiment": null,
+  "profiles": {
+    "small": {
+      "abstract_cost": 3901,
+      "correct": true,
+      "instances": [
+        {
+          "correct": true,
+          "cost": {
+            "additions": 188,
+            "basis_updates": 27,
+            "memory_reads": 508,
+            "memory_writes": 283,
+            "modular_reductions": 42,
+            "multiplications": 223,
+            "raw_total": 1271,
+            "total": 1271,
+            "version": "2",
+            "weights": {
+              "additions": 1,
+              "basis_updates": 1,
+              "memory_reads": 1,
+              "memory_writes": 1,
+              "modular_reductions": 1,
+              "multiplications": 1
+            }
+          },
+          "failure_reason": null,
+          "instance_id": "ae5cf7ea23eb0ac4c10a2163",
+          "peak_memory_bytes": 10665984,
+          "resource_status": "within_limits",
+          "solution_quality": 2,
+          "wall_seconds": 0.0016152081079781055
+        },
+        {
+          "correct": true,
+          "cost": {
+            "additions": 196,
+            "basis_updates": 28,
+            "memory_reads": 524,
+            "memory_writes": 292,
+            "modular_reductions": 43,
+            "multiplications": 232,
+            "raw_total": 1315,
+            "total": 1315,
+            "version": "2",
+            "weights": {
+              "additions": 1,
+              "basis_updates": 1,
+              "memory_reads": 1,
+              "memory_writes": 1,
+              "modular_reductions": 1,
+              "multiplications": 1
+            }
+          },
+          "failure_reason": null,
+          "instance_id": "7eb8ddb5eebd4bad6f330a66",
+          "peak_memory_bytes": 10797056,
+          "resource_status": "within_limits",
+          "solution_quality": 2,
+          "wall_seconds": 0.0015948328655213118
+        },
+        {
+          "correct": true,
+          "cost": {
+            "additions": 196,
+            "basis_updates": 28,
+            "memory_reads": 524,
+            "memory_writes": 292,
+            "modular_reductions": 43,
+            "multiplications": 232,
+            "raw_total": 1315,
+            "total": 1315,
+            "version": "2",
+            "weights": {
+              "additions": 1,
+              "basis_updates": 1,
+              "memory_reads": 1,
+              "memory_writes": 1,
+              "modular_reductions": 1,
+              "multiplications": 1
+            }
+          },
+          "failure_reason": null,
+          "instance_id": "f85f3db6ac03bbd70a873631",
+          "peak_memory_bytes": 10944512,
+          "resource_status": "within_limits",
+          "solution_quality": 2,
+          "wall_seconds": 0.0016179580707103014
+        }
+      ],
+      "median_instance_seconds": 0.0016152081079781055,
+      "peak_memory_bytes": 10944512,
+      "profile": "small",
+      "solution_quality": 2,
+      "total_wall_seconds": 0.004827999044209719
+    }
+  },
+  "resource_limits": {
+    "per_instance_peak_memory_bytes": 67108864,
+    "per_instance_wall_seconds": 5.0
+  },
+  "schema_version": "2",
+  "score": 3901,
+  "solver": "lazy",
+  "suites": {
+    "public": {
+      "small": {
+        "abstract_cost": 3901,
+        "correct": true,
+        "instances": [
+          {
+            "correct": true,
+            "cost": {
+              "additions": 188,
+              "basis_updates": 27,
+              "memory_reads": 508,
+              "memory_writes": 283,
+              "modular_reductions": 42,
+              "multiplications": 223,
+              "raw_total": 1271,
+              "total": 1271,
+              "version": "2",
+              "weights": {
+                "additions": 1,
+                "basis_updates": 1,
+                "memory_reads": 1,
+                "memory_writes": 1,
+                "modular_reductions": 1,
+                "multiplications": 1
+              }
+            },
+            "failure_reason": null,
+            "instance_id": "ae5cf7ea23eb0ac4c10a2163",
+            "peak_memory_bytes": 10665984,
+            "resource_status": "within_limits",
+            "solution_quality": 2,
+            "wall_seconds": 0.0016152081079781055
+          },
+          {
+            "correct": true,
+            "cost": {
+              "additions": 196,
+              "basis_updates": 28,
+              "memory_reads": 524,
+              "memory_writes": 292,
+              "modular_reductions": 43,
+              "multiplications": 232,
+              "raw_total": 1315,
+              "total": 1315,
+              "version": "2",
+              "weights": {
+                "additions": 1,
+                "basis_updates": 1,
+                "memory_reads": 1,
+                "memory_writes": 1,
+                "modular_reductions": 1,
+                "multiplications": 1
+              }
+            },
+            "failure_reason": null,
+            "instance_id": "7eb8ddb5eebd4bad6f330a66",
+            "peak_memory_bytes": 10797056,
+            "resource_status": "within_limits",
+            "solution_quality": 2,
+            "wall_seconds": 0.0015948328655213118
+          },
+          {
+            "correct": true,
+            "cost": {
+              "additions": 196,
+              "basis_updates": 28,
+              "memory_reads": 524,
+              "memory_writes": 292,
+              "modular_reductions": 43,
+              "multiplications": 232,
+              "raw_total": 1315,
+              "total": 1315,
+              "version": "2",
+              "weights": {
+                "additions": 1,
+                "basis_updates": 1,
+                "memory_reads": 1,
+                "memory_writes": 1,
+                "modular_reductions": 1,
+                "multiplications": 1
+              }
+            },
+            "failure_reason": null,
+            "instance_id": "f85f3db6ac03bbd70a873631",
+            "peak_memory_bytes": 10944512,
+            "resource_status": "within_limits",
+            "solution_quality": 2,
+            "wall_seconds": 0.0016179580707103014
+          }
+        ],
+        "median_instance_seconds": 0.0016152081079781055,
+        "peak_memory_bytes": 10944512,
+        "profile": "small",
+        "solution_quality": 2,
+        "total_wall_seconds": 0.004827999044209719
+      }
+    }
+  },
+  "tags": [
+    "baseline"
+  ],
+  "timestamp": "2026-09-11T21:37:24.465067+05:00"
+}

@@ -1,0 +1,5914 @@
+[
+  {
+    "eta": 1,
+    "input": {
+      "A": [
+        [
+          [
+            63,
+            86,
+            80,
+            46
+          ]
+        ],
+        [
+          [
+            70,
+            76,
+            78,
+            95
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 1,
+        "rows": 2
+      },
+      "eta": 1,
+      "instance_id": "1c1354de18a10225ceb126b76e176cf8a4d94cdce2eeb27a24e23507ee39d61a",
+      "profile": "small",
+      "ring": {
+        "degree": 4,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          28,
+          79,
+          46,
+          27
+        ],
+        [
+          75,
+          25,
+          48,
+          40
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            0,
+            -1,
+            -1,
+            0
+          ]
+        ],
+        "s2": [
+          [
+            -1,
+            -1,
+            1,
+            -1
+          ],
+          [
+            -1,
+            0,
+            0,
+            0
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "enumeration_candidates": 1,
+        "lll_calls": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "cvp_method": "fast",
+        "delta": 0.99,
+        "max_basis_dimension": 128,
+        "max_eta2_basis_dimension": 64
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 1,
+        "norm_squared": 7,
+        "verified": true
+      }
+    },
+    "profile": "small",
+    "seed": 0,
+    "solver": "primal-lll"
+  },
+  {
+    "eta": 1,
+    "input": {
+      "A": [
+        [
+          [
+            63,
+            86,
+            80,
+            46
+          ]
+        ],
+        [
+          [
+            70,
+            76,
+            78,
+            95
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 1,
+        "rows": 2
+      },
+      "eta": 1,
+      "instance_id": "1c1354de18a10225ceb126b76e176cf8a4d94cdce2eeb27a24e23507ee39d61a",
+      "profile": "small",
+      "ring": {
+        "degree": 4,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          28,
+          79,
+          46,
+          27
+        ],
+        [
+          75,
+          25,
+          48,
+          40
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            0,
+            -1,
+            -1,
+            0
+          ]
+        ],
+        "s2": [
+          [
+            -1,
+            -1,
+            1,
+            -1
+          ],
+          [
+            -1,
+            0,
+            0,
+            0
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "babai_candidates": 1,
+        "bkz_block_size": 11,
+        "bkz_calls": 1,
+        "bkz_tours_requested": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "block_size": 12,
+        "decoder": "babai",
+        "guess_coefficients": 1,
+        "max_basis_dimension": 128,
+        "max_loops": 1
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 1,
+        "norm_squared": 7,
+        "verified": true
+      }
+    },
+    "profile": "small",
+    "seed": 0,
+    "solver": "hybrid-bdd"
+  },
+  {
+    "eta": 1,
+    "input": {
+      "A": [
+        [
+          [
+            63,
+            86,
+            80,
+            46
+          ]
+        ],
+        [
+          [
+            70,
+            76,
+            78,
+            95
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 1,
+        "rows": 2
+      },
+      "eta": 1,
+      "instance_id": "1c1354de18a10225ceb126b76e176cf8a4d94cdce2eeb27a24e23507ee39d61a",
+      "profile": "small",
+      "ring": {
+        "degree": 4,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          28,
+          79,
+          46,
+          27
+        ],
+        [
+          75,
+          25,
+          48,
+          40
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            0,
+            -1,
+            -1,
+            0
+          ]
+        ],
+        "s2": [
+          [
+            -1,
+            -1,
+            1,
+            -1
+          ],
+          [
+            -1,
+            0,
+            0,
+            0
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "exhaustive_candidates": 29,
+        "solver_backend": "python"
+      },
+      "parameters": {
+        "max_candidates": 1000000
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 1,
+        "norm_squared": 7,
+        "verified": true
+      }
+    },
+    "profile": "small",
+    "seed": 0,
+    "solver": "exhaustive"
+  },
+  {
+    "eta": 1,
+    "input": {
+      "A": [
+        [
+          [
+            87,
+            36,
+            53,
+            71
+          ]
+        ],
+        [
+          [
+            35,
+            60,
+            25,
+            84
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 1,
+        "rows": 2
+      },
+      "eta": 1,
+      "instance_id": "b5e298605440a7de59384e3419fb86e0264b028440136435b067317c6cc80470",
+      "profile": "small",
+      "ring": {
+        "degree": 4,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          53,
+          70,
+          18,
+          32
+        ],
+        [
+          41,
+          33,
+          12,
+          12
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            -1,
+            1,
+            -1,
+            1
+          ]
+        ],
+        "s2": [
+          [
+            0,
+            1,
+            -1,
+            -1
+          ],
+          [
+            1,
+            -1,
+            -1,
+            -1
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "enumeration_candidates": 1,
+        "lll_calls": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "cvp_method": "fast",
+        "delta": 0.99,
+        "max_basis_dimension": 128,
+        "max_eta2_basis_dimension": 64
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 1,
+        "norm_squared": 11,
+        "verified": true
+      }
+    },
+    "profile": "small",
+    "seed": 1,
+    "solver": "primal-lll"
+  },
+  {
+    "eta": 1,
+    "input": {
+      "A": [
+        [
+          [
+            87,
+            36,
+            53,
+            71
+          ]
+        ],
+        [
+          [
+            35,
+            60,
+            25,
+            84
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 1,
+        "rows": 2
+      },
+      "eta": 1,
+      "instance_id": "b5e298605440a7de59384e3419fb86e0264b028440136435b067317c6cc80470",
+      "profile": "small",
+      "ring": {
+        "degree": 4,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          53,
+          70,
+          18,
+          32
+        ],
+        [
+          41,
+          33,
+          12,
+          12
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            -1,
+            1,
+            -1,
+            1
+          ]
+        ],
+        "s2": [
+          [
+            0,
+            1,
+            -1,
+            -1
+          ],
+          [
+            1,
+            -1,
+            -1,
+            -1
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "babai_candidates": 2,
+        "bkz_block_size": 11,
+        "bkz_calls": 1,
+        "bkz_tours_requested": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "block_size": 12,
+        "decoder": "babai",
+        "guess_coefficients": 1,
+        "max_basis_dimension": 128,
+        "max_loops": 1
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 1,
+        "norm_squared": 11,
+        "verified": true
+      }
+    },
+    "profile": "small",
+    "seed": 1,
+    "solver": "hybrid-bdd"
+  },
+  {
+    "eta": 1,
+    "input": {
+      "A": [
+        [
+          [
+            87,
+            36,
+            53,
+            71
+          ]
+        ],
+        [
+          [
+            35,
+            60,
+            25,
+            84
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 1,
+        "rows": 2
+      },
+      "eta": 1,
+      "instance_id": "b5e298605440a7de59384e3419fb86e0264b028440136435b067317c6cc80470",
+      "profile": "small",
+      "ring": {
+        "degree": 4,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          53,
+          70,
+          18,
+          32
+        ],
+        [
+          41,
+          33,
+          12,
+          12
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            -1,
+            1,
+            -1,
+            1
+          ]
+        ],
+        "s2": [
+          [
+            0,
+            1,
+            -1,
+            -1
+          ],
+          [
+            1,
+            -1,
+            -1,
+            -1
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "exhaustive_candidates": 21,
+        "solver_backend": "python"
+      },
+      "parameters": {
+        "max_candidates": 1000000
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 1,
+        "norm_squared": 11,
+        "verified": true
+      }
+    },
+    "profile": "small",
+    "seed": 1,
+    "solver": "exhaustive"
+  },
+  {
+    "eta": 2,
+    "input": {
+      "A": [
+        [
+          [
+            62,
+            68,
+            21,
+            19
+          ]
+        ],
+        [
+          [
+            43,
+            33,
+            15,
+            60
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 1,
+        "rows": 2
+      },
+      "eta": 2,
+      "instance_id": "869efb07ed665e20ebfb419a4d6663df0ad18a8260b5c0bf566274f0fd50da46",
+      "profile": "small",
+      "ring": {
+        "degree": 4,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          73,
+          25,
+          65,
+          63
+        ],
+        [
+          18,
+          42,
+          47,
+          38
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            -2,
+            2,
+            -2,
+            0
+          ]
+        ],
+        "s2": [
+          [
+            -1,
+            -1,
+            -2,
+            1
+          ],
+          [
+            0,
+            -1,
+            0,
+            0
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "enumeration_candidates": 1,
+        "lll_calls": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "cvp_method": "fast",
+        "delta": 0.99,
+        "max_basis_dimension": 128,
+        "max_eta2_basis_dimension": 64
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 2,
+        "norm_squared": 20,
+        "verified": true
+      }
+    },
+    "profile": "small",
+    "seed": 0,
+    "solver": "primal-lll"
+  },
+  {
+    "eta": 2,
+    "input": {
+      "A": [
+        [
+          [
+            62,
+            68,
+            21,
+            19
+          ]
+        ],
+        [
+          [
+            43,
+            33,
+            15,
+            60
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 1,
+        "rows": 2
+      },
+      "eta": 2,
+      "instance_id": "869efb07ed665e20ebfb419a4d6663df0ad18a8260b5c0bf566274f0fd50da46",
+      "profile": "small",
+      "ring": {
+        "degree": 4,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          73,
+          25,
+          65,
+          63
+        ],
+        [
+          18,
+          42,
+          47,
+          38
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            -2,
+            2,
+            -2,
+            0
+          ]
+        ],
+        "s2": [
+          [
+            -1,
+            -1,
+            -2,
+            1
+          ],
+          [
+            0,
+            -1,
+            0,
+            0
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "babai_candidates": 4,
+        "bkz_block_size": 11,
+        "bkz_calls": 1,
+        "bkz_tours_requested": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "block_size": 12,
+        "decoder": "babai",
+        "guess_coefficients": 1,
+        "max_basis_dimension": 128,
+        "max_loops": 1
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 2,
+        "norm_squared": 20,
+        "verified": true
+      }
+    },
+    "profile": "small",
+    "seed": 0,
+    "solver": "hybrid-bdd"
+  },
+  {
+    "eta": 2,
+    "input": {
+      "A": [
+        [
+          [
+            62,
+            68,
+            21,
+            19
+          ]
+        ],
+        [
+          [
+            43,
+            33,
+            15,
+            60
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 1,
+        "rows": 2
+      },
+      "eta": 2,
+      "instance_id": "869efb07ed665e20ebfb419a4d6663df0ad18a8260b5c0bf566274f0fd50da46",
+      "profile": "small",
+      "ring": {
+        "degree": 4,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          73,
+          25,
+          65,
+          63
+        ],
+        [
+          18,
+          42,
+          47,
+          38
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            -2,
+            2,
+            -2,
+            0
+          ]
+        ],
+        "s2": [
+          [
+            -1,
+            -1,
+            -2,
+            1
+          ],
+          [
+            0,
+            -1,
+            0,
+            0
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "exhaustive_candidates": 103,
+        "solver_backend": "python"
+      },
+      "parameters": {
+        "max_candidates": 1000000
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 2,
+        "norm_squared": 20,
+        "verified": true
+      }
+    },
+    "profile": "small",
+    "seed": 0,
+    "solver": "exhaustive"
+  },
+  {
+    "eta": 2,
+    "input": {
+      "A": [
+        [
+          [
+            17,
+            11,
+            69,
+            33
+          ]
+        ],
+        [
+          [
+            30,
+            45,
+            42,
+            69
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 1,
+        "rows": 2
+      },
+      "eta": 2,
+      "instance_id": "5559d7f55a4d0bddc062983f0379f151514964d41a8fe8598b79ffbf4db18795",
+      "profile": "small",
+      "ring": {
+        "degree": 4,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          31,
+          92,
+          66,
+          4
+        ],
+        [
+          63,
+          36,
+          56,
+          2
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            -2,
+            1,
+            0,
+            0
+          ]
+        ],
+        "s2": [
+          [
+            1,
+            0,
+            -1,
+            1
+          ],
+          [
+            -2,
+            -1,
+            -2,
+            1
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "enumeration_candidates": 1,
+        "lll_calls": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "cvp_method": "fast",
+        "delta": 0.99,
+        "max_basis_dimension": 128,
+        "max_eta2_basis_dimension": 64
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 2,
+        "norm_squared": 18,
+        "verified": true
+      }
+    },
+    "profile": "small",
+    "seed": 1,
+    "solver": "primal-lll"
+  },
+  {
+    "eta": 2,
+    "input": {
+      "A": [
+        [
+          [
+            17,
+            11,
+            69,
+            33
+          ]
+        ],
+        [
+          [
+            30,
+            45,
+            42,
+            69
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 1,
+        "rows": 2
+      },
+      "eta": 2,
+      "instance_id": "5559d7f55a4d0bddc062983f0379f151514964d41a8fe8598b79ffbf4db18795",
+      "profile": "small",
+      "ring": {
+        "degree": 4,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          31,
+          92,
+          66,
+          4
+        ],
+        [
+          63,
+          36,
+          56,
+          2
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            -2,
+            1,
+            0,
+            0
+          ]
+        ],
+        "s2": [
+          [
+            1,
+            0,
+            -1,
+            1
+          ],
+          [
+            -2,
+            -1,
+            -2,
+            1
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "babai_candidates": 4,
+        "bkz_block_size": 11,
+        "bkz_calls": 1,
+        "bkz_tours_requested": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "block_size": 12,
+        "decoder": "babai",
+        "guess_coefficients": 1,
+        "max_basis_dimension": 128,
+        "max_loops": 1
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 2,
+        "norm_squared": 18,
+        "verified": true
+      }
+    },
+    "profile": "small",
+    "seed": 1,
+    "solver": "hybrid-bdd"
+  },
+  {
+    "eta": 2,
+    "input": {
+      "A": [
+        [
+          [
+            17,
+            11,
+            69,
+            33
+          ]
+        ],
+        [
+          [
+            30,
+            45,
+            42,
+            69
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 1,
+        "rows": 2
+      },
+      "eta": 2,
+      "instance_id": "5559d7f55a4d0bddc062983f0379f151514964d41a8fe8598b79ffbf4db18795",
+      "profile": "small",
+      "ring": {
+        "degree": 4,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          31,
+          92,
+          66,
+          4
+        ],
+        [
+          63,
+          36,
+          56,
+          2
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            -2,
+            1,
+            0,
+            0
+          ]
+        ],
+        "s2": [
+          [
+            1,
+            0,
+            -1,
+            1
+          ],
+          [
+            -2,
+            -1,
+            -2,
+            1
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "exhaustive_candidates": 88,
+        "solver_backend": "python"
+      },
+      "parameters": {
+        "max_candidates": 1000000
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 2,
+        "norm_squared": 18,
+        "verified": true
+      }
+    },
+    "profile": "small",
+    "seed": 1,
+    "solver": "exhaustive"
+  },
+  {
+    "eta": 1,
+    "input": {
+      "A": [
+        [
+          [
+            28,
+            87,
+            19,
+            86,
+            41,
+            1,
+            56,
+            5
+          ],
+          [
+            71,
+            19,
+            54,
+            6,
+            33,
+            35,
+            29,
+            26
+          ]
+        ],
+        [
+          [
+            5,
+            41,
+            42,
+            2,
+            54,
+            47,
+            14,
+            43
+          ],
+          [
+            8,
+            38,
+            10,
+            53,
+            90,
+            83,
+            34,
+            26
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 2
+      },
+      "eta": 1,
+      "instance_id": "fd59bf2c8598a2db886904079d459b0250504d377c84cd7dbe3c8c40af28dde2",
+      "profile": "medium",
+      "ring": {
+        "degree": 8,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          86,
+          23,
+          86,
+          72,
+          16,
+          84,
+          10,
+          37
+        ],
+        [
+          4,
+          31,
+          43,
+          62,
+          73,
+          28,
+          64,
+          35
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            0,
+            1,
+            -1,
+            1,
+            0,
+            1,
+            -1,
+            -1
+          ],
+          [
+            1,
+            -1,
+            0,
+            0,
+            1,
+            1,
+            -1,
+            0
+          ]
+        ],
+        "s2": [
+          [
+            1,
+            -1,
+            -1,
+            0,
+            0,
+            0,
+            1,
+            -1
+          ],
+          [
+            1,
+            0,
+            -1,
+            0,
+            1,
+            1,
+            -1,
+            1
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "enumeration_candidates": 1,
+        "lll_calls": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "cvp_method": "fast",
+        "delta": 0.99,
+        "max_basis_dimension": 128,
+        "max_eta2_basis_dimension": 64
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 1,
+        "norm_squared": 22,
+        "verified": true
+      }
+    },
+    "profile": "medium",
+    "seed": 0,
+    "solver": "primal-lll"
+  },
+  {
+    "eta": 1,
+    "input": {
+      "A": [
+        [
+          [
+            28,
+            87,
+            19,
+            86,
+            41,
+            1,
+            56,
+            5
+          ],
+          [
+            71,
+            19,
+            54,
+            6,
+            33,
+            35,
+            29,
+            26
+          ]
+        ],
+        [
+          [
+            5,
+            41,
+            42,
+            2,
+            54,
+            47,
+            14,
+            43
+          ],
+          [
+            8,
+            38,
+            10,
+            53,
+            90,
+            83,
+            34,
+            26
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 2
+      },
+      "eta": 1,
+      "instance_id": "fd59bf2c8598a2db886904079d459b0250504d377c84cd7dbe3c8c40af28dde2",
+      "profile": "medium",
+      "ring": {
+        "degree": 8,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          86,
+          23,
+          86,
+          72,
+          16,
+          84,
+          10,
+          37
+        ],
+        [
+          4,
+          31,
+          43,
+          62,
+          73,
+          28,
+          64,
+          35
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            0,
+            1,
+            -1,
+            1,
+            0,
+            1,
+            -1,
+            -1
+          ],
+          [
+            1,
+            -1,
+            0,
+            0,
+            1,
+            1,
+            -1,
+            0
+          ]
+        ],
+        "s2": [
+          [
+            1,
+            -1,
+            -1,
+            0,
+            0,
+            0,
+            1,
+            -1
+          ],
+          [
+            1,
+            0,
+            -1,
+            0,
+            1,
+            1,
+            -1,
+            1
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "babai_candidates": 1,
+        "bkz_block_size": 12,
+        "bkz_calls": 1,
+        "bkz_tours_requested": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "block_size": 12,
+        "decoder": "babai",
+        "guess_coefficients": 1,
+        "max_basis_dimension": 128,
+        "max_loops": 1
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 1,
+        "norm_squared": 22,
+        "verified": true
+      }
+    },
+    "profile": "medium",
+    "seed": 0,
+    "solver": "hybrid-bdd"
+  },
+  {
+    "eta": 1,
+    "input": {
+      "A": [
+        [
+          [
+            28,
+            87,
+            19,
+            86,
+            41,
+            1,
+            56,
+            5
+          ],
+          [
+            71,
+            19,
+            54,
+            6,
+            33,
+            35,
+            29,
+            26
+          ]
+        ],
+        [
+          [
+            5,
+            41,
+            42,
+            2,
+            54,
+            47,
+            14,
+            43
+          ],
+          [
+            8,
+            38,
+            10,
+            53,
+            90,
+            83,
+            34,
+            26
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 2
+      },
+      "eta": 1,
+      "instance_id": "fd59bf2c8598a2db886904079d459b0250504d377c84cd7dbe3c8c40af28dde2",
+      "profile": "medium",
+      "ring": {
+        "degree": 8,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          86,
+          23,
+          86,
+          72,
+          16,
+          84,
+          10,
+          37
+        ],
+        [
+          4,
+          31,
+          43,
+          62,
+          73,
+          28,
+          64,
+          35
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": null,
+      "counters": {
+        "search_space_skipped": 43046721,
+        "solver_backend": "python"
+      },
+      "parameters": {
+        "max_candidates": 1000000
+      },
+      "verification": {
+        "failure_reason": "solver returned no candidate",
+        "verified": false
+      }
+    },
+    "profile": "medium",
+    "seed": 0,
+    "solver": "exhaustive"
+  },
+  {
+    "eta": 1,
+    "input": {
+      "A": [
+        [
+          [
+            95,
+            90,
+            77,
+            63,
+            90,
+            59,
+            52,
+            84
+          ],
+          [
+            94,
+            54,
+            19,
+            47,
+            76,
+            7,
+            24,
+            8
+          ]
+        ],
+        [
+          [
+            37,
+            40,
+            15,
+            78,
+            12,
+            87,
+            39,
+            38
+          ],
+          [
+            87,
+            82,
+            85,
+            53,
+            33,
+            70,
+            72,
+            48
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 2
+      },
+      "eta": 1,
+      "instance_id": "103c66bff487f8a9f46e69abf32e297533f798e69d5ceba0d2f86c990ef51040",
+      "profile": "medium",
+      "ring": {
+        "degree": 8,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          4,
+          33,
+          62,
+          92,
+          58,
+          47,
+          58,
+          28
+        ],
+        [
+          50,
+          14,
+          62,
+          74,
+          42,
+          78,
+          60,
+          45
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            1,
+            -1,
+            -1,
+            0,
+            0,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            -1,
+            0,
+            1,
+            0,
+            0,
+            0
+          ]
+        ],
+        "s2": [
+          [
+            0,
+            -1,
+            -1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            1,
+            0,
+            -1,
+            -1,
+            1
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "enumeration_candidates": 1,
+        "lll_calls": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "cvp_method": "fast",
+        "delta": 0.99,
+        "max_basis_dimension": 128,
+        "max_eta2_basis_dimension": 64
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 1,
+        "norm_squared": 15,
+        "verified": true
+      }
+    },
+    "profile": "medium",
+    "seed": 1,
+    "solver": "primal-lll"
+  },
+  {
+    "eta": 1,
+    "input": {
+      "A": [
+        [
+          [
+            95,
+            90,
+            77,
+            63,
+            90,
+            59,
+            52,
+            84
+          ],
+          [
+            94,
+            54,
+            19,
+            47,
+            76,
+            7,
+            24,
+            8
+          ]
+        ],
+        [
+          [
+            37,
+            40,
+            15,
+            78,
+            12,
+            87,
+            39,
+            38
+          ],
+          [
+            87,
+            82,
+            85,
+            53,
+            33,
+            70,
+            72,
+            48
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 2
+      },
+      "eta": 1,
+      "instance_id": "103c66bff487f8a9f46e69abf32e297533f798e69d5ceba0d2f86c990ef51040",
+      "profile": "medium",
+      "ring": {
+        "degree": 8,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          4,
+          33,
+          62,
+          92,
+          58,
+          47,
+          58,
+          28
+        ],
+        [
+          50,
+          14,
+          62,
+          74,
+          42,
+          78,
+          60,
+          45
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            1,
+            -1,
+            -1,
+            0,
+            0,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            -1,
+            0,
+            1,
+            0,
+            0,
+            0
+          ]
+        ],
+        "s2": [
+          [
+            0,
+            -1,
+            -1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            1,
+            0,
+            -1,
+            -1,
+            1
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "babai_candidates": 3,
+        "bkz_block_size": 12,
+        "bkz_calls": 1,
+        "bkz_tours_requested": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "block_size": 12,
+        "decoder": "babai",
+        "guess_coefficients": 1,
+        "max_basis_dimension": 128,
+        "max_loops": 1
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 1,
+        "norm_squared": 15,
+        "verified": true
+      }
+    },
+    "profile": "medium",
+    "seed": 1,
+    "solver": "hybrid-bdd"
+  },
+  {
+    "eta": 1,
+    "input": {
+      "A": [
+        [
+          [
+            95,
+            90,
+            77,
+            63,
+            90,
+            59,
+            52,
+            84
+          ],
+          [
+            94,
+            54,
+            19,
+            47,
+            76,
+            7,
+            24,
+            8
+          ]
+        ],
+        [
+          [
+            37,
+            40,
+            15,
+            78,
+            12,
+            87,
+            39,
+            38
+          ],
+          [
+            87,
+            82,
+            85,
+            53,
+            33,
+            70,
+            72,
+            48
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 2
+      },
+      "eta": 1,
+      "instance_id": "103c66bff487f8a9f46e69abf32e297533f798e69d5ceba0d2f86c990ef51040",
+      "profile": "medium",
+      "ring": {
+        "degree": 8,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          4,
+          33,
+          62,
+          92,
+          58,
+          47,
+          58,
+          28
+        ],
+        [
+          50,
+          14,
+          62,
+          74,
+          42,
+          78,
+          60,
+          45
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": null,
+      "counters": {
+        "search_space_skipped": 43046721,
+        "solver_backend": "python"
+      },
+      "parameters": {
+        "max_candidates": 1000000
+      },
+      "verification": {
+        "failure_reason": "solver returned no candidate",
+        "verified": false
+      }
+    },
+    "profile": "medium",
+    "seed": 1,
+    "solver": "exhaustive"
+  },
+  {
+    "eta": 2,
+    "input": {
+      "A": [
+        [
+          [
+            68,
+            51,
+            61,
+            31,
+            26,
+            87,
+            2,
+            52
+          ],
+          [
+            83,
+            80,
+            85,
+            23,
+            83,
+            32,
+            90,
+            93
+          ]
+        ],
+        [
+          [
+            38,
+            30,
+            31,
+            85,
+            23,
+            3,
+            59,
+            49
+          ],
+          [
+            41,
+            11,
+            61,
+            3,
+            90,
+            50,
+            43,
+            96
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 2
+      },
+      "eta": 2,
+      "instance_id": "8b1cd89592c903506552ec408a474ef857871c5e520e8fae961a69aa3a3b818f",
+      "profile": "medium",
+      "ring": {
+        "degree": 8,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          49,
+          11,
+          93,
+          2,
+          4,
+          56,
+          19,
+          86
+        ],
+        [
+          47,
+          40,
+          16,
+          10,
+          90,
+          50,
+          88,
+          25
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            -2,
+            2,
+            -2,
+            1,
+            0,
+            1,
+            1,
+            -2
+          ],
+          [
+            1,
+            -1,
+            -1,
+            -2,
+            0,
+            0,
+            0,
+            2
+          ]
+        ],
+        "s2": [
+          [
+            -2,
+            1,
+            -1,
+            2,
+            0,
+            1,
+            1,
+            -1
+          ],
+          [
+            1,
+            1,
+            -2,
+            2,
+            2,
+            2,
+            -1,
+            1
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "enumeration_candidates": 1,
+        "lll_calls": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "cvp_method": "fast",
+        "delta": 0.99,
+        "max_basis_dimension": 128,
+        "max_eta2_basis_dimension": 64
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 2,
+        "norm_squared": 63,
+        "verified": true
+      }
+    },
+    "profile": "medium",
+    "seed": 0,
+    "solver": "primal-lll"
+  },
+  {
+    "eta": 2,
+    "input": {
+      "A": [
+        [
+          [
+            68,
+            51,
+            61,
+            31,
+            26,
+            87,
+            2,
+            52
+          ],
+          [
+            83,
+            80,
+            85,
+            23,
+            83,
+            32,
+            90,
+            93
+          ]
+        ],
+        [
+          [
+            38,
+            30,
+            31,
+            85,
+            23,
+            3,
+            59,
+            49
+          ],
+          [
+            41,
+            11,
+            61,
+            3,
+            90,
+            50,
+            43,
+            96
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 2
+      },
+      "eta": 2,
+      "instance_id": "8b1cd89592c903506552ec408a474ef857871c5e520e8fae961a69aa3a3b818f",
+      "profile": "medium",
+      "ring": {
+        "degree": 8,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          49,
+          11,
+          93,
+          2,
+          4,
+          56,
+          19,
+          86
+        ],
+        [
+          47,
+          40,
+          16,
+          10,
+          90,
+          50,
+          88,
+          25
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            -2,
+            2,
+            -2,
+            1,
+            0,
+            1,
+            1,
+            -2
+          ],
+          [
+            1,
+            -1,
+            -1,
+            -2,
+            0,
+            0,
+            0,
+            2
+          ]
+        ],
+        "s2": [
+          [
+            -2,
+            1,
+            -1,
+            2,
+            0,
+            1,
+            1,
+            -1
+          ],
+          [
+            1,
+            1,
+            -2,
+            2,
+            2,
+            2,
+            -1,
+            1
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "babai_candidates": 4,
+        "bkz_block_size": 12,
+        "bkz_calls": 1,
+        "bkz_tours_requested": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "block_size": 12,
+        "decoder": "babai",
+        "guess_coefficients": 1,
+        "max_basis_dimension": 128,
+        "max_loops": 1
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 2,
+        "norm_squared": 63,
+        "verified": true
+      }
+    },
+    "profile": "medium",
+    "seed": 0,
+    "solver": "hybrid-bdd"
+  },
+  {
+    "eta": 2,
+    "input": {
+      "A": [
+        [
+          [
+            68,
+            51,
+            61,
+            31,
+            26,
+            87,
+            2,
+            52
+          ],
+          [
+            83,
+            80,
+            85,
+            23,
+            83,
+            32,
+            90,
+            93
+          ]
+        ],
+        [
+          [
+            38,
+            30,
+            31,
+            85,
+            23,
+            3,
+            59,
+            49
+          ],
+          [
+            41,
+            11,
+            61,
+            3,
+            90,
+            50,
+            43,
+            96
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 2
+      },
+      "eta": 2,
+      "instance_id": "8b1cd89592c903506552ec408a474ef857871c5e520e8fae961a69aa3a3b818f",
+      "profile": "medium",
+      "ring": {
+        "degree": 8,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          49,
+          11,
+          93,
+          2,
+          4,
+          56,
+          19,
+          86
+        ],
+        [
+          47,
+          40,
+          16,
+          10,
+          90,
+          50,
+          88,
+          25
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": null,
+      "counters": {
+        "search_space_skipped": 152587890625,
+        "solver_backend": "python"
+      },
+      "parameters": {
+        "max_candidates": 1000000
+      },
+      "verification": {
+        "failure_reason": "solver returned no candidate",
+        "verified": false
+      }
+    },
+    "profile": "medium",
+    "seed": 0,
+    "solver": "exhaustive"
+  },
+  {
+    "eta": 2,
+    "input": {
+      "A": [
+        [
+          [
+            45,
+            80,
+            15,
+            60,
+            63,
+            82,
+            75,
+            18
+          ],
+          [
+            29,
+            12,
+            69,
+            61,
+            48,
+            84,
+            1,
+            28
+          ]
+        ],
+        [
+          [
+            6,
+            52,
+            20,
+            58,
+            83,
+            88,
+            35,
+            81
+          ],
+          [
+            39,
+            45,
+            26,
+            71,
+            59,
+            8,
+            19,
+            23
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 2
+      },
+      "eta": 2,
+      "instance_id": "ea0fa73c76337bc8bd51662e57a9748272822ed41ad04edc58665d4e1af38d43",
+      "profile": "medium",
+      "ring": {
+        "degree": 8,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          89,
+          96,
+          65,
+          50,
+          41,
+          36,
+          62,
+          44
+        ],
+        [
+          49,
+          84,
+          46,
+          34,
+          6,
+          38,
+          58,
+          33
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            2,
+            1,
+            -1,
+            -2,
+            1,
+            2,
+            -2,
+            -2
+          ],
+          [
+            1,
+            -2,
+            2,
+            0,
+            0,
+            -2,
+            1,
+            -2
+          ]
+        ],
+        "s2": [
+          [
+            -1,
+            1,
+            0,
+            2,
+            2,
+            2,
+            -1,
+            0
+          ],
+          [
+            0,
+            -2,
+            2,
+            -1,
+            -2,
+            0,
+            0,
+            -2
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "enumeration_candidates": 1,
+        "lll_calls": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "cvp_method": "fast",
+        "delta": 0.99,
+        "max_basis_dimension": 128,
+        "max_eta2_basis_dimension": 64
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 2,
+        "norm_squared": 73,
+        "verified": true
+      }
+    },
+    "profile": "medium",
+    "seed": 1,
+    "solver": "primal-lll"
+  },
+  {
+    "eta": 2,
+    "input": {
+      "A": [
+        [
+          [
+            45,
+            80,
+            15,
+            60,
+            63,
+            82,
+            75,
+            18
+          ],
+          [
+            29,
+            12,
+            69,
+            61,
+            48,
+            84,
+            1,
+            28
+          ]
+        ],
+        [
+          [
+            6,
+            52,
+            20,
+            58,
+            83,
+            88,
+            35,
+            81
+          ],
+          [
+            39,
+            45,
+            26,
+            71,
+            59,
+            8,
+            19,
+            23
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 2
+      },
+      "eta": 2,
+      "instance_id": "ea0fa73c76337bc8bd51662e57a9748272822ed41ad04edc58665d4e1af38d43",
+      "profile": "medium",
+      "ring": {
+        "degree": 8,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          89,
+          96,
+          65,
+          50,
+          41,
+          36,
+          62,
+          44
+        ],
+        [
+          49,
+          84,
+          46,
+          34,
+          6,
+          38,
+          58,
+          33
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            2,
+            1,
+            -1,
+            -2,
+            1,
+            2,
+            -2,
+            -2
+          ],
+          [
+            1,
+            -2,
+            2,
+            0,
+            0,
+            -2,
+            1,
+            -2
+          ]
+        ],
+        "s2": [
+          [
+            -1,
+            1,
+            0,
+            2,
+            2,
+            2,
+            -1,
+            0
+          ],
+          [
+            0,
+            -2,
+            2,
+            -1,
+            -2,
+            0,
+            0,
+            -2
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "babai_candidates": 5,
+        "bkz_block_size": 12,
+        "bkz_calls": 1,
+        "bkz_tours_requested": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "block_size": 12,
+        "decoder": "babai",
+        "guess_coefficients": 1,
+        "max_basis_dimension": 128,
+        "max_loops": 1
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 2,
+        "norm_squared": 73,
+        "verified": true
+      }
+    },
+    "profile": "medium",
+    "seed": 1,
+    "solver": "hybrid-bdd"
+  },
+  {
+    "eta": 2,
+    "input": {
+      "A": [
+        [
+          [
+            45,
+            80,
+            15,
+            60,
+            63,
+            82,
+            75,
+            18
+          ],
+          [
+            29,
+            12,
+            69,
+            61,
+            48,
+            84,
+            1,
+            28
+          ]
+        ],
+        [
+          [
+            6,
+            52,
+            20,
+            58,
+            83,
+            88,
+            35,
+            81
+          ],
+          [
+            39,
+            45,
+            26,
+            71,
+            59,
+            8,
+            19,
+            23
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 2
+      },
+      "eta": 2,
+      "instance_id": "ea0fa73c76337bc8bd51662e57a9748272822ed41ad04edc58665d4e1af38d43",
+      "profile": "medium",
+      "ring": {
+        "degree": 8,
+        "modulus": 97,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          89,
+          96,
+          65,
+          50,
+          41,
+          36,
+          62,
+          44
+        ],
+        [
+          49,
+          84,
+          46,
+          34,
+          6,
+          38,
+          58,
+          33
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": null,
+      "counters": {
+        "search_space_skipped": 152587890625,
+        "solver_backend": "python"
+      },
+      "parameters": {
+        "max_candidates": 1000000
+      },
+      "verification": {
+        "failure_reason": "solver returned no candidate",
+        "verified": false
+      }
+    },
+    "profile": "medium",
+    "seed": 1,
+    "solver": "exhaustive"
+  },
+  {
+    "eta": 1,
+    "input": {
+      "A": [
+        [
+          [
+            21,
+            175,
+            57,
+            171,
+            160,
+            143,
+            175,
+            18,
+            59,
+            5,
+            176,
+            109,
+            13,
+            89,
+            116,
+            73
+          ],
+          [
+            118,
+            152,
+            158,
+            14,
+            19,
+            105,
+            166,
+            179,
+            192,
+            78,
+            4,
+            125,
+            100,
+            5,
+            107,
+            149
+          ]
+        ],
+        [
+          [
+            77,
+            158,
+            103,
+            112,
+            22,
+            163,
+            173,
+            118,
+            4,
+            129,
+            30,
+            45,
+            77,
+            48,
+            89,
+            70
+          ],
+          [
+            181,
+            6,
+            64,
+            124,
+            148,
+            192,
+            183,
+            4,
+            168,
+            54,
+            93,
+            135,
+            174,
+            166,
+            89,
+            74
+          ]
+        ],
+        [
+          [
+            121,
+            92,
+            177,
+            151,
+            178,
+            20,
+            20,
+            152,
+            158,
+            120,
+            134,
+            61,
+            171,
+            179,
+            158,
+            81
+          ],
+          [
+            37,
+            188,
+            133,
+            115,
+            14,
+            97,
+            94,
+            89,
+            42,
+            68,
+            132,
+            41,
+            65,
+            114,
+            80,
+            122
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 3
+      },
+      "eta": 1,
+      "instance_id": "d943e05f1278d796ec769a649aa0d2d1c2fc4a75699c2fabc9e668b6ac906c2e",
+      "profile": "large",
+      "ring": {
+        "degree": 16,
+        "modulus": 193,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          160,
+          96,
+          10,
+          156,
+          120,
+          169,
+          67,
+          89,
+          184,
+          34,
+          188,
+          13,
+          2,
+          152,
+          165,
+          40
+        ],
+        [
+          147,
+          45,
+          68,
+          94,
+          38,
+          26,
+          154,
+          176,
+          137,
+          34,
+          131,
+          71,
+          86,
+          34,
+          165,
+          176
+        ],
+        [
+          26,
+          77,
+          53,
+          8,
+          108,
+          134,
+          99,
+          170,
+          184,
+          135,
+          67,
+          177,
+          169,
+          55,
+          83,
+          174
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            1,
+            1,
+            -1,
+            0,
+            -1,
+            1,
+            -1,
+            0,
+            -1,
+            0,
+            1,
+            -1,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            -1,
+            -1,
+            0,
+            0,
+            0,
+            1,
+            -1,
+            -1,
+            0,
+            0,
+            -1,
+            -1,
+            0,
+            1,
+            1,
+            -1
+          ]
+        ],
+        "s2": [
+          [
+            0,
+            1,
+            -1,
+            0,
+            -1,
+            -1,
+            -1,
+            -1,
+            0,
+            -1,
+            0,
+            1,
+            0,
+            0,
+            1,
+            -1
+          ],
+          [
+            0,
+            -1,
+            1,
+            0,
+            1,
+            -1,
+            1,
+            1,
+            0,
+            -1,
+            1,
+            0,
+            1,
+            0,
+            1,
+            -1
+          ],
+          [
+            0,
+            0,
+            -1,
+            0,
+            -1,
+            -1,
+            0,
+            -1,
+            1,
+            1,
+            1,
+            -1,
+            0,
+            1,
+            0,
+            0
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "enumeration_candidates": 1,
+        "lll_calls": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "cvp_method": "fast",
+        "delta": 0.99,
+        "max_basis_dimension": 128,
+        "max_eta2_basis_dimension": 64
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 1,
+        "norm_squared": 50,
+        "verified": true
+      }
+    },
+    "profile": "large",
+    "seed": 0,
+    "solver": "primal-lll"
+  },
+  {
+    "eta": 1,
+    "input": {
+      "A": [
+        [
+          [
+            21,
+            175,
+            57,
+            171,
+            160,
+            143,
+            175,
+            18,
+            59,
+            5,
+            176,
+            109,
+            13,
+            89,
+            116,
+            73
+          ],
+          [
+            118,
+            152,
+            158,
+            14,
+            19,
+            105,
+            166,
+            179,
+            192,
+            78,
+            4,
+            125,
+            100,
+            5,
+            107,
+            149
+          ]
+        ],
+        [
+          [
+            77,
+            158,
+            103,
+            112,
+            22,
+            163,
+            173,
+            118,
+            4,
+            129,
+            30,
+            45,
+            77,
+            48,
+            89,
+            70
+          ],
+          [
+            181,
+            6,
+            64,
+            124,
+            148,
+            192,
+            183,
+            4,
+            168,
+            54,
+            93,
+            135,
+            174,
+            166,
+            89,
+            74
+          ]
+        ],
+        [
+          [
+            121,
+            92,
+            177,
+            151,
+            178,
+            20,
+            20,
+            152,
+            158,
+            120,
+            134,
+            61,
+            171,
+            179,
+            158,
+            81
+          ],
+          [
+            37,
+            188,
+            133,
+            115,
+            14,
+            97,
+            94,
+            89,
+            42,
+            68,
+            132,
+            41,
+            65,
+            114,
+            80,
+            122
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 3
+      },
+      "eta": 1,
+      "instance_id": "d943e05f1278d796ec769a649aa0d2d1c2fc4a75699c2fabc9e668b6ac906c2e",
+      "profile": "large",
+      "ring": {
+        "degree": 16,
+        "modulus": 193,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          160,
+          96,
+          10,
+          156,
+          120,
+          169,
+          67,
+          89,
+          184,
+          34,
+          188,
+          13,
+          2,
+          152,
+          165,
+          40
+        ],
+        [
+          147,
+          45,
+          68,
+          94,
+          38,
+          26,
+          154,
+          176,
+          137,
+          34,
+          131,
+          71,
+          86,
+          34,
+          165,
+          176
+        ],
+        [
+          26,
+          77,
+          53,
+          8,
+          108,
+          134,
+          99,
+          170,
+          184,
+          135,
+          67,
+          177,
+          169,
+          55,
+          83,
+          174
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            1,
+            1,
+            -1,
+            0,
+            -1,
+            1,
+            -1,
+            0,
+            -1,
+            0,
+            1,
+            -1,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            -1,
+            -1,
+            0,
+            0,
+            0,
+            1,
+            -1,
+            -1,
+            0,
+            0,
+            -1,
+            -1,
+            0,
+            1,
+            1,
+            -1
+          ]
+        ],
+        "s2": [
+          [
+            0,
+            1,
+            -1,
+            0,
+            -1,
+            -1,
+            -1,
+            -1,
+            0,
+            -1,
+            0,
+            1,
+            0,
+            0,
+            1,
+            -1
+          ],
+          [
+            0,
+            -1,
+            1,
+            0,
+            1,
+            -1,
+            1,
+            1,
+            0,
+            -1,
+            1,
+            0,
+            1,
+            0,
+            1,
+            -1
+          ],
+          [
+            0,
+            0,
+            -1,
+            0,
+            -1,
+            -1,
+            0,
+            -1,
+            1,
+            1,
+            1,
+            -1,
+            0,
+            1,
+            0,
+            0
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "babai_candidates": 3,
+        "bkz_block_size": 12,
+        "bkz_calls": 1,
+        "bkz_tours_requested": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "block_size": 12,
+        "decoder": "babai",
+        "guess_coefficients": 1,
+        "max_basis_dimension": 128,
+        "max_loops": 1
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 1,
+        "norm_squared": 50,
+        "verified": true
+      }
+    },
+    "profile": "large",
+    "seed": 0,
+    "solver": "hybrid-bdd"
+  },
+  {
+    "eta": 1,
+    "input": {
+      "A": [
+        [
+          [
+            21,
+            175,
+            57,
+            171,
+            160,
+            143,
+            175,
+            18,
+            59,
+            5,
+            176,
+            109,
+            13,
+            89,
+            116,
+            73
+          ],
+          [
+            118,
+            152,
+            158,
+            14,
+            19,
+            105,
+            166,
+            179,
+            192,
+            78,
+            4,
+            125,
+            100,
+            5,
+            107,
+            149
+          ]
+        ],
+        [
+          [
+            77,
+            158,
+            103,
+            112,
+            22,
+            163,
+            173,
+            118,
+            4,
+            129,
+            30,
+            45,
+            77,
+            48,
+            89,
+            70
+          ],
+          [
+            181,
+            6,
+            64,
+            124,
+            148,
+            192,
+            183,
+            4,
+            168,
+            54,
+            93,
+            135,
+            174,
+            166,
+            89,
+            74
+          ]
+        ],
+        [
+          [
+            121,
+            92,
+            177,
+            151,
+            178,
+            20,
+            20,
+            152,
+            158,
+            120,
+            134,
+            61,
+            171,
+            179,
+            158,
+            81
+          ],
+          [
+            37,
+            188,
+            133,
+            115,
+            14,
+            97,
+            94,
+            89,
+            42,
+            68,
+            132,
+            41,
+            65,
+            114,
+            80,
+            122
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 3
+      },
+      "eta": 1,
+      "instance_id": "d943e05f1278d796ec769a649aa0d2d1c2fc4a75699c2fabc9e668b6ac906c2e",
+      "profile": "large",
+      "ring": {
+        "degree": 16,
+        "modulus": 193,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          160,
+          96,
+          10,
+          156,
+          120,
+          169,
+          67,
+          89,
+          184,
+          34,
+          188,
+          13,
+          2,
+          152,
+          165,
+          40
+        ],
+        [
+          147,
+          45,
+          68,
+          94,
+          38,
+          26,
+          154,
+          176,
+          137,
+          34,
+          131,
+          71,
+          86,
+          34,
+          165,
+          176
+        ],
+        [
+          26,
+          77,
+          53,
+          8,
+          108,
+          134,
+          99,
+          170,
+          184,
+          135,
+          67,
+          177,
+          169,
+          55,
+          83,
+          174
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": null,
+      "counters": {
+        "search_space_skipped": 1853020188851841,
+        "solver_backend": "python"
+      },
+      "parameters": {
+        "max_candidates": 1000000
+      },
+      "verification": {
+        "failure_reason": "solver returned no candidate",
+        "verified": false
+      }
+    },
+    "profile": "large",
+    "seed": 0,
+    "solver": "exhaustive"
+  },
+  {
+    "eta": 1,
+    "input": {
+      "A": [
+        [
+          [
+            127,
+            64,
+            40,
+            154,
+            97,
+            27,
+            76,
+            11,
+            164,
+            17,
+            35,
+            22,
+            80,
+            61,
+            41,
+            54
+          ],
+          [
+            156,
+            96,
+            100,
+            191,
+            150,
+            165,
+            2,
+            37,
+            26,
+            61,
+            75,
+            92,
+            7,
+            16,
+            24,
+            164
+          ]
+        ],
+        [
+          [
+            66,
+            55,
+            64,
+            13,
+            126,
+            21,
+            147,
+            4,
+            165,
+            3,
+            184,
+            124,
+            131,
+            163,
+            147,
+            23
+          ],
+          [
+            10,
+            170,
+            36,
+            36,
+            95,
+            20,
+            145,
+            86,
+            18,
+            121,
+            79,
+            13,
+            73,
+            19,
+            76,
+            138
+          ]
+        ],
+        [
+          [
+            155,
+            63,
+            36,
+            178,
+            65,
+            47,
+            38,
+            1,
+            75,
+            163,
+            118,
+            191,
+            187,
+            28,
+            3,
+            143
+          ],
+          [
+            34,
+            102,
+            66,
+            1,
+            121,
+            47,
+            162,
+            7,
+            31,
+            64,
+            17,
+            52,
+            95,
+            114,
+            79,
+            70
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 3
+      },
+      "eta": 1,
+      "instance_id": "5a43baff0f9b5f911ffc92bf1ce04486e4d73120a880546124f6f07ef659f995",
+      "profile": "large",
+      "ring": {
+        "degree": 16,
+        "modulus": 193,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          102,
+          125,
+          102,
+          3,
+          89,
+          10,
+          35,
+          45,
+          79,
+          49,
+          156,
+          190,
+          61,
+          88,
+          33,
+          192
+        ],
+        [
+          145,
+          126,
+          47,
+          47,
+          184,
+          178,
+          152,
+          28,
+          183,
+          28,
+          10,
+          72,
+          190,
+          35,
+          187,
+          14
+        ],
+        [
+          0,
+          18,
+          159,
+          61,
+          61,
+          176,
+          135,
+          80,
+          79,
+          159,
+          107,
+          110,
+          191,
+          140,
+          134,
+          76
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            0,
+            1,
+            -1,
+            0,
+            1,
+            0,
+            1,
+            0,
+            -1,
+            1,
+            -1,
+            0,
+            -1,
+            1,
+            1,
+            1
+          ],
+          [
+            -1,
+            0,
+            0,
+            -1,
+            -1,
+            -1,
+            0,
+            -1,
+            0,
+            -1,
+            0,
+            -1,
+            1,
+            -1,
+            1,
+            0
+          ]
+        ],
+        "s2": [
+          [
+            -1,
+            0,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            0,
+            0,
+            -1,
+            0,
+            1,
+            1,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            -1,
+            -1,
+            1,
+            0,
+            1,
+            0,
+            -1,
+            0,
+            -1,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            -1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            -1,
+            1,
+            0,
+            1,
+            0,
+            0,
+            -1,
+            0,
+            -1
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "enumeration_candidates": 1,
+        "lll_calls": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "cvp_method": "fast",
+        "delta": 0.99,
+        "max_basis_dimension": 128,
+        "max_eta2_basis_dimension": 64
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 1,
+        "norm_squared": 46,
+        "verified": true
+      }
+    },
+    "profile": "large",
+    "seed": 1,
+    "solver": "primal-lll"
+  },
+  {
+    "eta": 1,
+    "input": {
+      "A": [
+        [
+          [
+            127,
+            64,
+            40,
+            154,
+            97,
+            27,
+            76,
+            11,
+            164,
+            17,
+            35,
+            22,
+            80,
+            61,
+            41,
+            54
+          ],
+          [
+            156,
+            96,
+            100,
+            191,
+            150,
+            165,
+            2,
+            37,
+            26,
+            61,
+            75,
+            92,
+            7,
+            16,
+            24,
+            164
+          ]
+        ],
+        [
+          [
+            66,
+            55,
+            64,
+            13,
+            126,
+            21,
+            147,
+            4,
+            165,
+            3,
+            184,
+            124,
+            131,
+            163,
+            147,
+            23
+          ],
+          [
+            10,
+            170,
+            36,
+            36,
+            95,
+            20,
+            145,
+            86,
+            18,
+            121,
+            79,
+            13,
+            73,
+            19,
+            76,
+            138
+          ]
+        ],
+        [
+          [
+            155,
+            63,
+            36,
+            178,
+            65,
+            47,
+            38,
+            1,
+            75,
+            163,
+            118,
+            191,
+            187,
+            28,
+            3,
+            143
+          ],
+          [
+            34,
+            102,
+            66,
+            1,
+            121,
+            47,
+            162,
+            7,
+            31,
+            64,
+            17,
+            52,
+            95,
+            114,
+            79,
+            70
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 3
+      },
+      "eta": 1,
+      "instance_id": "5a43baff0f9b5f911ffc92bf1ce04486e4d73120a880546124f6f07ef659f995",
+      "profile": "large",
+      "ring": {
+        "degree": 16,
+        "modulus": 193,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          102,
+          125,
+          102,
+          3,
+          89,
+          10,
+          35,
+          45,
+          79,
+          49,
+          156,
+          190,
+          61,
+          88,
+          33,
+          192
+        ],
+        [
+          145,
+          126,
+          47,
+          47,
+          184,
+          178,
+          152,
+          28,
+          183,
+          28,
+          10,
+          72,
+          190,
+          35,
+          187,
+          14
+        ],
+        [
+          0,
+          18,
+          159,
+          61,
+          61,
+          176,
+          135,
+          80,
+          79,
+          159,
+          107,
+          110,
+          191,
+          140,
+          134,
+          76
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            0,
+            1,
+            -1,
+            0,
+            1,
+            0,
+            1,
+            0,
+            -1,
+            1,
+            -1,
+            0,
+            -1,
+            1,
+            1,
+            1
+          ],
+          [
+            -1,
+            0,
+            0,
+            -1,
+            -1,
+            -1,
+            0,
+            -1,
+            0,
+            -1,
+            0,
+            -1,
+            1,
+            -1,
+            1,
+            0
+          ]
+        ],
+        "s2": [
+          [
+            -1,
+            0,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            0,
+            0,
+            -1,
+            0,
+            1,
+            1,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            -1,
+            -1,
+            1,
+            0,
+            1,
+            0,
+            -1,
+            0,
+            -1,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            -1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            -1,
+            1,
+            0,
+            1,
+            0,
+            0,
+            -1,
+            0,
+            -1
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "babai_candidates": 1,
+        "bkz_block_size": 12,
+        "bkz_calls": 1,
+        "bkz_tours_requested": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "block_size": 12,
+        "decoder": "babai",
+        "guess_coefficients": 1,
+        "max_basis_dimension": 128,
+        "max_loops": 1
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 1,
+        "norm_squared": 46,
+        "verified": true
+      }
+    },
+    "profile": "large",
+    "seed": 1,
+    "solver": "hybrid-bdd"
+  },
+  {
+    "eta": 1,
+    "input": {
+      "A": [
+        [
+          [
+            127,
+            64,
+            40,
+            154,
+            97,
+            27,
+            76,
+            11,
+            164,
+            17,
+            35,
+            22,
+            80,
+            61,
+            41,
+            54
+          ],
+          [
+            156,
+            96,
+            100,
+            191,
+            150,
+            165,
+            2,
+            37,
+            26,
+            61,
+            75,
+            92,
+            7,
+            16,
+            24,
+            164
+          ]
+        ],
+        [
+          [
+            66,
+            55,
+            64,
+            13,
+            126,
+            21,
+            147,
+            4,
+            165,
+            3,
+            184,
+            124,
+            131,
+            163,
+            147,
+            23
+          ],
+          [
+            10,
+            170,
+            36,
+            36,
+            95,
+            20,
+            145,
+            86,
+            18,
+            121,
+            79,
+            13,
+            73,
+            19,
+            76,
+            138
+          ]
+        ],
+        [
+          [
+            155,
+            63,
+            36,
+            178,
+            65,
+            47,
+            38,
+            1,
+            75,
+            163,
+            118,
+            191,
+            187,
+            28,
+            3,
+            143
+          ],
+          [
+            34,
+            102,
+            66,
+            1,
+            121,
+            47,
+            162,
+            7,
+            31,
+            64,
+            17,
+            52,
+            95,
+            114,
+            79,
+            70
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 3
+      },
+      "eta": 1,
+      "instance_id": "5a43baff0f9b5f911ffc92bf1ce04486e4d73120a880546124f6f07ef659f995",
+      "profile": "large",
+      "ring": {
+        "degree": 16,
+        "modulus": 193,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          102,
+          125,
+          102,
+          3,
+          89,
+          10,
+          35,
+          45,
+          79,
+          49,
+          156,
+          190,
+          61,
+          88,
+          33,
+          192
+        ],
+        [
+          145,
+          126,
+          47,
+          47,
+          184,
+          178,
+          152,
+          28,
+          183,
+          28,
+          10,
+          72,
+          190,
+          35,
+          187,
+          14
+        ],
+        [
+          0,
+          18,
+          159,
+          61,
+          61,
+          176,
+          135,
+          80,
+          79,
+          159,
+          107,
+          110,
+          191,
+          140,
+          134,
+          76
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": null,
+      "counters": {
+        "search_space_skipped": 1853020188851841,
+        "solver_backend": "python"
+      },
+      "parameters": {
+        "max_candidates": 1000000
+      },
+      "verification": {
+        "failure_reason": "solver returned no candidate",
+        "verified": false
+      }
+    },
+    "profile": "large",
+    "seed": 1,
+    "solver": "exhaustive"
+  },
+  {
+    "eta": 2,
+    "input": {
+      "A": [
+        [
+          [
+            57,
+            115,
+            154,
+            183,
+            131,
+            146,
+            31,
+            10,
+            186,
+            46,
+            53,
+            46,
+            163,
+            140,
+            77,
+            113
+          ],
+          [
+            192,
+            25,
+            192,
+            111,
+            24,
+            122,
+            22,
+            103,
+            80,
+            101,
+            55,
+            32,
+            114,
+            41,
+            50,
+            27
+          ]
+        ],
+        [
+          [
+            1,
+            104,
+            18,
+            134,
+            45,
+            185,
+            141,
+            12,
+            116,
+            75,
+            149,
+            101,
+            105,
+            152,
+            53,
+            112
+          ],
+          [
+            155,
+            190,
+            166,
+            89,
+            162,
+            115,
+            77,
+            112,
+            33,
+            169,
+            44,
+            118,
+            192,
+            133,
+            174,
+            188
+          ]
+        ],
+        [
+          [
+            104,
+            83,
+            177,
+            191,
+            93,
+            102,
+            103,
+            91,
+            114,
+            69,
+            132,
+            185,
+            168,
+            16,
+            91,
+            175
+          ],
+          [
+            40,
+            54,
+            28,
+            44,
+            122,
+            23,
+            9,
+            164,
+            92,
+            1,
+            56,
+            63,
+            62,
+            178,
+            37,
+            160
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 3
+      },
+      "eta": 2,
+      "instance_id": "af672c55a9dcc6f16438f892e2d6109da95ac9bebf43741a42bd38c0b42eb58a",
+      "profile": "large",
+      "ring": {
+        "degree": 16,
+        "modulus": 193,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          74,
+          174,
+          129,
+          84,
+          131,
+          79,
+          55,
+          140,
+          33,
+          144,
+          156,
+          162,
+          17,
+          109,
+          78,
+          27
+        ],
+        [
+          5,
+          120,
+          19,
+          108,
+          20,
+          5,
+          172,
+          124,
+          73,
+          83,
+          40,
+          159,
+          143,
+          109,
+          83,
+          15
+        ],
+        [
+          23,
+          82,
+          172,
+          130,
+          68,
+          43,
+          133,
+          36,
+          4,
+          10,
+          79,
+          58,
+          16,
+          63,
+          125,
+          175
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": null,
+      "counters": {
+        "difficulty_cap_exceeded": "eta=2,dimension=80",
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "cvp_method": "fast",
+        "delta": 0.99,
+        "max_basis_dimension": 128,
+        "max_eta2_basis_dimension": 64
+      },
+      "verification": {
+        "failure_reason": "solver returned no candidate",
+        "verified": false
+      }
+    },
+    "profile": "large",
+    "seed": 0,
+    "solver": "primal-lll"
+  },
+  {
+    "eta": 2,
+    "input": {
+      "A": [
+        [
+          [
+            57,
+            115,
+            154,
+            183,
+            131,
+            146,
+            31,
+            10,
+            186,
+            46,
+            53,
+            46,
+            163,
+            140,
+            77,
+            113
+          ],
+          [
+            192,
+            25,
+            192,
+            111,
+            24,
+            122,
+            22,
+            103,
+            80,
+            101,
+            55,
+            32,
+            114,
+            41,
+            50,
+            27
+          ]
+        ],
+        [
+          [
+            1,
+            104,
+            18,
+            134,
+            45,
+            185,
+            141,
+            12,
+            116,
+            75,
+            149,
+            101,
+            105,
+            152,
+            53,
+            112
+          ],
+          [
+            155,
+            190,
+            166,
+            89,
+            162,
+            115,
+            77,
+            112,
+            33,
+            169,
+            44,
+            118,
+            192,
+            133,
+            174,
+            188
+          ]
+        ],
+        [
+          [
+            104,
+            83,
+            177,
+            191,
+            93,
+            102,
+            103,
+            91,
+            114,
+            69,
+            132,
+            185,
+            168,
+            16,
+            91,
+            175
+          ],
+          [
+            40,
+            54,
+            28,
+            44,
+            122,
+            23,
+            9,
+            164,
+            92,
+            1,
+            56,
+            63,
+            62,
+            178,
+            37,
+            160
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 3
+      },
+      "eta": 2,
+      "instance_id": "af672c55a9dcc6f16438f892e2d6109da95ac9bebf43741a42bd38c0b42eb58a",
+      "profile": "large",
+      "ring": {
+        "degree": 16,
+        "modulus": 193,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          74,
+          174,
+          129,
+          84,
+          131,
+          79,
+          55,
+          140,
+          33,
+          144,
+          156,
+          162,
+          17,
+          109,
+          78,
+          27
+        ],
+        [
+          5,
+          120,
+          19,
+          108,
+          20,
+          5,
+          172,
+          124,
+          73,
+          83,
+          40,
+          159,
+          143,
+          109,
+          83,
+          15
+        ],
+        [
+          23,
+          82,
+          172,
+          130,
+          68,
+          43,
+          133,
+          36,
+          4,
+          10,
+          79,
+          58,
+          16,
+          63,
+          125,
+          175
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": {
+        "s1": [
+          [
+            1,
+            2,
+            2,
+            1,
+            2,
+            -2,
+            2,
+            -1,
+            0,
+            2,
+            -1,
+            -1,
+            -2,
+            -2,
+            -1,
+            -1
+          ],
+          [
+            2,
+            -2,
+            2,
+            0,
+            0,
+            1,
+            2,
+            -2,
+            1,
+            1,
+            -1,
+            1,
+            -1,
+            2,
+            2,
+            -2
+          ]
+        ],
+        "s2": [
+          [
+            1,
+            1,
+            -2,
+            1,
+            -1,
+            0,
+            2,
+            -1,
+            0,
+            -2,
+            -2,
+            0,
+            0,
+            -2,
+            0,
+            1
+          ],
+          [
+            2,
+            1,
+            1,
+            0,
+            -2,
+            -1,
+            -1,
+            -2,
+            2,
+            2,
+            2,
+            -1,
+            2,
+            0,
+            2,
+            -1
+          ],
+          [
+            1,
+            1,
+            -1,
+            -2,
+            -1,
+            -2,
+            0,
+            -1,
+            2,
+            -2,
+            2,
+            -1,
+            1,
+            -1,
+            0,
+            -2
+          ]
+        ],
+        "tag": "recovered_secret"
+      },
+      "counters": {
+        "babai_candidates": 3,
+        "bkz_block_size": 12,
+        "bkz_calls": 1,
+        "bkz_tours_requested": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "block_size": 12,
+        "decoder": "babai",
+        "guess_coefficients": 1,
+        "max_basis_dimension": 128,
+        "max_loops": 1
+      },
+      "verification": {
+        "failure_reason": null,
+        "norm_infinity": 2,
+        "norm_squared": 173,
+        "verified": true
+      }
+    },
+    "profile": "large",
+    "seed": 0,
+    "solver": "hybrid-bdd"
+  },
+  {
+    "eta": 2,
+    "input": {
+      "A": [
+        [
+          [
+            57,
+            115,
+            154,
+            183,
+            131,
+            146,
+            31,
+            10,
+            186,
+            46,
+            53,
+            46,
+            163,
+            140,
+            77,
+            113
+          ],
+          [
+            192,
+            25,
+            192,
+            111,
+            24,
+            122,
+            22,
+            103,
+            80,
+            101,
+            55,
+            32,
+            114,
+            41,
+            50,
+            27
+          ]
+        ],
+        [
+          [
+            1,
+            104,
+            18,
+            134,
+            45,
+            185,
+            141,
+            12,
+            116,
+            75,
+            149,
+            101,
+            105,
+            152,
+            53,
+            112
+          ],
+          [
+            155,
+            190,
+            166,
+            89,
+            162,
+            115,
+            77,
+            112,
+            33,
+            169,
+            44,
+            118,
+            192,
+            133,
+            174,
+            188
+          ]
+        ],
+        [
+          [
+            104,
+            83,
+            177,
+            191,
+            93,
+            102,
+            103,
+            91,
+            114,
+            69,
+            132,
+            185,
+            168,
+            16,
+            91,
+            175
+          ],
+          [
+            40,
+            54,
+            28,
+            44,
+            122,
+            23,
+            9,
+            164,
+            92,
+            1,
+            56,
+            63,
+            62,
+            178,
+            37,
+            160
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 3
+      },
+      "eta": 2,
+      "instance_id": "af672c55a9dcc6f16438f892e2d6109da95ac9bebf43741a42bd38c0b42eb58a",
+      "profile": "large",
+      "ring": {
+        "degree": 16,
+        "modulus": 193,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          74,
+          174,
+          129,
+          84,
+          131,
+          79,
+          55,
+          140,
+          33,
+          144,
+          156,
+          162,
+          17,
+          109,
+          78,
+          27
+        ],
+        [
+          5,
+          120,
+          19,
+          108,
+          20,
+          5,
+          172,
+          124,
+          73,
+          83,
+          40,
+          159,
+          143,
+          109,
+          83,
+          15
+        ],
+        [
+          23,
+          82,
+          172,
+          130,
+          68,
+          43,
+          133,
+          36,
+          4,
+          10,
+          79,
+          58,
+          16,
+          63,
+          125,
+          175
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": null,
+      "counters": {
+        "search_space_skipped": 23283064365386962890625,
+        "solver_backend": "python"
+      },
+      "parameters": {
+        "max_candidates": 1000000
+      },
+      "verification": {
+        "failure_reason": "solver returned no candidate",
+        "verified": false
+      }
+    },
+    "profile": "large",
+    "seed": 0,
+    "solver": "exhaustive"
+  },
+  {
+    "eta": 2,
+    "input": {
+      "A": [
+        [
+          [
+            123,
+            94,
+            16,
+            170,
+            1,
+            139,
+            182,
+            87,
+            60,
+            10,
+            11,
+            13,
+            161,
+            9,
+            67,
+            105
+          ],
+          [
+            96,
+            156,
+            38,
+            179,
+            172,
+            63,
+            80,
+            42,
+            49,
+            107,
+            4,
+            114,
+            167,
+            172,
+            113,
+            28
+          ]
+        ],
+        [
+          [
+            27,
+            95,
+            35,
+            79,
+            107,
+            131,
+            76,
+            158,
+            150,
+            64,
+            2,
+            90,
+            97,
+            178,
+            32,
+            179
+          ],
+          [
+            65,
+            165,
+            177,
+            48,
+            56,
+            130,
+            135,
+            171,
+            177,
+            32,
+            108,
+            183,
+            15,
+            62,
+            181,
+            174
+          ]
+        ],
+        [
+          [
+            88,
+            89,
+            161,
+            170,
+            82,
+            189,
+            53,
+            105,
+            115,
+            73,
+            53,
+            159,
+            188,
+            58,
+            23,
+            81
+          ],
+          [
+            28,
+            2,
+            24,
+            35,
+            108,
+            183,
+            129,
+            87,
+            31,
+            106,
+            13,
+            72,
+            69,
+            164,
+            15,
+            112
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 3
+      },
+      "eta": 2,
+      "instance_id": "49fd4bf0094aa0f2ba6b6daba095433ae686dc164ee5450961a0395851b40223",
+      "profile": "large",
+      "ring": {
+        "degree": 16,
+        "modulus": 193,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          183,
+          127,
+          68,
+          14,
+          51,
+          25,
+          36,
+          144,
+          82,
+          62,
+          93,
+          39,
+          52,
+          119,
+          167,
+          128
+        ],
+        [
+          139,
+          106,
+          54,
+          38,
+          148,
+          133,
+          111,
+          5,
+          117,
+          127,
+          10,
+          21,
+          124,
+          7,
+          136,
+          119
+        ],
+        [
+          163,
+          138,
+          53,
+          19,
+          53,
+          163,
+          13,
+          67,
+          31,
+          32,
+          135,
+          53,
+          171,
+          143,
+          124,
+          60
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": null,
+      "counters": {
+        "difficulty_cap_exceeded": "eta=2,dimension=80",
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "cvp_method": "fast",
+        "delta": 0.99,
+        "max_basis_dimension": 128,
+        "max_eta2_basis_dimension": 64
+      },
+      "verification": {
+        "failure_reason": "solver returned no candidate",
+        "verified": false
+      }
+    },
+    "profile": "large",
+    "seed": 1,
+    "solver": "primal-lll"
+  },
+  {
+    "eta": 2,
+    "input": {
+      "A": [
+        [
+          [
+            123,
+            94,
+            16,
+            170,
+            1,
+            139,
+            182,
+            87,
+            60,
+            10,
+            11,
+            13,
+            161,
+            9,
+            67,
+            105
+          ],
+          [
+            96,
+            156,
+            38,
+            179,
+            172,
+            63,
+            80,
+            42,
+            49,
+            107,
+            4,
+            114,
+            167,
+            172,
+            113,
+            28
+          ]
+        ],
+        [
+          [
+            27,
+            95,
+            35,
+            79,
+            107,
+            131,
+            76,
+            158,
+            150,
+            64,
+            2,
+            90,
+            97,
+            178,
+            32,
+            179
+          ],
+          [
+            65,
+            165,
+            177,
+            48,
+            56,
+            130,
+            135,
+            171,
+            177,
+            32,
+            108,
+            183,
+            15,
+            62,
+            181,
+            174
+          ]
+        ],
+        [
+          [
+            88,
+            89,
+            161,
+            170,
+            82,
+            189,
+            53,
+            105,
+            115,
+            73,
+            53,
+            159,
+            188,
+            58,
+            23,
+            81
+          ],
+          [
+            28,
+            2,
+            24,
+            35,
+            108,
+            183,
+            129,
+            87,
+            31,
+            106,
+            13,
+            72,
+            69,
+            164,
+            15,
+            112
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 3
+      },
+      "eta": 2,
+      "instance_id": "49fd4bf0094aa0f2ba6b6daba095433ae686dc164ee5450961a0395851b40223",
+      "profile": "large",
+      "ring": {
+        "degree": 16,
+        "modulus": 193,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          183,
+          127,
+          68,
+          14,
+          51,
+          25,
+          36,
+          144,
+          82,
+          62,
+          93,
+          39,
+          52,
+          119,
+          167,
+          128
+        ],
+        [
+          139,
+          106,
+          54,
+          38,
+          148,
+          133,
+          111,
+          5,
+          117,
+          127,
+          10,
+          21,
+          124,
+          7,
+          136,
+          119
+        ],
+        [
+          163,
+          138,
+          53,
+          19,
+          53,
+          163,
+          13,
+          67,
+          31,
+          32,
+          135,
+          53,
+          171,
+          143,
+          124,
+          60
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": null,
+      "counters": {
+        "babai_candidates": 5,
+        "bkz_block_size": 12,
+        "bkz_calls": 1,
+        "bkz_tours_requested": 1,
+        "solver_backend": "fpylll"
+      },
+      "parameters": {
+        "block_size": 12,
+        "decoder": "babai",
+        "guess_coefficients": 1,
+        "max_basis_dimension": 128,
+        "max_loops": 1
+      },
+      "verification": {
+        "failure_reason": "solver returned no candidate",
+        "verified": false
+      }
+    },
+    "profile": "large",
+    "seed": 1,
+    "solver": "hybrid-bdd"
+  },
+  {
+    "eta": 2,
+    "input": {
+      "A": [
+        [
+          [
+            123,
+            94,
+            16,
+            170,
+            1,
+            139,
+            182,
+            87,
+            60,
+            10,
+            11,
+            13,
+            161,
+            9,
+            67,
+            105
+          ],
+          [
+            96,
+            156,
+            38,
+            179,
+            172,
+            63,
+            80,
+            42,
+            49,
+            107,
+            4,
+            114,
+            167,
+            172,
+            113,
+            28
+          ]
+        ],
+        [
+          [
+            27,
+            95,
+            35,
+            79,
+            107,
+            131,
+            76,
+            158,
+            150,
+            64,
+            2,
+            90,
+            97,
+            178,
+            32,
+            179
+          ],
+          [
+            65,
+            165,
+            177,
+            48,
+            56,
+            130,
+            135,
+            171,
+            177,
+            32,
+            108,
+            183,
+            15,
+            62,
+            181,
+            174
+          ]
+        ],
+        [
+          [
+            88,
+            89,
+            161,
+            170,
+            82,
+            189,
+            53,
+            105,
+            115,
+            73,
+            53,
+            159,
+            188,
+            58,
+            23,
+            81
+          ],
+          [
+            28,
+            2,
+            24,
+            35,
+            108,
+            183,
+            129,
+            87,
+            31,
+            106,
+            13,
+            72,
+            69,
+            164,
+            15,
+            112
+          ]
+        ]
+      ],
+      "dimensions": {
+        "columns": 2,
+        "rows": 3
+      },
+      "eta": 2,
+      "instance_id": "49fd4bf0094aa0f2ba6b6daba095433ae686dc164ee5450961a0395851b40223",
+      "profile": "large",
+      "ring": {
+        "degree": 16,
+        "modulus": 193,
+        "polynomial": "x^n+1"
+      },
+      "schema_version": "2",
+      "study_version": "primitive-selection-v2",
+      "t": [
+        [
+          183,
+          127,
+          68,
+          14,
+          51,
+          25,
+          36,
+          144,
+          82,
+          62,
+          93,
+          39,
+          52,
+          119,
+          167,
+          128
+        ],
+        [
+          139,
+          106,
+          54,
+          38,
+          148,
+          133,
+          111,
+          5,
+          117,
+          127,
+          10,
+          21,
+          124,
+          7,
+          136,
+          119
+        ],
+        [
+          163,
+          138,
+          53,
+          19,
+          53,
+          163,
+          13,
+          67,
+          31,
+          32,
+          135,
+          53,
+          171,
+          143,
+          124,
+          60
+        ]
+      ],
+      "track": "mlwe"
+    },
+    "output": {
+      "candidate": null,
+      "counters": {
+        "search_space_skipped": 23283064365386962890625,
+        "solver_backend": "python"
+      },
+      "parameters": {
+        "max_candidates": 1000000
+      },
+      "verification": {
+        "failure_reason": "solver returned no candidate",
+        "verified": false
+      }
+    },
+    "profile": "large",
+    "seed": 1,
+    "solver": "exhaustive"
+  }
+]

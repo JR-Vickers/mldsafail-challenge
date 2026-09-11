@@ -1,0 +1,1 @@
+{"benchmark_version":"0.5.0","contestant_executions":800,"epoch_reference_executions":400,"independent_audits_match":true,"ranked_cases":100,"rankings_reproduce":true,"reference_self_interval":[1.0,1.0],"reference_self_score":1.0,"viability_check_executions":800}
