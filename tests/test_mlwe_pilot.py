@@ -1,4 +1,5 @@
 import argparse
+from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
 
@@ -41,6 +42,17 @@ def test_baseline_normalization_and_candidate_selection():
     invalid = record("invalid", .1, eligible=False)
     partial = record("partial", .01, complete=False)
     assert pilot.select_candidate([baseline, first, tied_later, invalid, partial]) == first
+
+
+def test_hypothesis_and_time_budget_enforcement():
+    now = datetime.now(timezone.utc)
+    baseline = {**record("baseline", 1.0, role="baseline"), "finished_utc": now.isoformat()}
+    pilot.enforce_budget([baseline] + [record(str(i), .9) for i in range(5)], now)
+    with pytest.raises(ValueError, match="six-hypothesis"):
+        pilot.enforce_budget([baseline] + [record(str(i), .9) for i in range(6)], now)
+    old = {**baseline, "finished_utc": (now - timedelta(hours=4)).isoformat()}
+    with pytest.raises(ValueError, match="four-hour"):
+        pilot.enforce_budget([old], now)
 
 
 def develop_args(tmp_path, output):

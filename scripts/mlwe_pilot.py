@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 import copy
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 import math
@@ -28,6 +28,8 @@ FINAL_ORDER = ((1, "reference"), (1, "candidate"), (2, "candidate"),
 PUBLIC_CASES = len(CHALLENGE_CELLS) * len(DEVELOPMENT_SEEDS)
 EXECUTIONS_PER_CASE = 4
 PUBLIC_EXECUTIONS = PUBLIC_CASES * EXECUTIONS_PER_CASE
+MAX_HYPOTHESES = 6
+OPTIMIZATION_BUDGET = timedelta(hours=4)
 SENSITIVE_KEYS = frozenset({
     "nonce", "secret", "secrets", "seed", "seeds", "candidate",
     "candidates", "stdout", "stderr", "stream", "streams", "records",
@@ -140,6 +142,18 @@ def select_candidate(records: list[dict[str, Any]]) -> dict[str, Any] | None:
     return winner
 
 
+def enforce_budget(records: list[dict[str, Any]], now: datetime) -> None:
+    baselines = [r for r in records if r.get("role") == "baseline" and r.get("complete")]
+    if len(baselines) != 1:
+        raise ValueError("optimization requires exactly one completed baseline")
+    attempts = [r for r in records if r.get("role") == "candidate"]
+    if len(attempts) >= MAX_HYPOTHESES:
+        raise ValueError("six-hypothesis optimization budget exhausted")
+    started = datetime.fromisoformat(baselines[0]["finished_utc"])
+    if now >= started + OPTIMIZATION_BUDGET:
+        raise ValueError("four-hour optimization budget expired")
+
+
 def classify_outcome(pair_scores: list[tuple[float, float]], eligible: bool = True,
                      complete: bool = True) -> str:
     if not complete:
@@ -175,6 +189,7 @@ def develop(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("contestant source identity changed")
     env = environment()
     if args.baseline_run is not None:
+        enforce_budget(read_jsonl(args.ledger), datetime.now(timezone.utc))
         baseline_manifest, baseline_rows = audited_public(args.baseline_run)
         if env != baseline_manifest["environment"]:
             raise ValueError("development environment changed from baseline")
@@ -266,11 +281,18 @@ def analyze_private(root: Path, reference_digest: str, candidate_digest: str) ->
         [(audited[(p, "reference")][2]["score"], audited[(p, "candidate")][2]["score"])
          for p in range(1, 4)], eligible)
     reference_scores = [audited[(p, "reference")][2]["score"] for p in range(1, 4)]
+    public_environment = {"image_id": epoch_manifest["environment"]["image_id"],
+                          "trusted_fingerprint": epoch_manifest["environment"]["trusted_fingerprint"],
+                          "artifact_digest": ev.sha(epoch_manifest["environment"]["artifacts"]),
+                          "architecture": epoch_manifest["environment"]["artifacts"]["architecture"],
+                          "python": epoch_manifest["environment"]["artifacts"]["python"],
+                          "packages": epoch_manifest["environment"]["artifacts"]["packages"]}
     return {"pilot_version": PILOT_VERSION, "benchmark_version": "0.5.0",
             "complete": True, "outcome": outcome,
             "provenance": {"epoch_id": epoch_manifest["id"],
                            "reference_source_digest": reference_digest,
                            "candidate_source_digest": candidate_digest,
+                           "environment": public_environment,
                            "final_order": [list(item) for item in FINAL_ORDER],
                            "analysis_reproductions": 2},
             "runs": runs, "pairs": pairs,
@@ -285,6 +307,8 @@ def sanitize_private_summary(value: dict[str, Any]) -> dict[str, Any]:
     allowed_top = {"pilot_version", "benchmark_version", "complete", "outcome", "provenance",
                    "runs", "pairs", "reference_score_spread", "interpretation", "adapter_note"}
     allowed_nested = {"epoch_id", "reference_source_digest", "candidate_source_digest", "final_order",
+                      "environment", "image_id", "trusted_fingerprint", "artifact_digest",
+                      "architecture", "python", "packages", "fpylll", "cysignals",
                       "analysis_reproductions", "pair", "role", "run_id", "eligible", "score",
                       "interval_95", "failures", "cells", "success", "timeout", "memory_failure",
                       "crash", "no_candidate", "applicability_cap", "invalid_answer", "mixed",
