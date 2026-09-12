@@ -9,3 +9,4 @@ build/
 docs/agent-briefs/
 *.egg-info/
 debug*
+.mlwe-pilot-private/
