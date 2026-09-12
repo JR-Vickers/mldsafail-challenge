@@ -2,6 +2,22 @@
 
 > This document is the single source of truth for the project. Future coding agents should be able to read it in isolation and understand what we are building, why, how the challenge works, what code they may edit, what code they must not touch, how to run experiments, and how to decide whether an improvement is real. If this document and another file disagree, this document wins and the disagreement should be treated as a bug to resolve.
 
+**Current status — 2026-09-12:** Primitive-selection research is complete: MLWE
+bounded recovery is selected and agent-approved. The opt-in local 0.5.0
+benchmark is implemented and has passed full acceptance. The next milestone is
+an agent optimization pilot, supported by measurement-stability checks, followed
+by hosted 0.5.0 integration and a small external pilot. Section 21 records this
+agenda and its acceptance criteria.
+
+**Version scope:** The detailed contracts, operation-count scoring, CLI, hosted
+architecture, and original phase notes below describe historical benchmark
+0.4.0 unless explicitly marked otherwise. For local 0.5.0, this plan adopts the
+[frozen MLWE specification](PRIMITIVE_SELECTION_SPEC.md),
+[local interface](MLWE_LOCAL.md), and
+[specification mapping](MLWE_SPEC_MAPPING.md). Do not apply historical 0.4.0
+scoring or solver-edit boundaries to the new contestant interface. Hosted
+services and historical scores remain 0.4.0 until a separate integration change.
+
 ---
 
 ## 1. Project Goal
@@ -46,7 +62,10 @@ The benchmark is a **research environment and optimization competition**, not a 
 
 ### Primary question
 
-What is the most operation-efficient way to solve the challenge problem defined in Section 5, and can we drive that cost down through iterative solver optimization?
+Can coding agents improve complete-solver efficiency on the frozen MLWE bounded
+recovery challenge through iterative solver optimization, with improvements
+verified on private cases? Local 0.5.0 measures normalized complete-worker CPU
+under its frozen scoring rules. Section 5 retains the historical 0.4.0 problem.
 
 ### Secondary questions
 
@@ -63,7 +82,11 @@ ML-DSA (Dilithium) security relies on the hardness of lattice problems (SIS, MSI
 2. **Enumeration** or **search** to find the specific short vector that satisfies the cryptographic relation.
 3. **Hybrid strategies** that combine reduction with enumeration.
 
-The current challenge isolates a **toy version of the lattice reduction step** on small integer lattices. This is a synthetic stand-in, not the real ML-DSA problem. The hope is that if we can make meaningful progress on the toy version, we learn something about which reduction techniques are most operation-efficient, which may translate to insight about the real problem.
+The selected 0.5.0 challenge uses small synthetic MLWE instances over polynomial
+rings and measures the complete recovery solver. Reduction is one possible
+component, not a required winning strategy. Historical 0.4.0 experiments used
+small integer modular systems. Neither benchmark establishes practical ML-DSA
+attack costs or transfer to production parameters.
 
 The relationship is **inspirational and methodological**, not a direct attack. We are not solving ML-DSA. We are building a controlled environment to study the hardness of a related lattice problem.
 
@@ -958,6 +981,115 @@ Keep derived calculations deterministic and testable. The leaderboard must deriv
 
 ## 21. Development Plan
 
+### Current completed milestones
+
+- **Primitive selection — complete.** The review agent approved MLWE bounded
+  recovery on 2026-09-10 after 960 development and 1,920 held-out cases. The
+  reviewed planted Module-SIS construction and derived-basis BKZ objective were
+  disqualified. See [decision and evidence](PRIMITIVE_SELECTION.md).
+- **Local 0.5.0 implementation — complete.** The opt-in `mldsafail-mlwe` CLI
+  supports private epoch creation, disposable contestant execution, independent
+  audits, and frozen scoring/ranking. Starter solvers and usage are documented
+  in [MLWE_LOCAL.md](MLWE_LOCAL.md).
+- **Local acceptance — complete.** Committed evidence records 240 passing
+  tests, eight separately passing Docker tests, two clean-build reproductions,
+  and 2,000 executions covering epoch viability and two contestants. Audits,
+  repeated rankings, resource failures, isolation, and interrupted partial runs
+  were checked. See [acceptance evidence](acceptance/mlwe-v050/README.md).
+- **Hosted 0.5.0 — pending.** Existing hosted infrastructure remains on 0.4.0.
+  Local acceptance is not evidence of a deployed 0.5.0 service.
+
+### Next agenda, in priority order
+
+#### 1. Agent optimization pilot
+
+**Status:** Pending; the next primary milestone.
+
+Give an optimization agent the documented 0.5.0 contestant interface, starter
+solver, public development cases, and a fixed development budget recorded
+before the pilot starts. Keep evaluator evidence and private seeds inaccessible
+to the agent. Record each hypothesis, source revision, validation result,
+resource measurement, and successful or failed experiment. Optimize contestant
+code without changing the frozen generator, verifier, profiles, or scoring.
+
+Select and commit the final candidate using development evidence, then evaluate
+it and an unchanged reference contestant on the same private epoch and idle
+host. Treat that evaluation as held-out evidence; do not tune against its cases.
+Interpret small score differences using the stability study below.
+
+**Exit criterion:** An auditable sequence of experiments and a private final
+comparison establish whether the agent improved the baseline, including
+correctness, uncertainty, and failure penalties. A documented negative result
+also completes the pilot; it must not be relabeled as an improvement.
+
+#### 2. Measurement-stability study
+
+**Status:** Pending; complete before claiming a small pilot gain.
+
+Repeat identical committed reference submissions sequentially on the same idle
+host and private epoch. Record the repetition count and host conditions before
+collecting results. Report score spread, systematic offsets, case-level timing
+variation, and how observed variation compares with the frozen 1% tie rule and
+bootstrap intervals. Repeated audits establish deterministic analysis, not
+repeatable execution timing.
+
+The acceptance reference contestant scored 1.022289 against the frozen table's
+1.000000. Its adapter/loading work and fresh measurements differ from table
+self-comparison; this offset alone does not establish random measurement noise.
+Investigate those contributions explicitly.
+
+**Exit criterion:** A reproducible report states which improvement claims the
+measurement supports and identifies any unresolved bias or instability. Keep
+the frozen score and tie rules intact. Any recommended scoring/environment
+change requires a separately reviewed version or epoch, as specified by the
+frozen contract.
+
+#### 3. Hosted 0.5.0 submissions and leaderboard
+
+**Status:** Pending; build on the local acceptance evidence and pilot findings.
+
+Integrate versioned MLWE submissions with the queue, private epoch/reference
+lifecycle, isolated evaluator, independently audited result ingestion, status
+API, and leaderboard. Keep 0.4.0 history separate and rank only compatible
+0.5.0 epoch/environment cohorts. Publish sanitized summaries without private
+seeds, nonce, candidates, or evaluator filesystem paths.
+
+Before accepting untrusted public submissions, review the local implementation's
+cooperative timing assumptions and establish an enforceable hosted measurement
+boundary. Container isolation alone does not validate contestant-controlled
+timing. Document the supported worker architecture and dependency lock; the
+current local acceptance covers Linux ARM64.
+
+**Exit criterion:** A staging submission flows from authentication and immutable
+source acquisition through isolated execution and audit to the correct versioned
+leaderboard. Integration tests cover invalid candidates, timeout/crash/cancel
+paths, private-data exclusion, incompatible-epoch rejection, and historical
+0.4.0 behavior. Deployment and recovery procedures are verified in staging.
+
+#### 4. Small external pilot
+
+**Status:** Pending; follows hosted acceptance.
+
+Publish starter solvers, installation instructions, the frozen problem and score
+definitions, allowed contestant changes, and submission/status instructions.
+Run a limited pilot with a few participants and record onboarding failures,
+submission turnaround, evaluator reliability, and reproducibility of published
+rankings. Keep large research evidence available with manifests and checksums;
+adopt release assets and download instructions for future large cohorts before
+changing any reproduction paths.
+
+**Exit criterion:** Participants complete the documented submission-to-score
+workflow, operational issues have explicit dispositions, and the project has a
+documented go/no-go decision for broader participation.
+
+### Historical 0.4.0 implementation phases
+
+The phases below retain earlier implementation notes and observations, including
+their original test counts and deployment claims. They are historical records,
+not the current backlog or a live deployment assessment. The completed
+milestones and next agenda above supersede their status statements; consult
+[operations documentation](OPERATIONS.md) for the existing hosted workflow.
+
 ### Phase 1 — Freeze the Benchmark Kernel
 
 **Goal**: Freeze the scientific challenge and produce its first verified score.
@@ -1339,6 +1471,14 @@ Explore:
 
 ## 23. Open Questions and Known Uncertainties
 
+**Current interpretation:** Primitive selection, profiles, and scoring are
+resolved for local 0.5.0 by the frozen MLWE specification. The outstanding
+questions are agent optimization headroom, measurement stability, hosted
+measurement integrity, and participant usability, tracked in Section 21.
+The questions below preserve the historical 0.4.0 research context; their
+"Open" labels do not reopen the completed primitive-selection decision or
+authorize changes to the frozen 0.5.0 contract.
+
 ### 23.1 Is the Current Problem the Right One?
 
 **Status**: Open.
@@ -1577,4 +1717,4 @@ Each option trades off fidelity to ML-DSA against simplicity and speed of evalua
 
 *This document is the authoritative project specification. If you find a contradiction between this document and any other file in the repository, treat it as a bug and resolve it by updating the other file to match this document, or by proposing a change to this document if the other file reflects a genuine improvement.*
 
-*Last updated: 2026-09-06*
+*Last updated: 2026-09-12*
