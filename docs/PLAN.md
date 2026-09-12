@@ -996,6 +996,15 @@ Keep derived calculations deterministic and testable. The leaderboard must deriv
   and 2,000 executions covering epoch viability and two contestants. Audits,
   repeated rankings, resource failures, isolation, and interrupted partial runs
   were checked. See [acceptance evidence](acceptance/mlwe-v050/README.md).
+- **Agent optimization pilot — complete.** On 2026-09-12, Codex Astra xhigh
+  evaluated six predeclared public hypotheses in 13 minutes against 50 public
+  cases each. The frozen selected contestant had diagnostic score 0.219555.
+  One fresh private epoch and three predeclared reference/candidate pairs then
+  produced eligible candidate/reference score ratios of 0.277164, 0.252652,
+  and 0.247431. This meets the pilot's consistent-observed-improvement rule;
+  it is not a claim of statistical significance. The protocol, ledger, frozen
+  source, public evidence, and sanitized comparison are in
+  [MLWE_PILOT.md](MLWE_PILOT.md) and `experiments/mlwe-pilot/`.
 - **Hosted 0.5.0 — pending.** Existing hosted infrastructure remains on 0.4.0.
   Local acceptance is not evidence of a deployed 0.5.0 service.
 
@@ -1003,7 +1012,11 @@ Keep derived calculations deterministic and testable. The leaderboard must deriv
 
 #### 1. Agent optimization pilot
 
-**Status:** Pending; the next primary milestone.
+**Status:** Complete on 2026-09-12. The bounded six-hypothesis session selected
+the contestant described above without private feedback. The three-pair result
+is a consistent observed improvement under the frozen 1% rule. Candidate runs
+had one large-cell case with three timeout measurements in every repetition;
+the frozen penalty remains included in each reported score.
 
 Give an optimization agent the documented 0.5.0 contestant interface, starter
 solver, public development cases, and a fixed development budget recorded
@@ -1024,7 +1037,12 @@ also completes the pilot; it must not be relabeled as an improvement.
 
 #### 2. Measurement-stability study
 
-**Status:** Pending; complete before claiming a small pilot gain.
+**Status:** Initial check complete; broader study pending. The pilot's three
+reference scores ranged from 1.082566 to 1.095690 (1.21% relative range), while
+all three candidate/reference comparisons remained well beyond the tie band.
+The remaining work is to separate host execution variation from the
+frozen-reference/contestant adapter offset, quantify case-level variation, and
+repeat on additional epochs or hosts before making a broader measurement claim.
 
 Repeat identical committed reference submissions sequentially on the same idle
 host and private epoch. Record the repetition count and host conditions before
