@@ -370,8 +370,9 @@ def final(args: argparse.Namespace) -> dict[str, Any]:
 
 def render_report(ledger: list[dict[str, Any]], private: dict[str, Any] | None) -> str:
     winner = select_candidate(ledger)
+    attempts = [r for r in ledger if r.get("role") == "candidate"]
     lines = ["# MLWE Optimization Pilot Report", "",
-             f"Development experiments recorded: {len(ledger)}."]
+             f"Optimization hypotheses evaluated: {len(attempts)}."]
     if winner:
         lines += [f"Selected public candidate: `{winner['experiment_id']}` at diagnostic score "
                   f"`{winner['diagnostic_score']:.6f}` (source `{winner['source_digest']}`)."]

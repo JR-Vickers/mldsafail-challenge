@@ -170,4 +170,5 @@ def test_report_reproduction_and_incomplete(tmp_path):
                "interpretation": "x", "adapter_note": "x"}
     assert pilot.render_report(ledger, private) == pilot.render_report(ledger, private)
     assert "winner" in pilot.render_report(ledger, private)
+    assert "Optimization hypotheses evaluated: 1" in pilot.render_report(ledger, private)
     assert "incomplete" in pilot.render_report(ledger, None).lower()

@@ -1,0 +1,12 @@
+{
+  "candidate_source_digest": "426bca2871d3d524b71920f4f46618eac47b2f83860f9fa67733689da1a960ff",
+  "frozen_utc": "2026-09-12T09:53:03.094126+00:00",
+  "hypotheses_attempted": 6,
+  "optimizer": {
+    "agent": "codex",
+    "model": "gpt-6-astra-xhigh"
+  },
+  "private_feedback_produced": false,
+  "reference_source_digest": "1057dc7a896dd0a8a1a6c66ef3cfa5dbfc743d822780ae77c29e9919223808fd",
+  "selected_experiment": "h4-bounded-enumeration"
+}
