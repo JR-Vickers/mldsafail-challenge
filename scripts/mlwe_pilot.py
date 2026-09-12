@@ -276,11 +276,12 @@ def analyze_private(root: Path, reference_digest: str, candidate_digest: str) ->
                       not tied(cand_summary["score"], ref_summary["score"]),
                       "cell_candidate_reference_ratios": cells})
     eligible = all(run["eligible"] for run in runs)
-    ratios = [pair["candidate_reference_ratio"] for pair in pairs]
-    outcome = classify_outcome(
-        [(audited[(p, "reference")][2]["score"], audited[(p, "candidate")][2]["score"])
-         for p in range(1, 4)], eligible)
-    reference_scores = [audited[(p, "reference")][2]["score"] for p in range(1, 4)]
+    pair_scores = ([(audited[(p, "reference")][2]["score"],
+                     audited[(p, "candidate")][2]["score"]) for p in range(1, 4)]
+                   if eligible else [])
+    outcome = classify_outcome(pair_scores, eligible)
+    reference_scores = [audited[(p, "reference")][2].get("score") for p in range(1, 4)]
+    reference_scores = [score for score in reference_scores if score is not None]
     public_environment = {"image_id": epoch_manifest["environment"]["image_id"],
                           "trusted_fingerprint": epoch_manifest["environment"]["trusted_fingerprint"],
                           "artifact_digest": ev.sha(epoch_manifest["environment"]["artifacts"]),
@@ -296,9 +297,10 @@ def analyze_private(root: Path, reference_digest: str, candidate_digest: str) ->
                            "final_order": [list(item) for item in FINAL_ORDER],
                            "analysis_reproductions": 2},
             "runs": runs, "pairs": pairs,
-            "reference_score_spread": {"minimum": min(reference_scores),
-                                       "maximum": max(reference_scores),
-                                       "relative_range": max(reference_scores) / min(reference_scores) - 1},
+            "reference_score_spread": ({"minimum": min(reference_scores),
+                                        "maximum": max(reference_scores),
+                                        "relative_range": max(reference_scores) / min(reference_scores) - 1}
+                                       if reference_scores else None),
             "interpretation": "initial repeat-execution stability check; no claim of statistical significance",
             "adapter_note": "scores include the frozen reference/contestant adapter difference separately from repeat-execution variation"}
 
