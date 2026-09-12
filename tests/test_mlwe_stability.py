@@ -21,6 +21,16 @@ def test_predeclared_shape_and_rotation():
         stability.role_order(0)
 
 
+def test_stability_cohort_is_limited_to_the_predeclared_macbook_host(monkeypatch):
+    monkeypatch.setattr(stability.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(stability.platform, "machine", lambda: "arm64")
+    stability.validate_execution_host()
+
+    monkeypatch.setattr(stability.platform, "system", lambda: "Linux")
+    with pytest.raises(ValueError, match="requires Darwin arm64"):
+        stability.validate_execution_host()
+
+
 def test_ratio_statistics_and_recursive_sanitization():
     assert stability._cell_ratio(
         [{"instance_id": "a", "profile": "small", "eta": 1, "verification_result": True,
@@ -38,6 +48,7 @@ def test_run_enforces_source_environment_order_and_retains_interruption(tmp_path
     for source in (adapter, candidate):
         source.mkdir(); (source / "solver.py").write_text("def solve(x): return None\n")
     digests = {"adapter": stability.source_digest(adapter), "candidate": stability.source_digest(candidate)}
+    monkeypatch.setattr(stability, "validate_execution_host", lambda: None)
     env = {"image_id": "image", "trusted_fingerprint": "fingerprint", "artifacts": {}}
     monkeypatch.setattr(stability, "environment", lambda: env)
     monkeypatch.setattr(stability.frozen_cli, "create_epoch", lambda output: output.mkdir())

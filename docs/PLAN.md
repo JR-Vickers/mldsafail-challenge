@@ -1042,8 +1042,8 @@ pending. [`MLWE_STABILITY.md`](MLWE_STABILITY.md) predeclares the one-host,
 one-epoch ten-cycle cohort, and `scripts/mlwe_stability.py` creates exclusive
 private evidence, independently audits it, reproduces analysis twice, and
 publishes only sanitized aggregates. No 13,200-execution cohort result is
-committed: private evidence must be collected on the designated idle Linux
-ARM64 host after the protocol commit. The resulting single-host, single-epoch
+committed: private evidence must be collected on this designated idle macOS
+ARM64 MacBook after the protocol revision. The resulting single-host, single-epoch
 report remains descriptive and cannot justify any scoring or environment
 change. Cross-epoch and multi-host replication remain limitations.
 

@@ -8,6 +8,7 @@ import json
 import math
 import os
 from pathlib import Path
+import platform
 import statistics
 import subprocess
 import sys
@@ -25,6 +26,8 @@ RUNS = CYCLES * len(ROLES)
 EXECUTIONS_PER_RUN = 100 * 4
 EPOCH_EXECUTIONS = 100 * 3 * 4
 TOTAL_EXECUTIONS = EPOCH_EXECUTIONS + RUNS * EXECUTIONS_PER_RUN
+REQUIRED_HOST_SYSTEM = "Darwin"
+REQUIRED_HOST_ARCHITECTURE = "arm64"
 SENSITIVE_KEYS = frozenset({
     "nonce", "secret", "secrets", "seed", "seeds", "candidate", "candidates",
     "stdout", "stderr", "stream", "streams", "records", "measurements", "host",
@@ -34,6 +37,14 @@ SENSITIVE_KEYS = frozenset({
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def validate_execution_host() -> None:
+    """Require the predeclared MacBook host class before evidence is created."""
+    actual = (platform.system(), platform.machine().lower())
+    expected = (REQUIRED_HOST_SYSTEM, REQUIRED_HOST_ARCHITECTURE)
+    if actual != expected:
+        raise ValueError(f"stability cohort requires {expected[0]} {expected[1]}, got {actual[0]} {actual[1]}")
 
 
 def source_files(source: Path) -> dict[str, dict[str, Any]]:
@@ -77,6 +88,7 @@ def _write_incomplete(root: Path, exc: BaseException) -> None:
 def run(args: argparse.Namespace) -> dict[str, Any]:
     if args.private_root.exists():
         raise ValueError("private evidence root already exists; cohorts never resume")
+    validate_execution_host()
     expected = {"adapter": args.adapter_digest, "candidate": args.candidate_digest}
     actual = {role: source_digest(getattr(args, f"{role}_dir")) for role in expected}
     if actual != expected:

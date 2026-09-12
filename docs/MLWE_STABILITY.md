@@ -5,9 +5,11 @@
 This is an observational study of the frozen local 0.5.0 MLWE benchmark.  It
 does not alter frozen scoring, the 1% tie band, worker code, environment, or
 benchmark semantics.  Its purpose is to describe repeat-execution variation
-for one private epoch on one idle Linux ARM64 host and to separate the frozen
-native primal-LLL measurement from the same algorithm through the contestant
-adapter.
+for one private epoch on this idle macOS ARM64 MacBook and to separate the
+frozen native primal-LLL measurement from the same algorithm through the
+contestant adapter. The evaluated worker remains the pinned Linux ARM64 Docker
+image; only the Docker host is macOS. The harness rejects any other host class
+before it creates private evidence.
 
 The study is implemented by `scripts/mlwe_stability.py`.  Before a cohort is
 started, the operator records the exact adapter and selected-candidate source
