@@ -269,7 +269,7 @@ def analyze_root(root: Path, adapter_digest: str, candidate_digest: str) -> dict
 def sanitize(value: Any, parent_key: str | None = None) -> Any:
     if isinstance(value, dict):
         return {key: sanitize(item, key) for key, item in value.items()
-                if parent_key == "roles" or key.lower() not in SENSITIVE_KEYS}
+                if parent_key in {"roles", "case_level_variation"} or key.lower() not in SENSITIVE_KEYS}
     if isinstance(value, list):
         return [sanitize(item, parent_key) for item in value]
     return value

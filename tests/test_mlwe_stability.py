@@ -57,6 +57,8 @@ def test_ratio_statistics_and_recursive_sanitization():
     assert stats["median"] == 2 and stats["coefficient_of_variation"] > 0
     clean = stability.sanitize({"outer": {"nonce": "no", "items": [{"candidate": "no", "score": 1}]}})
     assert json.dumps(clean) == '{"outer": {"items": [{"score": 1}]}}'
+    assert stability.sanitize({"case_level_variation": {"candidate": {"score": 1}}}) == {
+        "case_level_variation": {"candidate": {"score": 1}}}
 
 
 def test_run_enforces_source_environment_order_and_retains_interruption(tmp_path, monkeypatch):
