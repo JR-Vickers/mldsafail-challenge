@@ -49,7 +49,11 @@ def validate_execution_host() -> None:
 
 def source_files(source: Path) -> dict[str, dict[str, Any]]:
     """Use the frozen snapshot validation without writing an evidence snapshot."""
-    from scripts.mlwe_pilot import source_files as pilot_source_files
+    try:
+        from scripts.mlwe_pilot import source_files as pilot_source_files
+    except ModuleNotFoundError:
+        # Direct execution puts scripts/, rather than the repository root, on sys.path.
+        from mlwe_pilot import source_files as pilot_source_files
     return pilot_source_files(source)
 
 
@@ -88,11 +92,11 @@ def _write_incomplete(root: Path, exc: BaseException) -> None:
 def run(args: argparse.Namespace) -> dict[str, Any]:
     if args.private_root.exists():
         raise ValueError("private evidence root already exists; cohorts never resume")
-    validate_execution_host()
     expected = {"adapter": args.adapter_digest, "candidate": args.candidate_digest}
     actual = {role: source_digest(getattr(args, f"{role}_dir")) for role in expected}
     if actual != expected:
         raise ValueError("contestant source identity mismatch before study")
+    validate_execution_host()
     root = ev.directory(args.private_root)
     try:
         ev.write(root / "study.json", {"study_version": STUDY_VERSION, "complete": False,

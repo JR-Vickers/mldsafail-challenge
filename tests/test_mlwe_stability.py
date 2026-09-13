@@ -1,5 +1,8 @@
 import argparse
 import json
+from pathlib import Path
+import subprocess
+import sys
 
 import pytest
 
@@ -29,6 +32,19 @@ def test_stability_cohort_is_limited_to_the_predeclared_macbook_host(monkeypatch
     monkeypatch.setattr(stability.platform, "system", lambda: "Linux")
     with pytest.raises(ValueError, match="requires Darwin arm64"):
         stability.validate_execution_host()
+
+
+def test_source_digest_imports_when_stability_script_is_run_directly(tmp_path):
+    completed = subprocess.run(
+        [sys.executable, "scripts/mlwe_stability.py", "run", "--private-root", str(tmp_path / "private"),
+         "--adapter-dir", "experiments/mlwe-pilot/reference",
+         "--candidate-dir", "experiments/mlwe-pilot/frozen-candidate",
+         "--adapter-digest", "x", "--candidate-digest", "y"],
+        cwd=Path(__file__).parents[1], capture_output=True, text=True,
+    )
+    # This reaches source identity validation (rather than failing to import scripts.mlwe_pilot).
+    assert completed.returncode == 1
+    assert "contestant source identity mismatch" in completed.stderr
 
 
 def test_ratio_statistics_and_recursive_sanitization():
