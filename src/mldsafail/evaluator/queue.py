@@ -53,6 +53,11 @@ def recover_stale_jobs(session: Session) -> tuple[int, int]:
             attempt.log = "Evaluation lease expired."
             attempt.finished_at = now
         submission = session.get(Submission, job.submission_id)
+        if submission.state == SubmissionState.CANCELLED.value:
+            job.status = "complete"
+            if attempt is not None:
+                attempt.status = "cancelled"
+            continue
         if job.attempts < job.max_attempts:
             job.status = "queued"; job.available_at = now; job.lease_owner = None; job.lease_expires_at = None
             transition_submission(session, submission, SubmissionState.INFRASTRUCTURE_FAILED, "worker lease expired")

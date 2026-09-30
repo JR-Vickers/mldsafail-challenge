@@ -126,7 +126,7 @@ def test_queue_never_acquires_cancelled_or_other_version(tmp_path):
         assert claim_job(session, "legacy-worker", benchmark_version="0.4.0") is not None
 
 
-@pytest.mark.parametrize("outcome", ["accepted", "invalid", "cancelled", "retry", "incompatible"])
+@pytest.mark.parametrize("outcome", ["accepted", "invalid", "cancelled", "validating_cancel", "retry", "incompatible"])
 def test_coordinator_mlwe_states_and_safe_failure_logs(tmp_path, monkeypatch, outcome):
     from mldsafail.evaluator.mlwe import EvaluationCancelled
     import mldsafail.evaluator.coordinator as module
@@ -145,7 +145,12 @@ def test_coordinator_mlwe_states_and_safe_failure_logs(tmp_path, monkeypatch, ou
     source = tmp_path / "source" / "src/mldsafail/solver"
     source.mkdir(parents=True)
     (source / "solver.py").write_text("def solve(x): return None\n")
-    monkeypatch.setattr(module, "acquire_commit", lambda *args: tmp_path / "source")
+    def acquire(*args):
+        if outcome == "validating_cancel":
+            with Session(engine) as session:
+                cancel_submission(session, session.get(Submission, identifier))
+        return tmp_path / "source"
+    monkeypatch.setattr(module, "acquire_commit", acquire)
     monkeypatch.setattr(module, "validate_eligible_source", lambda *args, **kwargs: None)
 
     class Evaluator:
@@ -164,7 +169,8 @@ def test_coordinator_mlwe_states_and_safe_failure_logs(tmp_path, monkeypatch, ou
     assert coordinator.run_once()
     with Session(engine) as session:
         submission = session.get(Submission, identifier)
-        expected = {"invalid": "rejected", "retry": "queued", "incompatible": "rejected"}.get(outcome, outcome)
+        expected = {"invalid": "rejected", "retry": "queued", "incompatible": "rejected",
+                    "validating_cancel": "cancelled"}.get(outcome, outcome)
         assert submission.state == expected
         attempt = session.scalar(select(EvaluationAttempt))
         assert "SECRET" not in attempt.log and "/private" not in attempt.log

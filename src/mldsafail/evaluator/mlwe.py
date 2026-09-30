@@ -6,6 +6,7 @@ filesystem; the database receives the contract's whitelist summary only.
 from __future__ import annotations
 
 from pathlib import Path
+import hashlib
 
 from mldsafail.benchmark_v050 import evidence as ev
 from mldsafail.benchmark_v050.execution import environment, invoke, solver_snapshot
@@ -33,8 +34,11 @@ class HostedMLWE:
 
     @property
     def evaluator_fingerprint(self):
+        root = Path(__file__).parent
+        trusted_adapter = {path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                           for path in sorted(root.glob("*.py"))}
         return ev.sha({"benchmark_version": "0.5.0", "environment": self.manifest["environment"],
-                       "settings": ev.SETTINGS})
+                       "settings": ev.SETTINGS, "hosted_evaluator": trusted_adapter})
 
     def evaluate(self, source: Path, output: Path, identity: dict, key: bytes, checkpoint):
         self.check_environment()

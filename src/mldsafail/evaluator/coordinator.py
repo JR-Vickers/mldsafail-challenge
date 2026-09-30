@@ -149,7 +149,7 @@ class Coordinator:
 
         def checkpoint():
             database.refresh(submission)
-            if submission.cancel_requested:
+            if submission.cancel_requested or submission.state == SubmissionState.CANCELLED.value:
                 raise EvaluationCancelled()
             if not heartbeat(database, job.id, self.worker_id):
                 raise RuntimeError("evaluation lease lost")
@@ -170,6 +170,7 @@ class Coordinator:
                 snapshot = Path(temporary) / "snapshot"
                 source_digest = digest(solver_snapshot(source, snapshot))
                 identity["source_digest"] = source_digest
+                checkpoint()
                 job.status = "running"; attempt.status = "running"
                 transition_submission(database, submission, SubmissionState.RUNNING); database.commit()
                 checkpoint()
@@ -189,7 +190,8 @@ class Coordinator:
                 database.commit()
         except EvaluationCancelled:
             attempt.status = "cancelled"; attempt.finished_at = utcnow(); job.status = "complete"
-            transition_submission(database, submission, SubmissionState.CANCELLED, "cancellation completed")
+            if submission.state != SubmissionState.CANCELLED.value:
+                transition_submission(database, submission, SubmissionState.CANCELLED, "cancellation completed")
             database.commit()
 
     def _instances(self):
