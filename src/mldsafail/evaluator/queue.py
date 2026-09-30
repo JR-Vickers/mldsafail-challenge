@@ -11,11 +11,14 @@ from mldsafail.web.models import EvaluationJob, Submission, SubmissionState, utc
 from mldsafail.web.services import transition_submission
 
 
-def claim_job(session: Session, worker_id: str, lease_seconds: int = 120) -> EvaluationJob | None:
+def claim_job(session: Session, worker_id: str, lease_seconds: int = 120,
+              benchmark_version: str | None = None) -> EvaluationJob | None:
     now = utcnow()
     job = session.scalar(
-        select(EvaluationJob).where(
+        select(EvaluationJob).join(Submission, Submission.id == EvaluationJob.submission_id).where(
             EvaluationJob.status == "queued", EvaluationJob.available_at <= now,
+            Submission.state == SubmissionState.QUEUED.value,
+            *([Submission.benchmark_version == benchmark_version] if benchmark_version else []),
         ).order_by(EvaluationJob.created_at, EvaluationJob.id).with_for_update(skip_locked=True).limit(1)
     )
     if job is None:

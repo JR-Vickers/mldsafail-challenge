@@ -120,10 +120,12 @@ def _request_digest(payload: dict) -> str:
     return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
-def create_submission(session: Session, user: User, payload: dict, idempotency_key: str) -> tuple[Submission, bool]:
+def create_submission(session: Session, user: User, payload: dict, idempotency_key: str,
+                      *, cohort: dict | None = None) -> tuple[Submission, bool]:
     if not idempotency_key or len(idempotency_key) > 128:
         raise DomainError("invalid_idempotency_key", "A valid Idempotency-Key header is required.")
-    allowed = {"repository_url", "commit_sha", "hypothesis", "notes", "tags", "benchmark_version"}
+    allowed = {"repository_url", "commit_sha", "hypothesis", "notes", "tags", "benchmark_version",
+               "epoch_id", "evaluator_fingerprint", "hidden_suite_version", "worker_class"}
     if set(payload) - allowed:
         raise DomainError("unknown_fields", "Request contains unsupported fields.")
     repository_url = valid_repository_url(str(payload.get("repository_url", "")))
@@ -140,6 +142,16 @@ def create_submission(session: Session, user: User, payload: dict, idempotency_k
         raise DomainError("invalid_tags", "Tags must be a list of at most 10 short strings.")
     normalized = {"repository_url": repository_url, "commit_sha": commit_sha.lower(), "hypothesis": hypothesis,
                   "notes": notes, "tags": tags, "benchmark_version": benchmark_version}
+    if benchmark_version == "0.5.0":
+        if not cohort or not all(cohort.get(name) for name in
+                                ("epoch_id", "evaluator_fingerprint", "hidden_suite_version", "worker_class")):
+            raise DomainError("epoch_unavailable", "The MLWE cohort is not configured.", 503)
+        for name, value in cohort.items():
+            if name in payload and payload[name] != value:
+                raise DomainError("incompatible_cohort", "The requested evaluation cohort is incompatible.", 422)
+        normalized.update(cohort)
+    elif any(name in payload for name in allowed - set(normalized)):
+        raise DomainError("incompatible_cohort", "Epoch fields require MLWE 0.5.0.", 422)
     digest = _request_digest(normalized)
     existing = session.scalar(select(IdempotencyKey).where(IdempotencyKey.user_id == user.id, IdempotencyKey.key == idempotency_key))
     if existing:

@@ -46,6 +46,9 @@ def serialize_submission(item: Submission) -> dict:
         "benchmark_version": item.benchmark_version, "state": item.state,
         "cancel_requested": item.cancel_requested, "rejection_code": item.rejection_code,
         "created_at": item.created_at.isoformat(), "updated_at": item.updated_at.isoformat(),
+        **({name: getattr(item, name) for name in
+            ("epoch_id", "evaluator_fingerprint", "hidden_suite_version", "worker_class")}
+           if item.benchmark_version == "0.5.0" else {}),
     }
 
 
@@ -71,7 +74,14 @@ def submissions_create():
         return error("invalid_json", "Request body must be a JSON object.", 400)
     if payload.get("benchmark_version", current_app.config["BENCHMARK_VERSION"]) != current_app.config["BENCHMARK_VERSION"]:
         return error("unsupported_benchmark", "The requested benchmark version is unsupported.", 422)
-    item, created = create_submission(get_session(), g.api_user, payload, request.headers.get("Idempotency-Key", ""))
+    payload = {"benchmark_version": current_app.config["BENCHMARK_VERSION"], **payload}
+    if current_app.config["ENV"] in {"staging", "production"} and str(payload.get("repository_url", "")).startswith("file:"):
+        return error("invalid_repository", "Repository must be a public GitHub HTTPS URL.", 422)
+    cohort = {"epoch_id": current_app.config["MLWE_EPOCH_ID"],
+              "evaluator_fingerprint": current_app.config["EVALUATOR_FINGERPRINT"],
+              "hidden_suite_version": current_app.config["HIDDEN_SUITE_VERSION"],
+              "worker_class": current_app.config["WORKER_CLASS"]}
+    item, created = create_submission(get_session(), g.api_user, payload, request.headers.get("Idempotency-Key", ""), cohort=cohort)
     return jsonify(submission=serialize_submission(item)), 201 if created else 200
 
 

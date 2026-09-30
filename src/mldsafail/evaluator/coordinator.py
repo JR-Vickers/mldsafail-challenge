@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from mldsafail.evaluator.docker import run_worker
 from mldsafail.evaluator.envelope import EnvelopeError, verify_envelope
-from mldsafail.evaluator.queue import claim_job
+from mldsafail.evaluator.queue import claim_job, heartbeat, recover_stale_jobs
 from mldsafail.evaluator.source import acquire_commit, assemble_harness, validate_eligible_source
 from mldsafail.benchmark.cost_model import CATEGORIES, CostSnapshot
 from mldsafail.benchmark.suites import load_seed_suite
@@ -39,26 +39,44 @@ class CoordinatorConfig:
     hidden_suite_version: str
     worker_class: str = "rootless-docker-v1"
     work_root: Path = Path("/srv/mldsafail-evaluator")
+    epoch_path: Path | None = None
+    epoch_id: str | None = None
+    signing_key: Path | None = None
 
 
 class Coordinator:
     def __init__(self, config: CoordinatorConfig):
         self.config = config
-        if not config.hidden_seeds.is_file():
-            raise RuntimeError("hidden seed secret is missing")
-        os.environ["MLDSAFAIL_HIDDEN_SEEDS_PATH"] = str(config.hidden_seeds)
+        self.mlwe = None
+        if config.benchmark_version == "0.5.0":
+            from mldsafail.evaluator.mlwe import HostedMLWE
+            if not config.epoch_path or not config.epoch_id:
+                raise RuntimeError("MLWE requires a configured immutable private epoch")
+            self.mlwe = HostedMLWE(config.epoch_path, config.worker_image, config.epoch_id)
+            if config.evaluator_fingerprint != self.mlwe.evaluator_fingerprint:
+                raise RuntimeError("configured evaluator fingerprint mismatch")
+            if not config.signing_key or len(config.signing_key.read_bytes()) < 32:
+                raise RuntimeError("MLWE requires an evaluator signing key of at least 32 bytes")
+        else:
+            if not config.hidden_seeds.is_file():
+                raise RuntimeError("hidden seed secret is missing")
+            os.environ["MLDSAFAIL_HIDDEN_SEEDS_PATH"] = str(config.hidden_seeds)
         self.engine = create_engine(config.database_url, pool_pre_ping=True)
         self.worker_id = f"{socket.gethostname()}:{os.getpid()}"
 
     def run_once(self) -> bool:
         with Session(self.engine) as database:
-            job = claim_job(database, self.worker_id)
+            recover_stale_jobs(database)
+            job = claim_job(database, self.worker_id, benchmark_version=self.config.benchmark_version)
             if job is None:
                 return False
             submission = database.get(Submission, job.submission_id)
             attempt = EvaluationAttempt(job_id=job.id, number=job.attempts, worker_id=self.worker_id, status="validating")
             database.add(attempt); database.commit()
             try:
+                if self.mlwe is not None:
+                    self._run_mlwe(database, submission, job, attempt)
+                    return True
                 self.config.work_root.mkdir(parents=True, exist_ok=True)
                 with tempfile.TemporaryDirectory(prefix="job-", dir=self.config.work_root) as temporary:
                     base = Path(temporary)
@@ -107,7 +125,7 @@ class Coordinator:
                 self._reject(database, submission, job, attempt, "invalid_worker_output", str(exception))
             except (OSError, RuntimeError) as exception:
                 attempt.status = "infrastructure_failed"; attempt.failure_class = type(exception).__name__
-                attempt.log = sanitize_log(str(exception)); attempt.finished_at = utcnow()
+                attempt.log = "Evaluation platform failure."; attempt.finished_at = utcnow()
                 transition_submission(database, submission, SubmissionState.INFRASTRUCTURE_FAILED, "evaluation platform failure")
                 if job.attempts < job.max_attempts:
                     transition_submission(database, submission, SubmissionState.QUEUED, "retrying platform failure")
@@ -117,6 +135,58 @@ class Coordinator:
                     job.status = "failed"
                 database.commit()
             return True
+
+    def _run_mlwe(self, database, submission, job, attempt):
+        from mldsafail.evaluator.mlwe import EvaluationCancelled, solver_directory
+        identity = {"benchmark_version": self.config.benchmark_version,
+                    "evaluator_fingerprint": self.config.evaluator_fingerprint,
+                    "hidden_suite_version": self.config.hidden_suite_version,
+                    "worker_class": self.config.worker_class, "epoch_id": self.config.epoch_id}
+        if any(getattr(submission, name) != value for name, value in identity.items()):
+            raise DomainError("incompatible_cohort", "Submission targets an incompatible evaluation cohort.")
+        if submission.repository_url.startswith("file:"):
+            raise DomainError("invalid_repository", "Hosted MLWE requires a public GitHub repository.")
+
+        def checkpoint():
+            database.refresh(submission)
+            if submission.cancel_requested:
+                raise EvaluationCancelled()
+            if not heartbeat(database, job.id, self.worker_id):
+                raise RuntimeError("evaluation lease lost")
+
+        self.config.work_root.mkdir(mode=0o700, parents=True, exist_ok=True)
+        try:
+            with tempfile.TemporaryDirectory(prefix="source-", dir=self.config.work_root) as temporary:
+                checkout = acquire_commit(submission.repository_url, submission.commit_sha, Path(temporary) / "source")
+                validate_eligible_source(checkout)
+                source = solver_directory(checkout)
+                # Only the solver subtree is mounted by the frozen MLWE interface.
+                from mldsafail.benchmark_v050.models import digest
+                from mldsafail.benchmark_v050.execution import solver_snapshot
+                snapshot = Path(temporary) / "snapshot"
+                source_digest = digest(solver_snapshot(source, snapshot))
+                identity["source_digest"] = source_digest
+                job.status = "running"; attempt.status = "running"
+                transition_submission(database, submission, SubmissionState.RUNNING); database.commit()
+                checkpoint()
+                key = self.config.signing_key.read_bytes() if self.config.signing_key else os.urandom(32)
+                output = self.config.work_root / "runs" / submission.id / str(job.attempts)
+                envelope = self.mlwe.evaluate(snapshot, output, identity, key, checkpoint)
+                payload = verify_envelope(envelope, key, identity)
+                checkpoint()
+                if not payload["verified"]:
+                    self._reject(database, submission, job, attempt, "invalid_answer", "Candidate verification failed.")
+                    return
+                database.add(ExperimentResult(submission_id=submission.id, user_id=submission.user_id,
+                    score=None, mlwe_score=payload["score"], verified=True, **identity,
+                    diagnostics=payload["diagnostics"]))
+                attempt.status = "accepted"; attempt.finished_at = utcnow(); job.status = "complete"
+                transition_submission(database, submission, SubmissionState.ACCEPTED)
+                database.commit()
+        except EvaluationCancelled:
+            attempt.status = "cancelled"; attempt.finished_at = utcnow(); job.status = "complete"
+            transition_submission(database, submission, SubmissionState.CANCELLED, "cancellation completed")
+            database.commit()
 
     def _instances(self):
         selections = []
@@ -164,10 +234,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     config = CoordinatorConfig(
         database_url=os.environ["MLDSAFAIL_DATABASE_URL"], trusted_checkout=Path(os.environ.get("MLDSAFAIL_TRUSTED_CHECKOUT", "/opt/mldsafail")),
-        hidden_seeds=Path(os.environ["MLDSAFAIL_HIDDEN_SEEDS_PATH"]), worker_image=os.environ["MLDSAFAIL_WORKER_IMAGE"],
+        hidden_seeds=Path(os.environ.get("MLDSAFAIL_HIDDEN_SEEDS_PATH", "/nonexistent")), worker_image=os.environ["MLDSAFAIL_WORKER_IMAGE"],
         benchmark_version=os.environ.get("MLDSAFAIL_BENCHMARK_VERSION", "0.4.0"), evaluator_fingerprint=os.environ["MLDSAFAIL_EVALUATOR_FINGERPRINT"],
         hidden_suite_version=os.environ["MLDSAFAIL_HIDDEN_SUITE_VERSION"], worker_class=os.environ.get("MLDSAFAIL_WORKER_CLASS", "rootless-docker-v1"),
         work_root=Path(os.environ.get("MLDSAFAIL_EVALUATOR_WORK_ROOT", "/srv/mldsafail-evaluator")),
+        epoch_path=Path(os.environ["MLDSAFAIL_MLWE_EPOCH_PATH"]) if "MLDSAFAIL_MLWE_EPOCH_PATH" in os.environ else None,
+        epoch_id=os.environ.get("MLDSAFAIL_MLWE_EPOCH_ID"),
+        signing_key=Path(os.environ["MLDSAFAIL_EVALUATOR_SIGNING_KEY_PATH"]) if "MLDSAFAIL_EVALUATOR_SIGNING_KEY_PATH" in os.environ else None,
     )
     coordinator = Coordinator(config)
     while True:

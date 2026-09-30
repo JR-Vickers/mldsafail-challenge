@@ -23,6 +23,7 @@ class BaseConfig:
     EVALUATOR_FINGERPRINT: str = "development"
     HIDDEN_SUITE_VERSION: str = "unconfigured"
     WORKER_CLASS: str = "rootless-docker-v1"
+    MLWE_EPOCH_ID: str | None = None
 
 
 @dataclass(frozen=True)
@@ -72,11 +73,15 @@ def load_config(name: str | None = None) -> dict[str, object]:
         "EVALUATOR_FINGERPRINT": "MLDSAFAIL_EVALUATOR_FINGERPRINT",
         "HIDDEN_SUITE_VERSION": "MLDSAFAIL_HIDDEN_SUITE_VERSION",
         "WORKER_CLASS": "MLDSAFAIL_WORKER_CLASS",
+        "BENCHMARK_VERSION": "MLDSAFAIL_BENCHMARK_VERSION",
+        "MLWE_EPOCH_ID": "MLDSAFAIL_MLWE_EPOCH_ID",
     }
     for key, variable in mappings.items():
         if variable in os.environ:
             config[key] = os.environ[variable]
     if environment in {"staging", "production"}:
+        if config["BENCHMARK_VERSION"] == "0.5.0" and not config["MLWE_EPOCH_ID"]:
+            raise RuntimeError("MLDSAFAIL_MLWE_EPOCH_ID is required for hosted MLWE")
         if config["SECRET_KEY"] == "local-development-only":
             raise RuntimeError("MLDSAFAIL_SECRET_KEY is required for hosted environments")
         if not config["DATABASE_URL"]:

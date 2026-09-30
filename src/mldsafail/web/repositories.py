@@ -49,7 +49,7 @@ class DatabaseResultRepository:
         suites = {"public": {name: {} for name in ("small", "medium", "large")},
                   "hidden": {name: {} for name in ("small", "medium", "large")}}
         return {
-            "schema_version": "hosted-1",
+            "schema_version": "hosted-mlwe-1" if result.benchmark_version == "0.5.0" else "hosted-1",
             "benchmark_version": result.benchmark_version,
             "experiment_id": result.id,
             "timestamp": result.accepted_at.isoformat(),
@@ -59,8 +59,8 @@ class DatabaseResultRepository:
             "tags": submission.tags,
             "notes": submission.notes,
             "correct": True,
-            "score": result.score,
-            "aggregate": {"score": result.score},
+            "score": result.mlwe_score if result.benchmark_version == "0.5.0" else result.score,
+            "aggregate": {"score": result.mlwe_score if result.benchmark_version == "0.5.0" else result.score},
             "profiles": {},
             "suites": suites,
             "integrity": {"trusted_fingerprint": result.evaluator_fingerprint},
@@ -70,5 +70,6 @@ class DatabaseResultRepository:
                 "source_digest": result.source_digest,
                 "hidden_suite_version": result.hidden_suite_version,
                 "worker_class": result.worker_class,
+                "epoch_id": result.epoch_id,
             },
         }

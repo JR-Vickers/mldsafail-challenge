@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import math
 from dataclasses import dataclass
 from typing import Any
 
@@ -29,13 +30,18 @@ def verify_envelope(envelope: dict[str, Any], key: bytes, expected: dict[str, st
         raise EnvelopeError("invalid result signature")
     payload = envelope["payload"]
     required = {"source_digest", "benchmark_version", "evaluator_fingerprint", "hidden_suite_version", "worker_class", "verified", "score", "diagnostics", "failure_class"}
+    if payload.get("benchmark_version") == "0.5.0":
+        required.add("epoch_id")
     if set(payload) != required:
         raise EnvelopeError("invalid result payload fields")
     for key_name, value in expected.items():
         if payload.get(key_name) != value:
             raise EnvelopeError(f"unexpected {key_name}")
     score = payload["score"]
-    if payload["verified"] is True and (isinstance(score, bool) or not isinstance(score, int) or score < 0):
+    valid_score = type(score) is int and score >= 0
+    if payload["benchmark_version"] == "0.5.0":
+        valid_score = type(score) in (int, float) and math.isfinite(score) and score > 0
+    if payload["verified"] is True and not valid_score:
         raise EnvelopeError("verified result has invalid score")
     if payload["verified"] is not True and score is not None:
         raise EnvelopeError("unverified result must not have a score")

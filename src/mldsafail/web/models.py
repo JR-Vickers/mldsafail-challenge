@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, Integer, LargeBinary, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Index, Integer, LargeBinary, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -92,6 +92,10 @@ class Submission(Base):
     notes: Mapped[str] = mapped_column(Text, default="")
     tags: Mapped[list[str]] = mapped_column(JSON, default=list)
     benchmark_version: Mapped[str] = mapped_column(String(32))
+    epoch_id: Mapped[str | None] = mapped_column(String(64))
+    evaluator_fingerprint: Mapped[str | None] = mapped_column(String(128))
+    hidden_suite_version: Mapped[str | None] = mapped_column(String(64))
+    worker_class: Mapped[str | None] = mapped_column(String(64))
     state: Mapped[str] = mapped_column(String(32), default=SubmissionState.QUEUED.value, index=True)
     cancel_requested: Mapped[bool] = mapped_column(Boolean, default=False)
     rejection_code: Mapped[str | None] = mapped_column(String(64))
@@ -144,7 +148,9 @@ class ExperimentResult(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=identifier)
     submission_id: Mapped[str] = mapped_column(ForeignKey("submissions.id", ondelete="RESTRICT"), unique=True)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
-    score: Mapped[int] = mapped_column(Integer, index=True)
+    score: Mapped[int | None] = mapped_column(Integer, index=True)
+    mlwe_score: Mapped[float | None] = mapped_column(Float)
+    epoch_id: Mapped[str | None] = mapped_column(String(64))
     verified: Mapped[bool] = mapped_column(Boolean)
     source_digest: Mapped[str] = mapped_column(String(64))
     benchmark_version: Mapped[str] = mapped_column(String(32))

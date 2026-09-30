@@ -12,7 +12,7 @@ from typing import Any
 from flask import Flask, abort, g, jsonify, redirect, render_template, request, url_for
 from sqlalchemy import select
 
-from mldsafail.benchmark.comparison import (
+from mldsafail.web.comparison import (
     best_score_record,
     improvement_percent,
     rankable_score,
@@ -116,10 +116,14 @@ def _comparison_signature(record: dict[str, Any]) -> ComparisonSignature:
         # still identified by benchmark version and evaluator fingerprint.
         "2" if record.get("schema_version") == "hosted-1" else str(record.get("schema_version", "legacy")),
         str(fingerprint or "legacy"),
+        *tuple(str(record.get("provenance", {}).get(name) or "legacy") for name in
+               ("hidden_suite_version", "worker_class", "epoch_id")),
     )
 
 
 def scope_label(record: dict[str, Any]) -> str:
+    if record.get("benchmark_version") == "0.5.0":
+        return "MLWE 0.5.0 · " + str(record.get("provenance", {}).get("epoch_id", "unconfigured"))
     signature = scope_signature(record)
     suites = {suite for suite, _profiles in signature}
     profiles = sorted({profile for _suite, names in signature for profile in names})
@@ -238,6 +242,8 @@ def create_app(
         if name == "memory":
             return f"{value / (1024 * 1024):.1f} MiB"
         if name in {"score", "cost", "quality"}:
+            if name == "score" and record.get("benchmark_version") == "0.5.0":
+                return f"{value:.6f}"
             return f"{value:,.0f}"
         return str(value)
 
