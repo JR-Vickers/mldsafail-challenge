@@ -125,6 +125,10 @@ def submit(args) -> int:
     token = _load_token(server)
     payload = {"repository_url": args.repo, "commit_sha": args.commit, "hypothesis": args.hypothesis,
                "notes": args.notes, "tags": args.tag or [], "benchmark_version": args.benchmark_version}
+    if args.epoch_id:
+        payload["epoch_id"] = args.epoch_id
+    if args.solver_path:
+        payload["solver_path"] = args.solver_path
     response = _request("POST", server, "/api/v1/submissions", token=token, json=payload,
                         headers={"Idempotency-Key": args.idempotency_key or str(uuid.uuid4())})
     item = response.json()["submission"]
@@ -212,6 +216,8 @@ def build_parser() -> argparse.ArgumentParser:
     submission.add_argument("--repo", required=True); submission.add_argument("--commit", required=True)
     submission.add_argument("--hypothesis", required=True); submission.add_argument("--notes", default="")
     submission.add_argument("--tag", action="append"); submission.add_argument("--benchmark-version", default="0.4.0")
+    submission.add_argument("--epoch-id", help="require this immutable MLWE epoch identity")
+    submission.add_argument("--solver-path", help="repository-relative MLWE solver directory containing solver.py")
     submission.add_argument("--idempotency-key"); submission.add_argument("--server"); submission.set_defaults(handler=submit)
     state = commands.add_parser("status", help="show submission state and sanitized logs")
     state.add_argument("submission_id"); state.add_argument("--follow", action="store_true")

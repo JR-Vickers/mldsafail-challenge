@@ -12,7 +12,7 @@ from mldsafail.web.app import comparison_cohort, create_app
 from mldsafail.web.comparison import rankable_score
 from mldsafail.web.models import Base, EvaluationAttempt, EvaluationJob, ExperimentResult, Submission, User
 from mldsafail.web.repositories import DatabaseResultRepository
-from mldsafail.web.services import create_api_token, create_submission
+from mldsafail.web.services import cancel_submission, create_api_token, create_submission
 
 COHORT = {"epoch_id": "epoch-a", "evaluator_fingerprint": "eval-amd64",
           "hidden_suite_version": "staging-1", "worker_class": "mlwe-amd64-v1"}
@@ -74,6 +74,16 @@ def test_cohorts_keep_native_ratios_and_private_diagnostics_out(tmp_path):
             first = records[0]
             second = {**first, "provenance": {**first["provenance"], name: "different"}}
             assert comparison_cohort([first, second]) == [first]
+        _, token = create_api_token(session, user, "leaderboard")
+    app = create_app(config_name="test", config={"DATABASE_URL": str(engine.url),
+        "BENCHMARK_VERSION": "0.5.0", "MLWE_EPOCH_ID": "epoch-a",
+        **{name.upper(): value for name, value in COHORT.items() if name != "epoch_id"}})
+    response = app.test_client().get("/api/v1/leaderboard", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 200
+    assert len(response.json["leaderboard"]) == 1
+    assert response.json["leaderboard"][0]["score"] == 0.9131
+    assert b"SECRET" not in response.data and b"epoch-b" not in response.data
+    assert b"0.913100" in app.test_client().get("/").data or b"0.812300" in app.test_client().get("/").data
 
 
 def test_mlwe_envelope_requires_epoch_and_preserves_fractional_score():
@@ -85,6 +95,35 @@ def test_mlwe_envelope_requires_epoch_and_preserves_fractional_score():
             verify_envelope(sign_envelope(payload | {"score": score}, b"key"), b"key", identity)
     with pytest.raises(EnvelopeError):
         verify_envelope(sign_envelope(payload, b"key"), b"key", identity | {"epoch_id": "other"})
+
+
+def test_private_staging_requires_oauth_and_disables_development_login(monkeypatch):
+    from mldsafail.web.config import load_config
+    for key, value in {"MLDSAFAIL_SECRET_KEY": "test", "MLDSAFAIL_DATABASE_URL": "sqlite://",
+                       "MLDSAFAIL_EVALUATOR_FINGERPRINT": "eval", "MLDSAFAIL_HIDDEN_SUITE_VERSION": "hidden"}.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.delenv("GITHUB_CLIENT_ID", raising=False)
+    monkeypatch.delenv("GITHUB_CLIENT_SECRET", raising=False)
+    with pytest.raises(RuntimeError, match="OAuth"):
+        load_config("private-staging")
+    monkeypatch.setenv("GITHUB_CLIENT_ID", "test-id")
+    monkeypatch.setenv("GITHUB_CLIENT_SECRET", "test-secret")
+    config = load_config("private-staging")
+    assert config["ALLOW_DEV_AUTH"] is False
+    assert config["SESSION_COOKIE_HTTPONLY"] is True
+    assert config["SESSION_COOKIE_SECURE"] is False
+
+
+def test_queue_never_acquires_cancelled_or_other_version(tmp_path):
+    from mldsafail.evaluator.queue import claim_job
+    engine = database(tmp_path)
+    with Session(engine) as session:
+        user = User(display_name="researcher"); session.add(user); session.commit()
+        submission, _ = create_submission(session, user, REQUEST, "mlwe", cohort=COHORT)
+        cancel_submission(session, submission)
+        create_submission(session, user, REQUEST | {"benchmark_version": "0.4.0"}, "legacy")
+        assert claim_job(session, "mlwe-worker", benchmark_version="0.5.0") is None
+        assert claim_job(session, "legacy-worker", benchmark_version="0.4.0") is not None
 
 
 @pytest.mark.parametrize("outcome", ["accepted", "invalid", "cancelled", "retry", "incompatible"])
@@ -107,7 +146,7 @@ def test_coordinator_mlwe_states_and_safe_failure_logs(tmp_path, monkeypatch, ou
     source.mkdir(parents=True)
     (source / "solver.py").write_text("def solve(x): return None\n")
     monkeypatch.setattr(module, "acquire_commit", lambda *args: tmp_path / "source")
-    monkeypatch.setattr(module, "validate_eligible_source", lambda *args: None)
+    monkeypatch.setattr(module, "validate_eligible_source", lambda *args, **kwargs: None)
 
     class Evaluator:
         def evaluate(self, source, output, identity, key, checkpoint):

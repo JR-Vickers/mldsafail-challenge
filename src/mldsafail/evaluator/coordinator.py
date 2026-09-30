@@ -10,7 +10,7 @@ import time
 from dataclasses import asdict
 from datetime import timedelta
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -122,7 +122,7 @@ class Coordinator:
             except DomainError as exception:
                 self._reject(database, submission, job, attempt, exception.code, exception.message)
             except (EnvelopeError, TimeoutError) as exception:
-                self._reject(database, submission, job, attempt, "invalid_worker_output", str(exception))
+                self._reject(database, submission, job, attempt, "invalid_worker_output", "Worker contract validation failed.")
             except (OSError, RuntimeError) as exception:
                 attempt.status = "infrastructure_failed"; attempt.failure_class = type(exception).__name__
                 attempt.log = "Evaluation platform failure."; attempt.finished_at = utcnow()
@@ -158,8 +158,12 @@ class Coordinator:
         try:
             with tempfile.TemporaryDirectory(prefix="source-", dir=self.config.work_root) as temporary:
                 checkout = acquire_commit(submission.repository_url, submission.commit_sha, Path(temporary) / "source")
-                validate_eligible_source(checkout)
-                source = solver_directory(checkout)
+                relative = submission.solver_path or "src/mldsafail/solver"
+                if (PurePosixPath(relative).is_absolute() or ".." in PurePosixPath(relative).parts
+                        or any(part.startswith(".") for part in relative.split("/"))):
+                    raise DomainError("invalid_solver_path", "Invalid solver directory.")
+                validate_eligible_source(checkout, eligible_roots=(PurePosixPath(relative),))
+                source = solver_directory(checkout, relative)
                 # Only the solver subtree is mounted by the frozen MLWE interface.
                 from mldsafail.benchmark_v050.models import digest
                 from mldsafail.benchmark_v050.execution import solver_snapshot
@@ -242,7 +246,11 @@ def main(argv: list[str] | None = None) -> int:
         epoch_id=os.environ.get("MLDSAFAIL_MLWE_EPOCH_ID"),
         signing_key=Path(os.environ["MLDSAFAIL_EVALUATOR_SIGNING_KEY_PATH"]) if "MLDSAFAIL_EVALUATOR_SIGNING_KEY_PATH" in os.environ else None,
     )
-    coordinator = Coordinator(config)
+    try:
+        coordinator = Coordinator(config)
+    except (RuntimeError, ValueError, OSError, KeyError, TypeError):
+        print("Coordinator startup validation failed.", flush=True)
+        return 1
     while True:
         worked = coordinator.run_once()
         if args.once:

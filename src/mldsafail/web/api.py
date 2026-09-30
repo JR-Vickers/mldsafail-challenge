@@ -8,7 +8,7 @@ from flask import Blueprint, current_app, g, jsonify, request
 from sqlalchemy import select
 
 from mldsafail.web.db import get_session
-from mldsafail.web.models import EvaluationAttempt, EvaluationJob, Submission
+from mldsafail.web.models import EvaluationAttempt, EvaluationJob, ExperimentResult, Submission
 from mldsafail.web.services import DomainError, cancel_submission, check_rate_limit, create_submission, sanitize_log, verify_api_token
 
 api = Blueprint("api_v1", __name__, url_prefix="/api/v1")
@@ -47,7 +47,7 @@ def serialize_submission(item: Submission) -> dict:
         "cancel_requested": item.cancel_requested, "rejection_code": item.rejection_code,
         "created_at": item.created_at.isoformat(), "updated_at": item.updated_at.isoformat(),
         **({name: getattr(item, name) for name in
-            ("epoch_id", "evaluator_fingerprint", "hidden_suite_version", "worker_class")}
+            ("epoch_id", "evaluator_fingerprint", "hidden_suite_version", "worker_class", "solver_path")}
            if item.benchmark_version == "0.5.0" else {}),
     }
 
@@ -65,6 +65,31 @@ def me():
     return jsonify(id=g.api_user.id, display_name=g.api_user.display_name, scopes=g.api_token.scopes)
 
 
+@api.get("/leaderboard")
+@token_required("submission:read")
+def leaderboard():
+    from mldsafail.web.repositories import DatabaseResultRepository
+    version = current_app.config["BENCHMARK_VERSION"]
+    query = select(ExperimentResult).where(
+        ExperimentResult.verified.is_(True), ExperimentResult.benchmark_version == version,
+        ExperimentResult.evaluator_fingerprint == current_app.config["EVALUATOR_FINGERPRINT"],
+        ExperimentResult.hidden_suite_version == current_app.config["HIDDEN_SUITE_VERSION"],
+        ExperimentResult.worker_class == current_app.config["WORKER_CLASS"])
+    if version == "0.5.0":
+        query = query.where(ExperimentResult.epoch_id == current_app.config["MLWE_EPOCH_ID"])
+    results = get_session().scalars(query).all()
+    records = {result.id: DatabaseResultRepository._record(result) for result in results}
+    if version == "0.5.0":
+        from mldsafail.benchmark_v050.scoring import ranked_groups
+        ranks = ranked_groups({result.id: result.mlwe_score for result in results})
+    else:
+        ordered = sorted(results, key=lambda result: (result.score, result.accepted_at, result.id))
+        ranks = [{"submission": result.id, "rank": index + 1, "score": result.score}
+                 for index, result in enumerate(ordered)]
+    return jsonify(benchmark_version=version,
+                   leaderboard=[{**rank, "record": records[rank["submission"]]} for rank in ranks])
+
+
 @api.post("/submissions")
 @token_required("submission:write")
 def submissions_create():
@@ -75,7 +100,7 @@ def submissions_create():
     if payload.get("benchmark_version", current_app.config["BENCHMARK_VERSION"]) != current_app.config["BENCHMARK_VERSION"]:
         return error("unsupported_benchmark", "The requested benchmark version is unsupported.", 422)
     payload = {"benchmark_version": current_app.config["BENCHMARK_VERSION"], **payload}
-    if current_app.config["ENV"] in {"staging", "production"} and str(payload.get("repository_url", "")).startswith("file:"):
+    if current_app.config["ENV"] in {"private-staging", "staging", "production"} and str(payload.get("repository_url", "")).startswith("file:"):
         return error("invalid_repository", "Repository must be a public GitHub HTTPS URL.", 422)
     cohort = {"epoch_id": current_app.config["MLWE_EPOCH_ID"],
               "evaluator_fingerprint": current_app.config["EVALUATOR_FINGERPRINT"],

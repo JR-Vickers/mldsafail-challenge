@@ -1,0 +1,2 @@
+# Maintainer access survives disabling root SSH. The service account has no sudo.
+mldsafail-admin ALL=(ALL:ALL) NOPASSWD: ALL

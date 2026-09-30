@@ -1,0 +1,3 @@
+# CPython 3.12 Linux x86_64 wheels from the publishers' PyPI release metadata.
+cysignals==1.12.5 --hash=sha256:eccbcfd762de37daf4a01a0a77ef653561a153c48c2db9104916d36ebbd3cf24
+fpylll==0.6.4 --hash=sha256:05f43362f2803207a8a6dfe5bad41c64df2479cded1338490bad773ca78b5ba1

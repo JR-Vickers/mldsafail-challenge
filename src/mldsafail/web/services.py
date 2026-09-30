@@ -8,6 +8,7 @@ import re
 import secrets
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse
+from pathlib import PurePosixPath
 
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerifyMismatchError
@@ -125,7 +126,7 @@ def create_submission(session: Session, user: User, payload: dict, idempotency_k
     if not idempotency_key or len(idempotency_key) > 128:
         raise DomainError("invalid_idempotency_key", "A valid Idempotency-Key header is required.")
     allowed = {"repository_url", "commit_sha", "hypothesis", "notes", "tags", "benchmark_version",
-               "epoch_id", "evaluator_fingerprint", "hidden_suite_version", "worker_class"}
+               "epoch_id", "evaluator_fingerprint", "hidden_suite_version", "worker_class", "solver_path"}
     if set(payload) - allowed:
         raise DomainError("unknown_fields", "Request contains unsupported fields.")
     repository_url = valid_repository_url(str(payload.get("repository_url", "")))
@@ -150,6 +151,13 @@ def create_submission(session: Session, user: User, payload: dict, idempotency_k
             if name in payload and payload[name] != value:
                 raise DomainError("incompatible_cohort", "The requested evaluation cohort is incompatible.", 422)
         normalized.update(cohort)
+        solver_path = payload.get("solver_path", "src/mldsafail/solver")
+        if (not isinstance(solver_path, str) or not solver_path or len(solver_path) > 200
+                or PurePosixPath(solver_path).is_absolute() or ".." in PurePosixPath(solver_path).parts
+                or any(part.startswith(".") for part in solver_path.split("/"))
+                or str(PurePosixPath(solver_path)) != solver_path):
+            raise DomainError("invalid_solver_path", "Solver directory must be a normalized repository-relative path.", 422)
+        normalized["solver_path"] = solver_path
     elif any(name in payload for name in allowed - set(normalized)):
         raise DomainError("incompatible_cohort", "Epoch fields require MLWE 0.5.0.", 422)
     digest = _request_digest(normalized)

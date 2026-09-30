@@ -45,6 +45,12 @@ class StagingConfig(BaseConfig):
 
 
 @dataclass(frozen=True)
+class PrivateStagingConfig(BaseConfig):
+    # HTTP is reachable only through the loopback SSH tunnel.
+    ENV: str = "private-staging"
+
+
+@dataclass(frozen=True)
 class ProductionConfig(BaseConfig):
     ENV: str = "production"
     SESSION_COOKIE_SECURE: bool = True
@@ -54,6 +60,7 @@ CONFIGS = {
     "local": LocalConfig,
     "test": TestConfig,
     "staging": StagingConfig,
+    "private-staging": PrivateStagingConfig,
     "production": ProductionConfig,
 }
 
@@ -79,7 +86,7 @@ def load_config(name: str | None = None) -> dict[str, object]:
     for key, variable in mappings.items():
         if variable in os.environ:
             config[key] = os.environ[variable]
-    if environment in {"staging", "production"}:
+    if environment in {"private-staging", "staging", "production"}:
         if config["BENCHMARK_VERSION"] == "0.5.0" and not config["MLWE_EPOCH_ID"]:
             raise RuntimeError("MLDSAFAIL_MLWE_EPOCH_ID is required for hosted MLWE")
         if config["SECRET_KEY"] == "local-development-only":

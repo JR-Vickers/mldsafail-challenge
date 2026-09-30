@@ -96,6 +96,7 @@ class Submission(Base):
     evaluator_fingerprint: Mapped[str | None] = mapped_column(String(128))
     hidden_suite_version: Mapped[str | None] = mapped_column(String(64))
     worker_class: Mapped[str | None] = mapped_column(String(64))
+    solver_path: Mapped[str | None] = mapped_column(String(200))
     state: Mapped[str] = mapped_column(String(32), default=SubmissionState.QUEUED.value, index=True)
     cancel_requested: Mapped[bool] = mapped_column(Boolean, default=False)
     rejection_code: Mapped[str | None] = mapped_column(String(64))

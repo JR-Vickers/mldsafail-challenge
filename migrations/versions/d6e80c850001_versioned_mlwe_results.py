@@ -16,6 +16,7 @@ def upgrade():
         for name, length in (("epoch_id", 64), ("evaluator_fingerprint", 128),
                              ("hidden_suite_version", 64), ("worker_class", 64)):
             batch.add_column(sa.Column(name, sa.String(length), nullable=True))
+        batch.add_column(sa.Column("solver_path", sa.String(200), nullable=True))
     with op.batch_alter_table("experiment_results") as batch:
         batch.alter_column("score", existing_type=sa.Integer(), nullable=True)
         batch.add_column(sa.Column("mlwe_score", sa.Float(), nullable=True))
@@ -32,5 +33,5 @@ def downgrade():
         batch.drop_column("mlwe_score")
         batch.alter_column("score", existing_type=sa.Integer(), nullable=False)
     with op.batch_alter_table("submissions") as batch:
-        for name in ("epoch_id", "evaluator_fingerprint", "hidden_suite_version", "worker_class"):
+        for name in ("epoch_id", "evaluator_fingerprint", "hidden_suite_version", "worker_class", "solver_path"):
             batch.drop_column(name)

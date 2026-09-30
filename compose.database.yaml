@@ -1,0 +1,23 @@
+# Infrastructure-only staging phase while real OAuth credentials are pending.
+# Shares the service/volume identities used by compose.private.yaml.
+name: mldsafail-private
+services:
+  db:
+    image: ${POSTGRES_IMAGE:?immutable image required}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mldsafail
+      POSTGRES_USER: mldsafail
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mldsafail -d mldsafail"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+volumes:
+  postgres_data:

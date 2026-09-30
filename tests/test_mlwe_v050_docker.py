@@ -10,7 +10,7 @@ pytestmark = pytest.mark.skipif(os.environ.get('MLWE_DOCKER_TESTS') != '1', reas
 
 @pytest.fixture(scope='module')
 def image():
-    return environment()['image_id']
+    return environment(os.environ.get('MLWE_DOCKER_IMAGE', 'mldsafail-mlwe:0.5.0'))['image_id']
 
 
 @pytest.mark.parametrize('code,status', [

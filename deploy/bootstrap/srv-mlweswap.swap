@@ -1,0 +1,8 @@
+[Unit]
+Description=MLWE host reserve swap
+
+[Swap]
+What=/srv/mlweswap
+
+[Install]
+WantedBy=swap.target

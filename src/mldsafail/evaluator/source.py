@@ -65,7 +65,8 @@ def acquire_commit(repository_url: str, commit_sha: str, destination: Path, poli
     return destination
 
 
-def validate_eligible_source(root: Path, policy: SourcePolicy = SourcePolicy()) -> EligibleSource:
+def validate_eligible_source(root: Path, policy: SourcePolicy = SourcePolicy(),
+                             eligible_roots: tuple[PurePosixPath, ...] = ELIGIBLE_ROOTS) -> EligibleSource:
     try:
         raw = subprocess.run(
             ["git", "-C", str(root), "ls-tree", "-r", "-z", "HEAD"], check=True, capture_output=True,
@@ -94,7 +95,7 @@ def validate_eligible_source(root: Path, policy: SourcePolicy = SourcePolicy()) 
         disk_path = root.joinpath(*path.parts)
         if path.name == ".gitattributes" and disk_path.is_file() and b"filter=lfs" in disk_path.read_bytes():
             raise DomainError("git_lfs_forbidden", "Git LFS configuration is not accepted.")
-        eligible = any(path == base or base in path.parents for base in ELIGIBLE_ROOTS)
+        eligible = any(path == base or base in path.parents for base in eligible_roots)
         if not eligible:
             continue
         if kind != "blob" or path.suffix != ".py":

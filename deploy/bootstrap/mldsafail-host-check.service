@@ -1,0 +1,9 @@
+[Unit]
+Description=MLWE host disk and service check
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/mldsafail-host-check
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only

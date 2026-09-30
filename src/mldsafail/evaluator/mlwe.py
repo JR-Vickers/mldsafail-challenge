@@ -69,9 +69,9 @@ class HostedMLWE:
                               "failure_class": None if summary["eligible"] else "invalid_answer"}, key)
 
 
-def solver_directory(checkout: Path) -> Path:
+def solver_directory(checkout: Path, relative: str = "src/mldsafail/solver") -> Path:
     # Same approved Python source contract as the local contestant interface.
-    source = checkout / "src/mldsafail/solver"
+    source = checkout / relative
     if not (source / "solver.py").is_file():
-        raise DomainError("eligible_source_missing", "MLWE requires src/mldsafail/solver/solver.py.")
+        raise DomainError("eligible_source_missing", "MLWE requires solver.py in the selected solver directory.")
     return source

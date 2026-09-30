@@ -6,17 +6,21 @@ set -eu
 # group-writable for the daemon group inside the container. On macOS dev
 # hosts we relax the socket to 660 so the coordinator (member of daemon GID 1
 # via group_add) can spawn workers.
-if [ -e /var/run/docker.sock ]; then
+if [ "${MLDSAFAIL_SKIP_MIGRATIONS:-0}" != 1 ] && [ -e /var/run/docker.sock ]; then
     chmod 660 /var/run/docker.sock 2>/dev/null || true
 fi
 
 # Run migrations with retry (DB may not be ready yet)
-for i in $(seq 1 10); do
+if [ "${MLDSAFAIL_SKIP_MIGRATIONS:-0}" != 1 ]; then
+ migrated=0
+ for i in $(seq 1 10); do
     if /app/.venv/bin/python -m alembic upgrade head 2>/dev/null; then
-        break
+        migrated=1; break
     fi
     echo "Alembic migration attempt $i failed, retrying in 2s..."
     sleep 2
-done
+ done
+ [ "$migrated" = 1 ] || exit 1
+fi
 
 exec /app/.venv/bin/python -m mldsafail.evaluator.coordinator

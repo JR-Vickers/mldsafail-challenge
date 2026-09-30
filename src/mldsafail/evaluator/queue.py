@@ -7,7 +7,7 @@ from datetime import timedelta
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from mldsafail.web.models import EvaluationJob, Submission, SubmissionState, utcnow
+from mldsafail.web.models import EvaluationAttempt, EvaluationJob, Submission, SubmissionState, utcnow
 from mldsafail.web.services import transition_submission
 
 
@@ -45,6 +45,13 @@ def recover_stale_jobs(session: Session) -> tuple[int, int]:
     now = utcnow(); retried = failed = 0
     jobs = session.scalars(select(EvaluationJob).where(EvaluationJob.status.in_(["claimed", "running"]), EvaluationJob.lease_expires_at < now).with_for_update(skip_locked=True)).all()
     for job in jobs:
+        attempt = session.scalar(select(EvaluationAttempt).where(
+            EvaluationAttempt.job_id == job.id, EvaluationAttempt.number == job.attempts))
+        if attempt is not None:
+            attempt.status = "infrastructure_failed"
+            attempt.failure_class = "lease_expired"
+            attempt.log = "Evaluation lease expired."
+            attempt.finished_at = now
         submission = session.get(Submission, job.submission_id)
         if job.attempts < job.max_attempts:
             job.status = "queued"; job.available_at = now; job.lease_owner = None; job.lease_expires_at = None

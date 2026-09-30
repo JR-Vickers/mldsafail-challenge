@@ -41,7 +41,7 @@ METRICS = {
 }
 
 ScopeSignature = tuple[tuple[str, tuple[str, ...]], ...]
-ComparisonSignature = tuple[ScopeSignature, str, str, str]
+ComparisonSignature = tuple[ScopeSignature, str, str, str, str, str, str]
 
 
 def _mapping(record: dict[str, Any]) -> dict[str, Any]:

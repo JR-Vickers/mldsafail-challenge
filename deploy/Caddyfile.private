@@ -1,0 +1,9 @@
+http://:8080 {
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "same-origin"
+        -Server
+    }
+    reverse_proxy web:8000
+}
