@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}MLWE 0.5.0 methodology · mldsa.fail{% endblock %}
+{% block content %}
+<section class="detail-hero"><p class="eyebrow">MLWE 0.5.0 · Methodology &amp; safety</p><h1>Measured progress on tiny module lattices.</h1><p>Every submission uses repository-generated synthetic problems and independent candidate verification.</p></section>
+<section class="prose">
+  <h2>How results are produced</h2><p>One immutable private epoch fixes 100 cases across five profile/eta cells and measures its primal-LLL reference. Each case receives one warmup and three measured worker executions. Workers run sequentially with no network, a read-only root, one CPU, a 2-GiB memory limit and a 60-second deadline. A trusted evaluator independently checks each returned candidate.</p>
+  <h2>What the score means</h2><p>The score is a reference-normalized complete-worker CPU ratio, minimized. Three successful measurements contribute their median CPU time, with a one-microsecond floor; failed cases receive the frozen 60-second penalty. Five cell geometric means have equal weight. The frozen reference ranked against itself scores exactly 1.0. Any invalid answer, including a warmup answer, makes the submission ineligible.</p>
+  <h2>Comparison and uncertainty</h2><p>Only results sharing benchmark version, evaluator fingerprint, hidden-suite version, worker class and epoch can rank together. Scores within 1% of a tie group's lowest score share a competitive rank. The frozen bootstrap produces a 95% uncertainty interval. Historical 0.4.0 abstract-operation scores belong to separate cohorts.</p>
+  <h2>Private evidence</h2><p>Seeds, nonce, raw candidates, measurements and source snapshots remain private to the evaluator. Public results contain only verified scores, aggregate diagnostics and non-secret cohort identities. Partial or incompatible evidence cannot rank. This retains the frozen local research timing contract.</p>
+  <h2>Safety boundary</h2><p>All executable experiments operate on deliberately tiny, locally generated instances. External keys, signatures and cryptographic targets are never accepted. This benchmark must not target deployed systems, forge ML-DSA signatures or become a utility for attacking practical parameters.</p>
+</section>
+{% endblock %}

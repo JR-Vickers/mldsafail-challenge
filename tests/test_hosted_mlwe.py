@@ -114,6 +114,15 @@ def test_private_staging_requires_oauth_and_disables_development_login(monkeypat
     assert config["SESSION_COOKIE_SECURE"] is False
 
 
+def test_mlwe_pages_describe_native_score_without_changing_historical_pages():
+    client = create_app(config_name="test", config={"BENCHMARK_VERSION": "0.5.0"}).test_client()
+    assert b"Reference-normalized CPU scoring" in client.get("/").data
+    assert b"t = A" in client.get("/about").data
+    assert b"60-second penalty" in client.get("/methodology").data
+    historical = create_app(config_name="test").test_client()
+    assert b"trusted abstract operation counts" in historical.get("/methodology").data
+
+
 def test_queue_never_acquires_cancelled_or_other_version(tmp_path):
     from mldsafail.evaluator.queue import claim_job
     engine = database(tmp_path)

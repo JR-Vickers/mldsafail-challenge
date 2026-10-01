@@ -267,11 +267,11 @@ def create_app(
 
     @app.get("/about")
     def about():
-        return render_template("about.html")
+        return render_template("about_mlwe.html" if app.config["BENCHMARK_VERSION"] == "0.5.0" else "about.html")
 
     @app.get("/methodology")
     def methodology():
-        return render_template("methodology.html")
+        return render_template("methodology_mlwe.html" if app.config["BENCHMARK_VERSION"] == "0.5.0" else "methodology.html")
 
     @app.get("/profile")
     @login_required
@@ -344,6 +344,11 @@ def create_app(
 
     @app.context_processor
     def tooltip_context():
+        if app.config["BENCHMARK_VERSION"] == "0.5.0":
+            titles = dict(TOOLTIP_TITLES)
+            for name in ("Headline score", "Baseline score", "Current score"):
+                titles[name] = "Reference-normalized complete-worker CPU ratio within one immutable MLWE epoch; lower is better."
+            return {"metric_titles": titles}
         return {"metric_titles": TOOLTIP_TITLES}
 
     @app.errorhandler(413)

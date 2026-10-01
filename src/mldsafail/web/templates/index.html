@@ -3,7 +3,7 @@
 <section class="hero">
   <p class="eyebrow">Synthetic lattice optimization benchmark</p>
   <h1>How low can we drive the cost of this<br><em>post-quantum lattice challenge?</em></h1>
-  <p>One immutable challenge. Independent verification. One deterministic score.</p>
+  <p>{% if config.BENCHMARK_VERSION == '0.5.0' %}One immutable MLWE epoch. Independent verification. Reference-normalized CPU scoring.{% else %}One immutable challenge. Independent verification. One deterministic score.{% endif %}</p>
   <div class="hero-stats">
     <div><strong>{{ records|length }}</strong><span>experiments</span></div>
     <div><strong>{{ correct|length }}</strong><span>verified runs</span></div>
@@ -13,7 +13,7 @@
 
 <section>
   <p class="eyebrow">The task</p>
-  <p>Each run hands a solver a public matrix <code>A</code> and a target <code>t = A·s (mod q)</code>. The solver must recover the short vector <code>s</code> — one whose coefficients all lie inside a small range <code>[-η, η]</code> — while using as few abstract operations as possible. The matrix, the modulus, and the bound are fixed ahead of time by a repository-controlled profile; the solver never sees the planted solution, and an independent verifier checks every candidate from the public data alone.</p>
+  {% if config.BENCHMARK_VERSION == '0.5.0' %}<p>Each solver receives a polynomial-ring matrix <code>A</code> and target <code>t = A·s1 + s2 (mod q)</code>. Return complete bounded vectors <code>s1</code> and <code>s2</code> that satisfy the relation. The evaluator checks candidates independently and ranks complete-worker CPU against the same-instance frozen reference.</p>{% else %}<p>Each run hands a solver a public matrix <code>A</code> and a target <code>t = A·s (mod q)</code>. The solver must recover the short vector <code>s</code> — one whose coefficients all lie inside a small range <code>[-η, η]</code> — while using as few abstract operations as possible. The matrix, the modulus, and the bound are fixed ahead of time by a repository-controlled profile; the solver never sees the planted solution, and an independent verifier checks every candidate from the public data alone.</p>{% endif %}
 </section>
 
 {% if malformed %}<aside class="warning">Skipped {{ malformed }} malformed experiment {{ "line" if malformed == 1 else "lines" }}.</aside>{% endif %}
