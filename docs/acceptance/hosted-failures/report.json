@@ -1,0 +1,53 @@
+{
+  "acceptance_scope": "private staging failure handling and application-only rollback",
+  "commits_pushed": false,
+  "fixture_commit": "e547caffb06ced2e82f28cf1c130c8131613384d",
+  "fixture_publication": "pending; owner confirmed repository is local only",
+  "full_timeout_cohort_tested": false,
+  "local_gates": {
+    "configuration_and_locks_unchanged": true,
+    "docker_tests_skipped": 8,
+    "focused_runner_tests": 22,
+    "historical_small_score": 3901,
+    "linux_amd64_application_builds": true,
+    "make_check_passed": 299,
+    "packaged_evaluator_unchanged": true,
+    "web_image_health_smoke": true,
+    "worker_identity_unchanged": true
+  },
+  "migration_complete": false,
+  "mlwe_trusted_fingerprint": "b6f92231843fcb90695669108f0cc02d747ae0614eb9b3d25cddae602e092eee",
+  "native_gates": {
+    "accepted_crash_penalties": "not run",
+    "application_rollback_and_forward": "not run",
+    "expired_lease": "not run",
+    "host_stability_and_privacy": "not run",
+    "invalid_candidate": "not run",
+    "quiescent_backup_restore_verification": "not run",
+    "real_timeout_then_cancellation": "not run",
+    "recoverable_infrastructure_error": "not run",
+    "retry_exhaustion": "not run",
+    "running_cancellation": "not run"
+  },
+  "new_images": {
+    "coordinator": "sha256:2406c968c2cd6127a69623afeed48122b10a10fe62271802a924ab14905c2824",
+    "web": "sha256:df55ef62c6a70f80615d7c643cf835a2090cc9b99a5bc513a8d9f7b488c3c2dc",
+    "worker": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe"
+  },
+  "remaining": [
+    "owner publication of pinned fixture repository",
+    "saved participant/revoked token files and actual deployment paths",
+    "deployment of frozen new application release and native acceptance execution",
+    "automated off-host/provider backups",
+    "overall migration acceptance",
+    "production launch prerequisites"
+  ],
+  "rollback_images": {
+    "coordinator": "sha256:0277d476f750a19fa4033089449c3ef6ed0d86d7f8cc191f02eaf0370de2499e",
+    "web": "sha256:f7426be504bede8c5e690b385707aae181e64edca76e3fc0f1336791c5ed2565",
+    "worker": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe"
+  },
+  "rollback_release": "b4d212da3109b7716eb41553986848e377fb5b3d",
+  "source_release": "f17be45c9e53f7d63cae656607c50bbe967fb0d3",
+  "staging_changed": false
+}
