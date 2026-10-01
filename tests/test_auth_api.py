@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from concurrent.futures import ThreadPoolExecutor
+import re
+from threading import Barrier
+from types import SimpleNamespace
 
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from mldsafail.web.app import create_app
 from mldsafail.web.db import get_session
@@ -113,3 +118,74 @@ def test_api_oversized_request_has_machine_error(tmp_path):
     )
     assert response.status_code == 413
     assert response.json["error"]["code"] == "request_too_large"
+
+
+def token_form(client):
+    page = client.get("/tokens").get_data(as_text=True)
+    return {name: re.search(r'name="' + name + r'" value="([^"]+)"', page).group(1)
+            for name in ("csrf_token", "creation_request_key")}
+
+
+def test_browser_token_form_replays_never_create_or_redisplay_a_secret(tmp_path):
+    app = hosted_app(tmp_path)
+    client = app.test_client()
+    client.post("/auth/dev-login")
+    data = {**token_form(client), "name": "one token", "expires_days": "1"}
+    first = client.post("/tokens", data=data)
+    assert first.status_code == 200
+    plaintext = re.search(r"mldsa_[a-z0-9]{10}_[A-Za-z0-9_-]{43}", first.get_data(as_text=True)).group(0)
+    for _ in range(12):
+        repeated = client.post("/tokens", data=data)
+        assert repeated.status_code == 303
+        assert repeated.location == "/tokens"
+        assert plaintext.encode() not in repeated.data
+    with app.app_context():
+        database = get_session()
+        tokens = database.scalars(select(ApiToken)).all()
+        assert len(tokens) == 1
+        assert len(database.scalars(select(AuditEvent).where(AuditEvent.event_type == "api_token.created")).all()) == 1
+        tokens[0].revoked_at = utcnow(); database.commit()
+    assert client.post("/tokens", data=data).status_code == 303
+    # A deliberate new form is allowed to create another token with the same name.
+    assert client.post("/tokens", data={**token_form(client), "name": "one token"}).status_code == 200
+    with app.app_context():
+        assert len(get_session().scalars(select(ApiToken)).all()) == 2
+
+
+def test_token_form_validation_preserves_retry_key_and_csrf(tmp_path):
+    app = hosted_app(tmp_path)
+    client = app.test_client(); client.post("/auth/dev-login")
+    data = {**token_form(client), "name": "retry"}
+    assert client.post("/tokens", data={**data, "csrf_token": "wrong"}).status_code == 400
+    for key in ("", "x" * 64, "a" * 65):
+        assert client.post("/tokens", data={**data, "creation_request_key": key}).status_code == 400
+    invalid = client.post("/tokens", data={**data, "expires_days": "0"})
+    assert invalid.status_code == 400
+    assert data["creation_request_key"].encode() in invalid.data
+    assert client.post("/tokens", data={**data, "expires_days": "1"}).status_code == 200
+    with app.app_context():
+        assert len(get_session().scalars(select(ApiToken)).all()) == 1
+
+
+def test_concurrent_token_creation_is_database_idempotent(tmp_path, monkeypatch):
+    app = hosted_app(tmp_path)
+    user_id, _, _ = user_and_token(app)
+    from mldsafail.web import services
+    original_hash = services.password_hasher.hash
+    barrier = Barrier(2)
+    def synchronized_hash(secret):
+        barrier.wait(timeout=10)
+        return original_hash(secret)
+    monkeypatch.setattr(services, "password_hasher", SimpleNamespace(hash=synchronized_hash))
+    engine = app.extensions["mldsafail_engine"]
+    def create(_):
+        with Session(engine) as database:
+            token, plaintext = create_api_token(database, database.get(User, user_id), "concurrent",
+                                                creation_request_key="a" * 64)
+            return token.id, plaintext
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(create, range(2)))
+    assert results[0][0] == results[1][0]
+    assert sum(plaintext is not None for _, plaintext in results) == 1
+    with Session(engine) as database:
+        assert len(database.scalars(select(ApiToken).where(ApiToken.creation_request_key == "a" * 64)).all()) == 1

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import os
+import secrets
 from datetime import timedelta
 from datetime import datetime, timezone
 from pathlib import Path
@@ -282,14 +283,21 @@ def create_app(
     @login_required
     def tokens():
         items = get_session().scalars(select(ApiToken).where(ApiToken.user_id == g.current_user.id).order_by(ApiToken.created_at.desc())).all()
-        return render_template("tokens.html", tokens=items)
+        return render_template("tokens.html", tokens=items, creation_request_key=secrets.token_hex(32))
 
     @app.post("/tokens")
     @login_required
     def token_create():
         require_csrf()
         database = get_session()
+        creation_key = request.form.get("creation_request_key", "")
         try:
+            if len(creation_key) != 64 or any(c not in "0123456789abcdef" for c in creation_key):
+                raise DomainError("invalid_creation_request", "Reload the token form and try again.")
+            existing = database.scalar(select(ApiToken).where(
+                ApiToken.user_id == g.current_user.id, ApiToken.creation_request_key == creation_key))
+            if existing:
+                return redirect(url_for("tokens"), code=303)
             check_rate_limit(database, f"token-create:{g.current_user.id}", limit=10, seconds=3600)
             days_text = request.form.get("expires_days", "").strip()
             expires_at = None
@@ -298,11 +306,17 @@ def create_app(
                 if not 1 <= days <= 365:
                     raise DomainError("invalid_expiration", "Expiration must be between 1 and 365 days.")
                 expires_at = datetime.now(timezone.utc) + timedelta(days=days)
-            token, plaintext = create_api_token(database, g.current_user, request.form.get("name", ""), expires_at=expires_at)
+            token, plaintext = create_api_token(database, g.current_user, request.form.get("name", ""),
+                                               expires_at=expires_at, creation_request_key=creation_key)
         except (DomainError, ValueError) as exception:
             if isinstance(exception, ValueError) and not isinstance(exception, DomainError):
                 exception = DomainError("invalid_expiration", "Expiration must be a whole number of days.")
-            return render_template("tokens.html", tokens=[], error=exception.message), exception.status
+            return render_template("tokens.html", tokens=[], error=exception.message,
+                                   creation_request_key=creation_key if len(creation_key) == 64
+                                   and all(c in "0123456789abcdef" for c in creation_key)
+                                   else secrets.token_hex(32)), exception.status
+        if plaintext is None:
+            return redirect(url_for("tokens"), code=303)
         return render_template("token_created.html", token=token, plaintext=plaintext)
 
     @app.post("/tokens/<identifier>/revoke")

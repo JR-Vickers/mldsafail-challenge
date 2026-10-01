@@ -1,5 +1,28 @@
 /* Shared dashboard scripts */
 
+document.querySelectorAll("form[data-single-submit]").forEach(function (form) {
+  form.addEventListener("submit", function (event) {
+    if (form.dataset.submitting === "true") {
+      event.preventDefault();
+      return;
+    }
+    form.dataset.submitting = "true";
+    form.querySelectorAll('button[type="submit"]').forEach(function (button) {
+      button.disabled = true;
+    });
+  });
+});
+
+// Back/forward cache may restore the original form after a successful POST.
+window.addEventListener("pageshow", function () {
+  document.querySelectorAll("form[data-single-submit]").forEach(function (form) {
+    delete form.dataset.submitting;
+    form.querySelectorAll('button[type="submit"]').forEach(function (button) {
+      button.disabled = false;
+    });
+  });
+});
+
 (function () {
   var bubble;
 

@@ -80,6 +80,8 @@ class ApiToken(Base):
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    creation_request_key: Mapped[str | None] = mapped_column(String(64))
+    __table_args__ = (UniqueConstraint("user_id", "creation_request_key", name="uq_api_token_creation_request"),)
 
 
 class Submission(Base):

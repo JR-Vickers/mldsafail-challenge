@@ -44,8 +44,16 @@ def audit(session: Session, event_type: str, user_id: str | None, **detail) -> N
 
 
 def create_api_token(
-    session: Session, user: User, name: str, *, expires_at: datetime | None = None
-) -> tuple[ApiToken, str]:
+    session: Session, user: User, name: str, *, expires_at: datetime | None = None,
+    creation_request_key: str | None = None,
+) -> tuple[ApiToken, str | None]:
+    if creation_request_key is not None:
+        if not re.fullmatch(r"[0-9a-f]{64}", creation_request_key):
+            raise DomainError("invalid_creation_request", "Reload the token form and try again.")
+        existing = session.scalar(select(ApiToken).where(
+            ApiToken.user_id == user.id, ApiToken.creation_request_key == creation_request_key))
+        if existing:
+            return existing, None
     if not name.strip() or len(name) > 100:
         raise DomainError("invalid_token_name", "Token name must be between 1 and 100 characters.")
     prefix = secrets.token_hex(5)
@@ -54,10 +62,20 @@ def create_api_token(
     token = ApiToken(
         user_id=user.id, prefix=prefix, secret_hash=password_hasher.hash(secret), name=name.strip(),
         scopes=["submission:write", "submission:read"], expires_at=expires_at,
+        creation_request_key=creation_request_key,
     )
     session.add(token)
     audit(session, "api_token.created", user.id, token_id=token.id, prefix=prefix)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        if creation_request_key is not None:
+            existing = session.scalar(select(ApiToken).where(
+                ApiToken.user_id == user.id, ApiToken.creation_request_key == creation_request_key))
+            if existing:
+                return existing, None
+        raise
     return token, plaintext
 
 

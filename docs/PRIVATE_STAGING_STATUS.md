@@ -1,9 +1,9 @@
 # Private staging acceptance checkpoint — 2026-10-01
 
-The deployed immutable application release is
-`b2eb806cc7900811272afbc67cb9528283c9a636`. This document is a subsequent
-documentation checkpoint, not a replacement application release. No commits
-were pushed by the deployment agent. Full migration acceptance remains open.
+The first authenticated end-to-end application release was
+`b2eb806cc7900811272afbc67cb9528283c9a636`. Subsequent token-form protection
+is released separately with its own source/image manifest. No commits were
+pushed by the deployment agent. Full migration acceptance remains open.
 
 ## Completed
 
@@ -27,6 +27,9 @@ were pushed by the deployment agent. Full migration acceptance remains open.
 - A participant-created, expiring API token authenticated through the CLI;
   credentials were stored in the operating-system credential store without
   displaying their value.
+- A separate participant-created disposable token authenticated before browser
+  revocation, returned 401 afterward, and the main token continued to return
+  200. Browser/API revocation is verified.
 - CLI submission `34b0829d-0b76-4aab-b500-9aab9c7f508a` acquired exactly
   `c2ca852728a6dbec4cee6fde6d8ffb4f1156e3e0` from the public repository,
   selecting `examples/mlwe/primal-lll` through sparse immutable acquisition.
@@ -53,7 +56,6 @@ were pushed by the deployment agent. Full migration acceptance remains open.
 
 ## Remaining gates
 
-- Verify participant API-token revocation using a separate disposable token.
 - Complete integrated running-cancellation, infrastructure retry and worker
   failure-state checks through the deployed submission path. Local hosted
   tests and native worker probes cover these components but are not the full
@@ -65,6 +67,17 @@ were pushed by the deployment agent. Full migration acceptance remains open.
   PostgreSQL dumps do not satisfy this requirement.
 - Finish and record the full VPS acceptance decision before claiming the
   migration complete.
+
+## Token form duplicate protection
+
+Each newly loaded creation form gets a fresh per-user request key. Replaying
+the same form redirects to the token list and never creates another token or
+redisplays a secret. A database unique constraint handles simultaneous requests
+across workers; button disabling is an additional convenience, not the security
+boundary. Invalid form data can be corrected using the same key. A deliberately
+loaded new form may create another token with the same name. Existing tokens
+are preserved by a nullable-column migration; this does not automatically
+delete or revoke accidental duplicates.
 
 ## Access and production boundary
 

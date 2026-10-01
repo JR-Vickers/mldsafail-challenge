@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import Session
 
 from mldsafail.web.app import create_app
@@ -19,6 +19,23 @@ def test_migration_builds_hosted_schema(tmp_path, monkeypatch):
     command.upgrade(config, "head")
     tables = set(inspect(create_engine(url)).get_table_names())
     assert {"users", "api_tokens", "submissions", "evaluation_jobs", "experiment_results"} <= tables
+
+
+def test_token_creation_migration_preserves_existing_tokens(tmp_path, monkeypatch):
+    url = f"sqlite:///{tmp_path / 'upgrade.db'}"
+    monkeypatch.setenv("MLDSAFAIL_DATABASE_URL", url)
+    config = Config("alembic.ini")
+    command.upgrade(config, "d6e80c850001")
+    engine = create_engine(url)
+    with engine.begin() as database:
+        database.execute(text("INSERT INTO users (id, display_name, is_admin, created_at, updated_at) VALUES ('user', 'Ada', false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"))
+        database.execute(text("INSERT INTO api_tokens (id, user_id, prefix, secret_hash, name, scopes, created_at) VALUES ('token', 'user', '1234567890', 'unchanged-hash', 'existing', '[]', CURRENT_TIMESTAMP)"))
+    command.upgrade(config, "head")
+    command.upgrade(config, "head")
+    with engine.connect() as database:
+        assert database.execute(text("SELECT secret_hash, creation_request_key FROM api_tokens WHERE id='token'")).one() == ("unchanged-hash", None)
+    assert any(constraint["name"] == "uq_api_token_creation_request"
+               for constraint in inspect(engine).get_unique_constraints("api_tokens"))
 
 
 def test_database_repository_produces_rankable_hosted_records(tmp_path):
