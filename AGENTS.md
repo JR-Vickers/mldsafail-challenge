@@ -138,15 +138,17 @@ For example, a configuration might use variables analogous to:
 
 but with deliberately tiny values.
 
-Parameters need to correspond to a valid standardized ML-DSA
-parameter set.
+Parameters must remain within the adopted tiny-instance profiles in
+[the frozen MLWE specification](docs/PRIMITIVE_SELECTION_SPEC.md). They are
+structural analogues, not standardized ML-DSA parameter sets. Do not introduce
+production ML-DSA parameters or claim production hardness from these experiments.
 
 # 4. Instance Generator
 
 All optimization experiments should begin with instances produced by a
 repository-controlled generator.
 
-Suggested interface:
+Historical 0.4.0 generator interface:
 
 ```python
 instance = generate_instance(
@@ -156,32 +158,56 @@ instance = generate_instance(
 
 ```
 
-## Optimization Workflow
+## Benchmark Versions and Optimization Workflow
 
-Ordinary optimization work is limited to `src/mldsafail/solver/` and
-`src/mldsafail/math/`. Treat the following as benchmark-defining and do not
-change them during a solver experiment:
+The current research challenge and private staging use MLWE benchmark 0.5.0.
+`make bench`, `mldsafail run`, and the development Compose stack retain historical
+0.4.0 behavior. Read [PLAN.md](docs/PLAN.md),
+[MLWE_LOCAL.md](docs/MLWE_LOCAL.md), and
+[AGENT_WORKFLOW.md](docs/AGENT_WORKFLOW.md) before choosing a workflow.
 
-- `config/`
-- the evaluator deployment's hidden-seed secret
-- `src/mldsafail/trusted/`
-- `src/mldsafail/benchmark/`
+For 0.5.0, edit only a separate contestant directory of approved Python source,
+with `solver.py` exporting `solve(public_instance)`. Start from
+`examples/mlwe/primal-lll/solver.py`. Keep private evidence outside the contestant
+workspace and unavailable to the optimizer. The evaluator supplies only public
+fixed-profile data; contestants must not import or access generator/evidence state.
+
+For historical 0.4.0, ordinary optimization edits remain limited to
+`src/mldsafail/solver/` and `src/mldsafail/math/`. Its `generate_instance` interface
+above and operation-count scoring do not define the 0.5.0 contestant contract.
+
+Benchmark-defining material must not change during any solver experiment:
+
+- `config/` and all private seeds, nonces, epochs, and reference costs;
+- `src/mldsafail/trusted/` and `src/mldsafail/benchmark/`;
+- `src/mldsafail/benchmark_v050/`, evaluator code, worker images, and dependency locks.
 
 For each experiment:
 
 1. Activate the environment with `source .venv/bin/activate`.
-2. Start from the current best commit and record a concrete hypothesis.
-3. Run `make test` and `make bench` before editing to establish the baseline.
-4. Make the smallest solver or math change that tests the hypothesis.
-5. Run tests and the public suite. Run the full suite only after a public gain.
-6. Keep a change only if it remains correct, stays within resource limits, and lowers the full-suite headline score.
-7. Record successful and failed experiments; revert regressing code, not the
-   evidence that the experiment occurred.
-8. Commit validated checkpoints with a message describing the hypothesis.
+2. Start from the selected baseline commit and record a falsifiable hypothesis,
+   source identity, benchmark version, environment, and evaluation protocol.
+3. Run tests and establish a public baseline before editing. For 0.5.0 use the
+   development procedure in `docs/MLWE_PILOT.md`; `make bench` measures 0.4.0.
+4. Make the smallest permitted contestant or historical solver/math change.
+5. Run focused tests and the matching public suite. Public development scores
+   are diagnostic; do not tune against private feedback.
+6. Freeze a candidate selected from public evidence before an authorized private
+   evaluation. For 0.5.0 use a fixed audited epoch and reference, sequential runs
+   on the same idle host, and a predeclared comparison protocol. For 0.4.0 run
+   the full suite only after a public gain.
+7. Keep only changes that remain correct and within limits and improve the
+   matching official score under the declared decision rule. In 0.5.0, crashes,
+   timeouts, caps, and no-answer cases receive the frozen 60-second penalty;
+   invalid answers make a run ineligible. Preserve failed/partial evidence.
+8. Record successful and failed experiments; revert regressing code, not the
+   evidence. Commit validated checkpoints without pushing.
 
-Never special-case known seeds, inspect hidden diagnostic state, fabricate
-cost counters, skip verification, or weaken difficulty and scoring. Escalate
-before changing benchmark semantics, the safety boundary, or score meaning.
+Never special-case known seeds or identifiers, inspect hidden diagnostic state,
+cache answers, fabricate cost counters or timings, skip verification, or weaken
+difficulty/scoring. Escalate before changing benchmark semantics, safety, or score
+meaning. Cooperative CPU timing is not a hostile-code measurement boundary;
+public acceptance remains subject to the gates in `docs/PLAN.md`.
 
 ## Completion Checks
 

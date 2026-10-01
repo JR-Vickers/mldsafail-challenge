@@ -2,21 +2,28 @@
 
 > This document is the single source of truth for the project. Future coding agents should be able to read it in isolation and understand what we are building, why, how the challenge works, what code they may edit, what code they must not touch, how to run experiments, and how to decide whether an improvement is real. If this document and another file disagree, this document wins and the disagreement should be treated as a bug to resolve.
 
-**Current status — 2026-09-12:** Primitive-selection research is complete: MLWE
-bounded recovery is selected and agent-approved. The opt-in local 0.5.0
-benchmark is implemented and has passed full acceptance. The next milestone is
-an agent optimization pilot, supported by measurement-stability checks, followed
-by hosted 0.5.0 integration and a small external pilot. Section 21 records this
-agenda and its acceptance criteria.
+**Current status — 2026-10-01:** MLWE bounded recovery is selected and
+agent-approved. Local 0.5.0 acceptance, the agent optimization pilot, and the
+single-host measurement-stability study are complete. Hosted 0.5.0 is implemented
+and has a native authenticated submission-to-leaderboard acceptance result in
+private staging. Integrated failure/recovery tests, application rollback,
+automated off-host backups, and the final migration acceptance decision remain
+open. Public measurement integrity, production setup, and a small external pilot
+remain separate gates. Section 21 records the current agenda and evidence.
 
-**Version scope:** The detailed contracts, operation-count scoring, CLI, hosted
-architecture, and original phase notes below describe historical benchmark
-0.4.0 unless explicitly marked otherwise. For local 0.5.0, this plan adopts the
+**Version scope:** The detailed integer-system contracts, operation-count
+scoring, and original phase notes below describe historical benchmark 0.4.0
+unless explicitly marked otherwise. For 0.5.0, this plan adopts the
 [frozen MLWE specification](PRIMITIVE_SELECTION_SPEC.md),
-[local interface](MLWE_LOCAL.md), and
-[specification mapping](MLWE_SPEC_MAPPING.md). Do not apply historical 0.4.0
-scoring or solver-edit boundaries to the new contestant interface. Hosted
-services and historical scores remain 0.4.0 until a separate integration change.
+[local interface](MLWE_LOCAL.md), [specification mapping](MLWE_SPEC_MAPPING.md),
+and [hosted integration](HOSTED_V050.md). The package version, `make bench`,
+`mldsafail run`, and development Compose stack retain historical 0.4.0 behavior.
+The local `mldsafail-mlwe` workflow and private staging evaluate 0.5.0. Hosted CLI
+submissions must explicitly select `--benchmark-version 0.5.0` and a directory
+containing `solver.py`; `mldsafail clone` still creates a historical scaffold.
+Keep scores, edit boundaries, and epoch/environment cohorts separate. Deployment
+status comes from [the dated staging record](PRIVATE_STAGING_STATUS.md); local
+acceptance and frozen images alone do not establish native deployment acceptance.
 
 ---
 
@@ -1005,123 +1012,111 @@ Keep derived calculations deterministic and testable. The leaderboard must deriv
   it is not a claim of statistical significance. The protocol, ledger, frozen
   source, public evidence, and sanitized comparison are in
   [MLWE_PILOT.md](MLWE_PILOT.md) and `experiments/mlwe-pilot/`.
-- **Hosted 0.5.0 — pending.** Existing hosted infrastructure remains on 0.4.0.
-  Local acceptance is not evidence of a deployed 0.5.0 service.
+- **Single-host measurement stability — complete.** The predeclared 2026-09-13
+  cohort audited 30 ranked runs and 13,200 fresh executions, with byte-identical
+  repeated analysis. Native, adapter, and candidate score CVs were 0.665%,
+  1.503%, and 0.790%; median adapter/native ratio was 1.030576. Per-cell timing
+  and aggregate case-level variation are recorded. This establishes descriptive
+  results for one macOS ARM64 host and one epoch, without changing the frozen
+  1% tie rule. See [protocol](MLWE_STABILITY.md) and
+  [report](../experiments/mlwe-stability/REPORT.md).
+- **Hosted 0.5.0 integration — implemented; native staging path demonstrated.**
+  Real OAuth and participant tokens, pinned GitHub acquisition, a fresh native
+  amd64 private epoch, isolated workers, independent evidence verification,
+  compatible-cohort ranking, and privacy checks are documented in
+  [PRIVATE_STAGING_STATUS.md](PRIVATE_STAGING_STATUS.md). One reference submission
+  completed all 400 invocations and was accepted. Historical 0.4.0 behavior is
+  retained. Full migration acceptance is still open.
+- **Failure/rollback acceptance tooling — implemented; native execution pending.**
+  Seven integrated scenarios, bounded cleanup, read-only VPS evidence checks,
+  and application rollback/forward checks are locally tested. The known-good
+  `b4d212d` rollback and compatible new amd64 images are retained. The fixture
+  repository is local only and requires owner publication. The
+  [preparation report](acceptance/hosted-failures/README.md) records 299 passing
+  tests, eight Docker skips, and every unrun native gate. Nothing was pushed or
+  changed in staging by that preparation.
 
 ### Next agenda, in priority order
 
-#### 1. Agent optimization pilot
+#### 1. Finish private staging acceptance and recovery
 
-**Status:** Complete on 2026-09-12. The bounded six-hypothesis session selected
-the contestant described above without private feedback. The three-pair result
-is a consistent observed improvement under the frozen 1% rule. Candidate runs
-had one large-cell case with three timeout measurements in every repetition;
-the frozen penalty remains included in each reported score.
+**Status:** Pending native failure/recovery and rollback gates.
 
-Give an optimization agent the documented 0.5.0 contestant interface, starter
-solver, public development cases, and a fixed development budget recorded
-before the pilot starts. Keep evaluator evidence and private seeds inaccessible
-to the agent. Record each hypothesis, source revision, validation result,
-resource measurement, and successful or failed experiment. Optimize contestant
-code without changing the frozen generator, verifier, profiles, or scoring.
+The owner must publish the reviewed standalone fixture repository and supply its
+public URL/full SHA plus saved participant/revoked-token files and actual staging
+paths. Follow [the failure acceptance guide](HOSTED_FAILURE_ACCEPTANCE.md).
+Test running cancellation, a real timeout followed by cancellation, invalid
+answers, eligible crash penalties, recoverable infrastructure failure, three-attempt
+exhaustion, and expired leases. Check persisted transitions, attempts, backoff,
+independent verification, cleanup, privacy, sequential execution, and host floors.
+The bounded timeout probe does not test full-cohort timeout scoring.
 
-Select and commit the final candidate using development evidence, then evaluate
-it and an unchanged reference contestant on the same private epoch and idle
-host. Treat that evaluation as held-out evidence; do not tune against its cases.
-Interpret small score differences using the stability study below.
+Drain evaluation work, verify a quiescent PostgreSQL backup, and demonstrate
+application-only rollback to `b4d212d` and forward redeployment with the current
+schema, secrets, epoch, accounts, tokens, and results preserved. Do not restore or
+downgrade the application database or invoke migrations during these switches.
+Automated off-host/provider backups must be configured and verified separately;
+the existing daily local backups and restore exercise do not satisfy that gate.
 
-**Exit criterion:** An auditable sequence of experiments and a private final
-comparison establish whether the agent improved the baseline, including
-correctness, uncertainty, and failure penalties. A documented negative result
-also completes the pilot; it must not be relabeled as an improvement.
+**Exit criterion:** All required native gates have explicit evidence and
+outstanding issues have dispositions; automated off-host recovery is verified;
+the final VPS migration acceptance decision is recorded. A retained image or
+passing local test is not a completed rollback demonstration.
 
-#### 2. Measurement-stability study
+#### 2. Establish the public measurement boundary and production readiness
 
-**Status:** Complete on 2026-09-13. [`MLWE_STABILITY.md`](MLWE_STABILITY.md)
-predeclared the one-host, one-epoch ten-cycle cohort, and the completed
-[`experiments/mlwe-stability/`](../experiments/mlwe-stability/) report contains
-only sanitized aggregates. The audit accepted exactly 30 ranked runs and
-13,200 fresh executions; two analyses regenerated byte-identical results.
+**Status:** Pending before untrusted public submissions.
 
-The native, adapter, and candidate score series (in cycle order) are preserved
-with their frozen per-run intervals in `summary.json`. Their medians, ranges,
-and score CVs were respectively: native 1.040483 (1.034915–1.060627; 0.665%),
-adapter 1.073519 (1.062730–1.111725; 1.503%), and candidate 0.254224
-(0.252395–0.258657; 0.790%). Every role had 3,000 successful measurements and
-no failures. Each of the five cells had 200 successes per role; the report
-retains its complete per-cell timing aggregates.
+The frozen worker loads contestant code in the same interpreter that reports CPU
+time. Parent verification establishes candidate correctness and bounded execution,
+but numeric validation of that reported CPU value does not establish hostile-code
+measurement integrity. Review and implement an enforceable hosted measurement
+boundary before accepting untrusted public submissions. Container isolation alone
+does not close this gate. Any change to score meaning, timing conventions, worker
+artifacts, or environment requires the prescribed benchmark-version/epoch review.
 
-The median adapter/native ratio was 1.030576 (range 1.024427–1.063693; CV
-1.292%), and candidate/adapter was 0.237030 (0.227030–0.242241; CV 1.661%).
-Per-cell ratio aggregates are recorded in the report. Case-level relative
-variation is also aggregate-only: its cell distributions include values both
-below and above the frozen 1% tie band, so the tie band remains a frozen rule,
-not a conclusion drawn from this study. This is one macOS ARM64 host and one
-private epoch only; it is descriptive, makes no scoring/tie/environment change,
-and still requires cross-epoch and multi-host replication for a broader claim.
+Production also requires DNS, HTTPS, production OAuth, secure cookies, fresh
+production secrets, and a distinct hidden-suite version and private epoch.
+Verify load behavior, monitoring/alert delivery, and operational recovery against
+Phase 6 requirements; these gates have no completed acceptance record here.
+Keep private staging loopback-only and its evidence separate from production.
 
-The pilot's three
-reference scores ranged from 1.082566 to 1.095690 (1.21% relative range), while
-all three candidate/reference comparisons remained well beyond the tie band.
-The remaining work is to separate host execution variation from the
-frozen-reference/contestant adapter offset, quantify case-level variation, and
-repeat on additional epochs or hosts before making a broader measurement claim.
+**Exit criterion:** Measurement integrity and production operational requirements
+have reviewed evidence and a recorded decision authorizing the intended exposure.
+Passing the failure suite alone does not authorize public launch.
 
-Repeat identical committed reference submissions sequentially on the same idle
-host and private epoch. Record the repetition count and host conditions before
-collecting results. Report score spread, systematic offsets, case-level timing
-variation, and how observed variation compares with the frozen 1% tie rule and
-bootstrap intervals. Repeated audits establish deterministic analysis, not
-repeatable execution timing.
+#### 3. Prepare and run the small external pilot
 
-The acceptance reference contestant scored 1.022289 against the frozen table's
-1.000000. Its adapter/loading work and fresh measurements differ from table
-self-comparison; this offset alone does not establish random measurement noise.
-Investigate those contributions explicitly.
+**Status:** Pending; follows the applicable hosted acceptance and exposure gates.
 
-**Exit criterion:** A reproducible report states which improvement claims the
-measurement supports and identifies any unresolved bias or instability. Keep
-the frozen score and tie rules intact. Any recommended scoring/environment
-change requires a separately reviewed version or epoch, as specified by the
-frozen contract.
+Publish coherent 0.5.0 starter, installation, frozen score/problem, edit-boundary,
+and submission/status instructions. The current CLI defaults to 0.4.0 and its
+`clone` command creates the historical scaffold; document explicit 0.5.0 flags
+and copying a Python-only starter until that onboarding implementation is updated.
+Verify the installation/distribution path rather than infer it from the existing
+installer. Keep large evidence available with manifests/checksums; use release
+assets and download instructions for future large cohorts.
 
-#### 3. Hosted 0.5.0 submissions and leaderboard
-
-**Status:** Pending; build on the local acceptance evidence and pilot findings.
-
-Integrate versioned MLWE submissions with the queue, private epoch/reference
-lifecycle, isolated evaluator, independently audited result ingestion, status
-API, and leaderboard. Keep 0.4.0 history separate and rank only compatible
-0.5.0 epoch/environment cohorts. Publish sanitized summaries without private
-seeds, nonce, candidates, or evaluator filesystem paths.
-
-Before accepting untrusted public submissions, review the local implementation's
-cooperative timing assumptions and establish an enforceable hosted measurement
-boundary. Container isolation alone does not validate contestant-controlled
-timing. Document the supported worker architecture and dependency lock; the
-current local acceptance covers Linux ARM64.
-
-**Exit criterion:** A staging submission flows from authentication and immutable
-source acquisition through isolated execution and audit to the correct versioned
-leaderboard. Integration tests cover invalid candidates, timeout/crash/cancel
-paths, private-data exclusion, incompatible-epoch rejection, and historical
-0.4.0 behavior. Deployment and recovery procedures are verified in staging.
-
-#### 4. Small external pilot
-
-**Status:** Pending; follows hosted acceptance.
-
-Publish starter solvers, installation instructions, the frozen problem and score
-definitions, allowed contestant changes, and submission/status instructions.
 Run a limited pilot with a few participants and record onboarding failures,
-submission turnaround, evaluator reliability, and reproducibility of published
-rankings. Keep large research evidence available with manifests and checksums;
-adopt release assets and download instructions for future large cohorts before
-changing any reproduction paths.
+submission turnaround, evaluator reliability, and ranking reproducibility.
 
 **Exit criterion:** Participants complete the documented submission-to-score
-workflow, operational issues have explicit dispositions, and the project has a
-documented go/no-go decision for broader participation.
+workflow, operational issues have explicit dispositions, and a go/no-go decision
+for broader participation is documented.
+
+#### 4. Broader measurement replication
+
+**Status:** Follow-up research; the original stability study is complete.
+
+Predeclare a separate cross-epoch and multi-host protocol before making broader
+measurement claims. Create compatible new reference tables for each environment,
+retain unfavorable outcomes, and publish sanitized aggregate comparisons.
+Same-host score spread, adapter/native offsets, and aggregate case-level variation
+are already measured in the completed study and are not unfinished backlog items.
+Any finer causal analysis is a new question, not a rerun requirement for that study.
+
+**Exit criterion:** Broader claims are supported by the new protocol and evidence.
+This work does not reopen the completed pilot or alter the frozen scoring/tie rule.
 
 ### Historical 0.4.0 implementation phases
 

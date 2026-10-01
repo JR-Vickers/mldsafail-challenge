@@ -1,141 +1,150 @@
 # mldsa.fail challenge
 
-`mldsa.fail` is a local and hosted research benchmark for competing implementations
-on small, synthetic lattice problems inspired by ML-DSA. The core research question is
-which isolated cryptanalytic primitive is the most useful proxy for attacking tiny
-ML-DSA-like lattice instances; the benchmark is primitive-agnostic at the top level and
-measures how efficiently a submitted solver can solve a given profile on deterministic
-toy instances. ML-DSA provides mathematical inspiration, but this repository is an
-optimization challenge—not a key-recovery or signature-forgery tool.
+`mldsa.fail` is a local and hosted optimization benchmark on deliberately small,
+repository-generated lattice instances inspired by ML-DSA. The selected 0.5.0
+challenge is Module-LWE bounded secret-and-error recovery. It studies how coding
+agents improve complete solvers; it does not establish practical ML-DSA attack
+costs or accept real keys, signatures, or arbitrary cryptographic targets.
 
-Offline use remains account-free and JSONL-backed. The hosted product accepts immutable public GitHub commits, evaluates only eligible solver/math source in disposable rootless Docker workers, and publishes scores created by the trusted server.
+As of 2026-10-01, primitive selection, local 0.5.0 acceptance, the optimization
+pilot, and the single-host stability study are complete. Private staging has a
+native authenticated submission-to-leaderboard result. Integrated failure/recovery
+and rollback gates, automated off-host backups, public measurement integrity,
+production setup, and an external pilot remain open. See
+[PLAN.md](docs/PLAN.md), [staging status](docs/PRIVATE_STAGING_STATUS.md), and
+[failure acceptance preparation](docs/acceptance/hosted-failures/README.md).
 
-## Quick start
+## Choose the benchmark version
 
-Python 3.12 or newer and [uv](https://docs.astral.sh/uv/) are required.
+| Workflow | Version and score |
+|---|---|
+| `mldsafail-mlwe` | Local 0.5.0, normalized complete-worker CPU against a fixed epoch reference |
+| Private staging submissions | 0.5.0, compatible epoch/environment cohorts only |
+| `make bench`, `mldsafail run`, local JSONL dashboard | Historical 0.4.0, versioned operation counts |
+| `make hosted-dev`, `mldsafail clone` | Historical 0.4.0 development stack and participant scaffold |
+
+The Python package version and hosted CLI submission default remain 0.4.0.
+Use explicit 0.5.0 submission flags; a historical `clone` scaffold does not
+contain the required MLWE `solver.py` entry point. Scores from different versions,
+epochs, or execution environments cannot be ranked together.
+
+## Local 0.5.0 quick start
+
+Use Python **3.12.10**, [uv](https://docs.astral.sh/uv/), and Docker. The commands
+below use the original Linux ARM64 worker lock. Private staging uses the separately
+reviewed Linux amd64 lock described in [HOSTED_V050.md](docs/HOSTED_V050.md).
 
 ```sh
 uv sync --extra dev
 source .venv/bin/activate
-make test
-make bench
-make web-smoke
-make web
-mldsafail run --profile small --no-record
+make check
+python -m mldsafail.benchmark_v050.build
+mldsafail-mlwe smoke --output /tmp/mlwe-smoke-new
+
+mkdir contestant
+cp examples/mlwe/primal-lll/solver.py contestant/solver.py
 ```
 
-The dashboard starts at `http://127.0.0.1:5000`. It reads `results/experiments.jsonl`; set `MLDSAFAIL_RESULTS_PATH=/path/to/other.jsonl` to inspect another result log. For the local hosted stack, run `make hosted-dev` and open `http://localhost:8080`.
+Every evaluation output directory must be new. Smoke is diagnostic. For private
+epoch creation, complete contestant evaluation, independent audit, and ranking,
+follow [MLWE_LOCAL.md](docs/MLWE_LOCAL.md). Keep private evidence outside the
+contestant workspace and unavailable to optimization agents. Full epoch creation
+and evaluation take longer than the historical small-profile check.
 
-### Hosted stack (local prototype)
+## 0.5.0 solver and score
+
+A contestant directory contains only approved Python source, at most 2 MB, with
+`solver.py` exporting `solve(public_instance)`. Return complete bounded vectors
+`{"tag": "recovered_secret", "s1": s1, "s2": s2}`, or `None` if no answer was
+found. The evaluator independently checks every coefficient bound and the full
+ring equation. Instances use only the fixed tiny profiles; they are structural
+analogues, not standardized ML-DSA parameter sets.
+
+Each of the 100 ranked cases has one warmup and three measured fresh-container
+executions. Successful case cost is median complete-worker CPU with a one-microsecond
+floor. Ordinary timeouts, crashes, caps, and no-answer cases cost 60 seconds;
+invalid answers make a submission ineligible. The score is the equally-cell-weighted
+geometric mean of candidate/reference cost ratios, minimized. Anchored 1% ties and
+the frozen bootstrap intervals apply. Partial evidence cannot rank.
+
+Workers receive only public input and a read-only solver snapshot, with no network,
+epoch, credentials, or Docker socket. The current timing adapter assumes cooperative
+contestants. An enforceable measurement boundary remains required before untrusted
+public submissions. The authoritative contract is
+[PRIMITIVE_SELECTION_SPEC.md](docs/PRIMITIVE_SELECTION_SPEC.md).
+
+## Private staging participation
+
+Staging is reachable through the authorized maintainer SSH tunnel, with real GitHub
+OAuth and participant-created tokens. It is not a publicly launched endpoint:
 
 ```sh
-make hosted-setup   # one-time: create the dev hidden-seeds file (mode 0400)
-make hosted-dev     # start Postgres, web, Caddy proxy, and the coordinator
-make hosted-down    # tear down the hosted stack
+ssh -i ~/.ssh/mldsafail_vps -L 8080:127.0.0.1:8080 mldsafail@178.128.17.58
 ```
 
-`make hosted-setup` is idempotent and safe to re-run. It copies `deploy/dev-hidden-seeds.json` into the evaluator work directory (default `/Users/jarrett/dev/mldsafail-evaluator`; override with `HOSTED_EVALUATOR_DIR`) and sets mode 0400. The coordinator requires this file at startup.
-
-`make hosted-dev` now starts all four services — database, web, proxy, and coordinator — in one command. The coordinator polls PostgreSQL for queued submissions, acquires the participant's git commit, validates eligible solver/math source, assembles a trusted harness, and spawns an isolated Docker worker to evaluate it. Dev evaluations are tagged with `evaluator_fingerprint=development` and `hidden_suite_version=development-public-fixture`; they are a local prototype cohort and are not production results.
-
-Docker Desktop must be running on macOS for the coordinator to spawn workers.
-
-## Commands
+While the tunnel is open, sign in at `http://localhost:8080` and create a token.
+The OAuth callback is `http://localhost:8080/auth/callback`. Submit an owner-published
+public GitHub repository at a full immutable commit SHA:
 
 ```sh
-make test                         # unit and integration tests
-make bench                        # public deterministic benchmark
-make check                        # tests plus a small-profile benchmark smoke run
-make web                          # local experiment dashboard
-make web-smoke                    # non-blocking dashboard route smoke test
-
-python -m mldsafail.benchmark.runner --profile medium
-python -m mldsafail.benchmark.runner --profile medium --seed 12345
-MLDSAFAIL_HIDDEN_SEEDS_PATH=/secure/hidden.json mldsafail run --suite full
-python -m mldsafail.benchmark.runner --profile small --no-record
-```
-
-`make bench` appends a public-suite experiment to the default JSONL log. `make check` and `make web-smoke` do not append a result or leave a server running, so they are suitable for automated validation. The diagnostic `--seed` form requires `--profile`; use `--output PATH` to append to another log and `--no-record` to print without writing.
-
-### Record an official comparison
-
-Official comparisons use every public and hidden profile, a clean committed tree, and the frozen trusted-input fingerprint. Confirm the current fingerprint:
-
-```sh
-uv run python -c 'from mldsafail.benchmark.integrity import compute_trusted_fingerprint; print(compute_trusted_fingerprint())'
-```
-
-For a maintainer comparison, inject the server-only suite and use the reviewed
-fingerprint for that release:
-
-```sh
-MLDSAFAIL_HIDDEN_SEEDS_PATH=/secure/hidden.json \
-uv run python -m mldsafail.benchmark.runner \
-  --suite full \
-  --baseline-fingerprint REVIEWED_FINGERPRINT \
-  --agent codex \
-  --model gpt-5 \
-  --hypothesis "describe the tested change" \
-  --tag algorithm \
-  --notes "describe the measured outcome"
-```
-
-If the computed fingerprint differs, do not reuse the example value: review the trusted-file changes and establish a new benchmark baseline. The dashboard ranks full public-plus-hidden records together and never uses a custom, smoke, or public-only run to calculate their headline improvement.
-
-The 0.3.0 contract removed hidden seeds from the repository and package. Public runs remain fully offline; hidden/full runs are maintainer-only and require `MLDSAFAIL_HIDDEN_SEEDS_PATH`. Hosted results are separated into cohorts by benchmark version, evaluator fingerprint, hidden-suite version, and worker class.
-
-## Hosted CLI
-
-Create a token in the signed-in web UI, then use the unified command:
-
-```sh
-mldsafail login TOKEN --server https://mldsa.fail
-mldsafail submit --repo https://github.com/OWNER/REPO --commit FULL_40_CHAR_SHA --hypothesis "reduce basis updates"
+mldsafail login TOKEN --server http://localhost:8080
+mldsafail submit --repo https://github.com/OWNER/REPO --commit FULL_40_CHAR_SHA \
+  --benchmark-version 0.5.0 --solver-path contestant \
+  --hypothesis "describe the solver change"
 mldsafail status SUBMISSION_ID --follow
 mldsafail logout
 ```
 
-The secret is stored in the operating-system credential store. A mode-0600 file fallback requires explicit `--allow-plaintext-storage` opt-in. See [docs/OPERATIONS.md](docs/OPERATIONS.md) for TLS, OAuth, deployment, migration, backup/restore, hidden-suite rotation, rollback, and incident response.
+`--solver-path` selects a repository-relative directory containing `solver.py`.
+For the project reference example, use `examples/mlwe/primal-lll`. Optional
+`--epoch-id` requires a particular cohort; `--idempotency-key` lets a retried
+request reuse the same submission. The API supports logs and cancellation as
+shown in [OPERATIONS.md](docs/OPERATIONS.md).
 
-## Benchmark model
+Tokens are stored in the operating-system credential store. A mode-0600 plaintext
+fallback requires explicit `--allow-plaintext-storage` opt-in. Agents do not push
+commits or publish fixtures; the owner handles publication.
 
-Only fixed, bounded profiles in `config/profiles.toml` can generate instances. The solver receives public `ChallengeInstance` data and a trusted operation meter. Diagnostic planted data stays within trusted generation code. A separate verifier decides whether a candidate is valid; invalid or over-limit candidates receive no score. See [docs/CHALLENGE.md](docs/CHALLENGE.md) for the frozen contract.
+## Historical 0.4.0 workflows
 
-The lowest valid headline score wins. It is the versioned weighted operation cost across the selected suite. Successful results also retain diagnostics:
+Historical offline use is account-free and JSONL-backed:
 
-- total and median wall-clock runtime;
-- peak memory;
-- solution quality;
-- versioned abstract counts for arithmetic, reduction, basis updates, and memory access.
-
-Public and hidden suites use fixed seeds from the same generator distribution. Environment, command, revision, hypothesis, verification outcome, and per-profile results are recorded in append-only JSONL. See [experiments/README.md](experiments/README.md) for the record format and [docs/AGENT_WORKFLOW.md](docs/AGENT_WORKFLOW.md) for the keep-or-revert workflow.
-
-## Safety boundary
-
-All executable experiments operate on deliberately small instances produced by this repository. The program does not accept public keys, signatures, arbitrary matrices, custom modulus/dimension combinations, or production ML-DSA parameters as solver targets.
-
-Do not use this project to recover real secret keys, forge signatures, search for vulnerable keys, target deployed systems, or remove the restrictions to attack practical parameters. Work involving real ML-DSA should remain specification study, official correctness vectors, asymptotic analysis, or theoretical resource estimation.
-
-## Repository map
-
-```text
-config/                    fixed, bounded profiles
-data/                      public benchmark seeds only
-src/mldsafail/trusted/     generator and independent verifier
-src/mldsafail/solver/      reference, balanced, and lazy-frontier solvers
-src/mldsafail/math/        arithmetic and linear algebra
-src/mldsafail/benchmark/   runner, metrics, records, integrity checks
-src/mldsafail/web/         local dashboard and hosted web/API
-src/mldsafail/evaluator/   source validation, queue, coordinator, worker
-tests/                     correctness, safety, benchmark, and web tests
-results/experiments.jsonl  append-only research history (generated)
-experiments/               experiment schema documentation
+```sh
+make test
+make bench                         # public suite; appends an experiment
+make web-smoke
+make web                           # local JSONL dashboard at 127.0.0.1:5000
+mldsafail run --profile small --no-record
 ```
 
-## Agent workflow
+Historical official comparisons require all public/hidden profiles, a reviewed
+trusted fingerprint, and maintainer-only hidden seeds. See
+[CHALLENGE.md](docs/CHALLENGE.md) and [AGENT_WORKFLOW.md](docs/AGENT_WORKFLOW.md).
+`make check` runs tests and a historical small-profile smoke without recording;
+it does not replace MLWE epoch acceptance or native staging checks.
 
-Optimization agents should edit `solver/` and `math/` by default. Generator, verifier, profile caps, seeds, scoring, and integrity code define the challenge and must not change during an optimization experiment.
+The historical local hosted prototype uses `make hosted-setup`, `make hosted-dev`,
+and `make hosted-down`. Setup replaces the development hidden-seed fixture under
+`HOSTED_EVALUATOR_DIR`; never point it at staging/production evidence. The stack
+uses development credentials and differs from private staging's standalone Compose
+configuration. See [OPERATIONS.md](docs/OPERATIONS.md).
 
-For each hypothesis: record the current baseline, make one focused change, run tests and the public suite, run the hidden suite only after a public score improvement, then retain only a correctness-preserving full-suite score improvement within the fixed resource limits. Revert regressing code but keep its failed experiment record. Make descriptive checkpoint commits; do not push automatically.
+## Safety and agent work
 
-The full product intent and acceptance criteria are in [docs/PLAN.md](docs/PLAN.md).
+All executable experiments stay within repository-generated tiny instances. Do not
+recover real keys, forge signatures, ingest third-party targets, target deployed
+systems, or remove profile restrictions. Real ML-DSA work is limited to specification
+study, official correctness vectors, asymptotic analysis, and resource estimates.
+
+For 0.5.0, optimize a separate Python-only contestant workspace. For historical
+0.4.0, edit `src/mldsafail/solver/` and `src/mldsafail/math/`. Preserve generators,
+verifiers, profiles, private evidence, scoring, worker artifacts, and dependency
+locks. Record hypotheses and failures, select candidates on public evidence, freeze
+before authorized private validation, and retain only validated improvements under
+the declared comparison rule. Follow [AGENTS.md](AGENTS.md) and
+[AGENT_WORKFLOW.md](docs/AGENT_WORKFLOW.md).
+
+Key directories: `src/mldsafail/benchmark_v050/` (frozen MLWE contract),
+`examples/mlwe/` (starters), `src/mldsafail/evaluator/` (hosted queue/evaluation),
+`src/mldsafail/web/` (dashboard/API), `experiments/` (public/sanitized research
+records), and `docs/acceptance/` (acceptance evidence).
