@@ -15,4 +15,4 @@ if [ "${MLDSAFAIL_SKIP_MIGRATIONS:-0}" != 1 ]; then
  [ "$migrated" = 1 ] || exit 1
 fi
 
-exec /app/.venv/bin/python -m gunicorn --bind 0.0.0.0:8000 --workers 2 --threads 4 --timeout 30 --graceful-timeout 20 --access-logfile - 'mldsafail.web.app:create_app()'
+exec /app/.venv/bin/python -m gunicorn --bind 0.0.0.0:8000 --workers 2 --threads 4 --timeout 30 --graceful-timeout 20 --access-logfile - --access-logformat '%(h)s %(m)s %(U)s %(s)s %(b)s' 'mldsafail.web.app:create_app()'
