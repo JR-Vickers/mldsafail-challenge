@@ -98,10 +98,9 @@ select replacement seeds. Production needs its own new epoch and secrets.
 
 ## Outstanding acceptance
 
-Local checks do not establish deployment completion. Native epoch viability,
-VPS worker inspection, real GitHub OAuth, browser/token/CLI submission,
-coordinator result publication, backup/restore and rollback demonstration all
-remain mandatory before the VPS acceptance gate can pass. Provider access is
-required to enable automated off-host VPS backups; local disk copies alone do
-not satisfy that requirement. No public submission endpoint may be enabled
-before domain/HTTPS and production OAuth are configured.
+Local checks do not establish deployment completion. See
+[the private staging acceptance checkpoint](PRIVATE_STAGING_STATUS.md) for the
+native VPS gates completed on 2026-10-01 and the remaining gates. Provider
+access is required to enable automated off-host VPS backups; local disk copies
+alone do not satisfy that requirement. No public submission endpoint may be
+enabled before domain/HTTPS and production OAuth are configured.
