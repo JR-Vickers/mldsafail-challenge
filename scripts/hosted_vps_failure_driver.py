@@ -544,12 +544,14 @@ class Driver:
                       'worker_image': self.j['worker_image'],
                       'evaluator_fingerprint': self.j['identity']['fingerprint'],
                       'release_commit': release['source_commit'], 'rollback_commit': rollback['source_commit']}
-            save(self.directory / 'report.json', report)
-            print(json.dumps(report), flush=True)
+            self.touch()
         finally:
             cleanup(self.path)
             watcher.terminate()
             watcher.wait(timeout=10)
+        report['cleanup_verified'] = True
+        save(self.directory / 'report.json', report)
+        print(json.dumps(report), flush=True)
 
 
 def main():
