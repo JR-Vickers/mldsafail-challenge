@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from mldsafail.evaluator.docker import docker_command
 from mldsafail.evaluator.envelope import EnvelopeError, sign_envelope, verify_envelope
 from mldsafail.evaluator.queue import claim_job, heartbeat, recover_stale_jobs
-from mldsafail.evaluator.source import assemble_harness, validate_eligible_source
+from mldsafail.evaluator.source import acquire_commit, assemble_harness, validate_eligible_source
 from mldsafail.web.models import Base, EvaluationJob, Submission, SubmissionState, SubmissionTransition, User
 from mldsafail.web.services import DomainError
 
@@ -45,6 +45,16 @@ def test_source_validation_digest_and_clean_assembly(tmp_path):
     assert (destination / "src/mldsafail/solver/__init__.py").read_text() == "answer = 1\n"
     assert (destination / "src/mldsafail/trusted/verifier.py").read_text() == "TRUSTED = True\n"
     assert not (destination / "setup.py").exists()
+
+
+def test_sparse_acquisition_keeps_requested_commit_and_only_selected_directory(tmp_path):
+    root = git_repo(tmp_path, {"examples/solver/solver.py": "def solve(x): return None\n",
+                              "research/unrelated/data.txt": "not part of the solver\n"})
+    sha = subprocess.check_output(["git", "-C", root, "rev-parse", "HEAD"], text=True).strip()
+    checkout = acquire_commit(root.as_uri(), sha, tmp_path / "checkout", sparse_paths=("examples/solver",))
+    assert subprocess.check_output(["git", "-C", checkout, "rev-parse", "HEAD"], text=True).strip() == sha
+    assert (checkout / "examples/solver/solver.py").read_text() == "def solve(x): return None\n"
+    assert not (checkout / "research/unrelated/data.txt").exists()
 
 
 @pytest.mark.parametrize("name,content,code", [

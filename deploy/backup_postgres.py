@@ -62,4 +62,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (OSError, RuntimeError, subprocess.SubprocessError):
+        print(json.dumps({"backup_gate_failed": True}))
+        raise SystemExit(1)

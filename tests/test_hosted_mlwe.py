@@ -154,7 +154,7 @@ def test_coordinator_mlwe_states_and_safe_failure_logs(tmp_path, monkeypatch, ou
     source = tmp_path / "source" / "src/mldsafail/solver"
     source.mkdir(parents=True)
     (source / "solver.py").write_text("def solve(x): return None\n")
-    def acquire(*args):
+    def acquire(*args, **kwargs):
         if outcome == "validating_cancel":
             with Session(engine) as session:
                 cancel_submission(session, session.get(Submission, identifier))

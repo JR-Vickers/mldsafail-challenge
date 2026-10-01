@@ -157,12 +157,16 @@ class Coordinator:
         self.config.work_root.mkdir(mode=0o700, parents=True, exist_ok=True)
         try:
             with tempfile.TemporaryDirectory(prefix="source-", dir=self.config.work_root) as temporary:
-                checkout = acquire_commit(submission.repository_url, submission.commit_sha, Path(temporary) / "source")
                 relative = submission.solver_path or "src/mldsafail/solver"
                 if (PurePosixPath(relative).is_absolute() or ".." in PurePosixPath(relative).parts
                         or any(part.startswith(".") for part in relative.split("/"))):
                     raise DomainError("invalid_solver_path", "Invalid solver directory.")
-                validate_eligible_source(checkout, eligible_roots=(PurePosixPath(relative),))
+                checkout = acquire_commit(submission.repository_url, submission.commit_sha,
+                                          Path(temporary) / "source", sparse_paths=(relative,))
+                from mldsafail.evaluator.source import SourcePolicy
+                from mldsafail.benchmark_v050.constants import MAX_SERIALIZED_BYTES
+                validate_eligible_source(checkout, SourcePolicy(max_eligible_bytes=MAX_SERIALIZED_BYTES),
+                                         eligible_roots=(PurePosixPath(relative),))
                 source = solver_directory(checkout, relative)
                 # Only the solver subtree is mounted by the frozen MLWE interface.
                 from mldsafail.benchmark_v050.models import digest

@@ -13,6 +13,9 @@ For a reference acceptance submission from an existing published commit, use
 `--solver-path examples/mlwe/primal-lll`. An optional `--epoch-id` requires the
 specified cohort. The evaluator checks the requested full Git commit and
 snapshots only that directory. No repository installation scripts run.
+MLWE acquisition uses a partial Git fetch and sparse checkout at the requested
+commit, retaining the repository and source size caps while excluding unrelated
+research data. The historical acquisition path remains available for 0.4.0.
 
 The coordinator audits a completed immutable epoch before startup, checks the
 actual Docker environment before each submission, independently verifies all
@@ -74,6 +77,8 @@ mode-0600 environment file outside the release checkout. The proxy publishes
 only `127.0.0.1:8080`. A single migration service must complete before web and
 coordinator start; neither application process runs migrations again. All
 container logs rotate after 10 MiB with three retained files.
+The deployment user's daily PostgreSQL backup timer uses private mode-0600
+dumps. Off-host provider backups are a separate requirement.
 
 `MLDSAFAIL_ENV=private-staging` requires real GitHub OAuth credentials and
 disables development authentication. It uses HTTP-only, SameSite=Lax session

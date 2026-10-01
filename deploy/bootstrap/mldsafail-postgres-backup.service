@@ -1,0 +1,9 @@
+[Unit]
+Description=Private MLWE PostgreSQL backup
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/mldsafail/current
+Environment=DOCKER_HOST=unix:///run/user/1000/docker.sock
+ExecStart=/usr/bin/python3 /srv/mldsafail/current/deploy/backup_postgres.py --env-file /srv/mldsafail-evaluator/secrets/database.env --output /srv/mldsafail-evaluator/backups
+NoNewPrivileges=true

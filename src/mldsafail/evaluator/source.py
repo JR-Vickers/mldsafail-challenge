@@ -37,7 +37,8 @@ def _git_environment() -> dict[str, str]:
     }
 
 
-def acquire_commit(repository_url: str, commit_sha: str, destination: Path, policy: SourcePolicy = SourcePolicy()) -> Path:
+def acquire_commit(repository_url: str, commit_sha: str, destination: Path, policy: SourcePolicy = SourcePolicy(),
+                   *, sparse_paths: tuple[str, ...] | None = None) -> Path:
     repository_url = valid_repository_url(repository_url)
     file_url = repository_url.startswith("file://")
     proto_config = "protocol.file.allow=always" if file_url else "protocol.file.allow=never"
@@ -47,13 +48,31 @@ def acquire_commit(repository_url: str, commit_sha: str, destination: Path, poli
     destination.mkdir(parents=True, exist_ok=True)
     try:
         subprocess.run([*base_cmd, "init", "--quiet", str(destination)], check=True, env=_git_environment(), timeout=10)
+        fetch_source = repository_url
+        if sparse_paths:
+            for path in sparse_paths:
+                if (PurePosixPath(path).is_absolute() or ".." in PurePosixPath(path).parts
+                        or any(part.startswith(".") for part in path.split("/"))):
+                    raise DomainError("unsafe_path", "Invalid sparse source directory.")
+            for arguments in (("remote", "add", "origin", repository_url),
+                              ("config", "remote.origin.promisor", "true"),
+                              ("config", "remote.origin.partialclonefilter", "blob:none")):
+                subprocess.run([*base_cmd, "-C", str(destination), *arguments], check=True,
+                               env=_git_environment(), capture_output=True, timeout=10)
+            fetch_source = "origin"
         subprocess.run(
-            [*base_cmd, "-C", str(destination), "fetch", "--quiet", "--no-tags", "--depth=1", repository_url, commit_sha],
+            [*base_cmd, "-C", str(destination), "fetch", "--quiet", "--no-tags", "--depth=1",
+             *(["--filter=blob:none"] if sparse_paths else []), fetch_source, commit_sha],
             check=True, env=_git_environment(), timeout=policy.fetch_seconds, capture_output=True,
         )
         resolved = subprocess.run([*base_cmd, "-C", str(destination), "rev-parse", "FETCH_HEAD"], check=True, text=True, capture_output=True, env=_git_environment()).stdout.strip()
         if resolved.lower() != commit_sha.lower():
             raise DomainError("commit_mismatch", "Fetched commit does not match the requested SHA.")
+        if sparse_paths:
+            subprocess.run([*base_cmd, "-C", str(destination), "sparse-checkout", "init", "--cone"],
+                           check=True, env=_git_environment(), capture_output=True, timeout=10)
+            subprocess.run([*base_cmd, "-C", str(destination), "sparse-checkout", "set", "--", *sparse_paths],
+                           check=True, env=_git_environment(), capture_output=True, timeout=10)
         subprocess.run([*base_cmd, "-C", str(destination), "checkout", "--quiet", "--detach", resolved], check=True, env=_git_environment(), timeout=10)
     except subprocess.TimeoutExpired:
         raise DomainError("source_timeout", "Repository acquisition exceeded its time limit.") from None
