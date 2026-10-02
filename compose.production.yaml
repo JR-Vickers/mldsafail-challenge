@@ -1,0 +1,118 @@
+# Preparation only: owner activation gate. Use a new env file, fresh secrets,
+# production OAuth and distinct epoch identity; never reuse staging volumes.
+# Standalone private staging configuration. Run using the deployment user's
+# rootless Docker context. All IMAGE variables must reference immutable digests.
+name: mldsafail-production
+x-logging: &logging
+  driver: json-file
+  options: {max-size: "10m", max-file: "3"}
+x-web-environment: &web-environment
+  MLDSAFAIL_ENV: production
+  MLDSAFAIL_DATABASE_URL: postgresql+psycopg://mldsafail:${POSTGRES_PASSWORD:?required}@db/mldsafail
+  MLDSAFAIL_SECRET_KEY: ${MLDSAFAIL_SECRET_KEY:?required}
+  GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:?required}
+  GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:?required}
+  MLDSAFAIL_BENCHMARK_VERSION: "0.5.0"
+  MLDSAFAIL_EVALUATOR_FINGERPRINT: ${MLDSAFAIL_EVALUATOR_FINGERPRINT:?required}
+  MLDSAFAIL_HIDDEN_SUITE_VERSION: ${MLDSAFAIL_HIDDEN_SUITE_VERSION:?required}
+  MLDSAFAIL_WORKER_CLASS: ${MLDSAFAIL_WORKER_CLASS:?required}
+  MLDSAFAIL_MLWE_EPOCH_ID: ${MLDSAFAIL_MLWE_EPOCH_ID:?required}
+  MLDSAFAIL_SKIP_MIGRATIONS: "1"
+services:
+  migrate:
+    image: ${WEB_IMAGE:?immutable image required}
+    entrypoint: ["/app/.venv/bin/python", "-m", "alembic", "upgrade", "head"]
+    environment: *web-environment
+    read_only: true
+    tmpfs: ["/tmp:size=32m,noexec,nosuid,nodev"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    logging: *logging
+    depends_on:
+      db: {condition: service_healthy}
+  web:
+    image: ${WEB_IMAGE:?immutable image required}
+    restart: unless-stopped
+    environment: *web-environment
+    read_only: true
+    tmpfs: ["/tmp:size=32m,noexec,nosuid,nodev"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 256m
+    logging: *logging
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+  coordinator:
+    image: ${COORDINATOR_IMAGE:?immutable image required}
+    restart: unless-stopped
+    # UID 0 inside a rootless user namespace maps to the non-root deployment
+    # user on the host. No root-owned Docker socket or supplementary group.
+    user: "0:0"
+    environment:
+      MLDSAFAIL_DATABASE_URL: postgresql+psycopg://mldsafail:${POSTGRES_PASSWORD:?required}@db/mldsafail
+      MLDSAFAIL_BENCHMARK_VERSION: "0.5.0"
+      MLDSAFAIL_WORKER_IMAGE: ${WORKER_IMAGE:?immutable image required}
+      MLDSAFAIL_EVALUATOR_FINGERPRINT: ${MLDSAFAIL_EVALUATOR_FINGERPRINT:?required}
+      MLDSAFAIL_HIDDEN_SUITE_VERSION: ${MLDSAFAIL_HIDDEN_SUITE_VERSION:?required}
+      MLDSAFAIL_WORKER_CLASS: ${MLDSAFAIL_WORKER_CLASS:?required}
+      MLDSAFAIL_MLWE_EPOCH_ID: ${MLDSAFAIL_MLWE_EPOCH_ID:?required}
+      MLDSAFAIL_MLWE_EPOCH_PATH: /srv/mldsafail-evaluator/epoch
+      MLDSAFAIL_EVALUATOR_WORK_ROOT: /srv/mldsafail-evaluator/jobs
+      MLDSAFAIL_EVALUATOR_SIGNING_KEY_PATH: /srv/mldsafail-evaluator/secrets/signing.key
+      MLDSAFAIL_SKIP_MIGRATIONS: "1"
+    volumes:
+      - ${ROOTLESS_DOCKER_SOCKET:?required}:/var/run/docker.sock
+      - /srv/mldsafail-evaluator:/srv/mldsafail-evaluator
+    read_only: true
+    tmpfs: ["/tmp:size=128m,nosuid,nodev"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 512m
+    logging: *logging
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+  proxy:
+    image: ${CADDY_IMAGE:?immutable image required}
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    read_only: true
+    environment:
+      MLDSAFAIL_DOMAIN: ${MLDSAFAIL_DOMAIN:?production DNS required}
+    volumes:
+      - ./deploy/Caddyfile.production:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    tmpfs: ["/tmp:size=16m"]
+    cap_drop: [ALL]
+    # The pinned Caddy binary carries this file capability. Its bounding set
+    # must include it even though private staging listens on port 8080.
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 64m
+    logging: *logging
+    depends_on:
+      web: {condition: service_healthy}
+  db:
+    image: ${POSTGRES_IMAGE:?immutable image required}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mldsafail
+      POSTGRES_USER: mldsafail
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    mem_limit: 256m
+    logging: *logging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mldsafail -d mldsafail"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

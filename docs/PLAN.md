@@ -1091,8 +1091,8 @@ Passing the failure suite alone does not authorize public launch.
 **Status:** Pending; follows the applicable hosted acceptance and exposure gates.
 
 Publish coherent 0.5.0 starter, installation, frozen score/problem, edit-boundary,
-and submission/status instructions. The current CLI defaults to 0.4.0 and its
-`clone` command creates the historical scaffold; document explicit 0.5.0 flags
+and submission/status instructions. The participant CLI now defaults to 0.5.0 and its
+`clone` command creates the MLWE scaffold; preserve explicit historical flags
 and copying a Python-only starter until that onboarding implementation is updated.
 Verify the installation/distribution path rather than infer it from the existing
 installer. Keep large evidence available with manifests/checksums; use release
@@ -1755,3 +1755,12 @@ Each option trades off fidelity to ML-DSA against simplicity and speed of evalua
 *This document is the authoritative project specification. If you find a contradiction between this document and any other file in the repository, treat it as a bug and resolve it by updating the other file to match this document, or by proposing a change to this document if the other file reflects a genuine improvement.*
 
 *Last updated: 2026-09-12*
+
+### 2026-10-02 engineering checkpoint
+
+Participant package 0.5.1 now defaults clone/submission to benchmark 0.5.0;
+`mldsafail run` remains historical 0.4.0. Acceptance journal/API hardening and
+inactive CPU/recovery/monitoring/load/production preparation are recorded in
+[LAUNCH_PREPARATION.md](LAUNCH_PREPARATION.md). This is an engineering checkpoint,
+not completed native acceptance or public launch. That handoff lists outstanding
+local engineering and external-input gates explicitly.

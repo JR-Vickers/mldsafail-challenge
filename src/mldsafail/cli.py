@@ -134,8 +134,8 @@ def submit(args) -> int:
                "notes": args.notes, "tags": args.tag or [], "benchmark_version": args.benchmark_version}
     if args.epoch_id:
         payload["epoch_id"] = args.epoch_id
-    if args.solver_path:
-        payload["solver_path"] = args.solver_path
+    if args.solver_path or args.benchmark_version == "0.5.0":
+        payload["solver_path"] = args.solver_path or "solver"
     response = _request("POST", server, "/api/v1/submissions", token=token, json=payload,
                         headers={"Idempotency-Key": args.idempotency_key or str(uuid.uuid4())})
     item = response.json()["submission"]
@@ -231,7 +231,7 @@ def clone_workspace(args) -> int:
     ).stdout.strip()
     print(f"Workspace created at {dir_path}")
     print(f"Commit {head}")
-    print(f"Submit with: mldsafail submit --repo file://{dir_path} --commit {head} --hypothesis \"...\"")
+    print(f"Submit with: mldsafail submit --benchmark-version 0.4.0 --server URL --repo https://github.com/OWNER/REPO --commit {head} --hypothesis \"...\"")
     return 0
 
 

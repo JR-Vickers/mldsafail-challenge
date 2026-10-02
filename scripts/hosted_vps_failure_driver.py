@@ -71,8 +71,10 @@ def containers():
     return json.loads(command(['docker', 'inspect', *ids])) if ids else []
 
 
-def cleanup(journal):
+def cleanup(journal, generation=None):
     with journal_lock(journal):
+        if generation is not None and json.loads(journal.read_text()).get("generation", 0) != generation:
+            return
         _cleanup(journal)
 
 def _cleanup(journal):
@@ -123,7 +125,10 @@ def _cleanup(journal):
                 command(data['compose'] + ['start' if running else 'stop', role])
             except Exception:
                 errors.append('service restoration failed')
-    credential.unlink(missing_ok=True)
+    try:
+        credential.unlink(missing_ok=True)
+    except Exception:
+        errors.append('credential removal failed')
     if data.get('service_states', {}).get('web'):
         try:
             command(['curl', '--fail', '--silent', 'http://127.0.0.1:8080/health/ready'])
@@ -138,12 +143,12 @@ def _cleanup(journal):
     credential.unlink(missing_ok=True)
 
 
-def watchdog(path):
+def watchdog(path, generation=None):
     low_memory_since = None
     while True:
         time.sleep(5)
         data = json.loads(path.read_text())
-        if data.get('cleanup_complete'):
+        if data.get('cleanup_complete') or (generation is not None and data.get('generation', 0) != generation):
             return
         abort = time.time() > data['heartbeat'] + 45
         if data.get('watch_host'):
@@ -158,7 +163,7 @@ def watchdog(path):
         if abort:
             for attempt in range(3):
                 try:
-                    cleanup(path)
+                    cleanup(path, generation) if generation is not None else cleanup(path)
                     break
                 except Exception:
                     time.sleep(5)
@@ -190,9 +195,14 @@ class Driver:
     def touch(self):
         with self.mutex, journal_lock(self.path):
             disk = json.loads(self.path.read_text())
-            require(not disk.get('closing'), 'Cleanup has begun; run cannot reopen')
+            require(not disk.get('closing') and disk.get('generation', 0) == self.j.get('generation', 0), 'Cleanup has begun; run cannot reopen')
             self.j['heartbeat'] = time.time()
             save(self.path, self.j)
+
+    def mutate(self, args, **kwargs):
+        with journal_lock(self.path):
+            require(not json.loads(self.path.read_text()).get('closing'), 'Cleanup has begun')
+            return command(args, **kwargs)
 
     def heartbeat(self):
         with self.mutex, journal_lock(self.path):
@@ -307,7 +317,7 @@ class Driver:
         info = json.loads(command(['docker', 'inspect', self.process]))[0]
         self.probe('privacy', text=command(['docker', 'logs', self.process]))
         require(info['State']['ExitCode'] == 0, 'One-shot coordinator exited abnormally')
-        command(['docker', 'rm', self.process])
+        self.mutate(['docker', 'rm', self.process])
         self.process = None
 
     def fault(self, enabled):
@@ -376,12 +386,12 @@ class Driver:
                                          max(1, 150 - (time.monotonic() - started)), identifier)
                     require(observed)
                 if name == 'lease':
-                    command(['docker', 'kill', self.process])
-                    command(['docker', 'rm', self.process])
+                    self.mutate(['docker', 'kill', self.process])
+                    self.mutate(['docker', 'rm', self.process])
                     self.process = None
                     for worker in containers():
                         if worker_owned(worker, [[identifier, 1]], self.j['worker_image']):
-                            command(['docker', 'rm', '-f', worker['Id']])
+                            self.mutate(['docker', 'rm', '-f', worker['Id']])
                     state = self.probe('state', submission=identifier)
                     expiry = dt.datetime.fromisoformat(state['lease_expires_at'])
                     self.wait(lambda: dt.datetime.now(dt.timezone.utc) > expiry, 150, identifier)
@@ -456,9 +466,9 @@ class Driver:
         self.guard()
         override = self.directory / 'switch.json'
         save(override, {'services': {role: {'image': manifest['images'][role]['id']} for role in ('web', 'coordinator')}})
-        command(self.compose + ['stop', 'coordinator'])
-        command(self.compose + ['-f', str(override), 'create', '--no-deps', 'coordinator'], timeout=60)
-        command(self.compose + ['-f', str(override), 'up', '-d', '--no-deps', 'web'], timeout=60)
+        self.mutate(self.compose + ['stop', 'coordinator'])
+        self.mutate(self.compose + ['-f', str(override), 'create', '--no-deps', 'coordinator'], timeout=60)
+        self.mutate(self.compose + ['-f', str(override), 'up', '-d', '--no-deps', 'web'], timeout=60)
         self.wait(lambda: self.health(), 90)
         # Validate evaluator compatibility using the switched application image.
         switched = json.loads(command(['docker', 'inspect', command(self.compose + ['ps', '-aq', 'coordinator'])]))[0]
@@ -469,7 +479,7 @@ class Driver:
             require(self.probe('identity') == self.j['identity'])
         finally:
             self.probe_id = previous
-            command(['docker', 'rm', '-f', inspector])
+            self.mutate(['docker', 'rm', '-f', inspector])
         require(self.probe('snapshot') == self.j['snapshot'], 'Immutable data changed across switch')
         require(self.api('/api/v1/leaderboard') == self.j['leaderboard'])
         self.api('/api/v1/me')
@@ -488,7 +498,6 @@ class Driver:
             if self.path.exists() and not self.j.get('cleanup_complete'):
                 cleanup(self.path)
             return
-        require(not self.j.get('closing'), 'Cleaned journal is sealed; use a fresh run-id')
         require(self.c['revoked_token'], 'Supply a previously revoked disposable token for rollback verification')
         require(self.j.get('cleanup_complete'), 'Previous run interrupted: run --cleanup first')
         coordinator = command(self.compose + ['ps', '-aq', 'coordinator'])
@@ -522,30 +531,11 @@ class Driver:
                       work_root=env['MLDSAFAIL_EVALUATOR_WORK_ROOT'],
                       original_mode=os.stat(env['MLDSAFAIL_EVALUATOR_WORK_ROOT']).st_mode & 0o7777)
         self.probe_id = coordinator
-        self.guard()
+        require(not self.probe('active')['active'], 'Unrelated evaluation work prevents preflight')
+        require(not any(info['Name'].startswith('/mlwe-') and info['State']['Running'] for info in containers()), 'Unrelated worker prevents preflight')
         identity = self.probe('identity')
         require(self.j.get('identity', identity) == identity, 'Epoch compatibility changed')
         self.j['identity'] = identity
-        self.j['cleanup_complete'] = False
-        self.j['service_states'] = {'coordinator': self.template['State']['Running'], 'web': web['State']['Running']}
-        participant = self.api('/api/v1/me')['id']
-        require(self.j.get('user', participant) == participant, 'Participant changed on resumption')
-        self.j['user'] = participant
-        docker_api_version(json.loads(command(['docker', 'version', '--format', '{{json .Server}}'])))
-        require(self.health(), 'Preflight health failed')
-        require(shutil.disk_usage('/srv').free >= 5 * 1024**3, 'Preflight disk floor')
-        self.touch()
-        watcher = subprocess.Popen(['python3', __file__, '--watchdog', str(self.path)],
-                                   stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                                   stderr=subprocess.DEVNULL, start_new_session=True)
-        credential = self.directory / 'cleanup-token'
-        fd = os.open(credential, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        with os.fdopen(fd, 'w') as stream:
-            stream.write(self.c['token'])
-        self.probe_id = self.clone(self.template)
-        self.guard()
-        require(self.health())
-        self.j['user'] = self.api('/api/v1/me')['id']
         # Review the actual immutable remote fixture tree before any submission.
         import tempfile
         with tempfile.TemporaryDirectory(dir=self.directory) as temporary:
@@ -559,6 +549,32 @@ class Driver:
             actual = {name: hashlib.sha256((checkout / name).read_bytes()).hexdigest() for name in files}
             require(actual == self.c['fixture_files'], 'Pinned public fixtures differ from reviewed sources')
             require(all((checkout / name).is_file() and not (checkout / name).is_symlink() for name in files))
+        self.j['service_states'] = {'coordinator': self.template['State']['Running'], 'web': web['State']['Running']}
+        participant = self.api('/api/v1/me')['id']
+        require(self.j.get('user', participant) == participant, 'Participant changed on resumption')
+        self.j['user'] = participant
+        docker_api_version(json.loads(command(['docker', 'version', '--format', '{{json .Server}}'])))
+        require(self.health(), 'Preflight health failed')
+        self.api('/api/v1/me', token=self.c['revoked_token'], expected=401)
+        available = int(next(line.split()[1] for line in Path('/proc/meminfo').read_text().splitlines() if line.startswith('MemAvailable:'))) * 1024
+        require(available >= 128 * 1024**2, 'Preflight RAM floor')
+        require(shutil.disk_usage('/srv').free >= 5 * 1024**3, 'Preflight disk floor')
+        # A new invocation may resume only after verified cleanup and full identity preflight.
+        self.j.update(closing=False, cleanup_complete=False, generation=self.j.get('generation', 0) + 1)
+        with journal_lock(self.path):
+            save(self.path, self.j)
+        self.touch()
+        watcher = subprocess.Popen(['python3', __file__, '--watchdog', str(self.path), str(self.j['generation'])],
+                                   stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.DEVNULL, start_new_session=True)
+        credential = self.directory / 'cleanup-token'
+        fd = os.open(credential, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, 'w') as stream:
+            stream.write(self.c['token'])
+        self.probe_id = self.clone(self.template)
+        self.guard()
+        require(self.health())
+        self.j['user'] = self.api('/api/v1/me')['id']
         for role in ('coordinator', 'web', 'proxy', 'db'):
             self.probe('privacy', text=command(self.compose + ['logs', '--no-color', '--tail', '1000', role]))
         self.j['service_identity'] = {
@@ -575,13 +591,13 @@ class Driver:
         self.j.update(maintenance=True, cleanup_complete=False, watch_host=True)
         self.touch()
         try:
-            command(['docker', 'stop', coordinator])
+            self.mutate(['docker', 'stop', coordinator])
             self.guard()
             for name, kind in SCENARIOS.items():
                 self.scenario(name, kind)
             self.guard()
             # Stop web for a quiescent backup; DB remains online and schema untouched.
-            command(self.compose + ['stop', 'web'])
+            self.mutate(self.compose + ['stop', 'web'])
             self.touch()
             # A backup command may take >45s: watchdog heartbeat continues in a thread.
             import threading
@@ -600,7 +616,7 @@ class Driver:
             finally:
                 stop.set()
                 thread.join()
-                command(self.compose + ['start', 'web'])
+                self.mutate(self.compose + ['start', 'web'])
             self.wait(lambda: self.health(), 90)
             self.j['snapshot'] = self.probe('snapshot')
             self.j['leaderboard'] = self.api('/api/v1/leaderboard')
@@ -632,8 +648,8 @@ class Driver:
 
 
 def main():
-    if len(sys.argv) == 3 and sys.argv[1] == '--watchdog':
-        watchdog(Path(sys.argv[2]))
+    if len(sys.argv) in {3, 4} and sys.argv[1] == '--watchdog':
+        watchdog(Path(sys.argv[2]), int(sys.argv[3]) if len(sys.argv) == 4 else None)
         return
     config = json.load(sys.stdin)
     os.umask(0o077)
@@ -652,7 +668,18 @@ def main():
             raise
         finally:
             if driver.path.exists() and driver.j.get('worker_image'):
-                cleanup(driver.path)
+                try:
+                    cleanup(driver.path)
+                finally:
+                    current = json.loads(driver.path.read_text())
+                    if not (driver.directory / 'report.json').exists():
+                        save(driver.directory / 'report.json', {
+                            'acceptance_failed': True,
+                            'cleanup_verified': bool(current.get('cleanup_complete')),
+                            'cleanup_retry_required': not current.get('cleanup_complete', False),
+                            'scenario_gates': {name: bool(entry.get('passed'))
+                                               for name, entry in current.get('scenarios', {}).items()},
+                            'native_details_retained_on_vps': True})
 
 
 if __name__ == '__main__':

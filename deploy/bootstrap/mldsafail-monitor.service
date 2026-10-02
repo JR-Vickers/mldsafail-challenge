@@ -1,0 +1,10 @@
+[Unit]
+Description=Readiness, leases, backup freshness and authenticated alerts
+[Service]
+Type=oneshot
+User=mldsafail
+WorkingDirectory=/srv/mldsafail
+UMask=0077
+ExecStart=/srv/mldsafail/.venv/bin/python -m deploy.host_checks --config /srv/mldsafail/secrets/monitor.json
+TimeoutStartSec=2min
+NoNewPrivileges=true

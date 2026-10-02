@@ -1,0 +1,9 @@
+[Unit]
+Description=Weekly encrypted recovery integrity check
+[Service]
+Type=oneshot
+User=mldsafail
+UMask=0077
+ExecStart=/usr/bin/python3 /srv/mldsafail/deploy/recovery.py check --config /srv/mldsafail/secrets/recovery.json
+TimeoutStartSec=4h
+NoNewPrivileges=true

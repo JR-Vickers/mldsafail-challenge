@@ -292,3 +292,129 @@ def test_cleanup_seals_heartbeat_and_persists_failure(tmp_path, monkeypatch):
     assert data['closing'] and not data['cleanup_complete'] and data['cleanup_errors']
     with pytest.raises(RuntimeError, match='Cleanup'):
         subject.touch()
+
+
+def test_cleanup_attempts_service_restore_when_permission_restore_fails(tmp_path, monkeypatch):
+    subject = driver.Driver(config(tmp_path))
+    subject.j.update(worker_image='worker', cleanup_complete=False,
+                     work_root=str(tmp_path / 'missing'), original_mode=0o700,
+                     maintenance=True, compose=['docker', 'compose'],
+                     service_states={'web': False, 'coordinator': True})
+    subject.touch()
+    (tmp_path / 'cleanup-token').write_text('private')
+    calls = []
+    monkeypatch.setattr(driver, 'containers', lambda: [])
+    monkeypatch.setattr(driver, 'command', lambda args, **kw: calls.append(args))
+    with pytest.raises(RuntimeError, match='incomplete'):
+        driver.cleanup(subject.path)
+    assert ['docker', 'compose', 'stop', 'web'] in calls
+    assert ['docker', 'compose', 'start', 'coordinator'] in calls
+    assert not (tmp_path / 'cleanup-token').exists()
+    assert not json.loads(subject.path.read_text())['cleanup_complete']
+    (tmp_path / 'missing').mkdir()
+    driver.cleanup(subject.path)
+    assert json.loads(subject.path.read_text())['cleanup_complete']
+
+
+def test_watchdog_seal_prevents_mutation_and_heartbeat(tmp_path, monkeypatch):
+    subject = driver.Driver(config(tmp_path))
+    subject.j.update(closing=True, cleanup_complete=False)
+    driver.save(subject.path, subject.j)
+    before = subject.path.read_bytes()
+    subject.heartbeat()
+    assert subject.path.read_bytes() == before
+    calls = []
+    monkeypatch.setattr(driver, 'command', lambda args: calls.append(args))
+    with pytest.raises(RuntimeError, match='Cleanup'):
+        subject.mutate(['docker', 'start', 'owned'])
+    with pytest.raises(RuntimeError, match='Cleanup'):
+        subject.clone({})
+    assert not calls
+
+
+def test_heartbeat_thread_cannot_reopen_cleanup(tmp_path, monkeypatch):
+    import threading
+    subject = driver.Driver(config(tmp_path))
+    subject.j.update(worker_image='worker', cleanup_complete=False)
+    subject.touch()
+    monkeypatch.setattr(driver, 'containers', lambda: [])
+    entered = threading.Event()
+    release = threading.Event()
+    def hold():
+        with driver.journal_lock(subject.path):
+            entered.set()
+            release.wait(2)
+    owner = threading.Thread(target=hold)
+    owner.start()
+    assert entered.wait(2)
+    cleanup_thread = threading.Thread(target=driver.cleanup, args=(subject.path,))
+    cleanup_thread.start()
+    heartbeat = threading.Thread(target=subject.heartbeat)
+    heartbeat.start()
+    release.set()
+    for thread in [owner, cleanup_thread, heartbeat]:
+        thread.join(2)
+        assert not thread.is_alive()
+    data = json.loads(subject.path.read_text())
+    assert data['closing'] and data['cleanup_complete']
+
+
+def test_stale_watchdog_cannot_cleanup_resumed_generation(tmp_path, monkeypatch):
+    subject = driver.Driver(config(tmp_path))
+    subject.j.update(generation=2, cleanup_complete=False, heartbeat=0)
+    driver.save(subject.path, subject.j)
+    before = subject.path.read_bytes()
+    driver.cleanup(subject.path, generation=1)
+    assert subject.path.read_bytes() == before
+    monkeypatch.setattr(driver.time, 'sleep', lambda _: None)
+    monkeypatch.setattr(driver.time, 'time', lambda: 100)
+    driver.watchdog(subject.path, generation=1)
+    assert subject.path.read_bytes() == before
+
+
+@pytest.mark.parametrize('failure', ['permissions', 'inventory', 'container', 'release', 'service', 'credential', 'health'])
+def test_cleanup_independently_attempts_each_boundary(tmp_path, monkeypatch, failure):
+    work = tmp_path / 'work'
+    work.mkdir(mode=0o500)
+    subject = driver.Driver(config(tmp_path))
+    subject.j.update(worker_image='worker', cleanup_complete=False, original_mode=0o700,
+                     work_root=str(work), maintenance=True, compose=['docker', 'compose'],
+                     service_states={'web': True, 'coordinator': True}, restore_command=['restore-release'])
+    subject.touch()
+    credential = tmp_path / 'cleanup-token'
+    credential.write_text('private')
+    calls = []
+    chmod = driver.os.chmod
+    unlink = driver.Path.unlink
+    def permissions(path, mode):
+        calls.append('permissions')
+        if failure == 'permissions':
+            raise OSError()
+        return chmod(path, mode)
+    def remove(path, **kwargs):
+        if path == credential:
+            calls.append('credential')
+            if failure == 'credential':
+                raise OSError()
+        return unlink(path, **kwargs)
+    def inventory():
+        calls.append('inventory')
+        if failure == 'inventory':
+            raise RuntimeError()
+        return [{'Id': 'owned', 'Config': {'Labels': {'org.mldsafail.acceptance': 'test-run'}}}]
+    def command(argv, **kw):
+        boundary = ('release' if argv[0] == 'restore-release' else 'health' if argv[0] == 'curl'
+                    else 'container' if 'rm' in argv else 'service')
+        calls.append(boundary)
+        if failure == boundary:
+            raise RuntimeError()
+        return ''
+    monkeypatch.setattr(driver.os, 'chmod', permissions)
+    monkeypatch.setattr(driver.Path, 'unlink', remove)
+    monkeypatch.setattr(driver, 'containers', inventory)
+    monkeypatch.setattr(driver, 'command', command)
+    with pytest.raises(RuntimeError, match='incomplete'):
+        driver.cleanup(subject.path)
+    assert {'permissions', 'inventory', 'release', 'service', 'credential', 'health'} <= set(calls)
+    data = json.loads(subject.path.read_text())
+    assert data['closing'] and data['cleanup_errors'] and not data['cleanup_complete']

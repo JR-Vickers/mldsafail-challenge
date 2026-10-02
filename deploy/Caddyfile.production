@@ -1,0 +1,13 @@
+{$MLDSAFAIL_DOMAIN} {
+    encode zstd gzip
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "same-origin"
+        -Server
+    }
+    @operations path /health/* /metrics /admin/*
+    respond @operations 404
+    reverse_proxy web:8000
+}

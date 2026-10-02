@@ -1,0 +1,21 @@
+{
+  "local_tests": {
+    "passed": 327,
+    "skipped": 8,
+    "historical_correct": true,
+    "historical_small_score": 3901
+  },
+  "wheel_install_smoke": true,
+  "starter_byte_identity": true,
+  "production_compose_synthetic_validation": true,
+  "local_webhook_delivery": true,
+  "native_ssh": "connection_timeout",
+  "native_failure_acceptance": false,
+  "native_cpu_feasibility": false,
+  "offhost_restore_verified": false,
+  "staging_load_executed": false,
+  "production_activated": false,
+  "benchmark_semantics_changed": false,
+  "worker_sources_or_lock_changed": false,
+  "fixture_commit": "e547caffb06ced2e82f28cf1c130c8131613384d"
+}

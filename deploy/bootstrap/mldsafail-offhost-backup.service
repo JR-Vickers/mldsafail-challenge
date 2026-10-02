@@ -1,0 +1,10 @@
+[Unit]
+Description=Encrypted off-host recovery backup (owner activation required)
+[Service]
+Type=oneshot
+User=mldsafail
+UMask=0077
+WorkingDirectory=/srv/mldsafail
+ExecStart=/srv/mldsafail/.venv/bin/python -m deploy.daily_recovery --config /srv/mldsafail/secrets/daily-recovery.json
+TimeoutStartSec=4h
+NoNewPrivileges=true
