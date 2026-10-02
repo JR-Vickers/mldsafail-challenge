@@ -15,6 +15,22 @@ import time
 import urllib.error
 import urllib.request
 import uuid
+import fcntl
+import threading
+from contextlib import contextmanager
+
+@contextmanager
+def journal_lock(path):
+    with path.with_suffix(".journal-lock").open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        yield
+
+def docker_api_version(server, minimum="1.41", maximum="1.47"):
+    parse = lambda value: tuple(map(int, value.split(".")))
+    chosen = min(parse(server["ApiVersion"]), parse(maximum))
+    require(chosen >= max(parse(server.get("MinAPIVersion", "1.24")), parse(minimum)),
+            "Docker API versions do not overlap")
+    return ".".join(map(str, chosen))
 
 SCENARIOS = {'cancellation': 'hang', 'timeout': 'hang', 'invalid': 'invalid',
              'crash': 'crash', 'retry': 'reference', 'exhaustion': 'reference', 'lease': 'reference'}
@@ -56,10 +72,19 @@ def containers():
 
 
 def cleanup(journal):
+    with journal_lock(journal):
+        _cleanup(journal)
+
+def _cleanup(journal):
     data = json.loads(journal.read_text())
-    # Restore host permissions even if the Docker daemon or API is unavailable.
+    data['closing'] = True
+    save(journal, data)
+    errors = []
     if not data.get('cleanup_complete') and data.get('original_mode') is not None:
-        os.chmod(data['work_root'], data['original_mode'])
+        try:
+            os.chmod(data['work_root'], data['original_mode'])
+        except Exception:
+            errors.append('permission restoration failed')
     credential = journal.parent / 'cleanup-token'
     if credential.exists() and not data.get('cleanup_complete'):
         for entry in data.get('scenarios', {}).values():
@@ -71,8 +96,12 @@ def cleanup(journal):
                     urllib.request.urlopen(request, timeout=10).close()
                 except (urllib.error.URLError, TimeoutError):
                     pass
-    errors = []
-    for info in containers():
+    try:
+        inventory = containers()
+    except Exception:
+        inventory = []
+        errors.append("container inventory failed")
+    for info in inventory:
         try:
             if info['Config'].get('Labels', {}).get('org.mldsafail.acceptance') == data['run_id']:
                 command(['docker', 'rm', '-f', info['Id']])
@@ -89,10 +118,19 @@ def cleanup(journal):
         except Exception:
             errors.append('release restoration failed')
     if data.get('maintenance'):
-        # Compose ID may have changed during rollback.
-        ids = command(data['compose'] + ['ps', '-aq', 'coordinator']).splitlines()
-        require(len(ids) == 1)
-        command(['docker', 'start', ids[0]])
+        for role, running in data.get('service_states', {'coordinator': True, 'web': True}).items():
+            try:
+                command(data['compose'] + ['start' if running else 'stop', role])
+            except Exception:
+                errors.append('service restoration failed')
+    credential.unlink(missing_ok=True)
+    if data.get('service_states', {}).get('web'):
+        try:
+            command(['curl', '--fail', '--silent', 'http://127.0.0.1:8080/health/ready'])
+        except Exception:
+            errors.append('health verification failed')
+    data['cleanup_errors'] = errors
+    save(journal, data)
     require(not errors, 'Cleanup incomplete; retry --cleanup')
     data['maintenance'] = False
     data['cleanup_complete'] = True
@@ -134,6 +172,7 @@ class Driver:
         self.path = self.directory / 'journal.json'
         self.compose = ['docker', 'compose', '--project-directory', config['deployment'],
                         '--env-file', config['env_file'], '-f', config['deployment'] + '/compose.private.yaml']
+        self.mutex = threading.RLock()
         self.low_memory_since = None
         self.probe_id = None
         self.process = None
@@ -149,11 +188,27 @@ class Driver:
             save(self.path, self.j)
 
     def touch(self):
-        self.j['heartbeat'] = time.time()
-        save(self.path, self.j)
+        with self.mutex, journal_lock(self.path):
+            disk = json.loads(self.path.read_text())
+            require(not disk.get('closing'), 'Cleanup has begun; run cannot reopen')
+            self.j['heartbeat'] = time.time()
+            save(self.path, self.j)
+
+    def heartbeat(self):
+        with self.mutex, journal_lock(self.path):
+            data = json.loads(self.path.read_text())
+            if data.get('closing'):
+                return
+            data['heartbeat'] = time.time()
+            save(self.path, data)
 
     def clone(self, template, image=None, once=False):
-        """Use Docker Engine create API to preserve the exact service configuration."""
+        with journal_lock(self.path):
+            require(not json.loads(self.path.read_text()).get('closing'), 'Cleanup has begun')
+            return self._clone(template, image, once)
+
+    def _clone(self, template, image=None, once=False):
+        """Create/start while holding the cleanup lock, preserving service isolation."""
         endpoint = os.environ.get('DOCKER_HOST') or json.loads(command(['docker', 'context', 'inspect']))[0]['Endpoints']['docker']['Host']
         require(endpoint.startswith('unix://'), 'Acceptance requires local rootless Docker')
         class UnixConnection(http.client.HTTPConnection):
@@ -171,7 +226,11 @@ class Driver:
         host['RestartPolicy'] = {'Name': 'no', 'MaximumRetryCount': 0}
         config['HostConfig'] = host
         connection = UnixConnection('localhost')
-        connection.request('POST', '/v1.41/containers/create?name=acceptance-' + uuid.uuid4().hex,
+        version = docker_api_version(json.loads(command(['docker', 'version', '--format', '{{json .Server}}'])))
+        networks = template.get('NetworkSettings', {}).get('Networks', {})
+        if networks:
+            config['NetworkingConfig'] = {'EndpointsConfig': {name: {} for name in networks}}
+        connection.request('POST', '/v' + version + '/containers/create?name=acceptance-' + uuid.uuid4().hex,
                            json.dumps(config), {'Content-Type': 'application/json'})
         response = connection.getresponse()
         result = json.loads(response.read())
@@ -252,7 +311,9 @@ class Driver:
         self.process = None
 
     def fault(self, enabled):
-        os.chmod(self.j['work_root'], self.j['original_mode'] & ~0o222 if enabled else self.j['original_mode'])
+        with journal_lock(self.path):
+            require(not json.loads(self.path.read_text()).get('closing'), 'Cleanup has begun')
+            os.chmod(self.j['work_root'], self.j['original_mode'] & ~0o222 if enabled else self.j['original_mode'])
         # Prove effective denial under the deployed identity before claiming work.
         if enabled:
             command(['docker', 'exec', self.probe_id, 'python', '-c',
@@ -266,6 +327,7 @@ class Driver:
                 entry['submission'] = recovered
                 self.touch()
         if entry.get('passed'):
+            self.verify(name, kind, entry['submission'])
             return
         if entry.get('submission'):
             # Resume only evidence verification of finished work; interrupted faults are cleaned up.
@@ -423,9 +485,10 @@ class Driver:
 
     def run(self):
         if self.c['cleanup']:
-            if self.path.exists() and self.j.get('maintenance'):
+            if self.path.exists() and not self.j.get('cleanup_complete'):
                 cleanup(self.path)
             return
+        require(not self.j.get('closing'), 'Cleaned journal is sealed; use a fresh run-id')
         require(self.c['revoked_token'], 'Supply a previously revoked disposable token for rollback verification')
         require(self.j.get('cleanup_complete'), 'Previous run interrupted: run --cleanup first')
         coordinator = command(self.compose + ['ps', '-aq', 'coordinator'])
@@ -458,8 +521,23 @@ class Driver:
         self.j.update(worker_image=release['images']['worker']['id'], compose=self.compose,
                       work_root=env['MLDSAFAIL_EVALUATOR_WORK_ROOT'],
                       original_mode=os.stat(env['MLDSAFAIL_EVALUATOR_WORK_ROOT']).st_mode & 0o7777)
+        self.probe_id = coordinator
+        self.guard()
+        identity = self.probe('identity')
+        require(self.j.get('identity', identity) == identity, 'Epoch compatibility changed')
+        self.j['identity'] = identity
         self.j['cleanup_complete'] = False
+        self.j['service_states'] = {'coordinator': self.template['State']['Running'], 'web': web['State']['Running']}
+        participant = self.api('/api/v1/me')['id']
+        require(self.j.get('user', participant) == participant, 'Participant changed on resumption')
+        self.j['user'] = participant
+        docker_api_version(json.loads(command(['docker', 'version', '--format', '{{json .Server}}'])))
+        require(self.health(), 'Preflight health failed')
+        require(shutil.disk_usage('/srv').free >= 5 * 1024**3, 'Preflight disk floor')
         self.touch()
+        watcher = subprocess.Popen(['python3', __file__, '--watchdog', str(self.path)],
+                                   stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.DEVNULL, start_new_session=True)
         credential = self.directory / 'cleanup-token'
         fd = os.open(credential, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         with os.fdopen(fd, 'w') as stream:
@@ -488,15 +566,14 @@ class Driver:
                 {'config': info['Config'], 'host': info['HostConfig'], 'mounts': info['Mounts']},
                 sort_keys=True).encode()).hexdigest()}
             for role, info in [('web', web), ('coordinator', self.template), ('proxy', proxy)]}
-        self.j['identity'] = self.probe('identity')
+        identity = self.probe('identity')
+        require(self.j.get('identity', identity) == identity, 'Epoch compatibility changed')
+        self.j['identity'] = identity
         require(self.j['identity']['worker'] == self.j['worker_image'])
         print('Private staging maintenance window: sequential failure tests and application rollback.', flush=True)
         # Cleanup is installed before stopping normal service or injecting any fault.
         self.j.update(maintenance=True, cleanup_complete=False, watch_host=True)
         self.touch()
-        watcher = subprocess.Popen(['python3', __file__, '--watchdog', str(self.path)],
-                                   stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                                   stderr=subprocess.DEVNULL, start_new_session=True)
         try:
             command(['docker', 'stop', coordinator])
             self.guard()
@@ -511,7 +588,7 @@ class Driver:
             stop = threading.Event()
             def pulse():
                 while not stop.wait(5):
-                    self.touch()
+                    self.heartbeat()
             thread = threading.Thread(target=pulse, daemon=True)
             thread.start()
             try:

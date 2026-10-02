@@ -163,7 +163,7 @@ def test_cleanup_restores_permissions_and_only_owned_containers(tmp_path, monkey
     assert work.stat().st_mode & 0o777 == 0o700
     assert ['docker', 'rm', '-f', 'owned'] in calls
     assert not any('other' in call for call in calls)
-    assert ['docker', 'start', 'normal'] in calls
+    assert ['docker', 'compose', 'start', 'coordinator'] in calls
     assert json.loads(journal.read_text())['cleanup_complete']
 
 
@@ -215,6 +215,7 @@ def test_clone_preserves_service_identity_and_isolation(tmp_path, monkeypatch):
     subject = driver.Driver(config(tmp_path))
     template = {'Image': 'sha256:pinned', 'Config': {'User': '0:0', 'Env': ['PRIVATE=secret'],
         'WorkingDir': '/app', 'Labels': {'com.docker.compose.service': 'coordinator'}},
+        'NetworkSettings': {'Networks': {'private': {'IPAddress': 'old'}}},
         'HostConfig': {'Binds': ['/host:/host'], 'NetworkMode': 'private', 'ReadonlyRootfs': True,
                        'CapDrop': ['ALL'], 'SecurityOpt': ['no-new-privileges'],
                        'RestartPolicy': {'Name': 'unless-stopped'}}}
@@ -233,9 +234,10 @@ def test_clone_preserves_service_identity_and_isolation(tmp_path, monkeypatch):
             return Response()
     monkeypatch.setenv('DOCKER_HOST', 'unix:///rootless.sock')
     monkeypatch.setattr(driver.http.client, 'HTTPConnection', FakeConnection)
-    monkeypatch.setattr(driver, 'command', lambda *args, **kw: '')
+    monkeypatch.setattr(driver, 'command', lambda args, **kw: '{"ApiVersion":"1.47"}' if 'version' in args else '')
     assert subject.clone(template, once=True) == 'owned-coordinator'
     actual = sent[0]
+    assert actual['NetworkingConfig'] == {'EndpointsConfig': {'private': {}}}
     assert actual['Env'] == template['Config']['Env']
     assert actual['User'] == template['Config']['User']
     assert actual['Image'] == template['Image']
@@ -268,3 +270,25 @@ def test_switch_never_starts_coordinator_or_migrations(tmp_path, monkeypatch):
     assert any('up' in c and c[-1] == 'web' and '--no-deps' in c for c in calls)
     assert not any('up' in c and 'coordinator' in c for c in calls)
     assert not any('migrate' in c or 'db' in c for c in calls)
+
+
+def test_api_negotiation():
+    assert driver.docker_api_version({'ApiVersion': '1.52', 'MinAPIVersion': '1.44'}) == '1.47'
+    assert driver.docker_api_version({'ApiVersion': '1.43'}) == '1.43'
+    with pytest.raises(RuntimeError):
+        driver.docker_api_version({'ApiVersion': '1.40'})
+    with pytest.raises(RuntimeError):
+        driver.docker_api_version({'ApiVersion': '1.52', 'MinAPIVersion': '1.48'})
+
+
+def test_cleanup_seals_heartbeat_and_persists_failure(tmp_path, monkeypatch):
+    subject = driver.Driver(config(tmp_path))
+    subject.j.update(worker_image='worker', cleanup_complete=False)
+    subject.touch()
+    monkeypatch.setattr(driver, 'containers', lambda: (_ for _ in ()).throw(RuntimeError()))
+    with pytest.raises(RuntimeError, match='incomplete'):
+        driver.cleanup(subject.path)
+    data = json.loads(subject.path.read_text())
+    assert data['closing'] and not data['cleanup_complete'] and data['cleanup_errors']
+    with pytest.raises(RuntimeError, match='Cleanup'):
+        subject.touch()
