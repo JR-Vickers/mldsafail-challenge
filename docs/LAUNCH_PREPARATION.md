@@ -102,8 +102,9 @@ keep 20-minute evaluation, 90-second cancellation and 150-second timeout ceiling
 No native gate is reported passed by this handoff.
 
 Remaining local engineering before declaring the entire requested plan complete:
-complete interruption-at-each-boundary/process-race tests and abrupt-death
-recovery for snapshot assembly; new application image release freeze. CPU fixtures
+native interruption-at-each-boundary/process-race acceptance and abrupt-death
+recovery for snapshot assembly. Cleanup-stage failure injection and stale-watchdog
+resumption tests pass locally. The new application image release is frozen locally. CPU fixtures
 and host membership proof are implemented, but native behavior is still pending. Native cgroup feasibility,
 overhead/repeatability and isolated off-host restore need their respective host
 and owner inputs. Existing safety, evaluator, worker locks and scoring are frozen.
@@ -119,3 +120,24 @@ deduplication and recovery were tested against a local receiver. Tests include
 cleanup-stage failures, heartbeat/watchdog generation races, interrupted uploads,
 missing/corrupt recovery material, host freshness/lease decisions and forged
 worker timing/verification fields. Native tests are explicitly pending.
+
+## Frozen application release
+
+Application source `68946403410935379e31411d1723bdc19caa609e` is frozen in
+`/tmp/mldsafail-release-6894640.json`. Both new Linux amd64 images built; the web
+image health/starter smoke passed. Packaged evaluator Python source matches the
+retained b4d212d coordinator exactly. Worker image, worker lock, historical and
+MLWE fingerprints and staging Compose hash match rollback. Only root package
+version metadata changed in uv.lock; dependency selections remain unchanged.
+The application image archive is `/tmp/mldsafail-launch-preparation-6894640-images.tar`
+(0600), SHA-256 `37feca005c7c2a441fd996d71b1e2c13a4f642ec50cbca293650808a94147f76`.
+Exact b4d212d rollback images are retained. These are local artifacts; no deployment
+or native epoch compatibility result is claimed.
+
+The pinned restic Linux amd64 archive checksum and installed binary checksum
+were verified. A synthetic encrypted local repository in an isolated Linux
+container passed restore byte equality, wrong-password rejection and corrupted
+pack rejection. Earlier Docker Desktop shared-filesystem reads failed with I/O
+errors; those failures are recorded, and successful tests used Linux tmpfs.
+This does not establish S3 upload, off-host restore or native rootless feasibility.
+`scripts/restic_synthetic_acceptance.py` provides the reproducible crypto gate.

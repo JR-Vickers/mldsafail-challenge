@@ -653,11 +653,10 @@ def main():
         return
     config = json.load(sys.stdin)
     os.umask(0o077)
-    driver = Driver(config)
-    # One owner per journal; do not allow simultaneous invocations/resumption.
-    import fcntl
-    with (driver.directory / 'lock').open('w') as lock:
+    # Acquire ownership before journal construction, including first-run creation.
+    with (Path(config['directory']) / 'lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        driver = Driver(config)
         for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
             signal.signal(sig, lambda *_: (_ for _ in ()).throw(InterruptedError()))
         try:
