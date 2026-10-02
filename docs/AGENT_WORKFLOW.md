@@ -57,7 +57,7 @@ remaining [hosted gates](PLAN.md#21-development-plan).
 
 For hosted 0.5.0, submit a public GitHub full commit with
 `--benchmark-version 0.5.0 --solver-path PATH`, where PATH contains `solver.py`.
-`mldsafail clone` still creates a historical 0.4.0 scaffold. See
+`mldsafail clone` defaults to MLWE 0.5.0; use `--benchmark-version 0.4.0` for historical work. See
 [HOSTED_V050.md](HOSTED_V050.md) for cohort and source requirements.
 
 ## Historical 0.4.0

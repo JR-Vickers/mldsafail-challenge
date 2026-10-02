@@ -16,11 +16,11 @@ scoring, and original phase notes below describe historical benchmark 0.4.0
 unless explicitly marked otherwise. For 0.5.0, this plan adopts the
 [frozen MLWE specification](PRIMITIVE_SELECTION_SPEC.md),
 [local interface](MLWE_LOCAL.md), [specification mapping](MLWE_SPEC_MAPPING.md),
-and [hosted integration](HOSTED_V050.md). The package version, `make bench`,
+and [hosted integration](HOSTED_V050.md). The participant package is 0.5.1; `make bench`,
 `mldsafail run`, and development Compose stack retain historical 0.4.0 behavior.
 The local `mldsafail-mlwe` workflow and private staging evaluate 0.5.0. Hosted CLI
 submissions must explicitly select `--benchmark-version 0.5.0` and a directory
-containing `solver.py`; `mldsafail clone` still creates a historical scaffold.
+containing `solver.py`; `mldsafail clone` defaults to an MLWE 0.5.0 scaffold; select `--benchmark-version 0.4.0` for historical work.
 Keep scores, edit boundaries, and epoch/environment cohorts separate. Deployment
 status comes from [the dated staging record](PRIVATE_STAGING_STATUS.md); local
 acceptance and frozen images alone do not establish native deployment acceptance.

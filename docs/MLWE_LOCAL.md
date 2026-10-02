@@ -1,7 +1,7 @@
 # Local MLWE benchmark 0.5.0
 
 This local benchmark implements the [frozen MLWE contract](PRIMITIVE_SELECTION_SPEC.md).
-The package version, `mldsafail run`, `make bench`, and historical scores/fingerprints
+The participant package is 0.5.1; `mldsafail run`, `make bench`, and historical scores/fingerprints
 retain 0.4.0 behavior. Private staging now has hosted 0.5.0 submissions and a
 versioned leaderboard; see [HOSTED_V050.md](HOSTED_V050.md). Full staging acceptance
 and public launch remain pending, as recorded in

@@ -21,12 +21,27 @@ production setup, and an external pilot remain open. See
 | `mldsafail-mlwe` | Local 0.5.0, normalized complete-worker CPU against a fixed epoch reference |
 | Private staging submissions | 0.5.0, compatible epoch/environment cohorts only |
 | `make bench`, `mldsafail run`, local JSONL dashboard | Historical 0.4.0, versioned operation counts |
-| `make hosted-dev`, `mldsafail clone` | Historical 0.4.0 development stack and participant scaffold |
+| `make hosted-dev` | Historical 0.4.0 development stack |
+| `mldsafail clone`, submissions | Default 0.5.0; explicit `--benchmark-version 0.4.0` preserves historical behavior |
 
-The Python package version and hosted CLI submission default remain 0.4.0.
-Use explicit 0.5.0 submission flags; a historical `clone` scaffold does not
-contain the required MLWE `solver.py` entry point. Scores from different versions,
-epochs, or execution environments cannot be ranked together.
+The participant package is 0.5.1; the current benchmark remains 0.5.0.
+Scores from different versions, epochs, or environments cannot be ranked together.
+Install only an owner-supplied release wheel after independently verifying its checksum:
+
+```sh
+sh scripts/install.sh RELEASE.whl VERIFIED_SHA256 NEW_INSTALL_DIRECTORY
+export STAGING_SERVER=https://OWNER_CONFIGURED_PRIVATE_STAGING
+mldsafail clone contestant-workspace
+mldsafail login TOKEN --server "$STAGING_SERVER"
+mldsafail submit --server "$STAGING_SERVER" --repo https://github.com/OWNER/REPO \
+  --commit FULL_SHA --solver-path solver --hypothesis "..."
+mldsafail status ID --server "$STAGING_SERVER" --follow
+mldsafail logs ID --server "$STAGING_SERVER"
+mldsafail cancel ID --server "$STAGING_SERVER"
+```
+
+Publish the workspace to public GitHub before submitting. Local MLWE development
+uses [MLWE_PILOT.md](docs/MLWE_PILOT.md). Public launch remains an owner gate.
 
 ## Local 0.5.0 quick start
 

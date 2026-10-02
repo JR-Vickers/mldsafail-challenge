@@ -1,6 +1,6 @@
 [project]
 name = "mldsafail-challenge"
-version = "0.4.0"
+version = "0.5.1"
 description = "A local benchmark for agent-driven optimization on synthetic toy lattices"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -37,6 +37,8 @@ packages = ["src/mldsafail"]
 "src/mldsafail/data/public_seeds.json" = "mldsafail/data/public_seeds.json"
 "src/mldsafail/trusted/profiles.toml" = "mldsafail/trusted/profiles.toml"
 "src/mldsafail/benchmark/contract.toml" = "mldsafail/benchmark/contract.toml"
+
+"examples/mlwe/primal-lll/solver.py" = "mldsafail/data/primal_lll_solver.py"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

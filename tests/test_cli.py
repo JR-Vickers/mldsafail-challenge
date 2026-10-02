@@ -59,3 +59,26 @@ def test_run_delegates_to_offline_benchmark(monkeypatch):
     seen = {}
     monkeypatch.setattr("mldsafail.benchmark.runner.main", lambda args: seen.setdefault("args", args) or 0)
     assert cli.main(["run", "--profile", "small", "--no-record"]) == ["--profile", "small", "--no-record"]
+
+
+def test_default_scaffold_uses_approved_starter(tmp_path, monkeypatch):
+    from pathlib import Path
+    monkeypatch.setattr(cli, 'subprocess_run', lambda *a, **kw: None)
+    workspace = tmp_path / 'workspace'
+    assert cli.main(['clone', str(workspace)]) == 0
+    assert (workspace / 'solver/solver.py').read_bytes() == (Path(__file__).resolve().parents[1] / 'examples/mlwe/primal-lll/solver.py').read_bytes()
+    assert cli.build_parser().parse_args(['submit', '--repo', 'url', '--commit', 'sha', '--hypothesis', 'test']).benchmark_version == '0.5.0'
+
+
+def test_follow_waits_for_retry(tmp_path, monkeypatch):
+    monkeypatch.setenv('XDG_CONFIG_HOME', str(tmp_path))
+    cli._write_config({'server': 'https://staging.test', 'token': 'private'})
+    monkeypatch.setattr(cli.keyring, 'get_password', lambda *a: None)
+    states = iter([{'id': 'one', 'state': 'infrastructure_failed', 'job': {'status': 'queued'}},
+                   {'id': 'one', 'state': 'infrastructure_failed', 'job': {'status': 'failed'}}])
+    monkeypatch.setattr(cli, '_request', lambda method, server, path, **kw: Response(
+        {'logs': []} if path.endswith('/logs') else {'submission': next(states)}))
+    sleeps = []
+    monkeypatch.setattr(cli.time, 'sleep', lambda duration: sleeps.append(duration))
+    assert cli.main(['status', 'one', '--follow']) == 1
+    assert len(sleeps) == 1

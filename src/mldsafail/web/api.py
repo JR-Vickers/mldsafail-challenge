@@ -40,7 +40,11 @@ def token_required(scope: str):
 
 
 def serialize_submission(item: Submission) -> dict:
+    job = get_session().scalar(select(EvaluationJob).where(EvaluationJob.submission_id == item.id))
     return {
+        "job": ({"status": job.status, "attempts": job.attempts,
+                 "max_attempts": job.max_attempts, "available_at": job.available_at.isoformat()}
+                if job else None),
         "id": item.id, "repository_url": item.repository_url, "commit_sha": item.commit_sha,
         "hypothesis": item.hypothesis, "notes": item.notes, "tags": item.tags,
         "benchmark_version": item.benchmark_version, "state": item.state,
