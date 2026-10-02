@@ -1030,8 +1030,10 @@ Keep derived calculations deterministic and testable. The leaderboard must deriv
 - **Failure/rollback acceptance tooling — implemented; native execution pending.**
   Seven integrated scenarios, bounded cleanup, read-only VPS evidence checks,
   and application rollback/forward checks are locally tested. The known-good
-  `b4d212d` rollback and compatible new amd64 images are retained. The fixture
-  repository is local only and requires owner publication. The
+  `b4d212d` rollback and compatible new amd64 images are retained. The owner-published
+  [fixture repository](https://github.com/JR-Vickers/mldsafail-failure-fixtures) was verified
+  on 2026-10-02 at `e547caffb06ced2e82f28cf1c130c8131613384d`; all four files
+  match the approved sources. The
   [preparation report](acceptance/hosted-failures/README.md) records 299 passing
   tests, eight Docker skips, and every unrun native gate. Nothing was pushed or
   changed in staging by that preparation.
@@ -1042,9 +1044,8 @@ Keep derived calculations deterministic and testable. The leaderboard must deriv
 
 **Status:** Pending native failure/recovery and rollback gates.
 
-The owner must publish the reviewed standalone fixture repository and supply its
-public URL/full SHA plus saved participant/revoked-token files and actual staging
-paths. Follow [the failure acceptance guide](HOSTED_FAILURE_ACCEPTANCE.md).
+Fixture publication is complete at the verified full SHA above. Native execution
+still requires saved participant/revoked-token files and actual staging paths. Follow [the failure acceptance guide](HOSTED_FAILURE_ACCEPTANCE.md).
 Test running cancellation, a real timeout followed by cancellation, invalid
 answers, eligible crash penalties, recoverable infrastructure failure, three-attempt
 exhaustion, and expired leases. Check persisted transitions, attempts, backoff,

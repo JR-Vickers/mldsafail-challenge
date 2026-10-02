@@ -57,8 +57,9 @@ pushed by the deployment agent. Full migration acceptance remains open.
 ## Remaining gates
 
 The failure/rollback runner is now implemented, fixtures are exported locally,
-and compatible amd64 application releases are frozen. Native integrated gates
-remain pending owner publication of the fixture repository. See the
+and compatible amd64 application releases are frozen. The owner-published fixture repository was fetched and matched against approved
+source on 2026-10-02; publication is complete. Native integrated gates remain
+pending token/deployment inputs and execution. See the
 [preparation report](acceptance/hosted-failures/README.md) and
 [operator guide](HOSTED_FAILURE_ACCEPTANCE.md). This preparation did not change
 staging or complete its remaining gates.

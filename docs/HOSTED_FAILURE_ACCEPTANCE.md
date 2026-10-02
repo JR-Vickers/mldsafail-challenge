@@ -32,6 +32,16 @@ trusted fingerprint, rootless Docker, loopback exposure, and the epoch's native
 evaluator/environment compatibility. It is an acceptance runner, not an initial
 deployer. Keep current staging secrets and cohort configuration for both releases.
 
+The owner-published fixture repository was verified on 2026-10-02:
+
+- URL: [mldsafail-failure-fixtures](https://github.com/JR-Vickers/mldsafail-failure-fixtures).
+- Full commit: `e547caffb06ced2e82f28cf1c130c8131613384d`.
+- Public Git fetch with the credential helper disabled succeeded; all four tracked
+  files are regular Python source and match the reviewed local bytes exactly.
+
+Use that URL and full SHA below. Publication verification does not complete the
+native evaluation or rollback gates.
+
 ## Run
 
 Provide a mode-0600 file containing the saved participant bearer token, plus a
@@ -41,8 +51,8 @@ environment file paths (the defaults are only conventional paths):
 
 ```sh
 python scripts/hosted_vps_failure_acceptance.py \
-  --fixture-url https://github.com/OWNER/FIXTURE_REPOSITORY \
-  --fixture-sha FULL_40_CHARACTER_SHA \
+  --fixture-url https://github.com/JR-Vickers/mldsafail-failure-fixtures \
+  --fixture-sha e547caffb06ced2e82f28cf1c130c8131613384d \
   --token-file /PRIVATE/participant-token \
   --revoked-token-file /PRIVATE/revoked-token \
   --ssh-identity ~/.ssh/mldsafail_vps \

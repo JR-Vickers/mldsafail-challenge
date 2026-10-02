@@ -188,8 +188,10 @@ The [failure acceptance guide](HOSTED_FAILURE_ACCEPTANCE.md) is the executable
 procedure for running cancellation, real timeout/cancel, invalid answers,
 crash penalties, infrastructure retry/exhaustion, expired leases, and rollback.
 The [preparation report](acceptance/hosted-failures/README.md) records locally
-validated tooling and every unrun native gate. The standalone fixture repository
-is local only and still requires owner publication at public GitHub URL/full SHA.
+validated tooling and every unrun native gate. The [fixture repository](https://github.com/JR-Vickers/mldsafail-failure-fixtures)
+is now public, verified on 2026-10-02, and pinned to
+`e547caffb06ced2e82f28cf1c130c8131613384d`. Native execution still requires the
+saved participant/revoked-token files and actual deployment paths.
 
 Retain `b4d212da3109b7716eb41553986848e377fb5b3d` as the known-good rollback target,
 with exact web/coordinator images and release manifest. For the acceptance drill:
