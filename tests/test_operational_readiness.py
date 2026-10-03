@@ -10,7 +10,7 @@ import pytest
 from deploy.daily_recovery import prune, remove_owned
 from deploy.recovery_journal import Journal, atomic_json
 from deploy.validate_production import validate
-from scripts.retain_release import retain
+from scripts.retain_release import retain, verify
 
 
 def test_production_paths(tmp_path):
@@ -47,10 +47,16 @@ def test_release_retention(tmp_path):
     with pytest.raises(ValueError, match='Conflicting'):
         retain(conflicting, root)
     (tmp_path / 'wheel').write_text('bad')
-    with pytest.raises(ValueError, match='checksum'):
-        retain(data, root)
+    assert retain(data, root) == destination
     (tmp_path / 'wheel').unlink()
-    with pytest.raises(ValueError):
+    assert retain(data, root) == destination
+    assert verify(root, data['source_commit']) == destination
+    (destination / 'wheel').chmod(0o600)
+    with pytest.raises(ValueError, match='permissions'):
+        verify(root, data['source_commit'])
+    (destination / 'wheel').write_text('corrupted')
+    (destination / 'wheel').chmod(0o400)
+    with pytest.raises(ValueError, match='checksum'):
         retain(data, root)
 
 
@@ -319,3 +325,39 @@ def test_assembly_maintenance_boundaries(tmp_path, monkeypatch, boundary):
         assemble(dict(env_file='/private/env', compose='/app/compose.private.yaml'), tmp_path / 'set')
     assert any(argv[-2:] == ['start','web'] for argv in calls)
     assert any(argv[-2:] == ['start','coordinator'] for argv in calls)
+
+
+def test_completed_journal_configuration_rotation(tmp_path):
+    path = tmp_path / 'operation.json'
+    journal = Journal(path, {'setting': 1})
+    journal.data.update(run_id='a' * 32, cleanup_complete=False)
+    journal.save('interrupted')
+    original = path.read_bytes()
+    with pytest.raises(ValueError, match='configuration'):
+        Journal(path, {'setting': 2})
+    assert path.read_bytes() == original
+    journal.data['cleanup_complete'] = True
+    journal.save('cleanup')
+    old = path.read_bytes()
+    replacement = Journal(path, {'setting': 2})
+    assert (tmp_path / ('operation-' + 'a' * 32 + '.json')).read_bytes() == old
+    assert replacement.data['cleanup_complete']
+    assert replacement.data['configuration'] != journal.data['configuration']
+    assert Journal(path, {'setting': 2}).data == replacement.data
+
+
+def test_retained_release_exact_inventory_and_cli(tmp_path):
+    data = inventory(tmp_path)
+    root = tmp_path / 'releases'
+    destination = retain(data, root)
+    for item in data['artifacts'].values():
+        Path(item['path']).unlink()
+    result = subprocess.run([sys.executable, '-m', 'scripts.retain_release', '--verify',
+                             '--commit', data['source_commit'], '--root', str(root)],
+                            capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    destination.chmod(0o700)
+    (destination / 'extra').write_text('unexpected')
+    destination.chmod(0o500)
+    with pytest.raises(ValueError, match='list'):
+        verify(root, data['source_commit'])

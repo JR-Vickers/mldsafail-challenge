@@ -3,8 +3,8 @@ Description=Readiness, leases, backup freshness and authenticated alerts
 [Service]
 Type=oneshot
 User=mldsafail
-WorkingDirectory=/srv/mldsafail
+WorkingDirectory=/srv/mldsafail/current
 UMask=0077
-ExecStart=/srv/mldsafail/.venv/bin/python -m deploy.host_checks --config /srv/mldsafail/secrets/monitor.json
+ExecStart=/srv/mldsafail/current/.venv/bin/python -m deploy.host_checks --config /srv/mldsafail/secrets/monitor.json
 TimeoutStartSec=2min
 NoNewPrivileges=true

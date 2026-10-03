@@ -43,10 +43,26 @@ class Journal:
             if source:
                 identity['files'][key] = hashlib.sha256(safe_path(source).read_bytes()).hexdigest()
         self.identity = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
-        if path.exists():
-            self.data = json.loads(path.read_text())
-            if self.data['version'] != 1 or self.data['configuration'] != self.identity:
-                raise ValueError('Recovery journal configuration mismatch')
+        if self.path.exists():
+            self.data = json.loads(self.path.read_text())
+            if self.data['version'] != 1:
+                raise ValueError('Recovery journal version mismatch')
+            if self.data['configuration'] != self.identity:
+                if not self.data['cleanup_complete']:
+                    raise ValueError('Recovery journal configuration mismatch')
+                run_id = self.data.get('run_id', 'unstarted-' + self.data['configuration'])
+                import re
+                if not re.fullmatch(r'(?:[0-9a-f]{32}|unstarted-[0-9a-f]{64})', run_id):
+                    raise ValueError('Invalid journal run identity')
+                archive = safe_path(self.path.with_name('operation-' + run_id + '.json'))
+                if archive.exists():
+                    if json.loads(archive.read_text()) != self.data:
+                        raise ValueError('Conflicting archived operation')
+                else:
+                    atomic_json(archive, self.data)
+                self.data = dict(version=1, configuration=self.identity, phase='created',
+                                 services={}, containers=[], cleanup_complete=True)
+                atomic_json(self.path, self.data)
         else:
             self.data = dict(version=1, configuration=self.identity, phase='created',
                              services={}, containers=[], cleanup_complete=True)

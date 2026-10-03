@@ -320,7 +320,10 @@ One nonblocking operation lock covers backup and cleanup. Versioned journals in
 `recovery_root/journals` remain outside uploaded snapshot directories, are written
 atomically with file/directory synchronization, and bind configuration contents
 and Compose/env-file identities. Restore the original configuration before retrying
-cleanup if its identity changed. Cleanup retries service-state restoration and
+cleanup if its identity changed while cleanup is pending. Once cleanup is complete,
+a changed configuration archives the operation journal under its run identity and
+atomically initializes a new journal, under the same operation lock. Run records
+and failed evidence remain intact. Cleanup retries service-state restoration and
 container removal independently, checks required service health, and retains
 errors for retry. Containers must match the recorded unique name, recovery label
 and immutable image; a mismatch is preserved and reported as incomplete cleanup.
@@ -370,3 +373,19 @@ full-commit directories locally. Their manifest, `images.tar`, participant wheel
 Use manifest image identities for future owner-gated deployment. These copies
 establish local artifact retention, not native rollback acceptance or deployment
 of the operational changes in the current source tree.
+
+Retained releases can be checked after removing source originals:
+
+```sh
+python -m scripts.retain_release --verify --commit FULL_40_CHAR_SHA --root /PRIVATE/releases
+```
+
+Verification reads only the retained directory, checks its exact artifact list,
+commit-bound inventory/manifest, private permissions and all artifact hashes, and
+never builds, repairs or overwrites material. Repeating retention with a matching
+inventory verifies the destination before inspecting any source originals.
+
+Off-host and monitoring units use `/srv/mldsafail/current/.venv/bin/python` and
+`WorkingDirectory=/srv/mldsafail/current`. Provision that installed environment
+before unit validation/activation; the existing staging checkout currently has
+no such host environment. Unit activation still requires manual acceptance.
