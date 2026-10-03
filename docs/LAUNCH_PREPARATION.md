@@ -153,3 +153,38 @@ Operational follow-up evidence and durable artifact hashes are recorded in
 [the acceptance report](acceptance/launch-preparation/report.json). The local
 check log is retained beside that report. No remaining local implementation work
 is claimed for these four fixes; native acceptance and activation remain pending.
+
+
+## 2026-10-03 operational acceptance follow-up
+
+The new [sanitized report](acceptance/operational-acceptance-20261003/report.json)
+and [operator handoff](acceptance/operational-acceptance-20261003/README.md)
+supersede earlier claims that no local engineering gaps remained. Completed
+journals now archive on configuration change after cleanup; retained releases
+verify independently of original paths; units use the installed host environment.
+Local production admission and global claim serialization are implemented and
+verified. 361 tests passed, eight native tests skipped; make check passed.
+
+SSH now works. Native staging readiness and resource floors pass, but both saved
+active credentials return 401. A stale queued row belongs to a cancelled
+submission. The host environment is absent, so native unit verification fails.
+Maintenance, deployment and acceptance stopped at these prerequisites. Live
+staging remains on b4d212d, with its database, worker, epoch and evidence preserved.
+No scheduler or alert was activated. Storage credentials and independent recovery
+password custody remain missing inputs.
+
+Latest locally retained application source:
+`eef20af3a76f7dd6fc9ef7be3bf3420120999d3f`, under the full-commit private release
+root. Image archive SHA-256:
+`27c595156d2ec75a49313ad4a217dd63512e5e01772bc66627c6b1346071b83f`.
+The report records exact image identities. The original 6894640 and b4d212d
+artifacts independently verify and were not replaced. Intermediate operational
+source 4aa4c2a also has a distinct retained release; its archive was copied to the
+protected VPS but was not loaded or deployed. Old images do not include these fixes.
+
+[The proposed 0.6.0 contract](MLWE_V060_CONTRACT.md) remains unadopted. Paired
+measurement thresholds, accounting ownership serialization, host-counter evidence,
+grandchild/output-flood/descendant-timeout fixtures are prepared. Native CPU
+adoption, 0.6.0 integration/epochs/release, PostgreSQL concurrency, both native load
+gates, production packet and external pilot remain unfinished. Production and
+public exposure still require the owner gate after successful native acceptance.

@@ -1,0 +1,107 @@
+{
+  "activation": {
+    "benchmark_default_changed": false,
+    "live_database_changed": false,
+    "offhost_repositories_initialized": false,
+    "production_deployed": false,
+    "public_exposure": false,
+    "pushed": false,
+    "staging_services_changed": false,
+    "timers_activated": false
+  },
+  "changes": {
+    "bounded_admission": "local implementation",
+    "cpu_contract": "proposed, not frozen",
+    "global_evaluation_lease": "serialized persisted claim; native expiry/orphan acceptance pending",
+    "journal_rotation": true,
+    "paired_cpu_gates": true,
+    "queued_cancellation": "closes newly cancelled queued jobs; existing staging history untouched",
+    "standalone_release_verification": true,
+    "unit_entrypoints_corrected": true
+  },
+  "date": "2026-10-03",
+  "gates": {
+    "alerts_and_schedulers": {
+      "reason": "Authenticated webhook/storage configuration and manual acceptance required; timers inactive",
+      "status": "pending"
+    },
+    "application_rollback_forward": {
+      "reason": "Native failure protocol prerequisites unresolved",
+      "status": "pending"
+    },
+    "cpu_v060": {
+      "reason": "Contract proposed only; independent review, delegated idle-host accounting, native thresholds and hosted integration pending",
+      "status": "pending"
+    },
+    "external_pilot": {
+      "reason": "Owner public-exposure approval and actual pilot pending",
+      "status": "pending"
+    },
+    "native_admission_and_load": {
+      "reason": "Local controls tested; PostgreSQL concurrency and both five-minute native load gates pending",
+      "status": "pending"
+    },
+    "native_interruption_recovery": {
+      "reason": "Installed host environment and isolated recovery material required",
+      "status": "pending"
+    },
+    "offhost_recovery": {
+      "reason": "Approved storage configuration and independently retained recovery password absent",
+      "status": "pending"
+    },
+    "production": {
+      "reason": "Fresh production secrets, HTTPS/OAuth, audited 0.6.0 epoch, all native gates and owner deployment approval required",
+      "status": "pending"
+    },
+    "seven_scenario_acceptance": {
+      "reason": "Valid participant token and clean queue required",
+      "status": "pending"
+    },
+    "staging_deployment": {
+      "reason": "Failed token/queue preflight; live services unchanged",
+      "status": "pending"
+    }
+  },
+  "local": {
+    "focused_tests": "pass",
+    "make_check": "pass",
+    "native_tests_skipped": 8,
+    "status": "pass",
+    "tests_passed": 361,
+    "web_image_smoke": "pass; emulated Linux amd64"
+  },
+  "native_preflight": {
+    "active_token": "fail; HTTP 401",
+    "cgroup_v2": "pass",
+    "cli_saved_token": "fail; HTTP 401",
+    "disk_floor": "pass; 38 GiB available",
+    "host_python_environment": "fail; current/.venv/bin/python absent",
+    "live_release": "b4d212da3109b7716eb41553986848e377fb5b3d",
+    "memory_floor": "pass; 1333 MiB available",
+    "queue": "fail; one queued row for an already cancelled submission, attempts zero",
+    "readiness": "pass; HTTP 200",
+    "revoked_token": "pass; HTTP 401",
+    "rootless_docker": "pass",
+    "ssh": "pass",
+    "status": "fail",
+    "systemd_unit_validation": "fail; executable prerequisite absent; no activation"
+  },
+  "release": {
+    "archive_sha256": "27c595156d2ec75a49313ad4a217dd63512e5e01772bc66627c6b1346071b83f",
+    "images": {
+      "coordinator": "sha256:795f5e2423f33fad5023bff58f03fe2d8bb64587316c53f82b7fe41836a0c453",
+      "web": "sha256:574fef6280ce4c76c494c528d85338bb8b0a324ef922bdbb21e317a05fecef99",
+      "worker": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe"
+    },
+    "original_releases": [
+      "68946403410935379e31411d1723bdc19caa609e",
+      "b4d212da3109b7716eb41553986848e377fb5b3d"
+    ],
+    "original_releases_verified": true,
+    "source_commit": "eef20af3a76f7dd6fc9ef7be3bf3420120999d3f",
+    "status": "pass; locally retained only",
+    "worker_and_benchmark_fingerprints_unchanged": true
+  },
+  "source_commit": "eef20af3a76f7dd6fc9ef7be3bf3420120999d3f",
+  "status": "partial; native acceptance blocked"
+}
