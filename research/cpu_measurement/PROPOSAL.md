@@ -36,7 +36,11 @@ accounted after removing the child cgroup, including grandchildren.
 Run at least 30 paired empty-worker and deterministic CPU fixtures sequentially
 on an idle host. Record whole-worker CPU, wall time, parent counter before/after,
 verified candidate disposition, overhead medians/p95 and coefficient of variation.
-Declare acceptable overhead and repeatability thresholds before execution.
+The predeclared adoption gates are deterministic-fixture CPU CV ≤5%,
+empty-worker median CPU ≤250 ms, and empty-worker wall p95 ≤5 seconds
+(nearest-rank percentile). Report empty-worker CV without gating on it.
+The runner performs 30 sequential empty/CPU pairs; failed thresholds stop
+adoption and must not be relaxed retrospectively.
 Test: clock monkeypatching, forged CPU fields, child/grandchild computation,
 early exit, malformed JSON, timeout with surviving children, oversized streams,
 counter deletion/read failure, incorrect parent mapping and counter regression.

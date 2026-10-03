@@ -1,6 +1,7 @@
 """Experimental host cgroup accounting. Never used by the production evaluator."""
 from __future__ import annotations
 import argparse
+import fcntl
 import os
 import sys
 import json
@@ -39,10 +40,16 @@ def run(image, parent, cgroup_parent, source, public_input, verify, timeout=60):
     public_input = json.loads(json.dumps(public_input))
     instance_from_dict(public_input)  # Fixed tiny profiles and serialization cap.
     import tempfile
-    with tempfile.TemporaryDirectory() as directory:
-        snapshot = Path(directory) / 'solver'
-        solver_snapshot(source, snapshot)
-        return _run(image, parent, cgroup_parent, snapshot, public_input, verify, timeout)
+    # Trusted callers sharing this parent serialize its complete accounting lifetime.
+    descriptor = os.open(parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with tempfile.TemporaryDirectory() as directory:
+            snapshot = Path(directory) / 'solver'
+            solver_snapshot(source, snapshot)
+            return _run(image, parent, cgroup_parent, snapshot, public_input, verify, timeout)
+    finally:
+        os.close(descriptor)
 
 
 def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60):
@@ -54,7 +61,7 @@ def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60)
     public_input = json.loads(json.dumps(public_input))
     if sys.platform != 'linux':
         raise RuntimeError('Native Linux host required')
-    info = json.loads(subprocess.check_output(['docker', 'info', '--format', '{{json .}}']))
+    info = json.loads(subprocess.check_output(['docker', 'info', '--format', '{{json .}}'], timeout=30))
     if str(info.get('CgroupVersion')) != '2' or not any('rootless' in option for option in info.get('SecurityOptions', [])):
         raise RuntimeError('Rootless Docker with cgroup v2 required')
     if not image.startswith('sha256:') or len(image) != 71:
@@ -113,7 +120,7 @@ def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60)
                     status = 'exited' if process.returncode == 0 else 'crash'
         finally:
             # Kill the container and every descendant before collecting the parent.
-            subprocess.run(['docker', 'rm', '-f', name], check=True, capture_output=True)
+            subprocess.run(['docker', 'rm', '-f', name], check=True, capture_output=True, timeout=30)
             if process.poll() is None:
                 process.kill()
             process.wait(timeout=10)
@@ -139,7 +146,9 @@ def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60)
         except (ValueError, TypeError, AttributeError):
             status = 'malformed'
     return {'status': status, 'verified': verified, 'authoritative_cpu_usec': cpu,
-            'wall_seconds': time.monotonic() - started, 'experimental': True}
+            'wall_seconds': time.monotonic() - started, 'experimental': True,
+            'measurement_method': 'cgroup-v2-usage-usec',
+            'counter_before_usec': before, 'counter_after_usec': before + cpu}
 
 
 def main():

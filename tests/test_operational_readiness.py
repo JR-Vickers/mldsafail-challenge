@@ -50,7 +50,9 @@ def test_release_retention(tmp_path):
     assert retain(data, root) == destination
     (tmp_path / 'wheel').unlink()
     assert retain(data, root) == destination
+    (tmp_path / 'wheel').symlink_to(tmp_path / 'missing-original')
     assert verify(root, data['source_commit']) == destination
+    assert retain(data, root) == destination
     (destination / 'wheel').chmod(0o600)
     with pytest.raises(ValueError, match='permissions'):
         verify(root, data['source_commit'])

@@ -72,3 +72,22 @@ def test_experimental_worker_ignores_reported_cpu_and_verification(tmp_path, mon
                           generate_mlwe('small', 0, 1).public.to_dict(), lambda *args: True)
     assert result['authoritative_cpu_usec'] == 1000
     assert not result['verified'] and result['status'] == expected
+
+
+def test_predeclared_cpu_adoption_gates():
+    from research.cpu_measurement.native_suite import measurement_gates
+    rows = [dict(fixture=name, repetition=i, authoritative_cpu_usec=cpu, wall_seconds=1.)
+            for i in range(30) for name, cpu in [('empty', 200_000), ('child', 500_000)]]
+    assert measurement_gates(rows)['passed']
+    for row in rows:
+        if row['fixture'] == 'empty':
+            row['authoritative_cpu_usec'] = 100_000 if row['repetition'] % 2 else 300_000
+    assert measurement_gates(rows)['passed']  # Empty CV is deliberately not a gate.
+    rows[1]['authoritative_cpu_usec'] = 2_000_000
+    assert not measurement_gates(rows)['gates']['deterministic_cpu_cv']
+    rows[1]['authoritative_cpu_usec'] = 500_000
+    for row in rows:
+        if row['fixture'] == 'empty': row['wall_seconds'] = 6.
+    assert not measurement_gates(rows)['gates']['empty_wall_p95']
+    with pytest.raises(ValueError, match='30'):
+        measurement_gates(rows[:-1])

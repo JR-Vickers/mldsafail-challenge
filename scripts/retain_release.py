@@ -35,7 +35,9 @@ def validate_inventory(inventory):
     for name, item in artifacts.items():
         if Path(name).name != name or name in {'.', '..', 'retention.json'}:
             raise ValueError('Unsafe artifact name')
-        safe_path(item['path'])
+        source = Path(item['path'])
+        if not source.is_absolute() or '..' in source.parts:
+            raise ValueError('Absolute source identity required')
         if not re.fullmatch('[0-9a-f]{64}', item['sha256']):
             raise ValueError('Invalid checksum')
     return commit
