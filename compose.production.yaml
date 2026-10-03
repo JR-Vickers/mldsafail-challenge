@@ -8,6 +8,10 @@ x-logging: &logging
   options: {max-size: "10m", max-file: "3"}
 x-web-environment: &web-environment
   MLDSAFAIL_ENV: production
+  MLDSAFAIL_ADMISSION_LIMITS_ENABLED: "1"
+  MLDSAFAIL_OUTSTANDING_PER_ACCOUNT: ${MLDSAFAIL_OUTSTANDING_PER_ACCOUNT:-1}
+  MLDSAFAIL_SUBMISSIONS_PER_DAY: ${MLDSAFAIL_SUBMISSIONS_PER_DAY:-2}
+  MLDSAFAIL_QUEUED_GLOBALLY: ${MLDSAFAIL_QUEUED_GLOBALLY:-10}
   MLDSAFAIL_DATABASE_URL: postgresql+psycopg://mldsafail:${POSTGRES_PASSWORD:?required}@db/mldsafail
   MLDSAFAIL_SECRET_KEY: ${MLDSAFAIL_SECRET_KEY:?required}
   GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:?required}
@@ -54,6 +58,7 @@ services:
     # user on the host. No root-owned Docker socket or supplementary group.
     user: "0:0"
     environment:
+      MLDSAFAIL_REQUIRE_RESOURCE_FLOORS: "1"
       MLDSAFAIL_DATABASE_URL: postgresql+psycopg://mldsafail:${POSTGRES_PASSWORD:?required}@db/mldsafail
       MLDSAFAIL_BENCHMARK_VERSION: "0.5.0"
       MLDSAFAIL_WORKER_IMAGE: ${WORKER_IMAGE:?immutable image required}

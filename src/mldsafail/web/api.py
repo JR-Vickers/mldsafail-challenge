@@ -110,7 +110,13 @@ def submissions_create():
               "evaluator_fingerprint": current_app.config["EVALUATOR_FINGERPRINT"],
               "hidden_suite_version": current_app.config["HIDDEN_SUITE_VERSION"],
               "worker_class": current_app.config["WORKER_CLASS"]}
-    item, created = create_submission(get_session(), g.api_user, payload, request.headers.get("Idempotency-Key", ""), cohort=cohort)
+    item, created = create_submission(get_session(), g.api_user, payload, request.headers.get("Idempotency-Key", ""), cohort=cohort,
+                                      admission_limits=({
+                                          'outstanding_per_account': current_app.config['OUTSTANDING_PER_ACCOUNT'],
+                                          'submissions_per_day': current_app.config['SUBMISSIONS_PER_DAY'],
+                                          'queued_globally': current_app.config['QUEUED_GLOBALLY'],
+                                          'check_resources': current_app.config['ENV'] == 'production',
+                                      } if current_app.config['ADMISSION_LIMITS_ENABLED'] else None))
     return jsonify(submission=serialize_submission(item)), 201 if created else 200
 
 

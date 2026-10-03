@@ -12,7 +12,7 @@ from pathlib import PurePosixPath
 
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerifyMismatchError
-from sqlalchemy import select
+from sqlalchemy import select, func, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -139,8 +139,43 @@ def _request_digest(payload: dict) -> str:
     return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
+
+def evaluation_transaction_lock(session: Session) -> None:
+    """One database-wide mutex shared by admission and global lease claims."""
+    dialect = session.get_bind().dialect.name
+    if dialect == 'postgresql':
+        session.execute(text('SELECT pg_advisory_xact_lock(1296843841)'))
+    elif dialect == 'sqlite':
+        from sqlalchemy.dialects.sqlite import insert
+        session.execute(insert(RateLimitState).values(
+            id='evaluation-capacity', bucket='evaluation-capacity',
+            window_started_at=utcnow(), count=0).on_conflict_do_nothing(index_elements=['bucket']))
+        session.execute(text("UPDATE rate_limit_states SET count=count WHERE bucket='evaluation-capacity'"))
+    else:
+        raise RuntimeError('Unsupported transactional admission database')
+
+
+def check_admission(session: Session, user: User, limits: dict) -> None:
+    for name in ('outstanding_per_account', 'submissions_per_day', 'queued_globally'):
+        if type(limits.get(name)) is not int or limits[name] < 1:
+            raise ValueError('Positive admission limits required')
+    if limits.get('check_resources'):
+        from mldsafail.evaluator.resources import resource_floors_available
+        if not resource_floors_available():
+            raise DomainError('capacity_exhausted', 'Evaluation capacity is currently exhausted. Try again later.', 429)
+    outstanding = session.scalar(select(func.count()).select_from(Submission).where(
+        Submission.user_id == user.id,
+        Submission.state.in_([state.value for state in SubmissionState if state not in TERMINAL_STATES])))
+    recent = session.scalar(select(func.count()).select_from(Submission).where(
+        Submission.user_id == user.id, Submission.created_at > utcnow() - timedelta(hours=24)))
+    queued = session.scalar(select(func.count()).select_from(EvaluationJob).join(
+        Submission, Submission.id == EvaluationJob.submission_id).where(
+        EvaluationJob.status == 'queued', Submission.state == SubmissionState.QUEUED.value))
+    if outstanding >= limits['outstanding_per_account'] or recent >= limits['submissions_per_day'] or queued >= limits['queued_globally']:
+        raise DomainError('capacity_exhausted', 'Evaluation capacity is currently exhausted. Try again later.', 429)
+
 def create_submission(session: Session, user: User, payload: dict, idempotency_key: str,
-                      *, cohort: dict | None = None) -> tuple[Submission, bool]:
+                      *, cohort: dict | None = None, admission_limits: dict | None = None) -> tuple[Submission, bool]:
     if not idempotency_key or len(idempotency_key) > 128:
         raise DomainError("invalid_idempotency_key", "A valid Idempotency-Key header is required.")
     allowed = {"repository_url", "commit_sha", "hypothesis", "notes", "tags", "benchmark_version",
@@ -179,11 +214,15 @@ def create_submission(session: Session, user: User, payload: dict, idempotency_k
     elif any(name in payload for name in allowed - set(normalized)):
         raise DomainError("incompatible_cohort", "Epoch fields require MLWE 0.5.0.", 422)
     digest = _request_digest(normalized)
+    if admission_limits is not None:
+        evaluation_transaction_lock(session)
     existing = session.scalar(select(IdempotencyKey).where(IdempotencyKey.user_id == user.id, IdempotencyKey.key == idempotency_key))
     if existing:
         if existing.request_hash != digest:
             raise DomainError("idempotency_conflict", "This idempotency key was used for a different request.", 409)
         return session.get(Submission, existing.submission_id), False
+    if admission_limits is not None:
+        check_admission(session, user, admission_limits)
     submission = Submission(user_id=user.id, **normalized)
     session.add(submission)
     session.flush()
@@ -215,6 +254,8 @@ def transition_submission(session: Session, submission: Submission, target: Subm
 
 
 def cancel_submission(session: Session, submission: Submission) -> None:
+    evaluation_transaction_lock(session)
+    session.refresh(submission)
     current = SubmissionState(submission.state)
     if current in TERMINAL_STATES:
         raise DomainError("already_terminal", "Submission is already in a terminal state.", 409)
@@ -223,6 +264,10 @@ def cancel_submission(session: Session, submission: Submission) -> None:
         audit(session, "submission.cancellation_requested", submission.user_id, submission_id=submission.id)
     else:
         transition_submission(session, submission, SubmissionState.CANCELLED, "cancelled by participant")
+        if current is SubmissionState.QUEUED:
+            job = session.scalar(select(EvaluationJob).where(EvaluationJob.submission_id == submission.id))
+            if job is not None and job.status == 'queued':
+                job.status = 'complete'
     session.commit()
 
 

@@ -42,6 +42,7 @@ class CoordinatorConfig:
     epoch_path: Path | None = None
     epoch_id: str | None = None
     signing_key: Path | None = None
+    require_resource_floors: bool = False
 
 
 class Coordinator:
@@ -65,6 +66,10 @@ class Coordinator:
         self.worker_id = f"{socket.gethostname()}:{os.getpid()}"
 
     def run_once(self) -> bool:
+        if self.config.require_resource_floors:
+            from mldsafail.evaluator.resources import resource_floors_available
+            if not resource_floors_available(self.config.work_root):
+                return False
         with Session(self.engine) as database:
             recover_stale_jobs(database)
             job = claim_job(database, self.worker_id, benchmark_version=self.config.benchmark_version)
@@ -243,6 +248,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--once", action="store_true")
     args = parser.parse_args(argv)
     config = CoordinatorConfig(
+        require_resource_floors=os.environ.get("MLDSAFAIL_REQUIRE_RESOURCE_FLOORS", "0") == "1",
         database_url=os.environ["MLDSAFAIL_DATABASE_URL"], trusted_checkout=Path(os.environ.get("MLDSAFAIL_TRUSTED_CHECKOUT", "/opt/mldsafail")),
         hidden_seeds=Path(os.environ.get("MLDSAFAIL_HIDDEN_SEEDS_PATH", "/nonexistent")), worker_image=os.environ["MLDSAFAIL_WORKER_IMAGE"],
         benchmark_version=os.environ.get("MLDSAFAIL_BENCHMARK_VERSION", "0.4.0"), evaluator_fingerprint=os.environ["MLDSAFAIL_EVALUATOR_FINGERPRINT"],

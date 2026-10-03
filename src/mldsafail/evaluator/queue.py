@@ -8,11 +8,18 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from mldsafail.web.models import EvaluationAttempt, EvaluationJob, Submission, SubmissionState, utcnow
-from mldsafail.web.services import transition_submission
+from mldsafail.web.services import transition_submission, evaluation_transaction_lock
 
 
 def claim_job(session: Session, worker_id: str, lease_seconds: int = 120,
               benchmark_version: str | None = None) -> EvaluationJob | None:
+    evaluation_transaction_lock(session)
+    # The persisted claimed/running job is the global evaluation lease. Never
+    # claim a second job until completion or explicit stale-lease reconciliation.
+    if session.scalar(select(EvaluationJob.id).where(
+            EvaluationJob.status.in_(['claimed', 'running'])).limit(1)) is not None:
+        session.rollback()
+        return None
     now = utcnow()
     job = session.scalar(
         select(EvaluationJob).join(Submission, Submission.id == EvaluationJob.submission_id).where(

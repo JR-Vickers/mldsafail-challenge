@@ -24,6 +24,10 @@ class BaseConfig:
     HIDDEN_SUITE_VERSION: str = "unconfigured"
     WORKER_CLASS: str = "rootless-docker-v1"
     MLWE_EPOCH_ID: str | None = None
+    ADMISSION_LIMITS_ENABLED: bool = False
+    OUTSTANDING_PER_ACCOUNT: int = 1
+    SUBMISSIONS_PER_DAY: int = 2
+    QUEUED_GLOBALLY: int = 10
 
 
 @dataclass(frozen=True)
@@ -52,6 +56,7 @@ class PrivateStagingConfig(BaseConfig):
 
 @dataclass(frozen=True)
 class ProductionConfig(BaseConfig):
+    ADMISSION_LIMITS_ENABLED: bool = True
     ENV: str = "production"
     SESSION_COOKIE_SECURE: bool = True
 
@@ -86,6 +91,17 @@ def load_config(name: str | None = None) -> dict[str, object]:
     for key, variable in mappings.items():
         if variable in os.environ:
             config[key] = os.environ[variable]
+    for key in ('OUTSTANDING_PER_ACCOUNT', 'SUBMISSIONS_PER_DAY', 'QUEUED_GLOBALLY'):
+        variable = 'MLDSAFAIL_' + key
+        if variable in os.environ:
+            config[key] = int(os.environ[variable])
+        if config[key] < 1:
+            raise ValueError('Positive admission limits required')
+    if 'MLDSAFAIL_ADMISSION_LIMITS_ENABLED' in os.environ:
+        value = os.environ['MLDSAFAIL_ADMISSION_LIMITS_ENABLED']
+        if value not in {'0', '1'}:
+            raise ValueError('Admission switch requires 0 or 1')
+        config['ADMISSION_LIMITS_ENABLED'] = value == '1'
     if environment in {"private-staging", "staging", "production"}:
         if config["BENCHMARK_VERSION"] == "0.5.0" and not config["MLWE_EPOCH_ID"]:
             raise RuntimeError("MLDSAFAIL_MLWE_EPOCH_ID is required for hosted MLWE")

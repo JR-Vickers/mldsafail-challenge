@@ -189,3 +189,23 @@ def test_concurrent_token_creation_is_database_idempotent(tmp_path, monkeypatch)
     assert sum(plaintext is not None for _, plaintext in results) == 1
     with Session(engine) as database:
         assert len(database.scalars(select(ApiToken).where(ApiToken.creation_request_key == "a" * 64)).all()) == 1
+
+
+def test_api_capacity_rejection_preserves_status_cancel_and_retry(tmp_path):
+    app = hosted_app(tmp_path)
+    app.config['ADMISSION_LIMITS_ENABLED'] = True
+    _, _, token = user_and_token(app)
+    client = app.test_client()
+    headers = {'Authorization': 'Bearer ' + token, 'Idempotency-Key': 'first'}
+    payload = dict(repository_url='https://github.com/example/solver', commit_sha='a'*40, hypothesis='capacity')
+    first = client.post('/api/v1/submissions', headers=headers, json=payload)
+    assert first.status_code == 201
+    identifier = first.json['submission']['id']
+    response = client.post('/api/v1/submissions', headers=headers | {'Idempotency-Key': 'second'}, json=payload)
+    assert response.status_code == 429
+    assert token not in response.get_data(as_text=True)
+    assert response.json['error']['code'] == 'capacity_exhausted'
+    assert client.post('/api/v1/submissions', headers=headers, json=payload).status_code == 200
+    assert client.get('/api/v1/submissions/' + identifier, headers=headers).status_code == 200
+    assert client.post('/api/v1/submissions/' + identifier + '/cancel', headers=headers).status_code == 200
+    assert client.post('/api/v1/submissions', headers=headers | {'Idempotency-Key': 'second'}, json=payload).status_code == 201
