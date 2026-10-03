@@ -133,7 +133,8 @@ The selected directory must contain Python-only `solver.py` source satisfying
 [MLWE_LOCAL.md](MLWE_LOCAL.md). Immutable sparse acquisition does not execute
 repository installation scripts. `file://` targets are rejected in staging.
 The owner publishes participant/fixture repositories manually; agents do not push.
-The CLI's default version and `clone` scaffold are still historical 0.4.0.
+Participant package 0.5.1 defaults `clone` and submissions to benchmark 0.5.0.
+Use `--benchmark-version 0.4.0` for historical work; `mldsafail run` remains 0.4.0.
 
 The existing bearer-token API provides status, sanitized attempt logs, and
 cancellation. TOKEN and SUBMISSION_ID below are placeholders:
@@ -279,3 +280,93 @@ for the private Compose deployment. Historical solvers, scores, and local JSONL
 workflows remain documented in [CHALLENGE.md](CHALLENGE.md) and
 [AGENT_WORKFLOW.md](AGENT_WORKFLOW.md). Do not remove private PostgreSQL volumes
 when stopping services.
+
+## Production evaluator isolation preflight
+
+Production requires `PRODUCTION_EVALUATOR_ROOT`; the recommended value is
+`/srv/mldsafail-production-evaluator`. The coordinator mounts that directory at
+exactly the same absolute path inside its container, including `epoch`, `jobs`
+and `secrets/signing.key`, so sibling worker bind mounts resolve on the host.
+Staging remains `/srv/mldsafail-evaluator`. Before considering activation, run:
+
+```sh
+export PRODUCTION_EVALUATOR_ROOT=/srv/mldsafail-production-evaluator
+python -m deploy.validate_production --staging-root /srv/mldsafail-evaluator
+docker compose --env-file /PRIVATE/production.env -f compose.production.yaml config --quiet
+```
+
+The read-only validator rejects relative paths, symlink components, and roots
+that overlap in either direction. Compose interpolation alone cannot establish
+filesystem isolation; both checks are required. Use a fresh production env file,
+fresh secrets and distinct reviewed epoch identities. Staging Compose is unchanged.
+
+## Daily recovery cleanup and bounded local retention (inactive)
+
+The private daily JSON has `recovery_root` (absolute, no symlink components),
+`assembly`, `backup`, and optional `local_verified_sets_to_keep` (positive integer,
+default **2**). `assembly` includes `env_file`, `compose`, `python`, and explicit
+`material` maps for configuration/secrets/release/images. `backup` has the restic
+settings above plus absolute `backup_state`, `postgres_image`, and
+`coordinator_image` immutable SHA-256 identities. Keep credentials, durable release
+archives and the recovery root separate. Protect configuration with mode 0600.
+
+```sh
+python -m deploy.daily_recovery --config /PRIVATE/daily-recovery.json
+# After termination, timeout, restart or an incomplete cleanup:
+python -m deploy.daily_recovery --cleanup --config /PRIVATE/daily-recovery.json
+```
+
+One nonblocking operation lock covers backup and cleanup. Versioned journals in
+`recovery_root/journals` remain outside uploaded snapshot directories, are written
+atomically with file/directory synchronization, and bind configuration contents
+and Compose/env-file identities. Restore the original configuration before retrying
+cleanup if its identity changed. Cleanup retries service-state restoration and
+container removal independently, checks required service health, and retains
+errors for retry. Containers must match the recorded unique name, recovery label
+and immutable image; a mismatch is preserved and reported as incomplete cleanup.
+SIGINT/SIGTERM/SIGHUP enter the same cleanup. The inactive systemd service includes
+an `ExecStopPost --cleanup` hook; startup reconciles a pending journal before new
+maintenance, covering SIGKILL and host restart. Failed reconciliation prevents
+new backup work and returns nonzero. Do not activate the units here.
+
+The daily path dumps the quiescent database without creating a temporary database
+on the live server. Full DB/evidence verification runs against the uploaded
+snapshot in isolated disposable containers. Verification is published only after
+cleanup and health checks succeed. Each run records repository, snapshot identity,
+verification time and cleanup completion. After success, remove its disposable
+restore directory and retain the latest two verified local sets by default.
+Only validated run-owned directories beneath the recovery root are removable;
+symlinks, traversal and mismatched ownership are rejected. Failed, partial,
+unverified and cleanup-pending runs remain. Journals and durable release originals
+remain. Pruning records deletion intent for retry after interruption. Cloud pruning
+and its seven/four/six retention policy remain separate and inactive.
+
+A free-space floor of 5 GiB stops new backup work without deleting failed evidence.
+The existing monitor reports the disk floor and failed scheduled units, and accepts
+only repository-bound backup verification with `cleanup_complete`. Monitoring and
+external alerts still require owner activation. Native power-loss, restore,
+service-health and S3 acceptance remain pending.
+
+## Durable application release retention
+
+Run `python -m scripts.retain_release --inventory /PRIVATE/release-inventory.json`.
+The inventory contains full `source_commit`, `artifacts` mapping safe basenames to
+absolute source `path` and expected `sha256`, and `roles` mapping `manifest`,
+`images`, `wheel`, `checksums`, `rollback` to artifact names. The manifest must
+bind the same source commit. Copy exact artifacts; do not rebuild or relabel.
+
+The default root is `~/.local/share/mldsafail/releases`; use
+`--root /srv/mldsafail/releases` for server retention. The command checks every
+source and copied checksum, syncs files, atomically publishes the full-commit
+private directory, and refuses conflicting artifacts. Root permissions are 0700,
+published directories 0500 and artifacts 0400. Interrupted publication leaves no
+partial visible release; a power loss may leave a private `.retaining-*` directory
+for inspection. Keep source originals until durable verification succeeds.
+
+The original `68946403410935379e31411d1723bdc19caa609e` application release and exact
+`b4d212da3109b7716eb41553986848e377fb5b3d` rollback archives are now verified in these
+full-commit directories locally. Their manifest, `images.tar`, participant wheel,
+`checksums.sha256`, `rollback-metadata.json`, and `retention.json` are durable.
+Use manifest image identities for future owner-gated deployment. These copies
+establish local artifact retention, not native rollback acceptance or deployment
+of the operational changes in the current source tree.

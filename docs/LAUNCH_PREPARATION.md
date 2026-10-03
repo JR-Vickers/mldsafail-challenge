@@ -1,4 +1,4 @@
-# Engineering handoff — 2026-10-02
+# Engineering handoff — updated 2026-10-03
 
 The optimization pilot and single-host stability study remain complete. No new
 solver experiment, score, epoch or production activation is performed here.
@@ -50,8 +50,9 @@ daily/weekly systemd units only after repository initialization, recovery-key
 retention and a successful isolated restore. The daily service invokes `deploy.daily_recovery`: assemble a fresh set, upload,
 restore into a new directory and disposable PostgreSQL container, then audit the
 restored evidence in an isolated coordinator container. Verified-backup state is
-written only after successful verification and container cleanup. Native execution
-and abrupt-process-death recovery of the assembly step remain pending.
+written only after successful verification and container cleanup. Durable interruption cleanup and bounded local retention are implemented and
+locally tested; native execution remains pending. See the recovery procedure in
+[OPERATIONS.md](OPERATIONS.md).
 Record the latest *verified* snapshot time, daily freshness and a four-hour
 restore target. Missing or older-than-26-hour verified backups are alert failures.
 Actual S3 upload interruption, repository corruption and restore tests remain
@@ -94,16 +95,17 @@ activation decision. Public publication and recruitment remain owner actions.
 
 Saved active/revoked token files, SSH identity and prior release/rollback
 manifests were recovered from local metadata. Private locations are recorded in
-`/tmp/mldsafail-native-inputs.json` (0600). Read-only SSH to the documented VPS
+`~/.local/share/mldsafail/native-inputs.json` (0600). Read-only SSH to the documented VPS
 timed out on 2026-10-02, so staging env/deployment paths and native execution
 remain unverified. Storage configuration and off-host key retention are pending. Retain fixture commit
 `e547caffb06ced2e82f28cf1c130c8131613384d`. Run the seven scenarios sequentially;
 keep 20-minute evaluation, 90-second cancellation and 150-second timeout ceilings.
 No native gate is reported passed by this handoff.
 
-Remaining local engineering before declaring the entire requested plan complete:
-native interruption-at-each-boundary/process-race acceptance and abrupt-death
-recovery for snapshot assembly. Cleanup-stage failure injection and stale-watchdog
+The four operational readiness fixes are implemented locally: separate production
+evaluator storage, durable interruption recovery, two-set verified retention,
+and durable release copies. Native interruption-at-each-boundary/process-race
+acceptance remains pending. Cleanup-stage failure injection and stale-watchdog
 resumption tests pass locally. The new application image release is frozen locally. CPU fixtures
 and host membership proof are implemented, but native behavior is still pending. Native cgroup feasibility,
 overhead/repeatability and isolated off-host restore need their respective host
@@ -111,7 +113,7 @@ and owner inputs. Existing safety, evaluator, worker locks and scoring are froze
 
 ## Local verification evidence
 
-Final `make check`: 327 passed, eight native Docker tests skipped; historical
+Final `make check` on 2026-10-03: 353 passed, eight native Docker tests skipped; historical
 small score 3901, correct. The wheel was installed into a new Python 3.12.10
 environment; default 0.5.0 clone, explicit 0.4.0 clone and historical run passed.
 Approved starter bytes in the wheel match the source. Production Compose was
@@ -124,14 +126,19 @@ worker timing/verification fields. Native tests are explicitly pending.
 ## Frozen application release
 
 Application source `68946403410935379e31411d1723bdc19caa609e` is frozen in
-`/tmp/mldsafail-release-6894640.json`. Both new Linux amd64 images built; the web
+`~/.local/share/mldsafail/releases/68946403410935379e31411d1723bdc19caa609e/manifest.json`. Both new Linux amd64 images built; the web
 image health/starter smoke passed. Packaged evaluator Python source matches the
 retained b4d212d coordinator exactly. Worker image, worker lock, historical and
 MLWE fingerprints and staging Compose hash match rollback. Only root package
 version metadata changed in uv.lock; dependency selections remain unchanged.
-The application image archive is `/tmp/mldsafail-launch-preparation-6894640-images.tar`
-(0600), SHA-256 `37feca005c7c2a441fd996d71b1e2c13a4f642ec50cbca293650808a94147f76`.
-Exact b4d212d rollback images are retained. These are local artifacts; no deployment
+The application image archive is `~/.local/share/mldsafail/releases/68946403410935379e31411d1723bdc19caa609e/images.tar`
+(0400), SHA-256 `37feca005c7c2a441fd996d71b1e2c13a4f642ec50cbca293650808a94147f76`.
+Exact b4d212d rollback images and metadata are retained under
+`~/.local/share/mldsafail/releases/b4d212da3109b7716eb41553986848e377fb5b3d/`.
+Both commit directories include manifests, archives, participant 0.5.1 wheel,
+checksums and rollback metadata. The participant wheel does not relabel or
+replace the original rollback application images. Original temporary files
+remain intact; durable copies were checksum-verified after atomic publication. These are local artifacts; no deployment
 or native epoch compatibility result is claimed.
 
 The pinned restic Linux amd64 archive checksum and installed binary checksum
@@ -141,3 +148,8 @@ pack rejection. Earlier Docker Desktop shared-filesystem reads failed with I/O
 errors; those failures are recorded, and successful tests used Linux tmpfs.
 This does not establish S3 upload, off-host restore or native rootless feasibility.
 `scripts/restic_synthetic_acceptance.py` provides the reproducible crypto gate.
+
+Operational follow-up evidence and durable artifact hashes are recorded in
+[the acceptance report](acceptance/launch-preparation/report.json). The local
+check log is retained beside that report. No remaining local implementation work
+is claimed for these four fixes; native acceptance and activation remain pending.

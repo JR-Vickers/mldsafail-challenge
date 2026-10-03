@@ -1,0 +1,273 @@
+uv run pytest
+........................................................................ [ 19%]
+........................................................................ [ 39%]
+.......ssssssss......................................................... [ 59%]
+........................................................................ [ 79%]
+........................................................................ [ 99%]
+.                                                                        [100%]
+=============================== warnings summary ===============================
+tests/test_benchmark.py::test_wall_limit_terminates_and_unscored_instance
+tests/test_benchmark.py::test_memory_limit_invalidates_otherwise_correct_instance
+tests/test_benchmark.py::test_cli_serializes_solver_exception_as_unscored_failure
+tests/test_benchmark.py::test_lazy_selection_runs_a_distinct_cost_model
+tests/test_benchmark.py::test_lazy_selection_runs_a_distinct_cost_model
+tests/test_benchmark.py::test_lazy_selection_runs_a_distinct_cost_model
+tests/test_benchmark.py::test_lazy_selection_runs_a_distinct_cost_model
+tests/test_benchmark.py::test_lazy_selection_runs_a_distinct_cost_model
+tests/test_benchmark.py::test_lazy_selection_runs_a_distinct_cost_model
+  /Users/jarrett/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/multiprocessing/popen_fork.py:66: DeprecationWarning: This process (pid=23302) is multi-threaded, use of fork() may lead to deadlocks in the child.
+    self.pid = os.fork()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+353 passed, 8 skipped, 9 warnings in 7.74s
+uv run python -m mldsafail.benchmark.runner --profile small --no-record
+{
+  "agent": "unknown",
+  "aggregate": {
+    "abstract_cost": 3901,
+    "median_instance_seconds": 0.001359166024485603,
+    "peak_memory_bytes": 10682368,
+    "raw_operation_count": 3901,
+    "score": 3901,
+    "solution_quality": 2,
+    "total_wall_seconds": 0.004128415021114051
+  },
+  "benchmark_version": "0.4.0",
+  "correct": true,
+  "cost_model_version": "2",
+  "environment": {
+    "architecture": "arm64",
+    "command": [
+      "/Users/jarrett/dev/mldsafail-challenge/.venv/bin/python3",
+      "-m",
+      "mldsafail.benchmark.runner",
+      "--profile",
+      "small",
+      "--no-record"
+    ],
+    "dependency_lock_sha256": "58d4165666f7461539ed348cf696a00524c0f356b7d23f874c2e4e2bb5cea329",
+    "git_commit": "498bfa92de6ca256855d13888a73063602125c66",
+    "git_dirty": true,
+    "os": "macOS-15.7.7-arm64-arm-64bit",
+    "python_implementation": "CPython",
+    "python_version": "3.12.10"
+  },
+  "experiment_id": "20261003T123733-01c06f6d",
+  "failure_reason": null,
+  "hypothesis": "baseline benchmark run",
+  "integrity": {
+    "baseline_fingerprint": null,
+    "matches_baseline": null,
+    "trusted_fingerprint": "bc70d64d7334e8de3c87480604d12070ed0d041f93a0af6aa98ef1eaff5ce8a4"
+  },
+  "model": "unknown",
+  "notes": "",
+  "parent_experiment": null,
+  "profiles": {
+    "small": {
+      "abstract_cost": 3901,
+      "correct": true,
+      "instances": [
+        {
+          "correct": true,
+          "cost": {
+            "additions": 188,
+            "basis_updates": 27,
+            "memory_reads": 508,
+            "memory_writes": 283,
+            "modular_reductions": 42,
+            "multiplications": 223,
+            "raw_total": 1271,
+            "total": 1271,
+            "version": "2",
+            "weights": {
+              "additions": 1,
+              "basis_updates": 1,
+              "memory_reads": 1,
+              "memory_writes": 1,
+              "modular_reductions": 1,
+              "multiplications": 1
+            }
+          },
+          "failure_reason": null,
+          "instance_id": "ae5cf7ea23eb0ac4c10a2163",
+          "peak_memory_bytes": 10682368,
+          "resource_status": "within_limits",
+          "solution_quality": 2,
+          "wall_seconds": 0.0013564580003730953
+        },
+        {
+          "correct": true,
+          "cost": {
+            "additions": 196,
+            "basis_updates": 28,
+            "memory_reads": 524,
+            "memory_writes": 292,
+            "modular_reductions": 43,
+            "multiplications": 232,
+            "raw_total": 1315,
+            "total": 1315,
+            "version": "2",
+            "weights": {
+              "additions": 1,
+              "basis_updates": 1,
+              "memory_reads": 1,
+              "memory_writes": 1,
+              "modular_reductions": 1,
+              "multiplications": 1
+            }
+          },
+          "failure_reason": null,
+          "instance_id": "7eb8ddb5eebd4bad6f330a66",
+          "peak_memory_bytes": 10616832,
+          "resource_status": "within_limits",
+          "solution_quality": 2,
+          "wall_seconds": 0.001359166024485603
+        },
+        {
+          "correct": true,
+          "cost": {
+            "additions": 196,
+            "basis_updates": 28,
+            "memory_reads": 524,
+            "memory_writes": 292,
+            "modular_reductions": 43,
+            "multiplications": 232,
+            "raw_total": 1315,
+            "total": 1315,
+            "version": "2",
+            "weights": {
+              "additions": 1,
+              "basis_updates": 1,
+              "memory_reads": 1,
+              "memory_writes": 1,
+              "modular_reductions": 1,
+              "multiplications": 1
+            }
+          },
+          "failure_reason": null,
+          "instance_id": "f85f3db6ac03bbd70a873631",
+          "peak_memory_bytes": 10584064,
+          "resource_status": "within_limits",
+          "solution_quality": 2,
+          "wall_seconds": 0.001412790996255353
+        }
+      ],
+      "median_instance_seconds": 0.001359166024485603,
+      "peak_memory_bytes": 10682368,
+      "profile": "small",
+      "solution_quality": 2,
+      "total_wall_seconds": 0.004128415021114051
+    }
+  },
+  "resource_limits": {
+    "per_instance_peak_memory_bytes": 67108864,
+    "per_instance_wall_seconds": 5.0
+  },
+  "schema_version": "2",
+  "score": 3901,
+  "solver": "lazy",
+  "suites": {
+    "public": {
+      "small": {
+        "abstract_cost": 3901,
+        "correct": true,
+        "instances": [
+          {
+            "correct": true,
+            "cost": {
+              "additions": 188,
+              "basis_updates": 27,
+              "memory_reads": 508,
+              "memory_writes": 283,
+              "modular_reductions": 42,
+              "multiplications": 223,
+              "raw_total": 1271,
+              "total": 1271,
+              "version": "2",
+              "weights": {
+                "additions": 1,
+                "basis_updates": 1,
+                "memory_reads": 1,
+                "memory_writes": 1,
+                "modular_reductions": 1,
+                "multiplications": 1
+              }
+            },
+            "failure_reason": null,
+            "instance_id": "ae5cf7ea23eb0ac4c10a2163",
+            "peak_memory_bytes": 10682368,
+            "resource_status": "within_limits",
+            "solution_quality": 2,
+            "wall_seconds": 0.0013564580003730953
+          },
+          {
+            "correct": true,
+            "cost": {
+              "additions": 196,
+              "basis_updates": 28,
+              "memory_reads": 524,
+              "memory_writes": 292,
+              "modular_reductions": 43,
+              "multiplications": 232,
+              "raw_total": 1315,
+              "total": 1315,
+              "version": "2",
+              "weights": {
+                "additions": 1,
+                "basis_updates": 1,
+                "memory_reads": 1,
+                "memory_writes": 1,
+                "modular_reductions": 1,
+                "multiplications": 1
+              }
+            },
+            "failure_reason": null,
+            "instance_id": "7eb8ddb5eebd4bad6f330a66",
+            "peak_memory_bytes": 10616832,
+            "resource_status": "within_limits",
+            "solution_quality": 2,
+            "wall_seconds": 0.001359166024485603
+          },
+          {
+            "correct": true,
+            "cost": {
+              "additions": 196,
+              "basis_updates": 28,
+              "memory_reads": 524,
+              "memory_writes": 292,
+              "modular_reductions": 43,
+              "multiplications": 232,
+              "raw_total": 1315,
+              "total": 1315,
+              "version": "2",
+              "weights": {
+                "additions": 1,
+                "basis_updates": 1,
+                "memory_reads": 1,
+                "memory_writes": 1,
+                "modular_reductions": 1,
+                "multiplications": 1
+              }
+            },
+            "failure_reason": null,
+            "instance_id": "f85f3db6ac03bbd70a873631",
+            "peak_memory_bytes": 10584064,
+            "resource_status": "within_limits",
+            "solution_quality": 2,
+            "wall_seconds": 0.001412790996255353
+          }
+        ],
+        "median_instance_seconds": 0.001359166024485603,
+        "peak_memory_bytes": 10682368,
+        "profile": "small",
+        "solution_quality": 2,
+        "total_wall_seconds": 0.004128415021114051
+      }
+    }
+  },
+  "tags": [
+    "baseline"
+  ],
+  "timestamp": "2026-10-03T12:37:33.181407+05:00"
+}

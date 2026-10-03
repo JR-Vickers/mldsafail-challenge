@@ -78,5 +78,61 @@
     ],
     "s3_tested": false,
     "native_rootless_tested": false
+  },
+  "operational_readiness_followup": {
+    "date": "2026-10-03",
+    "local_checks": {
+      "focused_tests_passed": 30,
+      "make_check_passed": 353,
+      "skipped_native_docker": 8,
+      "historical_small_score": 3901,
+      "historical_correct": true,
+      "production_compose_synthetic": true,
+      "signal_cleanup_and_sigkill_reconciliation": true,
+      "concurrency_and_cleanup_retry": true,
+      "local_retention_default": 2,
+      "release_copy_checksums_verified": true
+    },
+    "durable_releases": {
+      "68946403410935379e31411d1723bdc19caa609e": {
+        "directory": "~/.local/share/mldsafail/releases/68946403410935379e31411d1723bdc19caa609e",
+        "artifact_sha256": {
+          "checksums.sha256": "9d82af53901d8ddb6f2eb0dda3c8b9f72d4ba15c48b008c6675011516ba4942d",
+          "images.tar": "37feca005c7c2a441fd996d71b1e2c13a4f642ec50cbca293650808a94147f76",
+          "manifest.json": "6fa6fd3c966020b3680a1a03a53bf22a8caa53d42bf1365cbffca506cb148e13",
+          "participant-0.5.1.whl": "da4033bd75a826275f7ee4951f0d6c1f0185971a66bfe8c0864a7016cab2ede9",
+          "rollback-metadata.json": "2759e0821099329c96b09eea0bbf2e3e457f3283b1caa491c33e49bcc715c872"
+        },
+        "permissions_verified": true,
+        "copies_verified": true
+      },
+      "b4d212da3109b7716eb41553986848e377fb5b3d": {
+        "directory": "~/.local/share/mldsafail/releases/b4d212da3109b7716eb41553986848e377fb5b3d",
+        "artifact_sha256": {
+          "checksums.sha256": "114c954c1a3bfb46626c473d643f36a27479f1f62cba90553619dc8e90e95715",
+          "images.tar": "61467964eb996e95d086b33fca067040560e40b5c8c0e89b54e478af4459950d",
+          "manifest.json": "ad49430a93194872eb99c0720cec708118f1f9c6603676c8f58324e0f93ac526",
+          "participant-0.5.1.whl": "da4033bd75a826275f7ee4951f0d6c1f0185971a66bfe8c0864a7016cab2ede9",
+          "rollback-metadata.json": "ad49430a93194872eb99c0720cec708118f1f9c6603676c8f58324e0f93ac526"
+        },
+        "permissions_verified": true,
+        "copies_verified": true
+      }
+    },
+    "remaining_local_engineering_for_four_fixes": [],
+    "pending_native_gates": [
+      "deployment",
+      "interruption and power-loss acceptance",
+      "isolated off-host restore acceptance",
+      "S3 upload/check",
+      "monitor and alert activation",
+      "staging load",
+      "CPU measurement adoption",
+      "production and public launch"
+    ],
+    "deployed": false,
+    "scheduled_jobs_activated": false,
+    "native_gates_executed": false,
+    "original_temporary_artifacts_preserved": true
   }
 }

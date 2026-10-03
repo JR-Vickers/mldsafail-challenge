@@ -6,7 +6,9 @@ column and immutable epoch identity. Cohorts include benchmark version,
 evaluator fingerprint, hidden-suite version, worker class and epoch. The API
 leaderboard uses the frozen MLWE anchored 1% tie rule.
 
-Hosted submissions use `--benchmark-version 0.5.0`. Select an approved Python
+Participant package 0.5.1 defaults clone and submissions to benchmark 0.5.0;
+`--benchmark-version 0.5.0` can make that choice explicit. Historical `run`
+remains benchmark 0.4.0. Select an approved Python
 directory with `--solver-path`; it must contain `solver.py` and satisfy the
 frozen local contestant contract. The default is `src/mldsafail/solver`.
 For a reference acceptance submission from an existing published commit, use

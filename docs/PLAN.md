@@ -19,8 +19,8 @@ unless explicitly marked otherwise. For 0.5.0, this plan adopts the
 and [hosted integration](HOSTED_V050.md). The participant package is 0.5.1; `make bench`,
 `mldsafail run`, and development Compose stack retain historical 0.4.0 behavior.
 The local `mldsafail-mlwe` workflow and private staging evaluate 0.5.0. Hosted CLI
-submissions must explicitly select `--benchmark-version 0.5.0` and a directory
-containing `solver.py`; `mldsafail clone` defaults to an MLWE 0.5.0 scaffold; select `--benchmark-version 0.4.0` for historical work.
+submissions default to benchmark 0.5.0 and require a directory containing
+`solver.py`; `mldsafail clone` defaults to an MLWE 0.5.0 scaffold; select `--benchmark-version 0.4.0` for historical work.
 Keep scores, edit boundaries, and epoch/environment cohorts separate. Deployment
 status comes from [the dated staging record](PRIVATE_STAGING_STATUS.md); local
 acceptance and frozen images alone do not establish native deployment acceptance.
@@ -1408,7 +1408,7 @@ Build:
 
 Exit criterion: A user can sign in, create and revoke a token, authenticate the CLI, create an immutable queued submission, and inspect its status; no submitted code runs in the web process.
 
-**Status**: The infrastructure is implemented in the codebase — OAuth scaffolding, token lifecycle, CLI commands, API endpoints, database models. What's missing is the deployment configuration (OAuth client ID/secret, DATABASE_URL, environment variables) and a live deployment where a user can actually authenticate and submit. The CLI `mldsafail submit` command defaults to `--benchmark-version 0.4.0` and is functional for local testing against a hypothetical server.
+**Status**: The infrastructure is implemented in the codebase — OAuth scaffolding, token lifecycle, CLI commands, API endpoints, database models. What's missing is the deployment configuration (OAuth client ID/secret, DATABASE_URL, environment variables) and a live deployment where a user can actually authenticate and submit. This historical phase used benchmark 0.4.0. The current participant package 0.5.1 defaults `mldsafail submit` and `clone` to benchmark 0.5.0; historical `run` remains 0.4.0. Current private staging acceptance is recorded above.
 
 ### Phase 5 — Add Trusted Hosted Evaluation
 
@@ -1764,3 +1764,15 @@ inactive CPU/recovery/monitoring/load/production preparation are recorded in
 [LAUNCH_PREPARATION.md](LAUNCH_PREPARATION.md). This is an engineering checkpoint,
 not completed native acceptance or public launch. That handoff lists outstanding
 local engineering and external-input gates explicitly.
+
+### Operational readiness follow-up — 2026-10-03
+
+Production evaluator storage is explicitly separate from staging and has a
+read-only overlap/symlink validator. Daily recovery now has durable versioned
+operation journals, signal and explicit cleanup, restart reconciliation, an
+inactive ExecStopPost hook, service-health checks, and default retention of two
+verified local sets while preserving unresolved failures. Exact 6894640 and
+b4d212d releases have checksum-verified durable full-commit copies; see
+[OPERATIONS.md](OPERATIONS.md). Local tests cover interruption and retention.
+Native deployment, restore acceptance, alert activation, CPU adoption and public
+launch remain owner-gated. Frozen benchmark, worker, epoch and score are unchanged.

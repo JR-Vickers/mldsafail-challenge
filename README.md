@@ -24,7 +24,9 @@ production setup, and an external pilot remain open. See
 | `make hosted-dev` | Historical 0.4.0 development stack |
 | `mldsafail clone`, submissions | Default 0.5.0; explicit `--benchmark-version 0.4.0` preserves historical behavior |
 
-The participant package is 0.5.1; the current benchmark remains 0.5.0.
+The participant package is 0.5.1; clone and submissions default to benchmark
+0.5.0, while `run` remains historical 0.4.0. Operational recovery and durable
+release retention are documented in [OPERATIONS.md](docs/OPERATIONS.md).
 Scores from different versions, epochs, or environments cannot be ranked together.
 Install only an owner-supplied release wheel after independently verifying its checksum:
 

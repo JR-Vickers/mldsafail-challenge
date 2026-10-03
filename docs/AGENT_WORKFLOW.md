@@ -1,5 +1,6 @@
 # Agent experiment workflow
 
+Participant package 0.5.1 defaults clone and submissions to benchmark 0.5.0.
 Choose the benchmark version before an experiment. Current research and private
 staging use MLWE 0.5.0; `make bench`, `mldsafail run`, and the development Compose
 stack retain historical 0.4.0 behavior. `make check` runs the test suite and a
