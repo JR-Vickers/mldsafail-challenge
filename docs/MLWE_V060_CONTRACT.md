@@ -18,10 +18,12 @@ parameters or externally supplied cryptographic targets are accepted.
 
 Successful execution cost is kernel CPU usage for the entire exclusive dedicated
 worker accounting domain, including startup, interpreter/import work, parsing,
-solving, serialization and all child/grandchild work. Use the median of the three
-successful measured invocations, floored at one microsecond. Ordinary crashes,
-timeouts, resource caps and no-answer cases retain the frozen 60-second penalty;
-invalid candidates make a run ineligible. Host verification determines correctness.
+solving, serialization and all child/grandchild work. Run exactly three measured
+invocations per case, without replacement measurements or success-only sampling.
+If all three succeed, use their median CPU cost, floored at one microsecond.
+Any ordinary crash, timeout, resource cap or no-answer measured invocation gives
+the entire case the frozen 60-second penalty. Any invalid candidate makes a run
+ineligible. Retain the frozen unscored warmup procedure. Host verification determines correctness.
 Contestant output cannot supply authoritative timing or verification decisions.
 
 ## Trusted host supervisor
@@ -70,3 +72,14 @@ a separately identified worker and participant release. Complete native correctn
 isolation, reproducibility and hosted acceptance before proposing a production
 default switch. Production deployment and public exposure require owner approval
 of a concrete release and acceptance packet. This proposal alone grants no switch.
+
+## Independent review — 2026-10-03
+
+Decision: **freeze blocked**. The independent review of this proposal and the
+experimental `research/cpu_measurement` implementation is recorded in
+[the review report](acceptance/operational-followup/CPU_REVIEW.md).
+The scoring clarification above resolves the identified wording ambiguity;
+supervisor durability, streaming limits, exclusive accounting proof, strict
+evidence/audit semantics and native fault gates remain blocking prerequisites.
+The prototype does not implement this contract. No 0.6.0 epoch, production default
+or participant release is approved by the review.

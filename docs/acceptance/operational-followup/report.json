@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-03",
+  "status": "partial; prerequisites unresolved",
+  "gates": {
+    "local_reconciliation": {"status": "pass", "focused_tests": 6},
+    "make_check": {"status": "pass", "passed": 363, "skipped": 8, "historical_score": 3901},
+    "ssh_readiness_resource_floors": {"status": "pass", "readiness_http": 200, "disk_available_bytes": 40237064192, "memory_available_kib": 1354388},
+    "retained_artifact_verification": {"status": "pass", "commits": ["b4d212da3109b7716eb41553986848e377fb5b3d", "eef20af3a76f7dd6fc9ef7be3bf3420120999d3f"]},
+    "host_environment": {"status": "fail", "reason": "installed .venv/bin/python absent"},
+    "participant_credential": {"status": "pending", "reason": "prior saved credentials failed; owner given creation instructions, replacement path not supplied"},
+    "native_queue_reconciliation": {"status": "pending", "reason": "tool tested locally; live operation not executed"},
+    "staging_deployment": {"status": "pending", "reason": "staging prerequisites unresolved"},
+    "seven_scenarios_and_rollback": {"status": "pending", "reason": "deployment and valid token required"},
+    "native_cleanup_faults": {"status": "pending", "reason": "native environment and isolated material required"},
+    "offhost_recovery": {"status": "pending", "reason": "approved storage credentials and independent password custody absent"},
+    "alerts_and_schedulers": {"status": "pending", "reason": "authenticated destination, recovery acceptance and native manual acceptance required"},
+    "cpu_contract_review": {"status": "fail", "reason": "seven unresolved accounting, lifecycle, streaming and evidence blockers; scoring wording clarified"},
+    "cpu_native_measurement": {"status": "pending", "reason": "reviewed supervisor and native exclusive delegation required"},
+    "v060_integration_and_hosted_acceptance": {"status": "pending", "reason": "contract review and native measurement prerequisites failed or pending"},
+    "native_capacity_fencing_and_load": {"status": "pending", "reason": "native PostgreSQL and supervisor cleanup proof required"},
+    "production_rehearsal_and_packet": {"status": "pending", "reason": "preceding gates and production inputs incomplete"},
+    "production_deployment_and_external_pilot": {"status": "pending", "reason": "passing acceptance packet and owner approval required"}
+  },
+  "activation": {
+    "live_database_changed": false,
+    "staging_services_changed": false,
+    "migrations_invoked": false,
+    "timers_activated": false,
+    "benchmark_default_changed": false,
+    "production_deployed": false,
+    "public_exposure": false,
+    "pushed": false
+  }
+}

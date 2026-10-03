@@ -1,5 +1,10 @@
 # Engineering handoff — updated 2026-10-03
 
+Latest follow-up: [queue repair preparation and independent CPU review](acceptance/operational-followup/README.md).
+The repair is locally tested but unexecuted on staging; independent 0.6.0 review
+failed with unresolved blockers. Participant credentials and external operational
+inputs remain prerequisites. Dependent deployment and acceptance remain pending.
+
 The optimization pilot and single-host stability study remain complete. No new
 solver experiment, score, epoch or production activation is performed here.
 
