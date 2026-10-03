@@ -81,7 +81,7 @@ with Session(engine) as session:
     verified_backup = None
     try:
         backup = json.loads(Path(config['backup_state']).read_text())
-        if backup['restore_verified'] and backup['repository'] == config['repository']:
+        if backup['restore_verified'] and backup.get('cleanup_complete', False) and backup['repository'] == config['repository']:
             verified_backup = datetime.fromisoformat(backup['verified_at'])
     except Exception:
         pass

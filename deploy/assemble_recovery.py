@@ -9,7 +9,7 @@ import subprocess
 from deploy.recovery import private_file, validate_set
 
 
-def assemble(config, destination):
+def assemble(config, destination, operation=None):
     if destination.exists():
         raise ValueError('Recovery set must be new')
     destination.mkdir(mode=0o700, parents=True)
@@ -20,6 +20,8 @@ def assemble(config, destination):
     for role in ['web', 'coordinator']:
         identifier = command(compose + ['ps', '-aq', role]).strip()
         states[role] = json.loads(command(['docker', 'inspect', '--format', '{{json .State}}', identifier]))['Running']
+    if operation:
+        operation.services(compose, states)
     journal = destination / 'maintenance.json'
     journal.write_text(json.dumps({'compose': compose, 'service_states': states, 'cleanup_complete': False}))
     journal.chmod(0o600)
@@ -50,12 +52,20 @@ with Session(engine) as session:
   paths.append(str(run))
 print(json.dumps({'epoch':str(epoch),'runs':paths,'epoch_id':manifest['id']}))
 '''
-        inventory = json.loads(command(compose + ['run', '--rm', '--no-deps', '--entrypoint',
+        owned = []
+        if operation:
+            import uuid
+            name = 'recovery-inventory-' + uuid.uuid4().hex
+            image = command(compose + ['images', '-q', 'coordinator']).strip()
+            image = json.loads(command(['docker', 'inspect', image]))[0]['Id']
+            operation.container(name, image)
+            owned = ['--name', name, '--label', 'org.mldsafail.recovery=' + name]
+        inventory = json.loads(command(compose + ['run', *owned, '--rm', '--no-deps', '--entrypoint',
                                        '/app/.venv/bin/python', 'coordinator', '-c', code], 600))
         output = destination / 'database'
         command([config['python'], str(Path(__file__).with_name('backup_postgres.py')),
                  '--env-file', config['env_file'], '--compose', config['compose'],
-                 '--output', str(output), '--verify-restore'], 360)
+                 '--output', str(output), *([] if operation else ['--verify-restore'])], 360)
         def copy(source, category, relative):
             source = Path(source)
             if source.is_symlink():
@@ -91,16 +101,19 @@ print(json.dumps({'epoch':str(epoch),'runs':paths,'epoch_id':manifest['id']}))
                     'database_evidence_verified': True, 'epoch_id': inventory['epoch_id']}
         # Remove maintenance journal only after all original services are restored.
     finally:
-        errors = []
-        for role, running in states.items():
-            try:
-                command(compose + ['start' if running else 'stop', role], 60)
-            except Exception:
-                errors.append(role)
-        journal.write_text(json.dumps({'compose': compose, 'service_states': states,
-                                      'cleanup_complete': not errors, 'cleanup_errors': errors}))
-        if errors:
-            raise RuntimeError('Recovery assembly cleanup incomplete; restore states from private journal')
+        if operation:
+            operation.cleanup()
+        else:
+            errors = []
+            for role, running in states.items():
+                try:
+                    command(compose + ['start' if running else 'stop', role], 60)
+                except Exception:
+                    errors.append(role)
+            journal.write_text(json.dumps({'compose': compose, 'service_states': states,
+                                          'cleanup_complete': not errors, 'cleanup_errors': errors}))
+            if errors:
+                raise RuntimeError('Recovery assembly cleanup incomplete; restore states from private journal')
     journal.unlink()
     (destination / 'recovery.json').write_text(json.dumps(manifest, sort_keys=True))
     (destination / 'recovery.json').chmod(0o600)

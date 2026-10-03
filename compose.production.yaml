@@ -61,13 +61,13 @@ services:
       MLDSAFAIL_HIDDEN_SUITE_VERSION: ${MLDSAFAIL_HIDDEN_SUITE_VERSION:?required}
       MLDSAFAIL_WORKER_CLASS: ${MLDSAFAIL_WORKER_CLASS:?required}
       MLDSAFAIL_MLWE_EPOCH_ID: ${MLDSAFAIL_MLWE_EPOCH_ID:?required}
-      MLDSAFAIL_MLWE_EPOCH_PATH: /srv/mldsafail-evaluator/epoch
-      MLDSAFAIL_EVALUATOR_WORK_ROOT: /srv/mldsafail-evaluator/jobs
-      MLDSAFAIL_EVALUATOR_SIGNING_KEY_PATH: /srv/mldsafail-evaluator/secrets/signing.key
+      MLDSAFAIL_MLWE_EPOCH_PATH: ${PRODUCTION_EVALUATOR_ROOT:?required}/epoch
+      MLDSAFAIL_EVALUATOR_WORK_ROOT: ${PRODUCTION_EVALUATOR_ROOT:?required}/jobs
+      MLDSAFAIL_EVALUATOR_SIGNING_KEY_PATH: ${PRODUCTION_EVALUATOR_ROOT:?required}/secrets/signing.key
       MLDSAFAIL_SKIP_MIGRATIONS: "1"
     volumes:
       - ${ROOTLESS_DOCKER_SOCKET:?required}:/var/run/docker.sock
-      - /srv/mldsafail-evaluator:/srv/mldsafail-evaluator
+      - ${PRODUCTION_EVALUATOR_ROOT:?required}:${PRODUCTION_EVALUATOR_ROOT:?required}
     read_only: true
     tmpfs: ["/tmp:size=128m,nosuid,nodev"]
     cap_drop: [ALL]
