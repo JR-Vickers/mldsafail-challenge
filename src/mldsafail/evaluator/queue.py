@@ -11,6 +11,27 @@ from mldsafail.web.models import EvaluationAttempt, EvaluationJob, Submission, S
 from mldsafail.web.services import transition_submission, evaluation_transaction_lock
 
 
+def reconcile_cancelled_queued_jobs(session: Session) -> list[tuple[str, str]]:
+    """Close historical queued cancellations without claiming or erasing work.
+
+    The caller owns commit/rollback and private recording of affected identities.
+    Use the admission/claim mutex so cancellation and claims cannot race repair.
+    """
+    evaluation_transaction_lock(session)
+    jobs = session.scalars(
+        select(EvaluationJob).join(Submission, Submission.id == EvaluationJob.submission_id)
+        .where(EvaluationJob.status == "queued",
+               Submission.state == SubmissionState.CANCELLED.value)
+        .order_by(EvaluationJob.id).with_for_update(of=EvaluationJob)
+    ).all()
+    affected = []
+    for job in jobs:
+        job.status = "complete"
+        affected.append((job.id, job.submission_id))
+    session.flush()
+    return affected
+
+
 def claim_job(session: Session, worker_id: str, lease_seconds: int = 120,
               benchmark_version: str | None = None) -> EvaluationJob | None:
     evaluation_transaction_lock(session)

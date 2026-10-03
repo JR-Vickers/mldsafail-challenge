@@ -99,3 +99,64 @@ def test_resource_floor_checks_fail_closed(tmp_path, monkeypatch):
     assert not resource_floors_available(tmp_path, meminfo)
     meminfo.unlink()
     assert not resource_floors_available(tmp_path, meminfo)
+
+
+def test_reconcile_historical_cancellations_is_narrow_and_idempotent(tmp_path):
+    from mldsafail.evaluator.queue import reconcile_cancelled_queued_jobs
+    from mldsafail.web.models import EvaluationAttempt, SubmissionTransition
+    engine, users = setup(tmp_path, 4)
+    with Session(engine) as session:
+        jobs = []
+        for index, user_id in enumerate(users):
+            submission, _ = create_submission(
+                session, session.get(User, user_id), PAYLOAD, str(index))
+            job = session.scalar(select(EvaluationJob).where(
+                EvaluationJob.submission_id == submission.id))
+            if index != 1:
+                cancel_submission(session, submission)
+                job.status = ['queued', 'queued', 'claimed', 'running'][index]
+            jobs.append(job)
+        session.commit()
+        transitions = session.scalar(select(func.count()).select_from(SubmissionTransition))
+        expected = [(jobs[0].id, jobs[0].submission_id)]
+        assert reconcile_cancelled_queued_jobs(session) == expected
+        session.rollback()
+        assert jobs[0].status == 'queued'
+        assert reconcile_cancelled_queued_jobs(session) == expected
+        session.commit()
+        assert reconcile_cancelled_queued_jobs(session) == []
+        session.commit()
+        assert [job.status for job in jobs] == ['complete', 'queued', 'claimed', 'running']
+        assert all(job.attempts == 0 for job in jobs)
+        assert session.scalar(select(func.count()).select_from(EvaluationAttempt)) == 0
+        assert session.scalar(select(func.count()).select_from(SubmissionTransition)) == transitions
+
+
+def test_reconciliation_cli_preserves_private_intent_and_preview(tmp_path, monkeypatch, capsys):
+    import json
+    import sys
+    from deploy.reconcile_cancelled_jobs import main
+    engine, users = setup(tmp_path)
+    with Session(engine) as session:
+        submission, _ = create_submission(session, session.get(User, users[0]), PAYLOAD, 'repair')
+        cancel_submission(session, submission)
+        job = session.scalar(select(EvaluationJob))
+        job.status = 'queued'
+        session.commit()
+        job_id = job.id
+    monkeypatch.setenv('DATABASE_URL', str(engine.url))
+    for index, apply in enumerate([False, True, True]):
+        report = tmp_path / f'repair-{index}.jsonl'
+        monkeypatch.setattr(sys, 'argv', ['repair', '--report', str(report)] + (['--apply'] if apply else []))
+        main()
+        records = [json.loads(line) for line in report.read_text().splitlines()]
+        assert [record['stage'] for record in records] == [
+            'started', 'prepared', 'committed' if apply else 'preview_rolled_back']
+        assert len(records[1]['jobs']) == (0 if index == 2 else 1)
+        assert report.stat().st_mode & 0o777 == 0o600
+        output = json.loads(capsys.readouterr().out)
+        assert output == {'applied': apply, 'affected_count': 0 if index == 2 else 1}
+        with Session(engine) as session:
+            assert session.get(EvaluationJob, job_id).status == ('complete' if apply else 'queued')
+    with pytest.raises(FileExistsError):
+        main()
