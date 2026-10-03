@@ -49,18 +49,20 @@ def main():
     passed = True
     try:
         schedule = [(name, repetition) for repetition in range(30) for name in ('empty', 'child')]
-        schedule += [(name, 0) for name in ('clock_tampering', 'forged_timing', 'early_exit', 'malformed', 'hang')]
+        schedule += [(name, 0) for name in ('clock_tampering', 'forged_timing', 'early_exit', 'malformed', 'grandchild', 'output_flood', 'hang', 'descendant_hang')]
         for name, repetition in schedule:
             result = run(args.image, args.parent, args.cgroup_parent, fixtures / name,
                          instance.to_dict(), lambda public, candidate: verify_candidate(instance, candidate)['verified'],
-                         timeout=2 if name == 'hang' else 60)
+                         timeout=2 if name in {'hang', 'descendant_hang'} else 60)
             result.update(fixture=name, repetition=repetition)
             with (args.output / f'{name}-{repetition}.json').open('x') as stream:
                 json.dump(result, stream)
             rows.append(result)
             expected = {'empty': 'no_answer', 'clock_tampering': 'no_answer',
                         'forged_timing': 'malformed', 'child': 'no_answer',
-                        'early_exit': 'malformed', 'malformed': 'malformed', 'hang': 'timeout'}[name]
+                        'early_exit': 'malformed', 'malformed': 'malformed', 'hang': 'timeout',
+                        'grandchild': 'no_answer', 'output_flood': 'output_limit',
+                        'descendant_hang': 'timeout'}[name]
             passed &= result['status'] == expected and result['authoritative_cpu_usec'] > 0
         summary = measurement_gates(rows)
         summary.update(passed=passed and summary['passed'], experimental=True, native_executed=True)
