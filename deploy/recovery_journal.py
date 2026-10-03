@@ -15,6 +15,14 @@ def safe_path(path):
     return path
 
 
+def sync_directory(path):
+    descriptor = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
 def atomic_json(path, value):
     temporary = path.with_name(path.name + '.' + uuid.uuid4().hex + '.tmp')
     with temporary.open('x') as stream:
@@ -23,11 +31,7 @@ def atomic_json(path, value):
         stream.flush()
         os.fsync(stream.fileno())
     temporary.replace(path)
-    descriptor = os.open(path.parent, os.O_RDONLY)
-    try:
-        os.fsync(descriptor)
-    finally:
-        os.close(descriptor)
+    sync_directory(path.parent)
 
 
 class Journal:
@@ -71,7 +75,7 @@ class Journal:
                 if not identifier:
                     continue
                 info = json.loads(subprocess.check_output(['docker', 'inspect', identifier], timeout=30))[0]
-                if (info['Name'] != '/' + container['name'] or info['Image'] != container['image'] or
+                if (info['Name'] != '/' + container['name'] or container['image'] not in {info['Image'], info['Config'].get('Image')} or
                         info['Config']['Labels'].get('org.mldsafail.recovery') != container['label']):
                     raise ValueError('Container ownership mismatch')
                 subprocess.run(['docker', 'rm', '-f', identifier], check=True, capture_output=True, timeout=60)

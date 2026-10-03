@@ -260,3 +260,62 @@ def test_container_ownership_mismatch_never_removed(tmp_path, monkeypatch):
         journal.cleanup()
     assert not any('rm' in argv for argv in calls)
     assert not journal.data['cleanup_complete']
+
+
+@pytest.mark.parametrize('cleanup_failure', [False, True])
+def test_verification_published_only_after_cleanup(tmp_path, monkeypatch, cleanup_failure):
+    from deploy.daily_recovery import run
+    state = tmp_path / 'state'
+    config = dict(recovery_root=str(tmp_path / 'root'), assembly={},
+                  backup=dict(repository='repo', backup_state=str(state)))
+    def assemble(config, destination, operation):
+        destination.mkdir()
+        operation.data['cleanup_complete'] = False
+        operation.save('maintenance intent')
+    def upload(config, *args):
+        atomic_json(state, dict(repository='repo', snapshot='snapshot', restore_verified=False))
+    def verify(config, destination, operation):
+        destination.mkdir()
+        return dict(repository='repo', snapshot='snapshot', restore_verified=True, cleanup_complete=True)
+    def cleanup(operation):
+        operation.data.update(cleanup_complete=not cleanup_failure,
+                              cleanup_errors=['service:web'] if cleanup_failure else [])
+        operation.save('cleanup')
+        if cleanup_failure:
+            raise RuntimeError('failed cleanup')
+    monkeypatch.setattr('deploy.daily_recovery.assemble', assemble)
+    monkeypatch.setattr('deploy.daily_recovery.execute', upload)
+    monkeypatch.setattr('deploy.daily_recovery.verify', verify)
+    monkeypatch.setattr(Journal, 'cleanup', cleanup)
+    monkeypatch.setattr('deploy.daily_recovery.validate_set', lambda _: {})
+    if cleanup_failure:
+        with pytest.raises(RuntimeError):
+            run(config)
+        assert not json.loads(state.read_text())['restore_verified']
+    else:
+        assert run(config)['daily_recovery_verified']
+        assert json.loads(state.read_text())['cleanup_complete']
+        assert not list((tmp_path / 'root').glob('restore-*'))
+    record = json.loads(next((tmp_path / 'root/journals').glob('run-*.json')).read_text())
+    assert record['cleanup_complete'] != cleanup_failure
+    assert record['restore_verified'] != cleanup_failure
+
+
+@pytest.mark.parametrize('boundary', ['coordinator', 'web', 'run'])
+def test_assembly_maintenance_boundaries(tmp_path, monkeypatch, boundary):
+    from deploy.assemble_recovery import assemble
+    calls = []
+    def output(argv, **kwargs):
+        calls.append(argv)
+        if 'ps' in argv:
+            return argv[-1]
+        if 'inspect' in argv:
+            return '{"Running":true}'
+        if ('stop' in argv and argv[-1] == boundary) or ('run' in argv and boundary == 'run'):
+            raise InterruptedError()
+        return ''
+    monkeypatch.setattr('deploy.assemble_recovery.subprocess.check_output', output)
+    with pytest.raises(InterruptedError):
+        assemble(dict(env_file='/private/env', compose='/app/compose.private.yaml'), tmp_path / 'set')
+    assert any(argv[-2:] == ['start','web'] for argv in calls)
+    assert any(argv[-2:] == ['start','coordinator'] for argv in calls)

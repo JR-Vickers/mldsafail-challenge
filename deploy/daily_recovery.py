@@ -10,7 +10,7 @@ import signal
 import uuid
 from deploy.assemble_recovery import assemble
 from deploy.recovery import execute, private_file, validate_set
-from deploy.recovery_journal import Journal, atomic_json, safe_path
+from deploy.recovery_journal import Journal, atomic_json, safe_path, sync_directory
 from deploy.restore_recovery import verify
 
 
@@ -54,16 +54,33 @@ def prune(root, repository, keep):
         atomic_json(path, record)
 
 
+def record_cleanup(operation, journals):
+    run_id = operation.data.get('run_id')
+    if not run_id:
+        return
+    path = safe_path(journals / ('run-' + run_id + '.json'))
+    if path.exists():
+        record = json.loads(private_file(path).read_text())
+        record.update(cleanup_complete=operation.data['cleanup_complete'],
+                      cleanup_errors=operation.data.get('cleanup_errors', []))
+        atomic_json(path, record)
+
+
 def run(config, cleanup_only=False):
     root = safe_path(config['recovery_root'])
     root.mkdir(mode=0o700, parents=True, exist_ok=True)
     journals = safe_path(root / 'journals')
     journals.mkdir(mode=0o700, exist_ok=True)
+    sync_directory(root.parent)
+    sync_directory(root)
     with safe_path(root / 'lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         operation = Journal(journals / 'operation.json', config)
-        if not operation.data['cleanup_complete']:
-            operation.cleanup()
+        try:
+            if not operation.data['cleanup_complete']:
+                operation.cleanup()
+        finally:
+            record_cleanup(operation, journals)
         if cleanup_only:
             return {'cleanup_complete': True}
         keep = config.get('local_verified_sets_to_keep', 2)
@@ -76,7 +93,7 @@ def run(config, cleanup_only=False):
         operation.save('preflight complete')
         record_path = journals / ('run-' + run_id + '.json')
         backup = dict(config['backup'])
-        record = dict(repository=backup['repository'], set_directory='set-' + run_id,
+        record = dict(version=1, repository=backup['repository'], set_directory='set-' + run_id,
                       restore_directory='restore-' + run_id, cleanup_complete=False,
                       restore_verified=False)
         atomic_json(record_path, record)
@@ -94,6 +111,10 @@ def run(config, cleanup_only=False):
             operation.save('verification intent')
             verified = verify(backup, root / record['restore_directory'], operation=operation)
             operation.cleanup()
+            if (not verified.get('restore_verified') or not verified.get('cleanup_complete') or
+                    verified.get('repository') != backup['repository'] or
+                    verified.get('snapshot') != backup['restore_snapshot']):
+                raise ValueError('Verification identity mismatch')
             record.update(restore_verified=True, cleanup_complete=True,
                           verified_at=datetime.now(timezone.utc).isoformat())
             atomic_json(record_path, record)
@@ -101,8 +122,11 @@ def run(config, cleanup_only=False):
             prune(root, backup['repository'], keep)
             return {'daily_recovery_verified': True}
         finally:
-            if not operation.data['cleanup_complete']:
-                operation.cleanup()
+            try:
+                if not operation.data['cleanup_complete']:
+                    operation.cleanup()
+            finally:
+                record_cleanup(operation, journals)
 
 
 def main():

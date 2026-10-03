@@ -27,8 +27,10 @@ def assemble(config, destination, operation=None):
     journal.chmod(0o600)
     categories = {key: [] for key in ['database', 'epoch', 'evidence', 'configuration', 'secrets', 'release', 'images']}
     try:
-        command(compose + ['stop', 'coordinator'], 60)
-        command(compose + ['stop', 'web'], 60)
+        for role in ['coordinator', 'web']:
+            if operation:
+                operation.save('stop ' + role + ' intent')
+            command(compose + ['stop', role], 60)
         code = '''import json,os
 from pathlib import Path
 from sqlalchemy import create_engine,select,text
