@@ -2,7 +2,9 @@
 
 Latest follow-up: [queue repair preparation and independent CPU review](acceptance/operational-followup/README.md).
 The repair is locally tested but unexecuted on staging; independent 0.6.0 review
-failed with unresolved blockers. Participant credentials and external operational
+failed with unresolved blockers. The replacement acceptance token authenticated
+with HTTP 200 on 2026-10-03, resolving the participant-credential prerequisite at
+that checkpoint. Queue repair, the host environment and external operational
 inputs remain prerequisites. Dependent deployment and acceptance remain pending.
 
 The optimization pilot and single-host stability study remain complete. No new
@@ -177,6 +179,12 @@ Maintenance, deployment and acceptance stopped at these prerequisites. Live
 staging remains on b4d212d, with its database, worker, epoch and evidence preserved.
 No scheduler or alert was activated. Storage credentials and independent recovery
 password custody remain missing inputs.
+
+Subsequent credential verification on 2026-10-03 supersedes the token failure
+above: the owner supplied a replacement acceptance token that returned HTTP 200
+from the staging leaderboard API. Older saved and CLI credentials still returned
+401. Use the replacement for acceptance; queue reconciliation, host environment,
+deployment and native scenario/rollback gates remain pending.
 
 Latest locally retained application source:
 `eef20af3a76f7dd6fc9ef7be3bf3420120999d3f`, under the full-commit private release

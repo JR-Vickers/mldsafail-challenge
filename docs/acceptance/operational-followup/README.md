@@ -42,11 +42,14 @@ existing host check is a **system** service. New checked-in recovery/monitoring
 units specify `User=mldsafail` and are intended as **system** services; do not
 install those unchanged as user services. No new units were installed or activated.
 
-The owner was given instructions for creating and privately saving a dedicated
-acceptance token through GitHub OAuth. No replacement token path has been supplied.
-The previous record's HTTP-401 token failure and stale queue remain unresolved;
-this turn did not re-test credentials or claim that the queue is clear. Approved
-S3/alert configuration and independent recovery-password custody are still absent.
+The owner created and privately saved a replacement acceptance token through
+GitHub OAuth. On 2026-10-03, the replacement authenticated against the staging
+leaderboard API with HTTP 200. The participant-credential prerequisite is resolved
+at that verification checkpoint; the token remains subject to expiration.
+The older saved token and CLI credential still returned HTTP 401 and were not
+replaced or revoked. Acceptance tooling must select the replacement token file.
+The stale queue and absent host environment remain unresolved. Approved S3/alert
+configuration and independent recovery-password custody are still absent.
 
 [Independent CPU review](CPU_REVIEW.md) failed with seven unresolved implementation
 and evidence findings. One scoring ambiguity was clarified without adoption.
