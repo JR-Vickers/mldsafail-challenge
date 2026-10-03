@@ -126,6 +126,37 @@ def token_form(client):
             for name in ("csrf_token", "creation_request_key")}
 
 
+def test_token_list_distinguishes_expired_active_and_revoked(tmp_path):
+    from mldsafail.web.services import api_token_status
+    app = hosted_app(tmp_path)
+    client = app.test_client()
+    client.post("/auth/dev-login")
+    now = utcnow()
+    with app.app_context():
+        database = get_session()
+        user = database.scalar(select(User))
+        for name, expiry, revoked in [
+            ("expired", now - timedelta(days=1), False),
+            ("future", now + timedelta(days=1), False),
+            ("unlimited", None, False),
+            ("revoked-expired", now - timedelta(days=1), True),
+        ]:
+            token, _ = create_api_token(database, user, name, expires_at=expiry)
+            if revoked:
+                token.revoked_at = now
+                database.commit()
+        # SQLite returns naive timestamps; equality at expiry is also expired.
+        boundary = SimpleNamespace(revoked_at=None, expires_at=now.replace(tzinfo=None))
+        assert api_token_status(boundary, now) == "Expired"
+        assert api_token_status(SimpleNamespace(revoked_at=None, expires_at=now), now) == "Expired"
+    page = client.get("/tokens").get_data(as_text=True)
+    for name, status in [("expired", "Expired"), ("future", "Active"),
+                         ("unlimited", "Active"), ("revoked-expired", "Revoked")]:
+        row = next(row for row in re.findall(r"<tr>(.*?)</tr>", page, re.S)
+                   if f"<td>{name}</td>" in row)
+        assert f"<td>{status}</td>" in row
+
+
 def test_browser_token_form_replays_never_create_or_redisplay_a_secret(tmp_path):
     app = hosted_app(tmp_path)
     client = app.test_client()

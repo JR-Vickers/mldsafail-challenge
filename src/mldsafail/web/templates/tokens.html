@@ -17,7 +17,7 @@
     <tbody>{% for token in tokens %}<tr>
       <td>{{ token.name }}</td><td><code>mldsa_{{ token.prefix }}_…</code></td>
       <td>{{ token.expires_at or 'Never' }}</td><td>{{ token.last_used_at or 'Never' }}</td>
-      <td>{{ 'Revoked' if token.revoked_at else 'Active' }}</td>
+      <td>{{ token | token_status }}</td>
       <td>{% if not token.revoked_at %}<form method="post" action="{{ url_for('token_revoke', identifier=token.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button type="submit">Revoke</button>
       </form>{% endif %}</td>

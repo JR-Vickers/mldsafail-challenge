@@ -28,7 +28,7 @@ from mldsafail.web.api import init_api
 from mldsafail.web.models import ApiToken, EvaluationAttempt, EvaluationJob, Submission
 from mldsafail.web.repositories import DatabaseResultRepository, JsonlResultRepository
 from mldsafail.web.observability import init_observability
-from mldsafail.web.services import DomainError, check_rate_limit, create_api_token, revoke_token, sanitize_log
+from mldsafail.web.services import DomainError, api_token_status, check_rate_limit, create_api_token, revoke_token, sanitize_log
 from mldsafail.web.tooltip_definitions import METRIC_TITLES as TOOLTIP_TITLES
 
 
@@ -249,6 +249,7 @@ def create_app(
         return str(value)
 
     app.add_template_filter(scope_label, "scope")
+    app.add_template_filter(api_token_status, "token_status")
 
     @app.get("/")
     def index():

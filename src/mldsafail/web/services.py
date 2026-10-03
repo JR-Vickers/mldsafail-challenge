@@ -79,6 +79,19 @@ def create_api_token(
     return token, plaintext
 
 
+def api_token_status(token: ApiToken, now: datetime | None = None) -> str:
+    """Display and authenticate using the same UTC expiration boundary."""
+    if token.revoked_at is not None:
+        return "Revoked"
+    expiry = token.expires_at
+    if expiry is not None:
+        if expiry.tzinfo is None:
+            expiry = expiry.replace(tzinfo=timezone.utc)
+        if expiry <= (now if now is not None else utcnow()):
+            return "Expired"
+    return "Active"
+
+
 def verify_api_token(session: Session, plaintext: str, required_scope: str | None = None) -> tuple[User, ApiToken] | None:
     match = TOKEN_RE.fullmatch(plaintext)
     if not match:
@@ -93,12 +106,8 @@ def verify_api_token(session: Session, plaintext: str, required_scope: str | Non
     if token is None or not secret_matches or token.revoked_at is not None:
         return None
     now = utcnow()
-    expiry = token.expires_at
-    if expiry is not None:
-        if expiry.tzinfo is None:
-            expiry = expiry.replace(tzinfo=timezone.utc)
-        if expiry <= now:
-            return None
+    if api_token_status(token, now) != "Active":
+        return None
     if required_scope and required_scope not in token.scopes:
         return None
     token.last_used_at = now
