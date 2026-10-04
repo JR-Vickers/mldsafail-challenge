@@ -1,7 +1,7 @@
 .PHONY: test bench check web web-smoke hosted-dev hosted-down migrate primitive-study-smoke primitive-study-development primitive-study-report primitive-study-verify
 
 test:
-	uv run pytest
+	uv run --extra dev python -m pytest
 
 bench:
 	uv run python -m mldsafail.benchmark.runner

@@ -1,0 +1,25 @@
+{
+  "passed": true,
+  "correction": "Invoke pytest through the selected project interpreter and explicitly enable existing dev dependencies; do not resolve pytest from a different activated checkout.",
+  "package_import_identity_verified": "engineering worktree src/mldsafail",
+  "focused_cli_tests_passed": 7,
+  "focused_cli_and_primitive_tests_passed": 39,
+  "base_environment": {
+    "tests_passed": 532,
+    "tests_skipped": 27,
+    "make_check_passed": true
+  },
+  "pinned_research_environment": {
+    "requirements": "research/primitive_selection/requirements.txt",
+    "tests_passed": 548,
+    "tests_skipped": 11,
+    "make_check_passed": true,
+    "historical_tiny_score": 3901
+  },
+  "preserved_failures": [
+    "First new CLI regression resolved original checkout through foreign pytest executable.",
+    "Source-bound base environment exposed binary-tampering fixture StopIteration when optional native library was absent; fixture now injects a fabricated artifact and still requires independent audit rejection."
+  ],
+  "native_acceptance_scope": "Previously retained native operator and installed-wheel identities remain independently source-bound.",
+  "locks_or_frozen_benchmark_sources_changed": false
+}

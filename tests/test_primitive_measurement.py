@@ -264,7 +264,9 @@ def test_worker_memoryerror_is_explicit_failure_evidence(monkeypatch):
 def test_dependency_binary_tampering_rejected(cohort):
     def edit(manifest):
         artifacts = manifest["dependency_provenance"]["binary_artifacts"]["fpylll"]
-        artifacts[next(iter(artifacts))] = "0" * 64
+        # In a base development environment the optional native library can be
+        # absent. A fabricated binary receipt must still fail the same audit.
+        artifacts[next(iter(artifacts), 'fabricated-fpylll-extension.so')] = "0" * 64
         manifest["dependency_digest"] = digest(manifest["dependency_provenance"])
     _rewrite(cohort, manifest_edit=edit)
     with pytest.raises(ValueError, match="installed binary_artifacts"):
