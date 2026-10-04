@@ -100,6 +100,8 @@ def test_retention_preserves_failures_and_repository(tmp_path, monkeypatch):
         remove_owned(tmp_path, link.name)
 
 
+from types import SimpleNamespace
+
 DRIVER = r'''
 import json, sys, time
 from pathlib import Path
@@ -120,6 +122,11 @@ def command(argv, **kwargs):
     return SimpleNamespace(stdout='identifier', returncode=0)
 journal.subprocess.check_output = output
 journal.subprocess.run = command
+import deploy.owned_client as owned_client
+def owned_run(argv, entries, save, evidence_directory, **kwargs):
+    value = output(argv, **kwargs) if ('inspect' in argv or 'ps' in argv) else command(argv, **kwargs).stdout
+    return SimpleNamespace(stdout=value, returncode=0)
+owned_client.run = owned_run
 def boundary(stage):
     if config['stage'] == stage:
         marker.write_text(stage)
@@ -204,16 +211,21 @@ def test_cleanup_independent_failure_and_retry(tmp_path, monkeypatch):
         calls.append(argv)
         if argv[-1] == 'web':
             raise RuntimeError('failure')
+    def owned_run(argv, entries, save, evidence_directory, **kwargs):
+        command(argv, **kwargs)
+        return SimpleNamespace(stdout='{"Running":true}', returncode=0)
+    monkeypatch.setattr('deploy.owned_client.run', owned_run)
     monkeypatch.setattr('deploy.recovery_journal.subprocess.run', command)
     monkeypatch.setattr('deploy.recovery_journal.subprocess.check_output',
                         lambda argv, **kw: '{"Running":true}' if 'inspect' in argv else 'identifier')
     with pytest.raises(RuntimeError):
         journal.cleanup()
     assert any(argv[-1] == 'coordinator' for argv in calls)
-    assert journal.data['cleanup_errors'] == ['service:web']
-    monkeypatch.setattr('deploy.recovery_journal.subprocess.run', lambda *a, **kw: None)
-    journal.cleanup()
-    assert journal.data['cleanup_complete']
+    assert 'service:web' in journal.data['cleanup_errors']
+    assert any('positive_dedicated_daemon_barrier_required' in e for e in journal.data['cleanup_errors'])
+    monkeypatch.setattr('deploy.owned_client.run', lambda *a, **kw: SimpleNamespace(stdout='{"Running":true}', returncode=0))
+    with pytest.raises(RuntimeError): journal.cleanup()
+    assert not journal.data['cleanup_complete']  # Earlier unacknowledged RPC remains fenced.
 
 
 def test_disk_floor_preserves_evidence(tmp_path, monkeypatch):
@@ -261,6 +273,10 @@ def test_container_ownership_mismatch_never_removed(tmp_path, monkeypatch):
     def command(argv, **kw):
         calls.append(argv)
         return SimpleNamespace(stdout='identifier')
+    def owned_run(argv, entries, save, evidence_directory, **kwargs):
+        command(argv, **kwargs)
+        return SimpleNamespace(stdout='{"Running":true}', returncode=0)
+    monkeypatch.setattr('deploy.owned_client.run', owned_run)
     monkeypatch.setattr('deploy.recovery_journal.subprocess.run', command)
     monkeypatch.setattr('deploy.recovery_journal.subprocess.check_output', lambda *a, **kw:
                         json.dumps([{'Name':'/owned','Image':'wrong','Config':{'Labels':{}}}]))
