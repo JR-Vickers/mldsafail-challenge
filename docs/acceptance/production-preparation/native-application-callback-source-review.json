@@ -1,0 +1,18 @@
+{
+  "schema": "mldsafail.independent-source-review.v1",
+  "status": "source_review_passed",
+  "source_commit": "2b60eefb5d1de38ddce63e6269b00b3c27aae8e5",
+  "source_file": "scripts/native_application_acceptance.py",
+  "source_sha256": "6a2a50320ea99b4917171494487cfd6ac005c166f7ef5fdff1d432655b9ee51f",
+  "reviewer": "preparation agent; primary callback source read only",
+  "scope": [
+    "Pinned retained PostgreSQL and frozen web image IDs must already be loaded by the reviewed source-bound isolated driver.",
+    "PostgreSQL acceptance runs in the same process under the nested shared provision lease and requires its passed and cleanup_complete outcomes.",
+    "Disposable expired-token probe uses durable create/start intents, exact container identity, explicit isolated worker parent, no network, read-only source probe and strict terminal exit/output checks.",
+    "Callback outcome is intermediate; final daemon, whole-worker and creator cleanup remains the native driver's responsibility. Retained source/probe bytes must remain immutable throughout invocation."
+  ],
+  "verification": {"focused_tests_passed": 11, "interpreter": "exact primary worktree Python and package imports"},
+  "native_executed_by_reviewer": false,
+  "native_acceptance": "pending",
+  "activation_approved": false
+}
