@@ -130,9 +130,18 @@ def test_restart_recovers_new_manifest_published_before_journal_ack(tmp_path,mon
     monkeypatch.setattr(owned_daemon,'verify_environment',lambda value:verified.append(value))
     intent=dict(schema='mldsafail.owned-daemon-restart-intent.v1',attempt_id='attempt',previous_epoch=manifest['epoch'],manifest_sha256=owned_daemon.fingerprint(manifest),unit=manifest['unit'],next_epoch=refreshed['epoch'])
     owned_daemon.publish(tmp_path/'attempt-daemon-restart-intent.json',intent)
-    barrier=dict(shutdown_proven=True,daemon_manifest_sha256=owned_daemon.fingerprint(manifest),daemon_epoch=manifest['epoch'])
+    barrier=dict(schema='mldsafail.owned-daemon-barrier.v1',attempt_id='attempt',errors=[],shutdown_proven=True,daemon_manifest_sha256=owned_daemon.fingerprint(manifest),daemon_epoch=manifest['epoch'])
     result=owned_daemon.restart_and_refresh(manifest,barrier,manifest_path=tmp_path/'manifest',evidence_directory=tmp_path,attempt_id='attempt')
     assert result==refreshed and verified==[refreshed]
     monkeypatch.setattr(owned_daemon,'load_manifest',lambda *args:dict(refreshed,epoch='e'*32))
     with pytest.raises(RuntimeError,match='exact retained'):
+        owned_daemon.restart_and_refresh(manifest,barrier,manifest_path=tmp_path/'manifest',evidence_directory=tmp_path,attempt_id='attempt')
+
+
+@pytest.mark.parametrize('field,value',[('schema','wrong'),('errors',[{'step':'failed'}]),('attempt_id','other')])
+def test_restart_rejects_corrupt_positive_barrier(tmp_path,monkeypatch,field,value):
+    manifest=fixture_manifest(tmp_path,monkeypatch)
+    barrier=dict(schema='mldsafail.owned-daemon-barrier.v1',attempt_id='attempt',errors=[],shutdown_proven=True,daemon_manifest_sha256=owned_daemon.fingerprint(manifest),daemon_epoch=manifest['epoch'])
+    barrier[field]=value
+    with pytest.raises(RuntimeError,match='Positive exact'):
         owned_daemon.restart_and_refresh(manifest,barrier,manifest_path=tmp_path/'manifest',evidence_directory=tmp_path,attempt_id='attempt')

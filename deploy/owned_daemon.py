@@ -348,7 +348,7 @@ def shutdown_barrier(manifest, *, worker_domains=(), evidence_directory, attempt
 
 def restart_and_refresh(manifest, shutdown_receipt, *, manifest_path, client_entries=(), evidence_directory, attempt_id):
     """Only after positive old-epoch proof and independently empty client domains."""
-    if shutdown_receipt.get('shutdown_proven') is not True or shutdown_receipt.get('daemon_manifest_sha256')!=fingerprint(manifest) or shutdown_receipt.get('daemon_epoch')!=manifest['epoch']:
+    if not isinstance(shutdown_receipt,dict) or shutdown_receipt.get('schema')!='mldsafail.owned-daemon-barrier.v1' or shutdown_receipt.get('attempt_id')!=attempt_id or shutdown_receipt.get('errors')!=[] or shutdown_receipt.get('shutdown_proven') is not True or shutdown_receipt.get('daemon_manifest_sha256')!=fingerprint(manifest) or shutdown_receipt.get('daemon_epoch')!=manifest['epoch']:
         raise RuntimeError('Positive exact daemon shutdown receipt required')
     for entry in client_entries:
         path=owned_client.verify_domain(entry)
