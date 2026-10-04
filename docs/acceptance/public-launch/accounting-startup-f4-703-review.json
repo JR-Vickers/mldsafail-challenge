@@ -1,0 +1,33 @@
+{
+  "schema": "mldsafail.independent-source-review.v1",
+  "reviewed_source": [
+    "f4c792451dad05660dce95147d09e8dc044b8c1a",
+    "703ee85",
+    "49526eca147d4516f490e872b4e42a0af8701434",
+    "3f327cd6f5b9a21667ae582c886800fdc6619581"
+  ],
+  "source_review_passed": true,
+  "native_executed": false,
+  "criteria": [
+    "Dedicated private PID file; only Docker data-root mode700/710 under unchanged private base",
+    "Never-admitted startup retirement requires exact inactive own unit, no pending jobs, no daemon domain/socket, exact empty worker birth and no uncertain setup or Docker admission",
+    "Startup retirement is distinct from healthy registered daemon epoch shutdown",
+    "Original operator birth/env verified before restart; numeric API validated before mutation",
+    "Shared PID-bound whole-operation lease reused by nested consumers; fork cannot reuse parent registry",
+    "Failed proof publication retains fence and independently attempts only exact finished clients"
+  ],
+  "verification": [
+    {
+      "tree": "engineering/launch-accounting",
+      "focused_passed": 30
+    },
+    {
+      "tree": "engineering/public-launch",
+      "focused_passed": 23
+    }
+  ],
+  "limitations": [
+    "Actual native failed-startup cleanup and repro/production acceptance remain separate gates",
+    "No staging Docker control or public activation authorized by this review"
+  ]
+}
