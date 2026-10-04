@@ -1,0 +1,32 @@
+{
+  "schema": "mldsafail.cpu-native-review.v1",
+  "status": "source_review_passed",
+  "reviewer": "preparation agent; independent read-only supervisor and native protocol source review",
+  "source_commit": "d1b255eae62b6436ba2f5624ede4c1b395e75190",
+  "supervisor_source_sha256": "1bab6cb7b4a2740e34044908f8258a1b031ebaecbdae06e0486d8dc4c39f90c8",
+  "driver_sha256": "5391b22e2eae7ef27cd205746be390aec71c008d16a4b86545865b63e7132226",
+  "owned_daemon_sha256": "2b1b2c2a46f3928fb8c14a8a50c2006071839a455745de492ad255e61a2be28c",
+  "supervisor_review_passed": true,
+  "native_protocol_review_passed": true,
+  "auditor_review": "Primary agent's separate actual source-bound auditor receipt must be included in the combined private review packet; this reviewer does not manufacture that outcome.",
+  "reviewed_checkpoints": ["43fdf03b3b1b1b6dc7c779427f7d659d261620bd", "8755ed7a20c684a0c5fb6754f38cfcc1baa04ef2", "0289a5c", "7e21355"],
+  "findings_preserved": [
+    "New terminal_only registration field was initially rejected by the exact manifest reader, breaking every newly registered manifest. The correction accepts exact legacy schema or strict boolean extended schema and preserves raw fingerprint identity.",
+    "New terminal cleanup controller required explicit disjointness from old daemon, worker and protected domains.",
+    "Command publication could mask original failures; malformed cleanup authority could skip independent cleanup attempts. Corrected paths preserve original failures and fence damaged evidence."
+  ],
+  "scope": [
+    "Fresh private provisioned roots, nonce-derived empty worker birth, source/pinned artifact review admission and continuous shared provision lock.",
+    "Durable intent and gated kernel client birth before mutation; exact isolated daemon and whole-worker shutdown proof precedes creator cancellation.",
+    "Terminal-only captured authority is durably marked and rejects evaluation and restart before control; new controller cleanup never restarts old epoch.",
+    "Native fault protocol requires reached causes and actual successful withheld Docker responses rather than arbitrary exceptions; baseline failures cannot count as injected faults.",
+    "Full native fault gate precedes one predeclared sequential paired-measurement suite; existing pair count, CPU/CV/wall thresholds and three-invocation scoring remain unchanged."
+  ],
+  "verification": {"focused_tests_passed": 53, "interpreter": "exact primary worktree Python and local package imports"},
+  "native_executed_by_reviewer": false,
+  "native_accounting_gate": "pending",
+  "repeat_activation_consumer_review": "separate gate; not supplied by this packet",
+  "contract_adoption_approved": false,
+  "activation_approved": false,
+  "evidence_refs": ["docs/acceptance/production-preparation/native-driver-final-source-review.json"]
+}
