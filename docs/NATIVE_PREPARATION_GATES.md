@@ -143,7 +143,8 @@ fields to force cleanup; an invalid ownership journal requires operator review.
 
 For public frozen-worker reproducibility use the exact clean source's
 `scripts/mlwe_reproduce.py` with three immutable amd64 image IDs, a new private
-`--output` root, and explicit current-user rootless `DOCKER_HOST`. Its protocol
+`--output` root, and the explicit dedicated daemon environment described in
+[the isolated-daemon operator guide](ISOLATED_DAEMON_REHEARSAL.md). Its protocol
 remains all twelve public profile/eta/seed fixtures, each of three solvers, across
 both clean builds and the historical frozen worker; normalized outputs and
 artifact inventories must match. Each invocation durably records labeled/named
@@ -158,7 +159,8 @@ this runner cannot establish public-safe accounting or approved 0.6.0 adoption.
 Both baseline and public-reproduction operators use the shared native Linux
 owned-client gate. It writes client intent, then durably records boot ID,
 PID/start time, UID and allowed bootstrap/executable command identities before
-releasing exec. Recovery cancels each exact recorded client independently before
+releasing exec. Recovery proves dedicated-daemon and whole-worker-parent shutdown,
+then cancels exact recorded clients independently before restart and
 container inventory/removal. A client identity or cancellation failure prevents
 cleanup completion even when an inventory is empty. Native interruption testing
 must exercise the create/start boundary and verify zero late-created resources;
@@ -171,5 +173,6 @@ inventory, and cannot pass merely because a damaged run journal was unwritable.
 A released Docker create/start/up/run request without an acknowledged completion
 is **daemon mutation uncertainty**: killing its CLI cgroup and observing an empty
 container list do not clear the fence. Known-owned resource cleanup continues,
-but completion waits for the separately implemented isolated-daemon positive
-barrier. Never restart the shared staging daemon to clear this condition.
+but completion requires the isolated-daemon positive barrier implemented by the
+consumer lifecycle. Native acceptance remains a separate gate. Never restart the
+shared staging daemon to clear this condition.

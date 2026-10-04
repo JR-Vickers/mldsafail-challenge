@@ -62,8 +62,10 @@ make check
 MLWE_DOCKER_TESTS=1 pytest tests/test_mlwe_v050_docker.py
 python -m mldsafail.benchmark_v050.build --no-cache --tag mldsafail-mlwe:rebuild-a
 python -m mldsafail.benchmark_v050.build --no-cache --tag mldsafail-mlwe:rebuild-b
-python scripts/mlwe_reproduce.py --image-a mldsafail-mlwe:rebuild-a \
-  --image-b mldsafail-mlwe:rebuild-b --output /tmp/mlwe-reproduction-new
+# Register an isolated dedicated daemon first; use immutable inspected image IDs.
+python -m scripts.mlwe_reproduce --image-a sha256:REBUILD_A_ID \
+  --image-b sha256:REBUILD_B_ID --frozen-image sha256:REVIEWED_WORKER_ID \
+  --output /PRIVATE_PARENT/mlwe-reproduction-new
 ```
 
-The reproduction comparison additionally needs the reviewed `mldsafail-primitive-study:validation-v2` image. It compares public fixtures and normalized outputs against both clean builds and the reviewed worker; timing equality is not required. See [specification mapping](MLWE_SPEC_MAPPING.md) and [acceptance evidence](acceptance/mlwe-v050/README.md).
+The reproduction comparison additionally needs the immutable ID of the reviewed `mldsafail-primitive-study:validation-v2` image. Follow the [isolated-daemon guide](ISOLATED_DAEMON_REHEARSAL.md) for explicit environment, protected roots and cleanup. It compares public fixtures and normalized outputs against both clean builds and the reviewed worker; timing equality is not required. See [specification mapping](MLWE_SPEC_MAPPING.md) and [acceptance evidence](acceptance/mlwe-v050/README.md).
