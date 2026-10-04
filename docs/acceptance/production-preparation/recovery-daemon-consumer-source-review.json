@@ -1,0 +1,21 @@
+{
+  "schema": "mldsafail.source-review.v1",
+  "reviewed_source": "6819132b6e2b2d3b91f3c9764ab33dbecc69c59e",
+  "status": "passed_source_review",
+  "scope": "Recovery dedicated-daemon consumers, service restoration and disposable native fault orchestration",
+  "historical_findings": [
+    {"source": "1813ddccc398dad066486c9eb1d47d59758db109", "id": "whole-operation-daemon-lock", "observed": "Different journal operations could share a daemon without a daemon-wide lock, allowing one barrier to kill another restoration."},
+    {"source": "1813ddccc398dad066486c9eb1d47d59758db109", "id": "independent-corruption-cleanup", "observed": "Unguarded repair or malformed journal arrays could abort before known resource and service cleanup."},
+    {"source": "intermediate uncommitted fixture proposal", "id": "exact-rival-failure", "observed": "Any nonzero rival exit could count as lock rejection; dedicated service scope import and retained-corruption retries also required correction."}
+  ],
+  "corrective_observations": [
+    "Daily, standalone, restoration and PostgreSQL entry points hold the same private provision-base flock across execution and cleanup; nested reuse is PID-bound and an actual fork regression rejects bypass.",
+    "Malformed current and retained creator authority prohibit daemon restart; known safe cleanup remains independent.",
+    "The fault owner has durable pre-exec fork ownership and exact pidfd exit proof before daemon restart.",
+    "Rival concurrency requires exit 73 and the exact structured run_lock_contended marker.",
+    "Dedicated service context restoration uses its own endpoint; shared staging service restoration retains the original endpoint and cannot be cleared by a disposable daemon proof."
+  ],
+  "focused_tests_passed": 33,
+  "native_acceptance": false,
+  "remaining": ["native_four_service_faults", "native_dedicated_daemon_inflight_and_restart_gates", "repeat_operator_activation_lifecycle"]
+}
