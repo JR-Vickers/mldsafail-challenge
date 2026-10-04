@@ -6,6 +6,7 @@ continues to verify the real dedicated daemon endpoint. No gate passes merely
 because this tool runs: the test must audit its receipt and daemon barriers.
 """
 import hashlib
+import http.client
 import socket
 from pathlib import Path
 from research.cpu_measurement.ownership import publish
@@ -47,11 +48,17 @@ def _drop_acknowledgement(client, upstream, receipt, operation):
            (operation=='start' and path.split(b'?',1)[0].endswith(b'/start') and b'/containers/' in path)))
     if not valid: raise RuntimeError('Only the declared mutation may be faulted')
     upstream.sendall(request)
-    response,status=read_message(upstream)
-    code=int(status.split(b' ',2)[1])
+    parsed=http.client.HTTPResponse(upstream)
+    parsed.begin()
+    body=parsed.read(CAP+1)
+    if len(body)>CAP: raise RuntimeError('Daemon response exceeds diagnostic cap')
+    code=parsed.status
+    response=(str(code)+' '+parsed.reason+'\n').encode()+repr(parsed.getheaders()).encode()+b'\n'+body
+    parsed.close()
     publish(Path(receipt),dict(schema='mldsafail.native-transport-loss.v1',operation=operation,
         request_sha256=hashlib.sha256(request).hexdigest(),request_bytes=len(request),
         response_sha256=hashlib.sha256(response).hexdigest(),response_bytes=len(response),
+        response_digest_encoding='status_headers_decoded_body.v1',
         daemon_response_code=code,actual_mutation_response_observed=code in {201,204},
         response_delivered=False))
     # Close both sockets without ever acknowledging the mutation to Docker CLI.
