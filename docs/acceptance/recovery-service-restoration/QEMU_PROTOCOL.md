@@ -27,3 +27,11 @@ a Git identity alone does not describe uncommitted source. Retain interrupted
 attempts separately. Report a pass only after guest reconciliation and host-owned
 process cleanup succeed. This is a synthetic local recovery gate, not off-host
 production recovery or permission to power-cycle staging.
+
+The VM-only fstab override names verified image partitions `/dev/vda16` and
+`/dev/vda15` directly to avoid a post-fsck label-symlink discovery race. Readiness
+requires `multi-user.target` active after both boots. The separate transport gate
+creates a fresh fixture/journal, kills its exact owned local SSH client after the
+durable maintenance boundary, reconnects without reboot, verifies unchanged boot
+ID, and audits cleanup/identity/migration invariants. Raw guest evidence is exported
+before stopping the VM. These two gates must have distinct outcomes.

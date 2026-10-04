@@ -63,6 +63,7 @@ write_files:
       kernel.apparmor_restrict_unprivileged_userns=0
 runcmd:
   - [sysctl, --system]
+  - [sh, -c, "sed -i 's|LABEL=BOOT|/dev/vda16|;s|LABEL=UEFI|/dev/vda15|' /etc/fstab"]
   - [sh, -c, "curl -fsSL https://get.docker.com | sh"]
   - [systemctl, disable, --now, docker.service, docker.socket]
   - [loginctl, enable-linger, ubuntu]
@@ -99,7 +100,7 @@ runcmd:
             if process.poll() is not None:
                 raise RuntimeError('Owned QEMU process exited; inspect boot log')
             try:
-                command(ssh_argv(root, port) + ['test -f ~/provisioned'], 10)
+                command(ssh_argv(root, port) + ['test -f ~/provisioned && systemctl is-active --quiet multi-user.target'], 10)
                 return process
             except subprocess.SubprocessError:
                 if time.monotonic() >= deadline:
@@ -126,8 +127,38 @@ runcmd:
         process = boot(2)
         result = command(ssh_argv(root, port) + ['cd ~/source && python3 -m deploy.qemu_recovery_guest reconcile'], 300)
         (root / 'result.json').write_text(result)
+        transport_log = (root / 'transport-ssh.log').open('w')
+        transport = subprocess.Popen(ssh_argv(root, port) + [
+            'cd ~/source && python3 -m deploy.qemu_recovery_guest transport_prepare'],
+            stdin=subprocess.DEVNULL, stdout=transport_log, stderr=transport_log)
+        try:
+            deadline = time.monotonic() + 300
+            while True:
+                try:
+                    command(ssh_argv(root, port) + ['test -f ~/transport-fixture/boundary.json'], 10)
+                    break
+                except subprocess.SubprocessError:
+                    if transport.poll() is not None or time.monotonic() >= deadline:
+                        raise RuntimeError('Transport-loss durable boundary unavailable')
+                    time.sleep(1)
+            transport.kill()  # Cut only this task-owned SSH transport, not the VM.
+            transport.wait(timeout=30)
+        finally:
+            if transport.poll() is None:
+                transport.kill()
+                transport.wait(timeout=30)
+            transport_log.close()
+        transport_result = command(ssh_argv(root, port) + [
+            'cd ~/source && python3 -m deploy.qemu_recovery_guest transport_reconcile'], 180)
+        (root / 'transport-result.json').write_text(transport_result)
+        # Export raw guest journals/logs before stopping the VM.
+        with (root / 'guest-evidence.tar').open('wb') as stream:
+            subprocess.run(ssh_argv(root, port) + [
+                'tar -cf - -C /home/ubuntu powerloss-fixture transport-fixture'],
+                stdout=stream, check=True, timeout=60)
         atomic_json(root / 'host-result.json', {'hard_power_loss_injected': True, 'rebooted': True,
-                                              'guest_result': json.loads(result), 'owned_vm_stopped': False})
+                                              'guest_result': json.loads(result), 'transport_result': json.loads(transport_result),
+                                              'owned_vm_stopped': False})
     finally:
         for process, log in processes:
             if process.poll() is None:

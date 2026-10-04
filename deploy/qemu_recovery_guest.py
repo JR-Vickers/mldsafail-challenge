@@ -17,10 +17,15 @@ def command(argv, timeout=120):
 
 
 def main(mode):
+    global ROOT, PROJECT
+    transport_mode = mode.startswith('transport_')
+    if transport_mode:
+        ROOT = Path.home() / 'transport-fixture'
+        PROJECT = 'disposable-transport-loss'
     os.environ['DOCKER_HOST'] = 'unix:///run/user/1000/docker.sock'
     os.environ['XDG_RUNTIME_DIR'] = '/run/user/1000'
     compose = ['docker', 'compose', '-p', PROJECT, '-f', str(ROOT / 'compose.yaml')]
-    if mode == 'prepare':
+    if mode in ('prepare', 'transport_prepare'):
         ROOT.mkdir(mode=0o700)
         info = json.loads(command(['docker', 'info', '--format', '{{json .}}']))
         if not any('rootless' in value for value in info['SecurityOptions']):
@@ -60,16 +65,36 @@ volumes:
             if process.poll() is not None or time.monotonic() >= deadline:
                 raise RuntimeError('Durable power-loss boundary unavailable')
             time.sleep(0.1)
-        print(json.dumps(baseline))
-    elif mode == 'reconcile':
+        print(json.dumps(baseline), flush=True)
+        if transport_mode:
+            try:
+                while True:
+                    time.sleep(1)
+                    print('transport-alive', flush=True)
+            except (BrokenPipeError, OSError):
+                pass
+            finally:
+                if process.poll() is None:
+                    process.terminate()
+                    process.wait(timeout=90)
+    elif mode in ('reconcile', 'transport_reconcile'):
         baseline = json.loads((ROOT / 'baseline.json').read_text())
-        if baseline['boot_id'] == Path('/proc/sys/kernel/random/boot_id').read_text().strip():
-            raise RuntimeError('Guest did not reboot')
+        boot_id = Path('/proc/sys/kernel/random/boot_id').read_text().strip()
+        if (baseline['boot_id'] == boot_id) != transport_mode:
+            raise RuntimeError('Unexpected guest boot identity')
         lock = (ROOT / 'lock').open('a')
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        deadline = time.monotonic() + 120
+        while True:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.monotonic() >= deadline:
+                    raise RuntimeError('Disconnected owner failed to relinquish cleanup lock')
+                time.sleep(1)
         journal = Journal(ROOT / 'operation.json', {})
         atomic_json(ROOT / 'interrupted.json', journal.data)
-        if journal.data['cleanup_complete']:
+        if journal.data['cleanup_complete'] and not transport_mode:
             raise RuntimeError('No interrupted maintenance evidence')
         journal.cleanup()
         journal.cleanup()
@@ -87,7 +112,7 @@ volumes:
             if command(['docker', kind, 'ls', '-aq' if kind == 'container' else '-q', '--filter',
                         'label=com.docker.compose.project=' + PROJECT]):
                 raise RuntimeError('Owned fixture resources remain')
-        result = {'hard_power_loss_passed': True, 'cleanup_complete': True,
+        result = {'hard_power_loss_passed': not transport_mode, 'actual_connection_loss_passed': transport_mode, 'cleanup_complete': True,
                   'identity_preserved': True, 'migration_invocations': 1, 'repeated_cleanup_passed': True,
                   'new_boot_id': Path('/proc/sys/kernel/random/boot_id').read_text().strip()}
         atomic_json(ROOT / 'result.json', result)
