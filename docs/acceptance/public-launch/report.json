@@ -304,11 +304,16 @@
           "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
           "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys",
           "scenario_verification": "passed; final run cleanup/rollback remains pending"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
+          "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
         }
       ],
       "evidence": [],
       "identities": {},
-      "next_action": "Preserve per-scenario pass; complete run and final cleanup before parent acceptance",
+      "next_action": "Review heartbeat lifetime correction; resume exact journal and reverify completed submissions without POST; repeat protected backup and exact application rollback/forward/privacy gates",
       "checklist": []
     },
     {
@@ -340,11 +345,16 @@
           "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
           "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys",
           "scenario_verification": "passed; final run cleanup/rollback remains pending"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
+          "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
         }
       ],
       "evidence": [],
       "identities": {},
-      "next_action": "Preserve per-scenario pass; complete run and final cleanup before parent acceptance",
+      "next_action": "Review heartbeat lifetime correction; resume exact journal and reverify completed submissions without POST; repeat protected backup and exact application rollback/forward/privacy gates",
       "checklist": []
     },
     {
@@ -376,11 +386,16 @@
           "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
           "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys",
           "scenario_verification": "passed; final run cleanup/rollback remains pending"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
+          "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
         }
       ],
       "evidence": [],
       "identities": {},
-      "next_action": "Preserve per-scenario pass; complete run and final cleanup before parent acceptance",
+      "next_action": "Review heartbeat lifetime correction; resume exact journal and reverify completed submissions without POST; repeat protected backup and exact application rollback/forward/privacy gates",
       "checklist": []
     },
     {
@@ -412,11 +427,16 @@
           "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
           "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys",
           "scenario_verification": "passed; final run cleanup/rollback remains pending"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
+          "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
         }
       ],
       "evidence": [],
       "identities": {},
-      "next_action": "Preserve per-scenario pass; complete run and final cleanup before parent acceptance",
+      "next_action": "Review heartbeat lifetime correction; resume exact journal and reverify completed submissions without POST; repeat protected backup and exact application rollback/forward/privacy gates",
       "checklist": []
     },
     {
@@ -448,11 +468,16 @@
           "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
           "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys",
           "scenario_verification": "passed; final run cleanup/rollback remains pending"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
+          "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
         }
       ],
       "evidence": [],
       "identities": {},
-      "next_action": "Preserve per-scenario pass; complete run and final cleanup before parent acceptance",
+      "next_action": "Review heartbeat lifetime correction; resume exact journal and reverify completed submissions without POST; repeat protected backup and exact application rollback/forward/privacy gates",
       "checklist": []
     },
     {
@@ -483,11 +508,16 @@
           "run_id": "launch-scenarios-6b332cd-20261004",
           "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
           "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
+          "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
         }
       ],
       "evidence": [],
       "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "next_action": "Review heartbeat lifetime correction; resume exact journal and reverify completed submissions without POST; repeat protected backup and exact application rollback/forward/privacy gates",
       "checklist": []
     },
     {
@@ -518,11 +548,16 @@
           "run_id": "launch-scenarios-6b332cd-20261004",
           "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
           "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
+          "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
         }
       ],
       "evidence": [],
       "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "next_action": "Review heartbeat lifetime correction; resume exact journal and reverify completed submissions without POST; repeat protected backup and exact application rollback/forward/privacy gates",
       "checklist": []
     },
     {
@@ -554,11 +589,16 @@
           "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
           "environment": "private staging; raw journal and evidence protected on VPS",
           "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
+          "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
         }
       ],
       "evidence": [],
       "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "next_action": "Review heartbeat lifetime correction; resume exact journal and reverify completed submissions without POST; repeat protected backup and exact application rollback/forward/privacy gates",
       "checklist": []
     },
     {
