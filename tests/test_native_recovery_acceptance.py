@@ -41,3 +41,22 @@ def test_reused_child_identity_never_signalled(tmp_path, monkeypatch):
                         lambda _: {'pid': 123, 'start_ticks': 11})
     with pytest.raises(RuntimeError, match='ownership mismatch'):
         stop_owned_child(tmp_path)
+
+
+def test_pidfd_identity_change_prevents_signal_and_closes_descriptor(tmp_path, monkeypatch):
+    import json
+    import os
+    from deploy.native_recovery_acceptance import stop_owned_child
+    identity = {'pid': 123, 'start_ticks': 10, 'uid': os.getuid(),
+                'cmdline': '00', 'boot_id': 'fixture-boot'}
+    (tmp_path / 'owner-process.json').write_text(json.dumps(identity))
+    records = iter([identity, dict(identity, start_ticks=11)])
+    closed = []
+    monkeypatch.setattr('deploy.native_recovery_acceptance.process_identity', lambda _: next(records))
+    monkeypatch.setattr('deploy.native_recovery_acceptance.os.pidfd_open', lambda _: 99, raising=False)
+    monkeypatch.setattr('deploy.native_recovery_acceptance.signal.pidfd_send_signal',
+                        lambda *args: pytest.fail('Changed owner must never receive signal'), raising=False)
+    monkeypatch.setattr('deploy.native_recovery_acceptance.os.close', lambda descriptor: closed.append(descriptor))
+    with pytest.raises(RuntimeError, match='changed before cancellation'):
+        stop_owned_child(tmp_path)
+    assert closed == [99]
