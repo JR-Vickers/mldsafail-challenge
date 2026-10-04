@@ -56,8 +56,11 @@ Do not import generator/evidence state, inspect hidden seeds or cache answers.
 Keep evaluator evidence outside and unavailable to the contestant workspace.
 
 Frozen 0.5.0 performs one unscored warmup and exactly three measured executions
-per case. All successful repetitions use median complete-worker cooperative CPU
-with a one-microsecond floor, divided by the same-instance frozen reference cost.
+per case. All successful repetitions use median cooperative clock-scoped worker
+CPU (`process_time`), with a one-microsecond floor, divided by the same-instance
+frozen reference cost. The clock includes parsing, contestant loading, lazy
+mathematical imports, solving and verification; it excludes container startup,
+trusted adapter imports before the clock and final serialization.
 An ordinary failure in any measured invocation assigns the whole case 60 seconds;
 invalid answers make the run ineligible. Five equal-weight cell geometric means,
 anchored 1% ties and the frozen profile/seed-cluster uncertainty rule apply.
