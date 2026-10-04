@@ -53,3 +53,87 @@ Run the prepared fixtures with `python -m research.cpu_measurement.native_suite 
 The suite includes 30 empty/child repetitions and tampering/exit/malformed/timeout
 fixtures. Counter/membership failures have local tests. Native fixture results
 remain pending.
+
+## Isolated engineering checkpoint (not adoption)
+
+The prototype now uses a separate private on-disk ownership directory (never the
+cgroup filesystem). A durable generation journals mutation intent and fences
+replacement work after interruption; a flock serializes journal access, rather
+than serving as the durable owner. Complete records are atomically published and
+file/directory-synced before release. `audit.py` independently checks their digest,
+generation, environment binding, counters, verifier disposition and cleanup.
+The native runner requires `--ownership-directory`; the private host supervisor
+also requires explicit `--socket` and isolated `--epoch` arguments.
+The directory must equal `canonical_directory(parent)` under the supervisor
+owner’s user-state directory; alternate per-parent journals are rejected. Its socket
+accepts same-UID peers and fixed reviewed fixture names only. It is experimental
+host tooling and grants no arbitrary participant execution endpoint.
+
+Streaming stdout/stderr stays within per-stream caps, cleanup failures are retained
+independently, and paired gates reject duplicate/incomplete pairs, nonfinite data,
+inconsistent provenance, unfinished ownership and overlapping execution. Parent
+identity and unauthorized populated sibling/direct membership are checked during
+capture. **These observations do not prove continuous accounting exclusivity by
+themselves.** Native deployment must demonstrate exclusive trusted delegation,
+worker-inaccessible controls, and absence of other authorized host writers.
+A private socket is not a hostile same-UID security boundary.
+
+Still required before freeze: independent supervisor/auditor review; native
+explicit interruption reconciliation and independently retryable cleanup acceptance; native
+counter/delegation/contamination/concurrent-owner/cleanup faults; descendant
+membership/counter proofs; and the unchanged 30-pair idle-host gate. No native
+result or completed findings 2–8 is claimed by the local engineering checkpoint.
+
+`reconcile` provides explicit fenced cleanup: it preserves the interrupted
+journal, independently retries owned container removal and domain termination,
+proves domain emptiness/counter monotonicity, and durably records every cleanup
+attempt. A cleanup receipt never supplies a measurement or score. Completed
+measurement generations retain independent ownership manifests and source
+artifacts; audit can address each generation after later runs. The independent
+case-cost helper accepts exactly three unique, identically bound/input invocations,
+rejects infrastructure evidence errors, marks invalid candidates ineligible and
+penalizes the whole case for any ordinary failure.
+
+## Dedicated native setup and retained execution protocol
+
+Use an exclusively controlled trusted Linux service account/rootless Docker
+daemon and a dedicated experimental accounting parent. An existing trusted host
+UID is permitted when every host writer is trusted and conflicting operator jobs
+are serialized; this is a recorded host trust assumption, not protection against
+a hostile same-UID host process. The supervisor, daemon credentials and writable
+cgroup controls belong solely to that trusted UID; workers receive neither
+credentials nor controls. Restrict other same-UID operator jobs during the gate. An administrator must delegate
+CPU, memory and PID controls to the service, then provision an **empty accounting
+child** beneath its delegated subtree. Keep supervisor/daemon processes outside
+that accounting child. Record the actual host path, Docker cgroup-parent mapping,
+owner/mode, `cgroup.type`, controllers, parent device/inode and systemd/Docker
+configuration privately. Never reuse the frozen staging accounting parent.
+The actual mapping is a native acceptance prerequisite; unit-file parsing or
+Docker Desktop cannot establish it.
+
+Determine the mandatory journal location without starting workers:
+
+```sh
+python -c 'from pathlib import Path; from research.cpu_measurement.ownership import canonical_directory; import sys; print(canonical_directory(Path(sys.argv[1])))' /sys/fs/cgroup/ACTUAL_DELEGATED_ACCOUNTING_CHILD
+```
+
+Use the exact retained immutable reviewed worker image and source commit. Run the
+native fault tool on this isolated parent, reconcile each unfinished generation,
+then run `native_suite --image sha256:... --parent ... --cgroup-parent ...
+--ownership-directory CANONICAL_DIRECTORY --output NEW_PRIVATE_DIRECTORY` once
+under the predeclared idle-host protocol. Do not retry an unchanged failed
+performance gate to select a favorable result. `native_fault_suite` executes
+native workers while injecting missing/regressing reads, membership mismatch,
+cleanup failure and competing ownership at trusted interfaces. It also probes real sibling contamination, delegation rejection, private-socket
+response loss, supervisor SIGKILL fencing/cleanup and host-observed grandchild
+lineage/CPU lower bounds. Native execution of every probe is pending.
+A partial fault result must never be described as contract acceptance.
+
+For an interrupted generation, use `reconcile --ownership-directory ... --parent
+...` before further work. Reconciliation inspects generation label, immutable
+image and configured cgroup-parent identity before container removal. Domain
+termination requires an explained authorized member tree; unexplained members
+keep the generation fenced for independent operator investigation. Cleanup
+attempts and the original interruption remain private retained records. A daemon
+outage, missing identity or altered accounting parent never permits blind removal
+or a replacement measurement.

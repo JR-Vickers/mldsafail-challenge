@@ -14,7 +14,7 @@ from mldsafail.benchmark_v050.verify import verify_candidate
 
 
 
-def measurement_gates(rows):
+def measurement_gates(rows, evidence_directory=None, *, audit_records=True):
     """Predeclared adoption gates; empty-worker CV is diagnostic only."""
     grouped = {name: [row for row in rows if row['fixture'] == name]
                for name in ('empty', 'child')}
@@ -25,12 +25,24 @@ def measurement_gates(rows):
     if len(set(pairs)) != len(pairs) or {i for name, i in pairs if name == 'empty'} != {i for name, i in pairs if name == 'child'}:
         raise ValueError('Unique complete pairs required')
     selected = [row for row in rows if row['fixture'] in grouped]
+    if any(type(row.get('repetition')) is not int for row in selected):
+        raise ValueError('Integer pair identities required')
+    if [(row['fixture'], row['repetition']) for row in selected] != [(name, i) for i in range(len(grouped['empty'])) for name in ('empty', 'child')]:
+        raise ValueError('Ordered complete pair identities required')
     if [row['fixture'] for row in selected] != ['empty', 'child'] * len(grouped['empty']):
         raise ValueError('Sequential empty/child order required')
     provenance = None
     previous_end = -math.inf
     generations = set()
     for row in selected:
+        if audit_records:
+            if evidence_directory is None:
+                raise ValueError('Immutable generation evidence directory required')
+            from research.cpu_measurement.audit import audit_journal
+            audit_journal(evidence_directory, row.get('generation', ''))
+            immutable = json.loads((Path(evidence_directory) / (row['generation'] + '.json')).read_text())
+            if immutable != json.loads(json.dumps(row, allow_nan=False)):
+                raise ValueError('Pair row does not match immutable generation evidence')
         if row.get('schema') != 'mldsafail.cpu-evidence.v1' or row.get('status') != 'no_answer' or row.get('cleanup_complete') is not True:
             raise ValueError('Complete audited measurement status required')
         identity = tuple(row.get(key) for key in ('suite_id', 'source_sha256', 'image', 'host_identity', 'parent_inode', 'parent_device'))
@@ -86,27 +98,23 @@ def main():
     host_identity = hashlib.sha256(Path("/etc/machine-id").read_bytes()).hexdigest()
     try:
         schedule = [(name, repetition) for repetition in range(30) for name in ('empty', 'child')]
-        schedule += [(name, 0) for name in ('clock_tampering', 'forged_timing', 'early_exit', 'malformed', 'grandchild', 'output_flood', 'hang', 'descendant_hang')]
+        schedule += [(name, 0) for name in ('clock_tampering', 'forged_timing', 'early_exit', 'malformed', 'grandchild', 'output_flood', 'hang', 'descendant_hang', 'closed_stream_hang')]
         for name, repetition in schedule:
-            started = time.monotonic()
             result = run(args.image, args.parent, args.cgroup_parent, fixtures / name,
                          instance.to_dict(), lambda public, candidate: verify_candidate(instance, candidate)['verified'],
-                         timeout=2 if name in {'hang', 'descendant_hang'} else 60,
+                         timeout=2 if name in {'hang', 'descendant_hang', 'closed_stream_hang'} else 60,
                          ownership_directory=args.ownership_directory,
                          evidence_metadata=dict(fixture=name, repetition=repetition, suite_id=suite_id,
                                                 source_sha256=source_sha256, image=args.image, host_identity=host_identity))
-            result.update(fixture=name, repetition=repetition, started_monotonic=started,
-                          finished_monotonic=time.monotonic(), suite_id=suite_id,
-                          source_sha256=source_sha256, image=args.image, host_identity=host_identity)
             publish(args.output / f'{name}-{repetition}.json', result)
             rows.append(result)
             expected = {'empty': 'no_answer', 'clock_tampering': 'no_answer',
                         'forged_timing': 'malformed', 'child': 'no_answer',
                         'early_exit': 'malformed', 'malformed': 'malformed', 'hang': 'timeout',
                         'grandchild': 'no_answer', 'output_flood': 'output_limit',
-                        'descendant_hang': 'timeout'}[name]
+                        'descendant_hang': 'timeout', 'closed_stream_hang': 'timeout'}[name]
             passed &= result['status'] == expected and result['authoritative_cpu_usec'] > 0
-        summary = measurement_gates(rows)
+        summary = measurement_gates(rows, args.ownership_directory)
         summary.update(passed=passed and summary['passed'], experimental=True, native_executed=True)
     except Exception as error:
         summary = {'passed': False, 'experimental': True, 'measurement_collection_failed': True,

@@ -9,7 +9,11 @@ import subprocess
 import time
 import uuid
 import selectors
-from research.cpu_measurement.ownership import Ownership
+import hashlib
+import platform
+import base64
+import shutil
+from research.cpu_measurement.ownership import Ownership, sync_tree, canonical_directory
 
 
 def fields(path):
@@ -35,7 +39,7 @@ def prove_membership(pid, parent, cgroup_root=Path('/sys/fs/cgroup'), proc_root=
         raise RuntimeError('Worker is outside the dedicated accounting parent')
 
 
-def run(image, parent, cgroup_parent, source, public_input, verify, timeout=60, evidence_metadata=None, ownership_directory=None):
+def run(image, parent, cgroup_parent, source, public_input, verify, timeout=60, evidence_metadata=None, ownership_directory=None, epoch="isolated-native-feasibility"):
     from mldsafail.benchmark_v050.execution import solver_snapshot
     from mldsafail.benchmark_v050.models import instance_from_dict
     public_input = json.loads(json.dumps(public_input))
@@ -45,16 +49,38 @@ def run(image, parent, cgroup_parent, source, public_input, verify, timeout=60, 
     # interrupted generation until an operator independently proves cleanup.
     if ownership_directory is None:
         raise ValueError('Private durable ownership directory required')
+    if Path(ownership_directory).absolute() != canonical_directory(parent).absolute():
+        raise ValueError('Ownership directory must be the canonical parent-scoped directory: ' + str(canonical_directory(parent)))
     with Ownership(ownership_directory, parent) as owner:
         with tempfile.TemporaryDirectory() as directory:
             snapshot = Path(directory) / 'solver'
             solver_snapshot(source, snapshot)
-            owner.mutation('invocation_intent', image=image)
+            artifact_name = owner.record['generation'] + '-source'
+            shutil.copytree(snapshot, owner.directory / artifact_name)
+            sync_tree(owner.directory / artifact_name)
+            binding = dict(
+                source_sha256=hashlib.sha256(json.dumps({path.relative_to(snapshot).as_posix():
+                    dict(bytes=path.stat().st_size, sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+                    for path in sorted(snapshot.rglob('*.py'))}, sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
+                image=image, epoch=epoch,
+                supervisor_source_sha256=hashlib.sha256(json.dumps({path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                    for path in sorted(Path(__file__).parent.glob('*.py'))}, sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
+                source_commit=subprocess.check_output(['git', '-C', str(Path(__file__).resolve().parents[2]), 'rev-parse', 'HEAD'], timeout=10).decode().strip(),
+                host=hashlib.sha256(Path('/etc/machine-id').read_bytes()).hexdigest(),
+                kernel=platform.release(), docker={'discovery_pending': True})
+            if evidence_metadata and not set(evidence_metadata) <= {'fixture', 'repetition', 'suite_id', 'source_sha256', 'image', 'host_identity'}:
+                raise ValueError('Untrusted evidence metadata field')
+            owner.mutation('invocation_intent', image=image, source_artifact=artifact_name,
+                           binding=binding, public_input=public_input, metadata=evidence_metadata or {})
             result = _run(image, parent, cgroup_parent, snapshot, public_input, verify, timeout, owner=owner)
-            if evidence_metadata:
-                result.update(evidence_metadata)
+            result.update(evidence_metadata or {})
+            result['source_artifact'] = artifact_name
+            result['binding'] = dict(binding, docker=result.pop('docker_identity'))
             result['cleanup_complete'] = True
-            return owner.finish(result)
+            result = owner.finish(result)
+            from research.cpu_measurement.audit import audit_journal
+            audit_journal(owner.directory)
+            return result
 
 
 def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60, owner=None):
@@ -67,18 +93,26 @@ def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60,
     if sys.platform != 'linux':
         raise RuntimeError('Native Linux host required')
     info = json.loads(subprocess.check_output(['docker', 'info', '--format', '{{json .}}'], timeout=30))
+    if owner is not None:
+        owner.mutation('docker_discovered', docker=info)
     if str(info.get('CgroupVersion')) != '2' or not any('rootless' in option for option in info.get('SecurityOptions', [])):
         raise RuntimeError('Rootless Docker with cgroup v2 required')
     if not image.startswith('sha256:') or len(image) != 71:
         raise ValueError('Immutable worker image required')
+    validate_delegation(parent)
     if fields(parent / 'cgroup.events')['populated']:
         raise RuntimeError('Dedicated parent is not empty')
     before = fields(parent / 'cpu.stat')['usage_usec']
+    membership = []
+    observations = []
+    capture_evidence = {}
     name = 'cpu-proposal-' + uuid.uuid4().hex
     if owner is not None:
-        owner.mutation('container_create_intent', name=name, counter_before_usec=before)
-    argv = ['docker', 'run', '--name', name, '--cgroup-parent', cgroup_parent,
-            '--network', 'none', '--read-only', '--cap-drop', 'ALL',
+        owner.mutation('container_create_intent', name=name, image=image,
+                       cgroup_parent=cgroup_parent, counter_before_usec=before)
+    argv = ['docker', 'run', '--label', 'org.mldsafail.cpu-generation=' + (owner.record['generation'] if owner else 'isolated-unit-probe'),
+            '--name', name, '--cgroup-parent', cgroup_parent,
+            '--cgroupns', 'private', '--network', 'none', '--read-only', '--cap-drop', 'ALL',
             '--security-opt', 'no-new-privileges', '--user', '65534:65534',
             '--cpus', '1', '--memory', '2g', '--memory-swap', '2g', '--pids-limit', '64', '--log-driver', 'none',
             '--tmpfs', '/tmp:rw,noexec,nosuid,nodev,size=64m',
@@ -92,6 +126,9 @@ def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60,
     cleanup_errors = []
     try:
         process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if owner is not None:
+            owner.mutation('host_client_spawned', pid=process.pid,
+                           start_ticks=process_start_ticks(process.pid))
         membership_deadline = time.monotonic() + 10
         while True:
             inspected = subprocess.run(['docker', 'inspect', '--format', '{{json .State}}', name],
@@ -100,21 +137,45 @@ def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60,
                 pid = json.loads(inspected.stdout).get('Pid', 0)
                 if pid:
                     prove_membership(pid, parent)
+                    worker_path = worker_cgroup(pid)
+                    membership.append(dict(worker_pid=pid, cgroup=worker_path.as_posix()))
                     break
             if time.monotonic() >= membership_deadline:
                 raise RuntimeError('Unable to prove worker accounting membership')
             time.sleep(.05)
         if owner is not None:
             owner.mutation('input_delivery_intent', worker_pid=pid)
-        payload = json.dumps({'instance': public_input, 'solver': 'contestant'}).encode()
-        status, raw = capture(process, payload, started + timeout)
+        payload = json.dumps({'instance': public_input, 'solver': 'contestant'}, sort_keys=True, separators=(',', ':')).encode()
+        last_counter = before
+        def observe():
+            nonlocal last_counter
+            if owner is not None:
+                owner.check_identity()
+            prove_exclusive(parent, worker_path)
+            usage = fields(parent / "cpu.stat")["usage_usec"]
+            if usage < last_counter:
+                raise RuntimeError("Accounting counter regressed during execution")
+            last_counter = usage
+            observed = time.monotonic()
+            if not observations or observed - observations[-1]['monotonic'] >= .05:
+                if len(observations) >= 10000:
+                    raise RuntimeError('Accounting observation evidence limit exceeded')
+                observations.append(dict(usage_usec=usage, monotonic=observed))
+        observe()
+        def delivered():
+            if owner is not None:
+                owner.mutation('input_delivered', bytes=len(payload), sha256=hashlib.sha256(payload).hexdigest())
+        status, raw = capture(process, payload, started + timeout, observe=observe, evidence=capture_evidence, on_input=delivered)
     except BaseException as error:
         original = error
     finally:
         # Each cleanup action is independent: a failed Docker removal must not
         # skip process cleanup. Preserve both the original and cleanup failures.
         if owner is not None:
-            owner.mutation('cleanup_intent', name=name)
+            try:
+                owner.mutation('cleanup_intent', name=name)
+            except BaseException as error:
+                cleanup_errors.append(('cleanup_journal', repr(error)))
         try:
             subprocess.run(['docker', 'rm', '-f', name], check=True, capture_output=True, timeout=30)
         except BaseException as error:
@@ -129,8 +190,27 @@ def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60,
             for stream in (process.stdin, process.stdout, process.stderr):
                 if stream is not None:
                     stream.close()
+    if owner is not None and (original is not None or cleanup_errors):
+        try:
+            owner.update('running', failure_diagnostics=dict(
+                schema='mldsafail.cpu-failure.v1', classification='infrastructure_failure',
+                original=repr(original), cleanup_errors=cleanup_errors,
+                membership=membership, observations=observations, capture=capture_evidence,
+                counter_before_usec=before, authoritative_delta_available=False))
+        except BaseException as journal_error:
+            if original is not None:
+                original.add_note('Failure evidence publication failed: ' + repr(journal_error))
+    if isinstance(original, (KeyboardInterrupt, SystemExit)):
+        for operation, detail in cleanup_errors:
+            original.add_note(operation + ': ' + detail)
+        raise original
     if original is not None or cleanup_errors:
         raise RuntimeError(json.dumps(dict(original=repr(original), cleanup_errors=cleanup_errors))) from original
+    if owner is not None:
+        owner.update('running', partial_measurement=dict(
+            schema='mldsafail.cpu-partial.v1', status=status, counter_before_usec=before,
+            membership=membership, observations=observations, capture=capture_evidence,
+            authoritative_delta_available=False, cleanup_proof_pending=True))
     deadline = time.monotonic() + 10
     while fields(parent / 'cgroup.events')['populated']:
         if time.monotonic() >= deadline:
@@ -152,46 +232,114 @@ def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60,
             status = 'verified' if verified else ('no_answer' if candidate is None else 'invalid')
         except (ValueError, TypeError, AttributeError):
             status = 'malformed'
+    finished = time.monotonic()
     return {'status': status, 'verified': verified, 'authoritative_cpu_usec': cpu,
-            'wall_seconds': time.monotonic() - started, 'experimental': True,
+            'wall_seconds': finished - started, 'experimental': True,
             'measurement_method': 'cgroup-v2-usage-usec',
-            'counter_before_usec': before, 'counter_after_usec': before + cpu}
+            'counter_before_usec': before, 'counter_after_usec': before + cpu,
+            'accounting_parent': parent.resolve().as_posix(), 'observations': observations,
+            'membership': membership, 'input_delivery': 'membership_proven_before_delivery',
+            'termination': 'domain_empty', 'output_sha256': hashlib.sha256(raw).hexdigest(),
+            'public_input': public_input, 'raw_stdout_base64': base64.b64encode(raw).decode(),
+            'worker_returncode': process.returncode, 'capture': capture_evidence,
+            'declared_timeout_seconds': timeout, 'started_monotonic': started,
+            'deadline_monotonic': started + timeout, 'finished_monotonic': finished,
+            'docker_identity': dict(cgroup_version=info['CgroupVersion'],
+                                    cgroup_driver=info.get('CgroupDriver', 'unknown'),
+                                    server_version=info.get('ServerVersion', 'unknown'))}
 
 
-def capture(process, payload, deadline, cap=1024 * 1024):
+def process_start_ticks(pid):
+    return int((Path('/proc') / str(pid) / 'stat').read_text().rpartition(')')[2].split()[19])
+
+
+def validate_delegation(parent):
+    identity = parent.stat(follow_symlinks=False)
+    if identity.st_uid != os.getuid() or identity.st_mode & 0o022:
+        raise RuntimeError('Dedicated parent must have exclusive owner write access')
+    if (parent / 'cgroup.type').read_text().strip() != 'domain':
+        raise RuntimeError('Dedicated accounting parent must be a domain')
+    if 'cpu' not in (parent / 'cgroup.controllers').read_text().split():
+        raise RuntimeError('CPU controller delegation is missing')
+
+
+def worker_cgroup(pid, cgroup_root=Path('/sys/fs/cgroup'), proc_root=Path('/proc')):
+    lines = (proc_root / str(pid) / 'cgroup').read_text().splitlines()
+    paths = [line[3:] for line in lines if line.startswith('0::')]
+    if len(paths) != 1:
+        raise RuntimeError('Missing unified cgroup membership')
+    return cgroup_root / paths[0].lstrip('/')
+
+
+def prove_exclusive(parent, authorized):
+    """Reject populated siblings/direct parent members at each observation.
+
+    Continuous ownership and exclusive trusted delegation remain prerequisites;
+    polling alone cannot detect a transient trusted-host intruder.
+    """
+    parent = parent.resolve()
+    authorized = authorized.resolve()
+    if authorized == parent or not authorized.is_relative_to(parent):
+        raise RuntimeError('Invalid authorized descendant domain')
+    for path in [parent / 'cgroup.procs', *parent.rglob('cgroup.procs')]:
+        domain = path.parent.resolve()
+        if not domain.is_relative_to(authorized) and path.read_text().strip():
+            raise RuntimeError('Unauthorized accounting domain member')
+
+
+def capture(process, payload, deadline, cap=1024 * 1024, observe=lambda: None, evidence=None, on_input=lambda: None):
     """Bound each stream in memory; never spool unchecked contestant output."""
     buffers = {process.stdout: bytearray(), process.stderr: bytearray()}
-    with selectors.DefaultSelector() as selector:
-        for stream in buffers:
-            os.set_blocking(stream.fileno(), False)
-            selector.register(stream, selectors.EVENT_READ)
-        os.set_blocking(process.stdin.fileno(), False)
-        selector.register(process.stdin, selectors.EVENT_WRITE)
-        remaining = memoryview(payload)
-        while selector.get_map():
-            if time.monotonic() >= deadline:
-                return 'timeout', bytes(buffers[process.stdout])
-            for key, mask in selector.select(min(.05, max(0, deadline - time.monotonic()))):
-                stream = key.fileobj
-                if mask & selectors.EVENT_WRITE:
-                    try:
-                        count = os.write(stream.fileno(), remaining)
-                        remaining = remaining[count:]
-                    except BrokenPipeError:
-                        remaining = remaining[:0]
-                    if not remaining:
-                        selector.unregister(stream)
-                        stream.close()
-                else:
-                    data = os.read(stream.fileno(), min(65536, cap + 1 - len(buffers[stream])))
-                    if not data:
-                        selector.unregister(stream)
-                    elif len(buffers[stream]) + len(data) > cap:
-                        return 'output_limit', bytes(buffers[process.stdout])
+    def stop(status, overflow=None):
+        if evidence is not None:
+            evidence.update(stopped_monotonic=time.monotonic(), overflow=overflow, cap_bytes=cap,
+                            stderr_base64=base64.b64encode(bytes(buffers[process.stderr])).decode(),
+                            stderr_sha256=hashlib.sha256(bytes(buffers[process.stderr])).hexdigest(),
+                            stdout_base64=base64.b64encode(bytes(buffers[process.stdout])).decode())
+        return status, bytes(buffers[process.stdout])
+    try:
+        with selectors.DefaultSelector() as selector:
+            for stream in buffers:
+                os.set_blocking(stream.fileno(), False)
+                selector.register(stream, selectors.EVENT_READ)
+            os.set_blocking(process.stdin.fileno(), False)
+            selector.register(process.stdin, selectors.EVENT_WRITE)
+            remaining = memoryview(payload)
+            while selector.get_map() or process.poll() is None:
+                observe()
+                if time.monotonic() >= deadline:
+                    return stop('timeout')
+                if not selector.get_map():
+                    time.sleep(min(.05, max(0, deadline - time.monotonic())))
+                for key, mask in selector.select(min(.05, max(0, deadline - time.monotonic()))):
+                    stream = key.fileobj
+                    if mask & selectors.EVENT_WRITE:
+                        broken = False
+                        try:
+                            count = os.write(stream.fileno(), remaining)
+                            remaining = remaining[count:]
+                        except BrokenPipeError:
+                            broken = True
+                            remaining = remaining[:0]
+                        if not remaining:
+                            selector.unregister(stream)
+                            stream.close()
+                            if not broken:
+                                on_input()
                     else:
-                        buffers[stream].extend(data)
-        process.wait(timeout=max(.001, deadline - time.monotonic()))
-        return ('exited' if process.returncode == 0 else 'crash'), bytes(buffers[process.stdout])
+                        data = os.read(stream.fileno(), min(65536, cap + 1 - len(buffers[stream])))
+                        if not data:
+                            selector.unregister(stream)
+                        elif len(buffers[stream]) + len(data) > cap:
+                            return stop('output_limit', dict(stream='stdout' if stream is process.stdout else 'stderr',
+                                                             observed_bytes=len(buffers[stream]) + len(data)))
+                        else:
+                            buffers[stream].extend(data)
+            process.wait()
+            return stop('exited' if process.returncode == 0 else 'crash')
+    except BaseException:
+        stop('infrastructure_failure')
+        raise
 
 
 def main():
