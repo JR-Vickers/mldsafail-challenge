@@ -20,3 +20,14 @@ def test_changed_dependency_inventory_is_rejected(tmp_path):
     wheels=tmp_path/'input';wheels.mkdir();(wheels/'unexpected.whl').write_bytes(b'changed')
     with pytest.raises(ValueError,match='offline wheel inventory'):
         build_context(tmp_path/'context',wheels,{'expected.whl':'b'*64},'sha256:'+'a'*64)
+
+
+def test_callback_rejects_unloaded_image_before_host_operation(monkeypatch,tmp_path):
+    from scripts import native_baseline_acceptance as native, baseline_production_rehearsal
+    from types import SimpleNamespace
+    called=[]
+    monkeypatch.setattr(native,'protocol',lambda *args:{'rehearsal':{'images':{'web':'sha256:'+'a'*64}}})
+    monkeypatch.setattr(baseline_production_rehearsal,'execute',lambda *args:called.append('host'))
+    with pytest.raises(ValueError,match='pinned driver artifacts'):
+        native.baseline_callback(SimpleNamespace(path=tmp_path/'driver.json'),{}, {'loaded_images':[]})
+    assert called==[]
