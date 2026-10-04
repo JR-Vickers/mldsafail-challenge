@@ -1,0 +1,10 @@
+{
+  "schema": "mldsafail.reproduction-native-protocol.v1",
+  "base_image": "RETAINED_IMMUTABLE_PYTHON_BASE_IMAGE_ID",
+  "base_provenance": "/PRIVATE/ACTUAL_NATIVE_BASE_PROVENANCE.json",
+  "frozen_image": "RETAINED_IMMUTABLE_PRIMITIVE_STUDY_IMAGE_ID",
+  "wheel_directory": "/PRIVATE/APPROVED_PINNED_WHEELS",
+  "wheel_sha256": {
+    "EXACT_PINNED_WHEEL_FILENAME.whl": "ACTUAL_SHA256"
+  }
+}
