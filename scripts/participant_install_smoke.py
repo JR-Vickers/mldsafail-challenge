@@ -37,6 +37,12 @@ def smoke(wheel, expected, destination, starter):
     installer = Path(__file__).resolve().with_name('install.sh')
     install = destination / 'installed'
     run('install', ['sh', str(installer), str(wheel), expected, str(install)])
+    run('installed-identity', [str(install / 'bin/python'), '-c',
+        'import importlib.metadata,json,platform; print(json.dumps({"python":platform.python_version(),"platform":platform.platform(),"package":importlib.metadata.version("mldsafail-challenge")}))'])
+    record['installed_identity'] = json.loads((destination / 'installed-identity.log').read_text())
+    if record['installed_identity']['package'] != record['package_version']:
+        raise RuntimeError('This smoke protocol requires participant package 0.5.1')
+    save()
     executable = str(install / 'bin/mldsafail')
     run('help', [executable, '--help'])
     workspace = destination / 'mlwe-workspace'
