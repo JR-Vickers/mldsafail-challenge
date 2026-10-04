@@ -1170,13 +1170,14 @@
         "user-plan"
       ],
       "dependencies": [
-        "recovery-restoration-code"
+        "recovery-restoration-code",
+        "native-daemon-request-fencing"
       ],
       "environment": "disposable native services",
       "criteria": [
         "Verify corrected restoration against disposable native services"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -2241,7 +2242,8 @@
       ],
       "dependencies": [
         "production-templates",
-        "owned-native-client-fencing"
+        "owned-native-client-fencing",
+        "native-daemon-request-fencing"
       ],
       "environment": "disposable native services; no production activation",
       "criteria": [
@@ -2284,7 +2286,8 @@
       ],
       "dependencies": [
         "participant-archive-review",
-        "owned-native-client-fencing"
+        "owned-native-client-fencing",
+        "native-daemon-request-fencing"
       ],
       "environment": "isolated native host sequential",
       "criteria": [
@@ -2352,7 +2355,9 @@
         "research/cpu_measurement/harness.py Popen before host_client_spawned durable mutation",
         "user-plan durable ownership/fencing"
       ],
-      "dependencies": [],
+      "dependencies": [
+        "native-daemon-request-fencing"
+      ],
       "environment": "isolated accounting development; source-bound native fault suite",
       "criteria": [
         "Client mutation is gated until durable identity/domain receipt; independent source reviews and focused tests pass; separate native fault suite must cover before-release owner loss; worker CPU parent and thresholds unchanged"
@@ -2368,6 +2373,30 @@
       "evidence": [],
       "identities": {},
       "next_action": "Implement gated accounting client; repeat independent reviews and native interruption tests before performance collection",
+      "checklist": []
+    },
+    {
+      "id": "native-daemon-request-fencing",
+      "requirement": "Fence daemon-accepted Docker mutations through durable create/start acknowledgements or positive shutdown of an exactly owned isolated daemon epoch before claiming resource cleanup",
+      "sources": [
+        "independent accounting/recovery/operator review",
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering and disposable native rootless daemon; staging daemon excluded from automatic barriers",
+      "criteria": [
+        "Independent review and native mid-create/mid-start owner-loss/transport-loss faults prove daemon quiescence and owned cleanup; preserved failed evidence; healthy measurement protocol and frozen thresholds unchanged"
+      ],
+      "status": "running",
+      "attempts": [
+        {
+          "protocol": "Dedicated rootless daemon with exact socket/data-root/unit/boot/PID/start/cgroup/binary identity, fsynced guardian mutation receipts, split create/start then read-only attach; ambiguous mutation requires verified owned daemon/worker shutdown before restart and reconciliation",
+          "outcome": "Implementation in separate worktrees; no native pass claimed"
+        }
+      ],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Implement and independently review shared daemon barrier, integrate applicable operator paths, exercise native interruption faults before measurements or successful cleanup claims",
       "checklist": []
     }
   ],
