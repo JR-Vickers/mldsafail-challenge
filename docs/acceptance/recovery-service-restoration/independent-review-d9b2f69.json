@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "accounting_source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
+  "review_result": "earlier_blocking_findings_resolved",
+  "review_scope": [
+    "durable parent ownership and process boot fencing",
+    "independently attempted cleanup and retained fault receipts",
+    "bounded streaming/deadline auditing and source evidence binding",
+    "native lifecycle/fault tooling"
+  ],
+  "resolved_findings": [
+    {
+      "id": "host-client-reboot-identity",
+      "evidence": "Ownership journals include boot ID; reconciliation never signals prior-boot client PIDs; same-boot PID/startticks/UID/cmdline hash verified through pidfd; unexplained populated new-boot domains rejected."
+    },
+    {
+      "id": "native-fault-cleanup-independence",
+      "evidence": "Socket connection closure, supervisor termination, generation reconciliation and exact-inode socket removal attempted independently; intruder termination/wait/cgroup removal and ownership release similarly independent; failures published and stop later probes."
+    }
+  ],
+  "focused_tests": {
+    "protocol": "temporary detached exact-commit worktree using local Python3.12.10 environment; no native Docker operations",
+    "result": "21 passed",
+    "review_worktree_removed": true
+  },
+  "remaining_review_blockers": [],
+  "native_accounting_fault_gate_passed": false,
+  "native_30_pair_stability_gate_passed": false,
+  "production_contract_approved": false,
+  "conditions": [
+    "Dedicated supervisor UID/rootless-daemon isolation and delegated accounting parent are native host prerequisites. Trusted host owner/root remain inside the declared trust boundary.",
+    "Review and focused tests do not substitute for source-bound native fault and 30-pair gates."
+  ]
+}
