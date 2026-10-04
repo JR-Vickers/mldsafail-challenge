@@ -1,0 +1,306 @@
+{
+  "schema": "mldsafail.v060-contract-decision.v1",
+  "packet_role": "review_only_not_runtime_authority",
+  "launch_approved": false,
+  "contract_adopted": false,
+  "default_approved": false,
+  "ledger_tasks": [
+    "measurement-decision-packet",
+    "measurement-adoption",
+    "cpu-30-pairs",
+    "v060-epochs",
+    "v060-evidence",
+    "v060-versions",
+    "v060-acceptance"
+  ],
+  "source": {
+    "reviewed_checkpoint": "b0421cdcda842e4dd6c4b43fafd90541a7ae0cd2",
+    "offline_artifact_checkpoint": "b232c544ff4823da13775eaa1e5bbbdf68500936",
+    "supervisor_source_sha256": "748477a7faad41e4adf913f6fd0c7a4602a769b6f1e206ca6bac22d218fa35de",
+    "architecture": "linux/amd64",
+    "architecture_lock_sha256": "35890cf7c5ed544124dc4cc86269009f11d029a5388d1627b6899e986650c1f0",
+    "native_execution_release_commit": null,
+    "worker_image": null,
+    "worker_context_sha256": null,
+    "worker_archive_sha256": null,
+    "fresh_epoch_id": null,
+    "cohort_id": null,
+    "reference_authority_sha256": null
+  },
+  "contract": {
+    "version": "0.6.0",
+    "method": "cgroup-v2-usage-usec",
+    "measured_invocations": 3,
+    "unscored_warmup_invocations": 1,
+    "ordinary_limit_seconds": 60,
+    "complete_evaluation_limit_seconds": 1200,
+    "ordinary_whole_case_penalty_usec": 60000000,
+    "cost_floor_usec": 1,
+    "case_count": 100,
+    "cases_per_cell": 20,
+    "challenge_cells": 5,
+    "reference_success_floor_per_cell": 18,
+    "historical_conversion_permitted": false
+  },
+  "thresholds": {
+    "deterministic_child_cpu_cv_max": 0.05,
+    "empty_cpu_median_usec_max": 250000,
+    "empty_wall_nearest_rank_p95_seconds_max": 5,
+    "minimum_sequential_pairs": 30
+  },
+  "historical_generation_G": {
+    "status": "failed",
+    "eligible_as_prospective_acceptance": false,
+    "native_fault_suite_passed": true,
+    "pairs_executed": 30,
+    "deterministic_child_cv": 0.1164559302,
+    "empty_cpu_median_usec": 395795,
+    "child_cpu_median_usec": 640808.5,
+    "empty_wall_p95_seconds": 2.893689,
+    "reported_whole_cleanup_passed": true,
+    "raw_evidence_retained": true,
+    "sanitized_evidence_refs": [],
+    "source_of_metrics": "Parent operator report; attach retained sanitized receipt before owner review"
+  },
+  "evidence_slots": {
+    "prospective_worker_artifact": {
+      "status": "pending",
+      "accepted": false,
+      "release_commit": null,
+      "worker_image": null,
+      "context_sha256": null,
+      "environment_fingerprint": null,
+      "receipt_sha256": null,
+      "sanitized_evidence_refs": [],
+      "reviewer": null,
+      "attempts": []
+    },
+    "supervisor_review": {
+      "status": "pending",
+      "accepted": false,
+      "release_commit": null,
+      "worker_image": null,
+      "context_sha256": null,
+      "environment_fingerprint": null,
+      "receipt_sha256": null,
+      "sanitized_evidence_refs": [],
+      "reviewer": null,
+      "attempts": []
+    },
+    "independent_auditor_review": {
+      "status": "pending",
+      "accepted": false,
+      "release_commit": null,
+      "worker_image": null,
+      "context_sha256": null,
+      "environment_fingerprint": null,
+      "receipt_sha256": null,
+      "sanitized_evidence_refs": [],
+      "reviewer": null,
+      "attempts": []
+    },
+    "native_fault_suite": {
+      "status": "pending",
+      "accepted": false,
+      "release_commit": null,
+      "worker_image": null,
+      "context_sha256": null,
+      "environment_fingerprint": null,
+      "receipt_sha256": null,
+      "sanitized_evidence_refs": [],
+      "reviewer": null,
+      "attempts": []
+    },
+    "native_30_pairs": {
+      "status": "pending",
+      "accepted": false,
+      "release_commit": null,
+      "worker_image": null,
+      "context_sha256": null,
+      "environment_fingerprint": null,
+      "receipt_sha256": null,
+      "sanitized_evidence_refs": [],
+      "reviewer": null,
+      "attempts": []
+    },
+    "fresh_reference_execution": {
+      "status": "pending",
+      "accepted": false,
+      "release_commit": null,
+      "worker_image": null,
+      "context_sha256": null,
+      "environment_fingerprint": null,
+      "receipt_sha256": null,
+      "sanitized_evidence_refs": [],
+      "reviewer": null,
+      "attempts": []
+    },
+    "independent_reference_audit": {
+      "status": "pending",
+      "accepted": false,
+      "release_commit": null,
+      "worker_image": null,
+      "context_sha256": null,
+      "environment_fingerprint": null,
+      "receipt_sha256": null,
+      "sanitized_evidence_refs": [],
+      "reviewer": null,
+      "attempts": []
+    },
+    "reference_viability": {
+      "status": "pending",
+      "accepted": false,
+      "release_commit": null,
+      "worker_image": null,
+      "context_sha256": null,
+      "environment_fingerprint": null,
+      "receipt_sha256": null,
+      "sanitized_evidence_refs": [],
+      "reviewer": null,
+      "attempts": []
+    },
+    "fresh_epoch_seal": {
+      "status": "pending",
+      "accepted": false,
+      "release_commit": null,
+      "worker_image": null,
+      "context_sha256": null,
+      "environment_fingerprint": null,
+      "receipt_sha256": null,
+      "sanitized_evidence_refs": [],
+      "reviewer": null,
+      "attempts": []
+    },
+    "candidate_api_cli_queue_cohort_acceptance": {
+      "status": "pending",
+      "accepted": false,
+      "release_commit": null,
+      "worker_image": null,
+      "context_sha256": null,
+      "environment_fingerprint": null,
+      "receipt_sha256": null,
+      "sanitized_evidence_refs": [],
+      "reviewer": null,
+      "attempts": []
+    },
+    "complete_deadline_and_cleanup_acceptance": {
+      "status": "pending",
+      "accepted": false,
+      "release_commit": null,
+      "worker_image": null,
+      "context_sha256": null,
+      "environment_fingerprint": null,
+      "receipt_sha256": null,
+      "sanitized_evidence_refs": [],
+      "reviewer": null,
+      "attempts": []
+    },
+    "production_environment_rehearsal": {
+      "status": "pending",
+      "accepted": false,
+      "release_commit": null,
+      "worker_image": null,
+      "context_sha256": null,
+      "environment_fingerprint": null,
+      "receipt_sha256": null,
+      "sanitized_evidence_refs": [],
+      "reviewer": null,
+      "attempts": []
+    },
+    "production_recovery_rollback_monitoring_capacity": {
+      "status": "pending",
+      "accepted": false,
+      "release_commit": null,
+      "worker_image": null,
+      "context_sha256": null,
+      "environment_fingerprint": null,
+      "receipt_sha256": null,
+      "sanitized_evidence_refs": [],
+      "reviewer": null,
+      "attempts": []
+    },
+    "participant_distribution_preparation": {
+      "status": "pending",
+      "accepted": false,
+      "release_commit": null,
+      "worker_image": null,
+      "context_sha256": null,
+      "environment_fingerprint": null,
+      "receipt_sha256": null,
+      "sanitized_evidence_refs": [],
+      "reviewer": null,
+      "attempts": []
+    },
+    "pilot_go_no_go": {
+      "status": "pending",
+      "accepted": false,
+      "release_commit": null,
+      "worker_image": null,
+      "context_sha256": null,
+      "environment_fingerprint": null,
+      "receipt_sha256": null,
+      "sanitized_evidence_refs": [],
+      "reviewer": null,
+      "attempts": []
+    }
+  },
+  "owner_decisions": {
+    "contract": {
+      "status": "blocked_external",
+      "supplier": "repository owner",
+      "choice": null,
+      "choices": [
+        "defer_adoption",
+        "adopt_explicit_v060_after_evidence",
+        "request_contract_revision"
+      ],
+      "requested_action": "Review completed source-bound native evidence and select explicit score-contract scope.",
+      "required_evidence_slots": [
+        "prospective_worker_artifact",
+        "supervisor_review",
+        "independent_auditor_review",
+        "native_fault_suite",
+        "native_30_pairs",
+        "fresh_reference_execution",
+        "independent_reference_audit",
+        "reference_viability",
+        "fresh_epoch_seal",
+        "candidate_api_cli_queue_cohort_acceptance",
+        "complete_deadline_and_cleanup_acceptance"
+      ],
+      "approved_evidence_packet_sha256": null,
+      "owner_identity": null,
+      "decided_at": null
+    },
+    "production_default": {
+      "status": "waiting_dependency",
+      "supplier": "repository owner",
+      "choice": null,
+      "choices": [
+        "keep_existing_defaults",
+        "approve_future_v060_default_after_prerequisites",
+        "defer_default_decision"
+      ],
+      "requested_action": "After contract adoption and applicable launch gates, select the bound future production default separately from activation.",
+      "depends_on": [
+        "contract_owner_decision",
+        "production_environment_rehearsal",
+        "production_recovery_rollback_monitoring_capacity",
+        "participant_distribution_preparation",
+        "pilot_go_no_go"
+      ],
+      "approved_evidence_packet_sha256": null,
+      "owner_identity": null,
+      "decided_at": null
+    }
+  },
+  "activation": {
+    "status": "blocked_external",
+    "supplier": "repository owner",
+    "explicit_activation_approval": null,
+    "production_release_identity": null,
+    "public_exposure_authorized": false,
+    "publication_authorized": false,
+    "recruitment_authorized": false
+  }
+}
