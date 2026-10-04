@@ -37,12 +37,26 @@ def isolated_argv(base,output,previous,port):
     return [value.replace(str(base/'vars.fd'),str(output/'vars.fd')).replace(str(base/'disk.qcow2'),str(output/'disk.qcow2')) for value in fixed]
 
 
+def verified_bootstrap_artifact(path):
+    from deploy import owned_daemon
+    from deploy.recovery import private_file
+    value=owned_daemon.read_private_json(path)
+    if (set(value)!={'schema','image','image_archive','image_archive_sha256','provenance'} or
+        value['schema']!='mldsafail.synthetic-image-cache.v1' or
+        not re.fullmatch(r'sha256:[0-9a-f]{64}',value['image']) or
+        not isinstance(value['provenance'],str) or not value['provenance']):
+        raise ValueError('Exact retained synthetic image identity required')
+    archive=private_file(safe_path(value['image_archive']))
+    if sha(archive)!=value['image_archive_sha256']:raise ValueError('Retained image archive checksum mismatch')
+    return value
+
+
 def require_base_quiescent(base):
     result=subprocess.run(['lsof','-t','--',str(base/'disk.qcow2'),str(base/'vars.fd')],capture_output=True,timeout=15)
     if result.returncode not in (0,1) or result.stdout.strip() or result.stderr.strip():raise RuntimeError('Protected base VM files are open or quiescence unproved')
 
 
-def run(base,output,source,review_packet,cleanup_only=False):
+def run(base,output,source,review_packet,cleanup_only=False,bootstrap_artifact=None):
     base,output,source=map(safe_path,(base,output,source))
     descriptor=os.open(output.parent/('.'+output.name+'.lock'),os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW|os.O_NONBLOCK,0o600)
     try:
@@ -61,11 +75,11 @@ def run(base,output,source,review_packet,cleanup_only=False):
             atomic_json(output/(uuid.uuid4().hex+'-cleanup.json'),{'owned_vm_stopped':not errors,'errors':errors})
             if errors:raise RuntimeError('Owned VM cleanup incomplete')
             return {'owned_vm_stopped':True}
-        return execute(base,output,source,review_packet)
+        return execute(base,output,source,review_packet,bootstrap_artifact)
     finally:os.close(descriptor)
 
 
-def execute(base,output,source,review_packet):
+def execute(base,output,source,review_packet,bootstrap_artifact=None):
     os.umask(0o077)
     output.mkdir(mode=0o700,exist_ok=False)
     def command(argv,timeout=120):return subprocess.check_output(argv,stderr=subprocess.STDOUT,timeout=timeout)
@@ -82,6 +96,7 @@ def execute(base,output,source,review_packet):
     require_base_quiescent(base)
     previous=json.loads((base/'ownership.json').read_text())['qemu_argv']
     isolated_argv(base,output,previous,1)  # Reject inherited mutable host resources before image operations.
+    cache=verified_bootstrap_artifact(bootstrap_artifact) if bootstrap_artifact else None
     originals={'disk':sha(base/'disk.qcow2'),'vars':sha(base/'vars.fd')}
     command(['qemu-img','create','-f','qcow2','-F','qcow2','-b',str(base/'disk.qcow2'),str(output/'disk.qcow2')])
     for name in ('key','key.pub','vars.fd'):
@@ -92,7 +107,7 @@ def execute(base,output,source,review_packet):
     argv=isolated_argv(base,output,previous,port)
     record=dict(schema='mldsafail.isolated-powerloss-vm.v1',source_commit=commit,callback_sha256=callback_sha,
         bundle_sha256=sha(output/'source.bundle'),qemu_argv=argv,port=port,originals=originals,
-        vm_attempts=[],passed=False,owned_vm_stopped=False,synthetic_only=True)
+        bootstrap_cache=cache,vm_attempts=[],passed=False,owned_vm_stopped=False,synthetic_only=True)
     atomic_json(output/'ownership.json',record)
     process=None;log=None;original=None
     ssh=ssh_argv(output,port)
@@ -134,6 +149,10 @@ def execute(base,output,source,review_packet):
             subprocess.run(ssh+['cat > /home/ubuntu/powerloss-source.bundle'],stdin=stream,stdout=subprocess.DEVNULL,check=True,timeout=120)
         guest('git clone -q /home/ubuntu/powerloss-source.bundle /home/ubuntu/powerloss-source && git -C /home/ubuntu/powerloss-source checkout -q '+commit+' && mkdir -m700 /home/ubuntu/powerloss-evidence /home/ubuntu/powerloss-artifacts')
         upload('/home/ubuntu/powerloss-review.json',json.dumps(packet).encode())
+        if cache is not None:
+            with Path(cache['image_archive']).open('rb') as stream:
+                subprocess.run(ssh+['umask 077; cat > /home/ubuntu/powerloss-artifacts/postgres.tar'],stdin=stream,stdout=subprocess.DEVNULL,check=True,timeout=120)
+            upload('/home/ubuntu/powerloss-artifacts/cache.json',json.dumps({'image':cache['image'],'sha256':cache['image_archive_sha256']}).encode())
         # Bootstrap is solely this disposable VM's existing synthetic daemon.
         # Its resources cannot survive exact owned VM termination; no staging inputs.
         bootstrap='''import hashlib,json,os,subprocess
@@ -142,10 +161,19 @@ os.environ['DOCKER_HOST']='unix:///run/user/1000/docker.sock'
 def cmd(a):return subprocess.check_output(a)
 info=json.loads(cmd(['docker','info','--format','{{json .}}']))
 if cmd(['docker','ps','-aq']).strip():raise RuntimeError('Bootstrap daemon must have no containers')
-cmd(['docker','pull','postgres:16-alpine'])
-image=json.loads(cmd(['docker','image','inspect','postgres:16-alpine']))[0]['Id']
 archive=Path('/home/ubuntu/powerloss-artifacts/postgres.tar')
-with archive.open('wb') as stream:subprocess.run(['docker','save',image],stdout=stream,check=True)
+cache=archive.parent/'cache.json'
+if cache.exists():
+ retained=json.loads(cache.read_text())
+ with archive.open('rb') as stream:actual=hashlib.file_digest(stream,'sha256').hexdigest()
+ if actual!=retained['sha256']:raise RuntimeError('Offline image transport checksum mismatch')
+ cmd(['docker','load','-i',str(archive)])
+ image=json.loads(cmd(['docker','image','inspect',retained['image']]))[0]['Id']
+ if image!=retained['image']:raise RuntimeError('Offline image identity mismatch')
+else:
+ cmd(['docker','pull','postgres:16-alpine'])
+ image=json.loads(cmd(['docker','image','inspect','postgres:16-alpine']))[0]['Id']
+ with archive.open('wb') as stream:subprocess.run(['docker','save',image],stdout=stream,check=True)
 archive.chmod(0o600)
 with archive.open('rb') as stream:archive_sha=hashlib.file_digest(stream,'sha256').hexdigest()
 rootless=cmd(['which','dockerd-rootless.sh']).decode().strip()
@@ -228,6 +256,7 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--base',type=Path,required=True);parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--source',type=Path,required=True);parser.add_argument('--review-packet',type=Path)
+    parser.add_argument('--bootstrap-artifact',type=Path)
     parser.add_argument('--cleanup',action='store_true')
     args=parser.parse_args()
-    print(json.dumps(run(args.base,args.output,args.source,args.review_packet,args.cleanup)))
+    print(json.dumps(run(args.base,args.output,args.source,args.review_packet,args.cleanup,args.bootstrap_artifact)))

@@ -1,0 +1,15 @@
+{
+  "schema": "mldsafail.native-recovery-powerloss-attempt.v1",
+  "attempt": "modern-powerloss-20261004-2",
+  "source_commit": "2020559720abe221e364ca8580609f8c5e30c8e6",
+  "passed": false,
+  "hard_power_loss_injected": false,
+  "native_prepare_admission": false,
+  "failure": "Official PostgreSQL download failed on disposable NAT IPv6 route before native recovery admission.",
+  "repair": "Use previously retained official image archive, exact native image ID and SHA; guest revalidates after private transport before loading.",
+  "owned_vm_stopped": true,
+  "cleanup_errors": [],
+  "protected_original_disk_unchanged": true,
+  "protected_original_vars_unchanged": true,
+  "evidence_ref": "private:modern-powerloss-20261004-2/{ownership.json,guest-evidence.tar,failed-command.log,boot-0.log}; private:recovery-modern-powerloss/run-2.log"
+}

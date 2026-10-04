@@ -78,3 +78,15 @@ def test_disposable_guest_config_symlink_cannot_chmod_foreign_target(tmp_path):
     (home/'.config').symlink_to(target,target_is_directory=True)
     with pytest.raises(OSError):gate.secure_guest_configuration(home)
     assert target.stat().st_mode==before
+
+
+def test_retained_bootstrap_archive_checksum_binds_offline_image(tmp_path):
+    from deploy import owned_daemon
+    from deploy.qemu_isolated_recovery_powerloss import verified_bootstrap_artifact
+    image=tmp_path/'image.tar';image.write_bytes(b'retained official synthetic image');image.chmod(0o600)
+    manifest=tmp_path/'manifest.json'
+    value=dict(schema='mldsafail.synthetic-image-cache.v1',image='sha256:'+'a'*64,image_archive=str(image),image_archive_sha256=hashlib.sha256(image.read_bytes()).hexdigest(),provenance='retained native official image receipt')
+    owned_daemon.publish(manifest,value)
+    assert verified_bootstrap_artifact(manifest)==value
+    image.write_bytes(b'corruption')
+    with pytest.raises(ValueError,match='checksum mismatch'):verified_bootstrap_artifact(manifest)
