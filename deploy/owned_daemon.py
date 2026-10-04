@@ -85,7 +85,9 @@ def provision(base, *, unit, protected_roots):
         directory=base/name
         directory.mkdir(mode=0o700)
         roots[name]=_private_directory(directory)
-    receipt=dict(schema='mldsafail.owned-daemon-provision.v1',id=uuid.uuid4().hex,
+    publish(base/'daemon.json',{})
+    config=dict(path=str(base/'daemon.json'),sha256=hashlib.sha256((base/'daemon.json').read_bytes()).hexdigest())
+    receipt=dict(daemon_config=config,schema='mldsafail.owned-daemon-provision.v1',id=uuid.uuid4().hex,
                  unit=unit,base=_private_directory(base),roots=roots,
                  protected_roots=[str(path) for path in protected],boot_id=owned_client.boot_id())
     publish(base/'provision.json',receipt)
@@ -129,6 +131,9 @@ def _provisioning(value, unit, roots):
     if not isinstance(value,dict) or value.get('schema')!='mldsafail.owned-daemon-provision.v1' or value.get('unit')!=unit:
         raise RuntimeError('Fresh dedicated daemon provisioning receipt required')
     base=value['base']
+    config=value.get('daemon_config')
+    if not isinstance(config,dict) or config.get('path')!=str(Path(base['path'])/'daemon.json') or read_private_json(config['path'])!={} or hashlib.sha256(Path(config['path']).read_bytes()).hexdigest()!=config.get('sha256'):
+        raise RuntimeError('Fresh immutable empty dedicated daemon config required')
     if _private_directory(base['path'])!=base:
         raise RuntimeError('Fresh daemon base directory identity changed')
     for name,root in roots.items():
@@ -215,7 +220,7 @@ def register(*, unit, socket, root_dir, exec_root, rootless_state, manifest_path
     daemon_process=_daemon_process(domain['path'],expected_executable_sha256)
     argv=(Path('/proc')/str(daemon_process['pid'])/'cmdline').read_bytes().split(b'\0')
     arguments=[os.fsdecode(value) for value in argv if value]
-    for option,value in [('data-root',root_dir),('exec-root',exec_root),('host','unix://'+str(socket)),('live-restore','false'),('cgroup-parent',worker_cgroup_parent)]:
+    for option,value in [('config-file',provisioning['daemon_config']['path']),('data-root',root_dir),('exec-root',exec_root),('host','unix://'+str(socket)),('live-restore','false'),('cgroup-parent',worker_cgroup_parent)]:
         values=[]
         for index,arg in enumerate(arguments):
             if arg=='--'+option and index+1<len(arguments): values.append(arguments[index+1])
