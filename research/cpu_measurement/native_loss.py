@@ -14,6 +14,7 @@ import socket
 import subprocess
 import sys
 import threading
+import time
 from deploy import owned_client,owned_daemon
 from research.cpu_measurement.ownership import canonical_directory,publish,Ownership
 from research.cpu_measurement.reconcile import reconcile
@@ -56,21 +57,28 @@ def probe(args,output,*,operation,api_version):
             daemon_epoch=manifest['epoch'],executor=owned_client.identity(os.getpid()),state=state_value))
     def transport():
         try:
-            connection,_=listener.accept()
-            with socket_lock:
-                connections.append(connection)
+            preludes=[]
+            deadline=time.monotonic()+60
+            for _ in range(5):
+                remaining=deadline-time.monotonic()
+                if remaining<=0: raise RuntimeError("Diagnostic prelude deadline exceeded")
+                listener.settimeout(remaining)
+                connection,_=listener.accept()
+                with socket_lock:
+                    connections.append(connection)
+                    if closing.is_set(): raise RuntimeError('Native proxy is closing; forwarding prohibited')
+                guard('pending')  # Durable restart fence before connecting/forwarding.
+                upstream=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
+                with socket_lock:
+                    connections.append(upstream)
+                    if closing.is_set(): raise RuntimeError('Native proxy is closing; connecting prohibited')
+                upstream.connect(manifest['socket'])
                 if closing.is_set(): raise RuntimeError('Native proxy is closing; forwarding prohibited')
-            guard('pending')  # Durable restart fence before connecting/forwarding.
-            upstream=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
-            with socket_lock:
-                connections.append(upstream)
-                if closing.is_set(): raise RuntimeError('Native proxy is closing; connecting prohibited')
-            upstream.connect(manifest['socket'])
-            if closing.is_set(): raise RuntimeError('Native proxy is closing; forwarding prohibited')
-            def retained():
-                observed.set()
-                if not release.wait(60): raise RuntimeError('Native owner-loss orchestration timed out')
-            drop_acknowledgement(connection,upstream,receipt_path,operation,retained)
+                def retained():
+                    observed.set()
+                    if not release.wait(60): raise RuntimeError('Native owner-loss orchestration timed out')
+                if drop_acknowledgement(connection,upstream,receipt_path,operation,retained,preludes): break
+            else: raise RuntimeError("Diagnostic reconnect limit exceeded")
         except BaseException as error: transport_errors.append(repr(error))
     thread=threading.Thread(target=transport,daemon=True);thread.start()
     environment=dict(os.environ,PATH=str(directory)+os.pathsep+os.environ.get('PATH',''))
