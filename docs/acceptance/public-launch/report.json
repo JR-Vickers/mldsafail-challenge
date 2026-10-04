@@ -2471,7 +2471,7 @@
       "criteria": [
         "Independent review focused interruption tests and native owned-client fault acceptance pass; original failed/partial evidence retained"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "protocol": "Pre-exec release gate with durable PID/start/UID/boot/cmdline identities; independent cleanup and bounded failure logs",
@@ -2485,13 +2485,23 @@
         {
           "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
           "protocol": "Actual non-root Linux UID1000 delegated service, owner termination before release and after descendant birth, inode mismatch refusal, prior-boot no-signal and repeated exact cleanup. Newly owned child permissions restricted before process admission.",
-          "result": "native verification planned",
+          "result": "passed; independent terminal resource verification complete",
           "evidence_reference": "protected native operator acceptance attempt 20261004, generation 2"
         }
       ],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute corrected exact retained source and independently prove terminal service, absent old parent and client domains.",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/native-client-fencing-report.json#/passed",
+          "criteria_met": [
+            "Independent review focused interruption tests and native owned-client fault acceptance pass; original failed/partial evidence retained"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
+        "helper_sha256": "7a95b247a63ae25b6cba9cb798aa0f7104584306a86a4ad94838ff130a4d8d50"
+      },
+      "next_action": "None; separately prove daemon RPC fencing before container-mutating acceptance",
       "checklist": []
     },
     {

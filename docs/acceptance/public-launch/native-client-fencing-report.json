@@ -1,0 +1,25 @@
+{
+  "passed": true,
+  "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
+  "helper_sha256": "7a95b247a63ae25b6cba9cb798aa0f7104584306a86a4ad94838ff130a4d8d50",
+  "native_environment": {
+    "platform": "Linux",
+    "operator_uid": 1000,
+    "cgroup_version": 2
+  },
+  "cases": [
+    "owner termination before release",
+    "owner termination after descendant birth"
+  ],
+  "mismatch_refused": true,
+  "prior_boot_no_signal": true,
+  "repeated_cleanup": true,
+  "cleanup_complete": true,
+  "controller_absent": true,
+  "parent_absent": true,
+  "terminal_unit_result": "success",
+  "private_report_sha256": "126f42de8a25ec118e7032ee0f2a9856c3f4cfc69cf39b6394a6f1f8f90c03c1",
+  "private_evidence_reference": "protected native operator acceptance attempt 20261004, generation 2",
+  "failed_attempt_preserved": "docs/acceptance/public-launch/native-client-permission-failure.json",
+  "scope": "Client process ownership only; daemon RPC acceptance remains separate and incomplete."
+}
