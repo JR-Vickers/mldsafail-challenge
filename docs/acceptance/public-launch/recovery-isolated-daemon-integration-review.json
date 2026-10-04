@@ -1,0 +1,48 @@
+{
+  "schema": "mldsafail.recovery-integration-review.v1",
+  "source_commit": "6819132b6e2b2d3b91f3c9764ab33dbecc69c59e",
+  "source_files_sha256": {
+    "deploy/recovery_daemon.py": "cc8dc3419e2a7415d4cdb5d22e1cbdbcb41825610b7759829bc3a52e93fcbf74",
+    "deploy/recovery_journal.py": "bb49f263e955f2dc2fa1eba825cd818ea1a43643690b4de9b2ed87c399df6df9",
+    "deploy/daily_recovery.py": "88e991c09c8a23dfa32eec39e8a1e876788c8de517b4063119e354d8047d5eb2",
+    "deploy/restore_recovery.py": "030cd0c2fef74a8e6e459c6aa4d132a7dcf17c2173ed8837330144611d022748",
+    "deploy/native_recovery_acceptance.py": "5cb511aecb09d52d8c6806fa8672335d239de746878bba0d41b7a65f1807cc6d",
+    "scripts/native_postgres_acceptance.py": "52ba7b469fa201863be3ae68ca2a8a5babb5855ca80770f4af585ac8e38f0093"
+  },
+  "status": "passed_isolated_source_and_local_verification_native_pending",
+  "independent_review": {
+    "reviewer": "preparation agent",
+    "focused_tests_passed": 33,
+    "outcome": "source_clear"
+  },
+  "verification": {
+    "focused_exact_interpreter": true,
+    "make_check": {
+      "passed": 464,
+      "skipped": 8,
+      "historical_small_benchmark": "passed"
+    },
+    "interpreter_scope": "recovery engineering worktree .venv; package import asserted to worktree src"
+  },
+  "completed_prerequisites": [
+    "Private shared per-daemon full-operation flock across distinct journals, nested PID-bound reuse",
+    "Retained malformed creator authority forbids daemon restart across retries",
+    "Independent known-safe cleanup preserves corrupt fields and partial failures",
+    "Original shared-service restoration endpoint retained; disposable service restoration uses exact dedicated context",
+    "Native fixture requires dedicated daemon and provision-bound operator parent",
+    "Durable fault-owner fork birth gate and pidfd exit proof precede daemon reconciliation",
+    "Explicit rival LOCK_NB rejection marker",
+    "Independent retryable cleanup and container/volume/network inventory"
+  ],
+  "remaining_native_gates": [
+    "Fresh dedicated daemon provisioning and inflight request/epoch barrier acceptance",
+    "Four native disposable service restoration fault cases on exact retained source/image",
+    "Disposable native PostgreSQL admission/ownership gates",
+    "Production-like restore audit with actual sealed synthetic database/epoch evidence"
+  ],
+  "limits": [
+    "Historical QEMU power/transport and synthetic HTTPS S3 receipts retained unchanged; they do not prove this later integration",
+    "Actual approved off-host repository and independent recovery-password custody remain external",
+    "No timer activation, staging daemon restart, public exposure, publication, or production approval claimed"
+  ]
+}
