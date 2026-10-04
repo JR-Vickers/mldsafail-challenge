@@ -10,6 +10,7 @@ import uuid
 
 from deploy.recovery_journal import atomic_json, safe_path
 from deploy import owned_client
+from scripts import operator_daemon_lifecycle
 
 LABEL = 'org.mldsafail.public-reproduction'
 
@@ -26,6 +27,7 @@ class ReproductionRun:
             raise ValueError('Immutable image IDs required')
         self.cleanup_only = cleanup_only
         self.descriptor = None
+        self.daemon_descriptor = None
 
     def __enter__(self):
         self.root.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -57,9 +59,16 @@ class ReproductionRun:
                                 'docker_host': os.environ.get('DOCKER_HOST'),
                                 'orchestrator_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
                 self.save()
-            expected_socket = 'unix:///run/user/' + str(os.getuid()) + '/docker.sock'
+            manifest = (self.journal.get('dedicated_daemon') if self.cleanup_only else
+                        operator_daemon_lifecycle.bind(self.journal, self.save))
+            if not isinstance(manifest, dict):
+                raise ValueError('Durable dedicated daemon binding required')
+            self.daemon_descriptor = operator_daemon_lifecycle.lock_daemon(manifest)
+            if not self.cleanup_only:
+                operator_daemon_lifecycle.owned_daemon.verify_environment(manifest)
+            expected_socket = 'unix://' + manifest['socket']
             if os.environ.get('DOCKER_HOST') != expected_socket:
-                raise ValueError('Explicit current-user rootless Docker socket required')
+                raise ValueError('Explicit isolated dedicated Docker socket required')
             if self.cleanup_only and self.journal.get('docker_host') != expected_socket:
                 raise ValueError('Durable Docker socket binding mismatch')
             self.journal['docker_host'] = expected_socket
@@ -73,6 +82,9 @@ class ReproductionRun:
                         raise ValueError('Exact retained Linux amd64 images required')
             return self
         except BaseException:
+            if self.daemon_descriptor is not None:
+                os.close(self.daemon_descriptor)
+                self.daemon_descriptor = None
             os.close(self.descriptor)
             self.descriptor = None
             raise
@@ -110,6 +122,7 @@ class ReproductionRun:
         original_error = None
         try:
             self.command(['docker', 'create', '--name', name, '--label', LABEL + '=' + self.journal['run_id'],
+                            '--cgroup-parent=' + self.journal['dedicated_daemon']['worker_cgroup_parent'],
                             '--network=none', '--read-only', '--cpus=1', '--memory=2g',
                             '--entrypoint=' + ('cat' if arguments == ['/artifacts.json'] else 'python'), '-i',
                             image, *arguments], check=True, capture_output=True, timeout=10)
@@ -172,13 +185,7 @@ class ReproductionRun:
                 clients.extend(receipt)
             except Exception as error:
                 errors.append('ClientReceipt:' + type(error).__name__)
-        for entry in clients:
-            try:
-                owned_client.stop(entry)
-            except Exception as error:
-                errors.append(type(error).__name__)
-        if any(not item.get('acknowledged') for item in self.journal.get('daemon_mutations', [])):
-            errors.append('DaemonMutationUncertainty:positive_daemon_barrier_required')
+        errors.extend(operator_daemon_lifecycle.settle(self.journal, clients, self.root, self.save))
         # Independent gated cleanup does not publish through the damaged run journal.
         self.cleanup_clients = []
         receipt_path = self.root / ('cleanup-clients-' + uuid.uuid4().hex + '.json')
@@ -225,4 +232,6 @@ class ReproductionRun:
                     raise RuntimeError('Reproduction cleanup incomplete')
                 error.add_note('Reproduction cleanup remains incomplete')
         finally:
+            if self.daemon_descriptor is not None:
+                os.close(self.daemon_descriptor)
             os.close(self.descriptor)

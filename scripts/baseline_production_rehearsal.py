@@ -21,6 +21,7 @@ import uuid
 
 from deploy.recovery_journal import atomic_json, safe_path
 from deploy import owned_client
+from scripts import operator_daemon_lifecycle
 
 LABEL = 'org.mldsafail.disposable-rehearsal'
 ROLE = 'org.mldsafail.disposable-role'
@@ -91,8 +92,8 @@ def validate(config):
     solver = Path(config['fixture_solver_path'])
     if solver.is_absolute() or '..' in solver.parts:
         raise ValueError('Repository-relative fixture solver path required')
-    if not re.fullmatch(r'/run/user/[1-9][0-9]*/docker.sock', config['docker_socket']):
-        raise ValueError('Explicit rootless Docker socket required')
+    if not Path(config['docker_socket']).is_absolute():
+        raise ValueError('Explicit dedicated Docker socket required')
     return root, source
 
 
@@ -134,6 +135,7 @@ def cleanup(root, env, journal=None, errors_out=None):
             atomic_json(root / 'journal.json', journal)
         except Exception as error:
             errors.append({'kind': 'journal', 'step': phase, 'error_type': type(error).__name__})
+    all_clients = []
     for client_path in [root / 'clients.json', *root.glob('cleanup-clients-*.json')]:
         try:
             clients = json.loads(safe_path(client_path).read_text()) if client_path.exists() else []
@@ -142,18 +144,16 @@ def cleanup(root, env, journal=None, errors_out=None):
         except Exception as error:
             errors.append({'kind': 'owned_client', 'step': 'receipt_load', 'error_type': type(error).__name__})
             continue
-        for entry in clients:
-            try:
-                owned_client.stop(entry)
-            except Exception as error:
-                errors.append({'kind': 'owned_client', 'error_type': type(error).__name__})
+        all_clients.extend(clients)
+    errors.extend(operator_daemon_lifecycle.settle(journal, all_clients, root,
+                  lambda: atomic_json(root / 'journal.json', journal)))
     # A damaged earlier client receipt cannot block independent gated cleanup.
     env = {**env, 'MLDSAFAIL_OWNED_CLIENT_RECEIPT': 'cleanup-clients-' + uuid.uuid4().hex + '.json'}
     mutations_path = root / 'daemon-mutations.json'
     try:
         mutations = json.loads(mutations_path.read_text()) if mutations_path.exists() else []
-        if not isinstance(mutations, list) or any(not item.get('acknowledged') for item in mutations):
-            errors.append({'kind': 'daemon_mutation_uncertainty', 'step': 'positive_daemon_barrier_required'})
+        if not isinstance(mutations, list):
+            errors.append({'kind': 'daemon_mutation_uncertainty', 'step': 'invalid_mutation_receipt'})
     except Exception as error:
         errors.append({'kind': 'daemon_mutation_uncertainty', 'error_type': type(error).__name__})
     retained_failure_volumes = []
@@ -223,7 +223,7 @@ def cleanup_authority(config):
         raise ValueError('Private owned cleanup journal required')
     journal = json.loads(path.read_text())
     socket = journal.get('docker_socket', '')
-    if (not re.fullmatch(r'/run/user/' + str(os.getuid()) + r'/docker.sock', socket)
+    if (not Path(socket).is_absolute() or socket != journal.get('dedicated_daemon', {}).get('socket')
             or config['docker_socket'] != socket or journal.get('owner_uid') != os.getuid()
             or not re.fullmatch(r'[a-f0-9]{32}', journal.get('run_id', ''))):
         raise ValueError('Durable cleanup ownership/socket binding mismatch')
@@ -235,10 +235,16 @@ def execute(config, cleanup_only=False):
     root.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     lock_path = root.with_name('.' + root.name + '-run.lock')
     descriptor = os.open(lock_path, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    daemon_descriptor = None
     try:
         fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        manifest = (json.loads((root / 'journal.json').read_text())['dedicated_daemon'] if cleanup_only
+                    else operator_daemon_lifecycle.owned_daemon.load_manifest())
+        daemon_descriptor = operator_daemon_lifecycle.lock_daemon(manifest)
         return _execute_locked(config, cleanup_only)
     finally:
+        if daemon_descriptor is not None:
+            os.close(daemon_descriptor)
         os.close(descriptor)
 
 
@@ -268,6 +274,9 @@ def _execute_locked(config, cleanup_only=False):
                    docker_socket=config['docker_socket'], owner_uid=os.getuid(),
                    source_commit=json.loads(Path(config['source_manifest']).read_text())['source_commit'])
     atomic_json(root / 'journal.json', journal)
+    daemon = operator_daemon_lifecycle.bind(journal, lambda: atomic_json(root / 'journal.json', journal))
+    if daemon['socket'] != config['docker_socket']:
+        raise ValueError('Configuration socket differs from dedicated daemon authority')
     report = dict(scope='disposable frozen-0.5.0 baseline only', benchmark_version='0.5.0',
                   production_activation=False, public_exposure=False, complete=False, stages=[])
     def stage(name, values=None):
@@ -311,11 +320,12 @@ def _execute_locked(config, cleanup_only=False):
         wrapper.write_text('#!/app/.venv/bin/python\nimport os,sys\n'
             'arguments=sys.argv[1:]\n'
             'if arguments and arguments[0]=="run": arguments[1:1]=["--label",' +
-            repr(LABEL + '=' + run_id) + ',"--label",' + repr(ROLE + '=worker') + ']\n'
+            repr(LABEL + '=' + run_id) + ',"--label",' + repr(ROLE + '=worker') + ',"--cgroup-parent",' + repr(daemon['worker_cgroup_parent']) + ']\n'
             'os.execv("/usr/local/bin/docker",["docker",*arguments])\n')
         wrapper.chmod(0o700)
         inside_path = '/rehearsal-tools:/app/.venv/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin'
         owned_python = ['docker', 'run', '--rm', '--label', LABEL + '=' + run_id, '--label', ROLE + '=controller',
+                        '--cgroup-parent', daemon['worker_cgroup_parent'],
                         '--user', '0:0', '--network', 'none', '--read-only', '--cap-drop', 'ALL',
                         '--security-opt', 'no-new-privileges', '--tmpfs', '/tmp:size=128m',
                         '--mount', 'type=bind,src=' + str(evaluator) + ',dst=' + str(evaluator),
@@ -358,6 +368,7 @@ def _execute_locked(config, cleanup_only=False):
         for role, service in generated['services'].items():
             service['labels'] = {**service.get('labels', {}), LABEL: run_id, ROLE: role}
             service['restart'] = 'no'
+            service['cgroup_parent'] = daemon['worker_cgroup_parent']
         generated['services']['coordinator']['environment'].update(PATH=inside_path, DOCKER_HOST='unix:///var/run/docker.sock')
         generated['services']['coordinator']['volumes'].append({'type': 'bind', 'source': str(tools), 'target': '/rehearsal-tools', 'read_only': True})
         generated['services']['web']['ports'] = [{'target': 8000, 'published': '0', 'host_ip': '127.0.0.1', 'protocol': 'tcp'}]

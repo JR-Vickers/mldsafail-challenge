@@ -1,0 +1,11 @@
+# Dedicated daemon prerequisite for disposable rehearsals
+
+The baseline production rehearsal and public-worker reproduction require an explicitly provisioned isolated rootless daemon. The staging Docker service and default socket are ineligible. The operator sets `MLDSAFAIL_OPERATOR_DAEMON_MANIFEST`, `DOCKER_HOST=unix://<registered-private-socket>`, and `MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT` to the exact registered operator domain. The baseline configuration's `docker_socket` must match that manifest.
+
+Use `deploy.owned_daemon.provision` with explicit protected deployment/evaluator roots, create the empty nonce-derived worker slice, and call `bind_worker` before starting the dedicated daemon. Supply protected staging/benchmark cgroup paths as well as the separate operator domain. Register the exact daemon executable/build, private roots, socket, unit and worker parent. These steps require native operator acceptance; this document does not authorize changing staging or activating production.
+
+Every container created by these consumers uses the registered worker slice explicitly, including baseline application services, epoch controllers and nested frozen workers. The daemon's verified default parent provides the same confinement. A daemon-wide private flock serializes runs and cleanup even when they use different evidence directories.
+
+Cleanup first shuts down the exact old daemon epoch and proves its entire registered worker parent empty, then independently stops every durable creator-client domain. Only a positive barrier permits restart, manifest refresh and final labeled-resource inventory. The positive barrier and restart attempt are published before restart, so a lost response or manifest-publication interruption can resume the same durable restart epoch. Empty Docker inventory alone cannot clear uncertainty.
+
+Keep the bound operator parent available throughout provisioning, execution and cleanup. A different transient systemd wrapper has a different kernel identity and cannot silently reuse the manifest. Preserve all journals, partial streams, barrier receipts and failed database volumes until their independent cleanup is verified. Actual native interruption and daemon-inflight acceptance remain separate pending gates; local tests do not satisfy them.

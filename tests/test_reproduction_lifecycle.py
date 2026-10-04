@@ -8,6 +8,13 @@ import pytest
 from scripts.reproduction_lifecycle import LABEL, ReproductionRun
 
 
+@pytest.fixture(autouse=True)
+def isolated_daemon_backend(monkeypatch):
+    monkeypatch.setenv('MLDSAFAIL_OPERATOR_DAEMON_MANIFEST', '/synthetic/manifest.json')
+    monkeypatch.setattr('scripts.operator_daemon_lifecycle.owned_daemon.shutdown_barrier', lambda *a, **kw: {'shutdown_proven': True})
+    monkeypatch.setattr('scripts.operator_daemon_lifecycle.owned_daemon.restart_and_refresh', lambda manifest, *a, **kw: manifest)
+
+
 def test_reproduction_requires_immutable_image_and_private_cleanup_authority(tmp_path):
     with pytest.raises(ValueError, match='Immutable'):
         ReproductionRun(tmp_path / 'fresh', ['mutable:tag'])
@@ -22,11 +29,12 @@ def test_reproduction_requires_immutable_image_and_private_cleanup_authority(tmp
 
 def test_reproduction_persists_intent_timeout_and_partial_output(tmp_path, monkeypatch):
     run = ReproductionRun(tmp_path, ['sha256:' + 'a' * 64])
-    run.journal = {'run_id': 'a' * 32, 'attempts': []}
+    run.journal = {'dedicated_daemon': {'worker_cgroup_parent': 'owned.slice'}, 'run_id': 'a' * 32, 'attempts': []}
     def command(_self, argv, **kwargs):
         if argv[:2] == ['docker', 'create']:
             assert json.loads((tmp_path / 'journal.json').read_text())['attempts'][0]['phase'] == 'create_intent'
             assert '--label' in argv
+            assert '--cgroup-parent=owned.slice' in argv
             return SimpleNamespace(returncode=0)
         if argv[:2] == ['docker', 'start']:
             kwargs['stdout'].write(b'partial-output')
@@ -44,7 +52,7 @@ def test_reproduction_persists_intent_timeout_and_partial_output(tmp_path, monke
 
 def test_reproduction_cleanup_rejects_other_owner_and_proves_remaining_inventory(tmp_path, monkeypatch):
     run = ReproductionRun(tmp_path, [])
-    run.journal = {'run_id': 'a' * 32, 'attempts': []}
+    run.journal = {'dedicated_daemon': {'worker_cgroup_parent': 'owned.slice'}, 'run_id': 'a' * 32, 'attempts': []}
     def command(_self, argv, **_kwargs):
         data = b'container-id\n' if argv[:3] == ['docker', 'ps', '-aq'] else json.dumps([{'Config': {'Labels': {LABEL: 'other'}}}]).encode()
         return SimpleNamespace(returncode=0, stdout=data)
@@ -56,19 +64,19 @@ def test_reproduction_cleanup_rejects_other_owner_and_proves_remaining_inventory
 
 def test_cleanup_retains_client_failure_even_when_container_inventory_empty(tmp_path, monkeypatch):
     run = ReproductionRun(tmp_path, [])
-    run.journal = {'run_id': 'a' * 32, 'attempts': [], 'clients': [{'pid': 123}]}
+    run.journal = {'dedicated_daemon': {'worker_cgroup_parent': 'owned.slice'}, 'run_id': 'a' * 32, 'attempts': [], 'clients': [{'pid': 123}]}
     def refuse(_):
         raise RuntimeError('identity mismatch')
     monkeypatch.setattr('scripts.reproduction_lifecycle.owned_client.stop', refuse)
     monkeypatch.setattr('scripts.reproduction_lifecycle.ReproductionRun.command', lambda *_args, **_kwargs: SimpleNamespace(stdout=b''))
     assert run.cleanup() is False
-    assert run.journal['cleanup_errors'] == ['RuntimeError']
+    assert any(item.get('step') == 'creator_stop' for item in run.journal['cleanup_errors'])
     assert run.journal['remaining_owned_containers'] == []
 
 
 def test_reproduction_cleanup_publication_failure_does_not_skip_removal_or_final_inventory(tmp_path, monkeypatch):
     run = ReproductionRun(tmp_path, [])
-    run.journal = {'run_id': 'a' * 32, 'clients': [], 'attempts': []}
+    run.journal = {'dedicated_daemon': {'worker_cgroup_parent': 'owned.slice'}, 'run_id': 'a' * 32, 'clients': [], 'attempts': []}
     calls = []
     def command(_self, argv, **_kwargs):
         calls.append(argv)
@@ -83,21 +91,22 @@ def test_reproduction_cleanup_publication_failure_does_not_skip_removal_or_final
     assert ['docker', 'rm', '-f', 'owned-container'] in calls
     assert calls[-1][:3] == ['docker', 'ps', '-aq']
     assert run.journal['remaining_owned_containers'] == []
-    assert len(run.journal['cleanup_errors']) == 2
+    assert len(run.journal['cleanup_errors']) >= 2
 
 
 def test_reproduction_empty_inventory_does_not_clear_unknown_daemon_mutation(tmp_path, monkeypatch):
     run = ReproductionRun(tmp_path, [])
-    run.journal = {'run_id': 'a' * 32, 'clients': [], 'daemon_mutations': [{'acknowledged': False}]}
+    run.journal = {'dedicated_daemon': {'worker_cgroup_parent': 'owned.slice'}, 'run_id': 'a' * 32, 'clients': [], 'daemon_mutations': [{'acknowledged': False}]}
     monkeypatch.setattr('scripts.reproduction_lifecycle.ReproductionRun.command', lambda *_args, **_kwargs: SimpleNamespace(stdout=b''))
+    monkeypatch.setattr('scripts.operator_daemon_lifecycle.owned_daemon.shutdown_barrier', lambda *a, **kw: {'shutdown_proven': False})
     assert run.cleanup() is False
     assert run.journal['remaining_owned_containers'] == []
-    assert 'DaemonMutationUncertainty' in run.journal['cleanup_errors'][0]
+    assert any(item.get('step') == 'daemon_barrier' for item in run.journal['cleanup_errors'])
 
 
 def test_original_invocation_failure_survives_publication_and_removal_failure(tmp_path, monkeypatch):
     run = ReproductionRun(tmp_path, ['sha256:' + 'a' * 64])
-    run.journal = {'run_id': 'a' * 32, 'attempts': []}
+    run.journal = {'dedicated_daemon': {'worker_cgroup_parent': 'owned.slice'}, 'run_id': 'a' * 32, 'attempts': []}
     saves = 0
     def save():
         nonlocal saves

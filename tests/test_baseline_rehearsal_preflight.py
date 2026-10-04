@@ -80,7 +80,7 @@ def test_rehearsal_lock_fences_concurrent_cleanup(tmp_path, monkeypatch):
         fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
         root.mkdir(mode=0o700)
         journal = root / 'journal.json'
-        journal.write_text(json.dumps({'run_id': 'a' * 32, 'owner_uid': os.getuid(), 'docker_socket': '/run/user/' + str(os.getuid()) + '/docker.sock'}))
+        journal.write_text(json.dumps({'run_id': 'a' * 32, 'owner_uid': os.getuid(), 'docker_socket': '/run/user/' + str(os.getuid()) + '/docker.sock', 'dedicated_daemon': {'socket': '/run/user/' + str(os.getuid()) + '/docker.sock'}}))
         journal.chmod(0o600)
         value['docker_socket'] = '/run/user/' + str(os.getuid()) + '/docker.sock'
         monkeypatch.setattr('scripts.baseline_production_rehearsal._execute_locked',
@@ -132,9 +132,9 @@ def test_cleanup_does_not_require_source_or_release_manifests(tmp_path):
     root.mkdir(mode=0o700)
     socket = '/run/user/' + str(os.getuid()) + '/docker.sock'
     journal = root / 'journal.json'
-    journal.write_text(json.dumps({'run_id': 'a' * 32, 'owner_uid': os.getuid(), 'docker_socket': socket}))
+    journal.write_text(json.dumps({'run_id': 'a' * 32, 'owner_uid': os.getuid(), 'docker_socket': socket, 'dedicated_daemon': {'socket': socket}}))
     journal.chmod(0o600)
-    assert cleanup_authority({'run_directory': str(root), 'docker_socket': socket}) == root
+    assert cleanup_authority({'run_directory': str(root), 'docker_socket': socket, 'dedicated_daemon': {'socket': socket}}) == root
     with pytest.raises(ValueError, match='binding'):
         cleanup_authority({'run_directory': str(root), 'docker_socket': '/run/user/999999/docker.sock'})
 
@@ -165,6 +165,7 @@ def test_failed_preservation_publication_still_calls_cleanup_and_preserves_origi
     value = config(tmp_path)
     root = Path(value['run_directory'])
     calls = []
+    monkeypatch.setattr('scripts.baseline_production_rehearsal.operator_daemon_lifecycle.bind', lambda *_args: {'socket': value['docker_socket'], 'worker_cgroup_parent': 'isolated.slice'})
     def command(*_args, **_kwargs):
         raise ValueError('original preflight failure')
     monkeypatch.setattr('scripts.baseline_production_rehearsal.command', command)
@@ -195,4 +196,4 @@ def test_empty_inventory_cannot_clear_unacknowledged_daemon_mutation(tmp_path, m
     assert cleanup(tmp_path, {}) is False
     receipt = json.loads((tmp_path / 'journal.json').read_text())
     assert receipt['final_inventory'] == {'container': [], 'volume': [], 'network': []}
-    assert receipt['cleanup_errors'][0]['kind'] == 'daemon_mutation_uncertainty'
+    assert receipt['cleanup_errors'][0]['step'] == 'daemon_barrier'
