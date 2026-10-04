@@ -125,10 +125,20 @@ def callback(journal, config, data):
             source_sha256=config['acceptance_source_sha256'])
     except BaseException as error: original=error;result['error']=repr(error);raise
     finally:
-        try: owned_daemon.publish(root/'acceptance.json',result)
-        except BaseException as publication:
-            if original is None: raise
-            original.add_note('Acceptance evidence publication failed: '+repr(publication))
+        finalize_native_acceptance(root,result,original)
+
+
+def finalize_native_acceptance(root,result,original):
+    try:
+        owned_daemon.publish(root/'acceptance.json',result)
+    except BaseException as publication:
+        result.update(passed=False,evidence_publication_failed=True,publication_error=repr(publication))
+        try:
+            owned_daemon.publish(root/'acceptance.json',result)
+        except BaseException as retry:
+            (original if original is not None else publication).add_note('Negative acceptance publication failed: '+repr(retry))
+        if original is None:raise
+        original.add_note('Acceptance evidence publication failed: '+repr(publication))
 
 
 def cleanup_application_resources(engine,server,thread):

@@ -132,3 +132,29 @@ def test_native_prerequisite_never_authorizes_another_worker_artifact(tmp_path,f
     with pytest.raises(RuntimeError):native_acceptance.require_prerequisites(path,**expected)
     missing=dict(receipt);missing.pop(field);owned_daemon.publish(path,missing)
     with pytest.raises(RuntimeError):native_acceptance.require_prerequisites(path,**expected)
+
+
+def test_native_acceptance_publish_then_raise_replaces_positive(tmp_path,monkeypatch):
+    import json
+    from deploy import owned_daemon
+    from research.mlwe_v060_preparation import native_acceptance
+    publish=owned_daemon.publish;calls=[];original=OSError('fsync after rename')
+    def fail_after_publish(path,data):
+        publish(path,data);calls.append(data['passed'])
+        if len(calls)==1:raise original
+    monkeypatch.setattr(owned_daemon,'publish',fail_after_publish)
+    with pytest.raises(OSError) as failure:
+        native_acceptance.finalize_native_acceptance(tmp_path,{'passed':True},None)
+    assert failure.value is original and calls==[True,False]
+    assert json.loads((tmp_path/'acceptance.json').read_text())['passed'] is False
+
+
+def test_native_acceptance_failed_retry_keeps_original_execution_error(tmp_path,monkeypatch):
+    from deploy import owned_daemon
+    from research.mlwe_v060_preparation import native_acceptance
+    original=RuntimeError('execution');result={'passed':False};calls=[]
+    def publish(path,data):calls.append(data['passed']);raise OSError('publication')
+    monkeypatch.setattr(owned_daemon,'publish',publish)
+    native_acceptance.finalize_native_acceptance(tmp_path,result,original)
+    assert calls==[False,False] and result['evidence_publication_failed'] is True
+    assert len(original.__notes__)==2
