@@ -71,7 +71,13 @@ def verify(config, destination, operation=None):
             # Only exact container created here; failed cleanup prevents verification.
             command(['docker', 'rm', '-f', identifier])
     state = Path(config['backup_state'])
-    record = {'repository': config['repository'], 'snapshot': config['restore_snapshot'],
+    from deploy.recovery import STATE_SCHEMA, private_file
+    uploaded = json.loads(private_file(config['backup_state']).read_text())
+    uploaded_at = uploaded.get('uploaded_at') if (uploaded.get('schema') == STATE_SCHEMA and
+        uploaded.get('repository') == config['repository'] and uploaded.get('snapshot') == config['restore_snapshot']) else None
+    record = {'schema': STATE_SCHEMA, 'uploaded_at': uploaded_at,
+              'restored_manifest_sha256': __import__('hashlib').sha256((root / 'recovery.json').read_bytes()).hexdigest(),
+              'repository': config['repository'], 'snapshot': config['restore_snapshot'],
               'restore_verified': True, 'cleanup_complete': True, 'verified_at': datetime.now(timezone.utc).isoformat(),
               'epoch_id': result['epoch_id'], 'result_count': result['result_count']}
     if operation:

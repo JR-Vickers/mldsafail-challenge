@@ -45,14 +45,48 @@ def validate_set(root):
     return manifest
 
 
-def validate_prune_state(config):
-    state = json.loads(private_file(config['backup_state']).read_text())
-    expected = config.get('restore_verified_snapshot')
-    if (not isinstance(expected, str) or not re.fullmatch(r'[a-f0-9]{64}', expected) or
-            state.get('repository') != config['repository'] or state.get('snapshot') != expected or
-            state.get('restore_verified') is not True or state.get('cleanup_complete') is not True):
-        raise ValueError('Pruning requires exact repository/snapshot verified restoration and complete cleanup')
+STATE_SCHEMA = 'mldsafail.recovery-state.v1'
+
+
+def validate_verified_state(config, *, now=None, expected_snapshot=None):
+    """Accept only a private, versioned, exact restored snapshot receipt."""
+    from deploy.recovery_journal import safe_path
+    path = safe_path(Path(config['backup_state']))
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    with os.fdopen(descriptor) as stream:
+        info = os.fstat(stream.fileno())
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or
+                info.st_mode & 0o077 or info.st_nlink != 1):
+            raise ValueError('Recovery state requires owned private regular file')
+        state = json.load(stream)
+    if not isinstance(state, dict): raise ValueError('Recovery state must be an object')
+    now = now or datetime.now(timezone.utc)
+    if (state.get('schema') != STATE_SCHEMA or state.get('repository') != config['repository'] or
+            not isinstance(state.get('snapshot'), str) or not re.fullmatch(r'[a-f0-9]{64}', state['snapshot']) or
+            state.get('restore_verified') is not True or state.get('cleanup_complete') is not True or
+            not isinstance(state.get('epoch_id'), str) or not state['epoch_id'] or
+            type(state.get('result_count')) is not int or state['result_count'] < 0 or
+            not re.fullmatch(r'[a-f0-9]{64}', str(state.get('restored_manifest_sha256', ''))) or
+            (expected_snapshot is not None and state['snapshot'] != expected_snapshot) or
+            ('expected_epoch_id' in config and state['epoch_id'] != config['expected_epoch_id'])):
+        raise ValueError('Invalid exact repository/snapshot restored identity or incomplete cleanup')
+    timestamps = []
+    for field in ('uploaded_at', 'verified_at'):
+        value = state.get(field)
+        if not isinstance(value, str): raise ValueError('Missing recovery timestamp')
+        timestamp = datetime.fromisoformat(value)
+        if timestamp.tzinfo is None or timestamp.utcoffset() is None or timestamp > now:
+            raise ValueError('Invalid or future recovery timestamp')
+        timestamps.append(timestamp)
+    if timestamps[0] > timestamps[1]: raise ValueError('Verification precedes upload')
     return state
+
+
+def validate_prune_state(config):
+    expected = config.get('restore_verified_snapshot')
+    if not isinstance(expected, str) or not re.fullmatch(r'[a-f0-9]{64}', expected):
+        raise ValueError('Pruning requires exact repository/snapshot verified restoration and complete cleanup')
+    return validate_verified_state(config, expected_snapshot=expected)
 
 
 def execute(config, operation, recovery_set=None, destination=None, journal=None):
@@ -102,7 +136,7 @@ def execute(config, operation, recovery_set=None, destination=None, journal=None
         if not snapshot or summary.get('errors', 0):
             raise ValueError('Incomplete uploaded snapshot')
         state = Path(config['backup_state'])
-        private = {'repository': config['repository'], 'snapshot': snapshot,
+        private = {'schema': STATE_SCHEMA, 'repository': config['repository'], 'snapshot': snapshot,
                    'uploaded_at': datetime.now(timezone.utc).isoformat(),
                    'restore_verified': False}
         from deploy.recovery_journal import atomic_json, safe_path
