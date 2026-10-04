@@ -46,11 +46,27 @@ def probe(args,output,*,operation,api_version):
     shim.write_text('#!'+sys.executable+'\nimport os,sys\nenv=dict(os.environ)\nif len(sys.argv)>1 and sys.argv[1]=='+repr(operation)+':\n env["DOCKER_HOST"]='+repr('unix://'+str(proxy))+'\n env["DOCKER_API_VERSION"]='+repr(api_version)+'\nos.execve('+repr(real_docker)+',['+repr(real_docker)+',*sys.argv[1:]],env)\n')
     shim.chmod(0o700)
     observed=threading.Event();release=threading.Event();transport_errors=[]
+    closing=threading.Event();socket_lock=threading.Lock();connections=[]
     receipt_path=directory/'transport.json'
+    def guard(state_value):
+        record=json.loads((state/'journal.json').read_text())
+        if record['generation']==previous['generation']: return
+        publish(state/(record['generation']+'-native-transport.json'),dict(
+            schema='mldsafail.cpu-native-transport-guard.v1',generation=record['generation'],
+            daemon_epoch=manifest['epoch'],executor=owned_client.identity(os.getpid()),state=state_value))
     def transport():
         try:
             connection,_=listener.accept()
-            upstream=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);upstream.connect(manifest['socket'])
+            with socket_lock:
+                connections.append(connection)
+                if closing.is_set(): raise RuntimeError('Native proxy is closing; forwarding prohibited')
+            guard('pending')  # Durable restart fence before connecting/forwarding.
+            upstream=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
+            with socket_lock:
+                connections.append(upstream)
+                if closing.is_set(): raise RuntimeError('Native proxy is closing; connecting prohibited')
+            upstream.connect(manifest['socket'])
+            if closing.is_set(): raise RuntimeError('Native proxy is closing; forwarding prohibited')
             def retained():
                 observed.set()
                 if not release.wait(60): raise RuntimeError('Native owner-loss orchestration timed out')
@@ -104,6 +120,7 @@ def probe(args,output,*,operation,api_version):
         result['orchestration_error']=dict(type=type(error).__name__,message=str(error))
         raise
     finally:
+        closing.set()
         release.set()
         try:
             if owner is not None and owner.poll() is None: owner.kill();owner.wait(timeout=10)
@@ -115,12 +132,20 @@ def probe(args,output,*,operation,api_version):
             for stream in (owner.stdin,owner.stdout,owner.stderr):
                 try: stream.close()
                 except BaseException as error: cleanup_errors.append(dict(step='native_owner_pipe',error=repr(error)))
+        with socket_lock:
+            for connection in connections:
+                try: connection.shutdown(socket.SHUT_RDWR)
+                except OSError: pass
+                try: connection.close()
+                except BaseException as error: cleanup_errors.append(dict(step='native_proxy_socket',error=repr(error)))
         try: listener.close()
         except BaseException as error: cleanup_errors.append(dict(step='native_listener',error=repr(error)))
         try:
             thread.join(timeout=10)
             if thread.is_alive(): cleanup_errors.append(dict(step='native_transport',error='Thread remains alive'))
         except BaseException as error: cleanup_errors.append(dict(step='native_transport_join',error=repr(error)))
+        try: guard('pending' if thread.is_alive() else 'quiescent')
+        except BaseException as error: cleanup_errors.append(dict(step='native_proxy_guard',error=repr(error)))
         try: cleanup=reconcile(state,args.parent)
         except BaseException as error: cleanup=dict(cleanup_complete=False,error=repr(error))
         try:

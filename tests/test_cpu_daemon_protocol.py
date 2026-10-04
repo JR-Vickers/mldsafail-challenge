@@ -90,3 +90,32 @@ def test_fifo_guardian_receipt_rejected_without_waiting_for_writer(tmp_path):
     os.mkfifo(tmp_path/'fifo',0o600)
     with pytest.raises(RuntimeError,match='Private guardian'):
         receipt(tmp_path,'fifo',operation='create',epoch='a'*32)
+
+
+def test_live_proxy_fence_allows_shutdown_cleanup_but_prohibits_new_epoch(tmp_path,monkeypatch):
+    import os
+    from research.cpu_measurement import mutations
+    manifest=fixture_manifest(tmp_path,monkeypatch)
+    parent=Path(manifest['worker_domain']['path'])
+    journal=dict(generation='a'*32,parent_device=manifest['worker_domain']['device'],parent_inode=manifest['worker_domain']['inode'],mutations=[
+        dict(operation='dedicated_daemon_verified',manifest=manifest),
+        dict(operation='host_client_domain',id='client',phase='create',receipt_file='missing.json'),
+        dict(operation='host_client_release_intent',id='client')])
+    executor=dict(pid=123,start_ticks=456,uid=os.getuid(),session=123,group=123,cmdline_sha256='c'*64,boot_id='boot')
+    guard=dict(schema='mldsafail.cpu-native-transport-guard.v1',generation=journal['generation'],daemon_epoch=manifest['epoch'],executor=executor,state='pending')
+    owned_daemon.publish(tmp_path/(journal['generation']+'-native-transport.json'),guard)
+    order=[]
+    monkeypatch.setenv('MLDSAFAIL_OPERATOR_DAEMON_MANIFEST',str(tmp_path/'manifest'))
+    monkeypatch.setattr(owned_client,'identity',lambda pid:executor)
+    monkeypatch.setattr(owned_client,'stop',lambda entry:order.append('client_stop'))
+    monkeypatch.setattr(owned_daemon,'shutdown_barrier',lambda *args,**kwargs:order.append('barrier') or dict(schema='mldsafail.owned-daemon-barrier.v1',attempt_id=journal['generation'],errors=[],shutdown_proven=True,daemon_epoch=manifest['epoch'],daemon_manifest_sha256=owned_daemon.fingerprint(manifest)))
+    monkeypatch.setattr(owned_daemon,'restart_and_refresh',lambda *args,**kwargs:order.append('restart') or {'epoch':'new'})
+    result=mutations.resolve(journal,tmp_path,parent)
+    assert any(row['step']=='native_transport_fence' for row in result['errors'])
+    assert order==['barrier','client_stop']
+    # Once the exact executor has exited, every thread is gone; retry reuses
+    # retained positive old barrier instead of signaling a newer daemon epoch.
+    monkeypatch.setattr(owned_client,'identity',lambda pid: (_ for _ in ()).throw(ProcessLookupError()))
+    order.clear()
+    assert mutations.resolve(journal,tmp_path,parent)['errors']==[]
+    assert order==['client_stop','restart']

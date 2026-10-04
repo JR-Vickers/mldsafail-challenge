@@ -80,6 +80,23 @@ def resolve(journal, directory, parent):
         for entry in clients.values():
             try: owned_client.stop(entry)
             except BaseException as error: errors.append(dict(step='post_barrier_client_stop',error=repr(error)))
+    guard_path=Path(directory)/(journal['generation']+'-native-transport.json')
+    if guard_path.exists():
+        try:
+            guard=owned_daemon.read_private_json(guard_path)
+            if guard.get('schema')!='mldsafail.cpu-native-transport-guard.v1' or guard.get('generation')!=journal['generation'] or guard.get('daemon_epoch')!=manifest['epoch'] or guard.get('state') not in {'pending','quiescent'}:
+                raise RuntimeError('Native transport guard identity changed')
+            if guard['state']=='pending':
+                executor=guard['executor']
+                required={'pid','start_ticks','uid','session','group','cmdline_sha256','boot_id'}
+                if not isinstance(executor,dict) or set(executor)!=required or any(type(executor[key]) is not int or executor[key]<0 for key in ('pid','start_ticks','uid','session','group')) or executor['pid']==0 or executor['start_ticks']==0 or executor['uid']!=os.getuid() or not isinstance(executor['boot_id'],str) or not executor['boot_id'] or not isinstance(executor['cmdline_sha256'],str) or not re.fullmatch('[0-9a-f]{64}',executor['cmdline_sha256']):
+                    raise RuntimeError('Exact native proxy executor identity required')
+                try: current=owned_client.identity(executor['pid'])
+                except (FileNotFoundError,ProcessLookupError): current=None
+                if current==executor:
+                    raise RuntimeError('Native proxy executor is alive; daemon restart prohibited until transport quiescent')
+        except BaseException as error:
+            errors.append(dict(step='native_transport_fence',error=repr(error)))
     refreshed=None
     if not errors:
         aliases=[value for value in (os.environ.get('MLDSAFAIL_OPERATOR_DAEMON_MANIFEST'),os.environ.get('MLDSAFAIL_CPU_DAEMON_MANIFEST')) if value]
