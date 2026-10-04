@@ -7,6 +7,7 @@ import subprocess
 import sys
 import time
 from deploy.recovery_journal import Journal, atomic_json
+from deploy.native_recovery_acceptance import stop_owned_child
 
 ROOT = Path.home() / 'powerloss-fixture'
 PROJECT = 'disposable-powerloss'
@@ -82,6 +83,8 @@ volumes:
         boot_id = Path('/proc/sys/kernel/random/boot_id').read_text().strip()
         if (baseline['boot_id'] == boot_id) != transport_mode:
             raise RuntimeError('Unexpected guest boot identity')
+        if transport_mode:
+            atomic_json(ROOT / 'orphan-reconciliation.json', stop_owned_child(ROOT))
         lock = (ROOT / 'lock').open('a')
         deadline = time.monotonic() + 120
         while True:

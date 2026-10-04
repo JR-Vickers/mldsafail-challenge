@@ -35,3 +35,11 @@ creates a fresh fixture/journal, kills its exact owned local SSH client after th
 durable maintenance boundary, reconnects without reboot, verifies unchanged boot
 ID, and audits cleanup/identity/migration invariants. Raw guest evidence is exported
 before stopping the VM. These two gates must have distinct outcomes.
+
+An SSH disconnect can leave the synthetic fixture child running after its SSH
+parent exits. This is fixture lifecycle behavior, not evidence of a daily recovery
+operator bug. Explicit reconciliation uses the fixture's durable child PID,
+process start ticks, exact command line, UID and boot ID; a Linux pidfd binds the
+signal to that exact process. Changed identity blocks signaling. Cancellation and
+repeated journal cleanup happen before resource removal; no broad process kill
+is permitted. An exited owner is handled idempotently.

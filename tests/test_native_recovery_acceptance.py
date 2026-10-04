@@ -20,3 +20,24 @@ def test_competing_child_cannot_touch_services(tmp_path, monkeypatch):
                         lambda _: pytest.fail('Competing owner must not touch Docker'))
     with pytest.raises(BlockingIOError):
         child(tmp_path, 'race', False)
+
+
+def test_owned_child_cleanup_is_idempotent_after_exit(tmp_path, monkeypatch):
+    import json
+    from deploy.native_recovery_acceptance import stop_owned_child
+    (tmp_path / 'owner-process.json').write_text(json.dumps({'pid': 123}))
+    def missing(pid):
+        raise FileNotFoundError()
+    monkeypatch.setattr('deploy.native_recovery_acceptance.process_identity', missing)
+    assert stop_owned_child(tmp_path) == {'already_stopped': True}
+    assert stop_owned_child(tmp_path) == {'already_stopped': True}
+
+
+def test_reused_child_identity_never_signalled(tmp_path, monkeypatch):
+    import json
+    from deploy.native_recovery_acceptance import stop_owned_child
+    (tmp_path / 'owner-process.json').write_text(json.dumps({'pid': 123, 'start_ticks': 10}))
+    monkeypatch.setattr('deploy.native_recovery_acceptance.process_identity',
+                        lambda _: {'pid': 123, 'start_ticks': 11})
+    with pytest.raises(RuntimeError, match='ownership mismatch'):
+        stop_owned_child(tmp_path)

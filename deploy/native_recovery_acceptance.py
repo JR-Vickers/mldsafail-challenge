@@ -17,6 +17,41 @@ def command(argv):
     return subprocess.check_output(argv, text=True, stderr=subprocess.PIPE, timeout=90).strip()
 
 
+def process_identity(pid, proc_root=Path('/proc')):
+    root = proc_root / str(pid)
+    stat = (root / 'stat').read_text()
+    return {'pid': pid, 'start_ticks': int(stat[stat.rindex(')') + 2:].split()[19]),
+            'cmdline': (root / 'cmdline').read_bytes().hex(), 'uid': root.stat().st_uid,
+            'boot_id': (proc_root / 'sys/kernel/random/boot_id').read_text().strip()}
+
+
+def stop_owned_child(root):
+    """Cancel only the durably identified fixture process, never a reused PID."""
+    identity = json.loads((root / 'owner-process.json').read_text())
+    pid = identity['pid']
+    try:
+        current = process_identity(pid)
+    except FileNotFoundError:
+        return {'already_stopped': True}
+    if current != identity or current['uid'] != os.getuid():
+        raise RuntimeError('Fixture process ownership mismatch')
+    if not hasattr(os, 'pidfd_open') or not hasattr(signal, 'pidfd_send_signal'):
+        raise RuntimeError('Native pidfd cancellation is required')
+    try:
+        descriptor = os.pidfd_open(pid)
+    except ProcessLookupError:
+        return {'already_stopped': True}
+    try:
+        if process_identity(pid) != identity:
+            raise RuntimeError('Fixture process changed before cancellation')
+        signal.pidfd_send_signal(descriptor, signal.SIGTERM)
+    except (ProcessLookupError, FileNotFoundError):
+        return {'already_stopped': True}
+    finally:
+        os.close(descriptor)
+    return {'cancellation_sent': True}
+
+
 def child(root, boundary, fail_cleanup):
     lock = (root / 'lock').open('a')
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -30,6 +65,7 @@ def child(root, boundary, fail_cleanup):
     for sig in (signal.SIGTERM, signal.SIGHUP):
         signal.signal(sig, lambda *_: (_ for _ in ()).throw(InterruptedError()))
     try:
+        atomic_json(root / 'owner-process.json', process_identity(os.getpid()))
         atomic_json(root / 'boundary.json', {'boundary': boundary})
         time.sleep(300)
     finally:
