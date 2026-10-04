@@ -75,3 +75,19 @@ def test_api_version_rejects_prefixed_value_before_native_actions(tmp_path,monke
     config={name:'unused' for name in names};config.update(schema='mldsafail.cpu-native-driver.v1',api_version='v1.56')
     monkeypatch.setattr(native_driver.subprocess,'check_output',lambda *a,**kw:(_ for _ in ()).throw(AssertionError('No host action')))
     with pytest.raises(ValueError,match='numeric Docker API'):native_driver.validate(config,tmp_path)
+
+
+def test_startup_receipt_publication_failure_preserves_fence_and_safe_client_cleanup(tmp_path,monkeypatch):
+    from deploy import owned_daemon,owned_client
+    fragment=native_driver.install(tmp_path/'mldsafail-cpu-daemon-fresh.service','[Service]\n')
+    data=dict(id='attempt',commands=[],clients=[dict(id='acknowledged',finished=True),dict(id='unknown')],units=[fragment],config={},start_intent=True,daemon_unit=Path(fragment['path']).name,manifest_path=str(tmp_path/'absent'))
+    journal=native_driver.Journal(tmp_path/'driver.json',data)
+    monkeypatch.setattr(native_driver,'register',lambda *a,**kw:(_ for _ in ()).throw(FileNotFoundError('transient rootless state')))
+    monkeypatch.setattr(owned_daemon,'_unit',lambda unit:dict(unit_fragment_sha256=fragment['sha256']))
+    monkeypatch.setattr(journal,'command',lambda *a,**kw:None)
+    monkeypatch.setattr(owned_daemon,'failed_startup_barrier',lambda *a,**kw:(_ for _ in ()).throw(OSError('receipt publication')))
+    calls=[];monkeypatch.setattr(owned_client,'stop',lambda entry:calls.append(entry['id']))
+    receipt=native_driver.cleanup(journal)
+    assert calls==['acknowledged'] and receipt['cleanup_complete'] is False
+    assert data['state']=='cleanup_incomplete' and journal.path.exists()
+    assert any(row['step']=='failed_startup_proof' for row in receipt['errors'])

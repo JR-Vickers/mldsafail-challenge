@@ -163,7 +163,9 @@ def cleanup(journal,*,terminal=False):
             if state['unit_fragment_sha256']!=fragment['sha256']: raise RuntimeError('Fresh unit config changed; control prohibited')
             journal.command(['systemctl','--user','stop',data['daemon_unit']],kind='service_stop')
         except BaseException as error: errors.append(dict(step='fresh_daemon_best_effort_stop',error=repr(error)))
-        startup=owned_daemon.failed_startup_barrier(data,evidence_directory=journal.path.parent,attempt_id=data['id'])
+        try: startup=owned_daemon.failed_startup_barrier(data,evidence_directory=journal.path.parent,attempt_id=data['id'])
+        except BaseException as error:
+            startup=dict(startup_shutdown_proven=False,errors=[dict(step='failed_startup_proof',error=repr(error))])
         data['failed_startup_barrier']=startup
         if startup['startup_shutdown_proven']:
             # Distinct terminal setup proof; never an accepted daemon epoch.
@@ -187,8 +189,8 @@ def cleanup(journal,*,terminal=False):
     needs_barrier=bool(data.get('image_load_intent') or data.get('start_intent') or uncertain_mutations)
     can_stop_clients=not needs_barrier or bool(barrier and barrier['shutdown_proven'])
     for entry in clients:
-        if not can_stop_clients:
-            errors.append(dict(step='client_fence',error='Daemon quiescence required before client cancellation'));break
+        if not can_stop_clients and not (isinstance(entry,dict) and entry.get('finished') is True):
+            errors.append(dict(step='client_fence',error='Daemon quiescence required before client cancellation'));continue
         try: owned_client.stop(entry)
         except BaseException as error: errors.append(dict(step='client_cleanup',error=repr(error)))
     if terminal and measurement_directory is not None and (measurement_directory/'journal.json').exists():
