@@ -206,3 +206,23 @@ grandchild/output-flood/descendant-timeout fixtures are prepared. Native CPU
 adoption, 0.6.0 integration/epochs/release, PostgreSQL concurrency, both native load
 gates, production packet and external pilot remain unfinished. Production and
 public exposure still require the owner gate after successful native acceptance.
+
+
+## Current launch preparation pointer — 2026-10-04
+
+The dated operational narratives above retain historical failures and identities.
+Use `docs/acceptance/public-launch/report.json` in the primary launch source for
+current task disposition; source-review receipts establish source scope only.
+Compatible staging acceptance and isolated synthetic recovery have newer retained
+evidence. The proposed0.6 implementation, worker, accounting and artifact candidates
+remain separately identified and unadopted; failed native measurements remain
+part of the decision packet. Native capacity, load, reproducibility, repeat-job
+activation and candidate production rehearsals require their own exact-source
+receipts. Missing original78-item checklist prevents exhaustive coverage approval.
+Independent gap analysis is retained in
+[the ledger sweep](acceptance/launch-preparation/independent-ledger-sweep.json).
+
+Owner adoption/default, production/public activation, publication, recruitment,
+external storage/password custody and webhook inputs remain explicit decisions
+or missing inputs. Their absence does not block candidate engineering, review,
+documentation, protected artifact retention or isolated rehearsals.

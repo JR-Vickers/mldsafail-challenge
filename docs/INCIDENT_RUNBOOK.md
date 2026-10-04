@@ -75,9 +75,14 @@ owner inputs explicitly; do not equate repaired private staging with public laun
 Use the run's protected durable journal and the same current-user rootless Docker
 socket. Acquire its existing exclusive run lock before cleanup; do not start a
 replacement run against the same root. Source or release manifest corruption is
-evidence to retain and does not grant authority to change run ownership. Cleanup
-must cancel exact owned native client sessions before stopping dispatch controllers
-and workers, then verify final owned container/network/volume inventories.
+evidence to retain and does not grant authority to change run ownership. For a released or uncertain Docker mutation, first acquire the entire operation
+lease and prove the exact dedicated daemon epoch and entire bound worker domain
+stopped through the reviewed positive barrier. Then cancel exact owned creator
+client domains and independently verify final owned container/network/volume
+inventories. Empty inventory or stopped Docker CLI alone cannot prove absence of
+a delayed daemon mutation. Never apply a disposable daemon barrier to staging.
+For never-admitted startup, retain its separately typed positive startup proof;
+it cannot substitute for an admitted daemon epoch barrier.
 A missing client identity, surviving client or failed final inventory prevents
 cleanup completion. Retained failed database volumes must be individually
 accounted in the baseline journal; do not delete them merely to make inventory

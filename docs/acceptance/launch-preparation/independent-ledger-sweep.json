@@ -1,0 +1,84 @@
+{
+  "schema": "mldsafail.independent-ledger-sweep.v1",
+  "status": "source_review_passed",
+  "reviewed_source_commit": "0e0bc13b1f17bb7da7e85609c302ef22bca7ec1c",
+  "native_executed": false,
+  "canonical_ledger_modified": false,
+  "scope": "User plan, canonical100-task ledger, current preparation documentation and previously independently reviewed exact source",
+  "findings": [
+    {
+      "id": "candidate-production-rehearsal-owner-conflation",
+      "tasks": [
+        "production-rehearsal",
+        "measurement-adoption"
+      ],
+      "finding": "Owner adoption dependency prevents separable inactive candidate production configuration and rehearsal engineering.",
+      "action": "Add candidate configuration/source/review/native rehearsal leaves depending on source/native accounting prerequisites; retain distinct approved production activation gate behind owner decision."
+    },
+    {
+      "id": "v060-source-native-conflation",
+      "tasks": [
+        "v060-versions",
+        "v060-evidence",
+        "v060-cohorts",
+        "v060-epochs",
+        "v060-acceptance"
+      ],
+      "finding": "Broad tasks have no source child tasks or current source-review evidence despite coherent inactive implementation and concrete native callback preparation.",
+      "action": "Bind exact reviewed source and separate implementation, focused verification, independent review, retained worker artifact, native references/audit/seal and application/cohort acceptance leaves. Native CPU prerequisites must not erase independently executable source evidence."
+    },
+    {
+      "id": "decision-packet-draft-leaf",
+      "tasks": [
+        "measurement-decision-packet"
+      ],
+      "finding": "All-native dependencies block packet drafting; existing public packet is generic and does not record prospective contract decision fields and preserved G failure.",
+      "action": "Prepare source-bound contract comparison, exact candidate identities, known failures, unchanged thresholds, unresolved native gates and separate adoption/default decision form now; finalize evidence after native gates."
+    },
+    {
+      "id": "candidate-participant-distribution",
+      "tasks": [
+        "participant-artifacts",
+        "v060-cohorts"
+      ],
+      "finding": "Current artifact task is bound to frozen0.5 archive; proposed0.6 release JSON is only an unfilled template and candidate artifact build/install/public-safe documentation/reproduction is not a distinct executable leaf.",
+      "action": "Create separately identified unapproved0.6 wheel/source/checksum/docs candidate and independent privacy/install checks when exact coherent source frozen; publish/default adoption remain owner-blocked. Preserve0.5 artifact and provenance."
+    },
+    {
+      "id": "repeat-activation-real-job-interruption",
+      "tasks": [
+        "operator-repeat-activation-lifecycle",
+        "timer-activation"
+      ],
+      "finding": "Two disposable fixture activations do not establish interrupted actual daily/check job journal bridge acceptance.",
+      "action": "Represent source/review separately; add native interrupted daily/check journal acknowledgement, old positive daemon terminal proof, shared-state cleanup and next activation under changed effective manifest configuration. Owner storage blocks real off-host activation, not synthetic bridge engineering."
+    },
+    {
+      "id": "incident-cleanup-order",
+      "tasks": [
+        "incident-runbooks"
+      ],
+      "finding": "Interrupted runbook previously cancelled clients before stopping dispatch controllers, contradicting positive daemon barrier ordering.",
+      "action": "Correct runbook to positive whole-daemon/whole-worker barrier before exact creator cancellation, distinguish never-admitted startup and shared staging fences; correction provided in this checkpoint."
+    },
+    {
+      "id": "stale-current-preparation-docs",
+      "tasks": [
+        "incident-runbooks",
+        "measurement-decision-packet"
+      ],
+      "finding": "LAUNCH_PREPARATION.md dated narrative still calls integrated0.6 source and production packet unfinished without clear current pointer; historical failures must remain.",
+      "action": "Add dated current-state pointer to canonical ledger and exact reviewed candidate packets, explicitly retain historical sections and prohibit inference of native passes."
+    },
+    {
+      "id": "missing-checklist-exhaustiveness",
+      "tasks": [
+        "checklist-source",
+        "ledger-validation"
+      ],
+      "finding": "Original numbered78-item checklist remains unavailable and task checklist mappings are empty, so exhaustive78 coverage cannot be certified.",
+      "action": "Retain precise external request for original checklist; continue all100 mapped plan/report tasks and rerun coverage import/validator once supplied. No owner silence can complete coverage."
+    }
+  ],
+  "completion": "Sweep identifies executable preparation and evidence decomposition work; does not claim all launch work completed or public approval."
+}
