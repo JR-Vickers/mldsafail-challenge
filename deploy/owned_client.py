@@ -1,4 +1,4 @@
-"""Linux trusted-client gate, durable process identities and session cleanup.
+"""Linux trusted-client gate, durable process identities and cgroup cleanup.
 
 Each trusted CLI executes inside a fresh delegated cgroup. The durable birth
 gate precedes mutation; cleanup kills and proves emptiness of that exact domain.
@@ -92,6 +92,11 @@ def prepare_domain(entry, parent):
         raise RuntimeError('Explicit delegated operator client cgroup root required')
     parent = Path(parent)
     domain_identity(parent)
+    parent_info = parent.stat()
+    if parent_info.st_uid != os.getuid() or parent_info.st_mode & 0o022:
+        raise RuntimeError('Operator cgroup parent must have exclusive owner write access')
+    if (parent / 'cgroup.type').read_text().strip() != 'domain':
+        raise RuntimeError('Operator cgroup parent must be a domain')
     mounts = Path('/proc/self/mountinfo').read_text().splitlines()
     native = False
     for row in mounts:
@@ -114,7 +119,8 @@ def capture(process, payload, timeout, buffers, observe, cap=8 * 1024 * 1024):
         for stream in (process.stdout, process.stderr):
             os.set_blocking(stream.fileno(), False)
             selector.register(stream, selectors.EVENT_READ)
-        remaining = memoryview(payload or b'')
+        source = payload if hasattr(payload, 'read') else None
+        remaining = memoryview(source.read(65536) if source is not None else (payload or b''))
         if process.stdin is not None:
             os.set_blocking(process.stdin.fileno(), False)
             if remaining:
@@ -134,6 +140,8 @@ def capture(process, payload, timeout, buffers, observe, cap=8 * 1024 * 1024):
                         remaining = remaining[os.write(stream.fileno(), remaining):]
                     except BrokenPipeError:
                         remaining = remaining[:0]
+                    if not remaining and source is not None:
+                        remaining = memoryview(source.read(65536))
                     if not remaining:
                         selector.unregister(stream)
                         stream.close()
@@ -158,10 +166,13 @@ def write_stream(stream, data):
 
 
 def run(argv, entries, save, evidence_directory, *, timeout, env=None, stdout=None,
-        stderr=None, text=False, check=True, capture_output=False, input=None, cwd=None, client_cgroup_root=None):
+        stderr=None, text=False, check=True, capture_output=False, input=None, cwd=None, client_cgroup_root=None, stdin=None):
     if sys.platform != 'linux':
         raise RuntimeError('Durable owned clients require native Linux')
     import shutil
+    if input is not None and stdin is not None:
+        raise ValueError('input and stdin are mutually exclusive')
+    payload = stdin if stdin is not None else input
     argv = [os.fspath(arg) for arg in argv]
     executable = shutil.which(argv[0], path=(env or os.environ).get('PATH'))
     if executable is None:
@@ -176,6 +187,8 @@ def run(argv, entries, save, evidence_directory, *, timeout, env=None, stdout=No
     try:
         domain.mkdir()
         entry["cgroup"] = domain_identity(domain)
+        if domain.stat().st_uid != os.getuid() or domain.stat().st_mode & 0o022:
+            raise RuntimeError("Owned child cgroup lacks exclusive owner write access")
         if not all((domain / name).is_file() for name in ('cgroup.procs', 'cgroup.events', 'cgroup.kill')):
             raise RuntimeError('Delegated client domain lacks required kernel controls')
         save()
@@ -195,7 +208,7 @@ def run(argv, entries, save, evidence_directory, *, timeout, env=None, stdout=No
     try:
         process = subprocess.Popen([sys.executable, '-I', '-c', code, str(read_fd), *argv],
                                    pass_fds=(read_fd,), env=env, cwd=cwd, start_new_session=True,
-                                   stdin=subprocess.PIPE if input is not None else subprocess.DEVNULL,
+                                   stdin=subprocess.PIPE if payload is not None else subprocess.DEVNULL,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.close(read_fd)
         read_fd = None
@@ -212,7 +225,7 @@ def run(argv, entries, save, evidence_directory, *, timeout, env=None, stdout=No
         def observe():
             if verify_domain(entry) is None:
                 raise RuntimeError('Owned client domain disappeared during execution')
-        capture(process, input.encode() if isinstance(input, str) else input, timeout, buffers, observe)
+        capture(process, payload.encode() if isinstance(payload, str) else payload, timeout, buffers, observe)
         if process.returncode and check:
             raise RuntimeError('Owned native command failed; bounded private logs retained')
         result = subprocess.CompletedProcess(argv, process.returncode,

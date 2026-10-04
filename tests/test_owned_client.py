@@ -158,3 +158,20 @@ def test_wait_and_final_save_failures_keep_logs_and_original(emulated_domain, mo
     assert list(emulated_domain.glob('*-stderr.log'))[0].read_bytes() == b'failure details'
     assert {'client_wait', 'final_ownership_save'} <= {row['step'] for row in entries[0]['cleanup_errors']}
     assert 'Independent' in raised.value.__notes__[0]
+
+
+def test_large_input_file_is_streamed(emulated_domain):
+    data = emulated_domain / 'input'; data.write_bytes(b'x' * (2 * 1024 * 1024))
+    with data.open('rb') as stream:
+        result = client.run([client.sys.executable, '-c', 'import sys;print(len(sys.stdin.buffer.read()))'],
+                            [], lambda: None, emulated_domain, timeout=5, stdin=stream, text=True)
+    assert result.stdout.strip() == str(2 * 1024 * 1024)
+
+
+@pytest.mark.parametrize('mode,kind,error', [(0o777, 'domain', 'exclusive owner'), (0o700, 'threaded', 'must be a domain')])
+def test_delegated_parent_writer_and_domain_guards(tmp_path, monkeypatch, mode, kind, error):
+    monkeypatch.setattr(client, 'boot_id', lambda: 'boot')
+    tmp_path.chmod(mode)
+    (tmp_path / 'cgroup.type').write_text(kind)
+    with pytest.raises(RuntimeError, match=error):
+        client.prepare_domain({'id': 'owned'}, tmp_path)
