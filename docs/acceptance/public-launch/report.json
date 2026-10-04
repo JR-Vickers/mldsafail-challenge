@@ -2457,7 +2457,7 @@
       "criteria": [
         "Run retained participant wheel installation smoke on isolated native Linux installation; preserve failures and prove owned cleanup"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
@@ -2472,12 +2472,23 @@
           "artifact_commit": "a4f1f273b1294c94b73e3d2c789f41d0e953300f",
           "artifact_sha256": "47b1bc54fcee977665dad922df4b633d9e81762a36802b6e279d5dcb062b0bbb",
           "protocol": "Preserve failed generation1; new native fresh-account installation using independently reviewed synthetic initial commit identity; same verified helper and installed-import identity protocol. No Git account configuration changes.",
-          "result": "planned"
+          "result": "passed all native fresh-account installation/scaffolding checks; exact owned cleanup verified"
         }
       ],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Use scoped synthetic initial-commit identity without modifying global Git configuration; independently verify fresh-account behavior and retain corrected source-bound wheel.",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/participant-native-install-report.json#/passed",
+          "criteria_met": [
+            "Run retained participant wheel installation smoke on isolated native Linux installation; preserve failures and prove owned cleanup"
+          ]
+        }
+      ],
+      "identities": {
+        "operator_source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
+        "artifact_source_commit": "a4f1f273b1294c94b73e3d2c789f41d0e953300f",
+        "artifact_sha256": "47b1bc54fcee977665dad922df4b633d9e81762a36802b6e279d5dcb062b0bbb"
+      },
+      "next_action": "None; complete separate reproducibility gate before publication decision",
       "checklist": []
     },
     {

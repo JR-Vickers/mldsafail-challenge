@@ -1,0 +1,26 @@
+{
+  "passed": true,
+  "operator_source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
+  "artifact_source_commit": "a4f1f273b1294c94b73e3d2c789f41d0e953300f",
+  "artifact_sha256": "47b1bc54fcee977665dad922df4b633d9e81762a36802b6e279d5dcb062b0bbb",
+  "native_python": "3.12.10",
+  "installed_package": "0.5.1",
+  "checks_passed": [
+    "install",
+    "installed-identity",
+    "help",
+    "mlwe-clone",
+    "approved-starter-bytes",
+    "historical-clone",
+    "historical-small"
+  ],
+  "package_import_and_prefix_inside_fresh_install": true,
+  "global_git_settings_changed": false,
+  "cleanup_complete": true,
+  "parent_absent": true,
+  "controller_absent": true,
+  "private_report_sha256": "141017ef615c77a1d317efc0f3098fec23eacc7643ae02cb7cc275e9393e7982",
+  "private_evidence_reference": "protected native participant installation attempt 20261004 generation 2",
+  "failed_attempt_preserved": "docs/acceptance/public-launch/participant-native-install-failure.json",
+  "published": false
+}
