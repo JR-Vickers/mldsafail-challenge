@@ -1488,7 +1488,7 @@
       "attempts": [],
       "evidence": [],
       "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "next_action": "Reviewed same-process source-bound application callback prepared at2b60eef; disposable exact PostgreSQL image after isolated daemon repair/native fencing",
       "checklist": []
     },
     {
@@ -2382,7 +2382,7 @@
       "attempts": [],
       "evidence": [],
       "identities": {},
-      "next_action": "Execute isolated image UI test after serialized staging scenarios",
+      "next_action": "Reviewed same-process source-bound application callback prepared at2b60eef; run exact frozen web image after isolated daemon repair/native fencing",
       "checklist": []
     },
     {
@@ -2664,7 +2664,9 @@
         "independent accounting/recovery/operator review",
         "user-plan"
       ],
-      "dependencies": [],
+      "dependencies": [
+        "isolated-daemon-startup-repair"
+      ],
       "environment": "isolated engineering and disposable native rootless daemon; staging daemon excluded from automatic barriers",
       "criteria": [
         "Independent review and native mid-create/mid-start owner-loss/transport-loss faults prove daemon quiescence and owned cleanup; preserved failed evidence; healthy measurement protocol and frozen thresholds unchanged"
@@ -2674,11 +2676,16 @@
         {
           "protocol": "Dedicated rootless daemon with exact socket/data-root/unit/boot/PID/start/cgroup/binary identity, fsynced guardian mutation receipts, split create/start then read-only attach; ambiguous mutation requires verified owned daemon/worker shutdown before restart and reconciliation",
           "outcome": "Implementation in separate worktrees; no native pass claimed"
+        },
+        {
+          "source_commit": "cc1f09a61e4fca26b64104ada8b25c7ca47db35a",
+          "evidence": "docs/acceptance/public-launch/accounting-native-provisioning-failure.json",
+          "result": "No measurement ran; startup contract repairs required; all actual owned processes and cgroup resources reconciled"
         }
       ],
       "evidence": [],
       "identities": {},
-      "next_action": "Implement and independently review shared daemon barrier, integrate applicable operator paths, exercise native interruption faults before measurements or successful cleanup claims",
+      "next_action": "Complete startup corrective child and journal cleanup before new isolated native fault suite; preserve both failed generations",
       "checklist": []
     },
     {
@@ -2841,6 +2848,34 @@
       "evidence": [],
       "identities": {},
       "next_action": "Complete exact source verification; preserve earlier findings and failures",
+      "checklist": []
+    },
+    {
+      "id": "isolated-daemon-startup-repair",
+      "requirement": "Repair source-bound isolated daemon startup and independently retryable never-admitted startup cleanup",
+      "sources": [
+        "docs/acceptance/public-launch/accounting-native-provisioning-failure.json"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering; disposable native dedicated daemon only",
+      "criteria": [
+        "Explicit fresh isolated pidfile verified in actual daemon argv; protected staging pidfile untouched",
+        "Daemon-managed data root permissions and restart lifecycle remain bound to original private parent and inode identities",
+        "Failed startup before registration has exact unit/worker authority and positive terminal cleanup; no invented daemon barrier or old-authority reuse",
+        "Independent source review and disposable native startup failure cleanup verification pass"
+      ],
+      "status": "running",
+      "attempts": [
+        {
+          "source_commit": "cc1f09a61e4fca26b64104ada8b25c7ca47db35a",
+          "result": "native startup failed before image load; actual resources independently reconciled, driver journal remains fenced"
+        }
+      ],
+      "evidence": [],
+      "identities": {
+        "retained_source_commit": "cc1f09a61e4fca26b64104ada8b25c7ca47db35a"
+      },
+      "next_action": "Accounting author repairs isolated PID-file, daemon root identity and unregistered startup cleanup; independent reviewers verify before exact native repair and new provision",
       "checklist": []
     }
   ],
