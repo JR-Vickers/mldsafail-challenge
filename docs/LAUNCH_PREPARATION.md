@@ -1,3 +1,8 @@
+> Historical checkpoint with follow-up entries. Current launch task status is
+> maintained in the canonical launch ledger when present; production decisions
+> and rehearsals are specified in [PUBLIC_LAUNCH_PACKET.md](PUBLIC_LAUNCH_PACKET.md).
+> Dated incomplete prerequisites below must be reconciled with newer evidence.
+
 # Engineering handoff — updated 2026-10-03
 
 Latest follow-up: [queue repair preparation and independent CPU review](acceptance/operational-followup/README.md).

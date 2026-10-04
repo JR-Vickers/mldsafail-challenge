@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-04",
+  "baseline_commit": "c84277b",
+  "scope": "isolated production/distribution/pilot preparation; no host operations or publication",
+  "changes": [
+    "literal private production configuration template and read-only preflight",
+    "dependency-reset migration-free existing-application switch overlay",
+    "production rehearsal, distribution, external pilot and owner decision packet",
+    "historical handoff clarification without replacing its dated outcomes"
+  ],
+  "verification": [
+    {"command": "uv run pytest tests/test_production_preflight.py -q", "outcome": "passed", "passed": 9, "native_scope": "Docker Compose configuration merge only; no services launched"},
+    {"command": "make check", "outcome": "failed", "passed": 356, "skipped": 24, "reason": "isolated environment lacked frozen fpylll binary artifacts; existing dependency tampering test raised StopIteration", "evidence_reference": "operator-local preparation check log; preserved"},
+    {"command": "make check", "outcome": "passed", "passed": 373, "skipped": 8, "environment_correction": "installed frozen research fpylll 0.6.4 and cysignals 1.12.5 without source or lock changes", "historical_small_score": 3901, "evidence_reference": "operator-local preparation check native-dependencies log"}
+  ],
+  "not_established": [
+    "independent source review",
+    "native disposable production deployment/authentication/submission/recovery/rollback rehearsal",
+    "adopted 0.6.0 production template and version-correct artifacts",
+    "real production DNS/TLS/OAuth acceptance",
+    "encrypted off-host production recovery or external webhook acceptance",
+    "artifact publication, public exposure, recruitment or participant pilot observations"
+  ],
+  "next_action": "independently review source; integrate approved measurement/version design before native production rehearsal; obtain precise owner inputs and decisions described in PUBLIC_LAUNCH_PACKET.md",
+  "public_launch_approved": false
+}

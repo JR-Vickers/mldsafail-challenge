@@ -1,0 +1,7 @@
+# Overlay for an already initialized database only. Never apply to fresh setup.
+# Explicitly name web/coordinator and use --no-deps; migrate must never run.
+services:
+  web:
+    depends_on: !reset {}
+  coordinator:
+    depends_on: !reset {}
