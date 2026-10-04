@@ -302,12 +302,13 @@
         {
           "run_id": "launch-scenarios-6b332cd-20261004",
           "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
-          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys"
+          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys",
+          "scenario_verification": "passed; final run cleanup/rollback remains pending"
         }
       ],
       "evidence": [],
       "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "next_action": "Preserve per-scenario pass; complete run and final cleanup before parent acceptance",
       "checklist": []
     },
     {
@@ -337,12 +338,13 @@
         {
           "run_id": "launch-scenarios-6b332cd-20261004",
           "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
-          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys"
+          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys",
+          "scenario_verification": "passed; final run cleanup/rollback remains pending"
         }
       ],
       "evidence": [],
       "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "next_action": "Preserve per-scenario pass; complete run and final cleanup before parent acceptance",
       "checklist": []
     },
     {
@@ -372,12 +374,13 @@
         {
           "run_id": "launch-scenarios-6b332cd-20261004",
           "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
-          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys"
+          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys",
+          "scenario_verification": "passed; final run cleanup/rollback remains pending"
         }
       ],
       "evidence": [],
       "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "next_action": "Preserve per-scenario pass; complete run and final cleanup before parent acceptance",
       "checklist": []
     },
     {
@@ -1249,12 +1252,14 @@
       "sources": [
         "user-plan"
       ],
-      "dependencies": [],
+      "dependencies": [
+        "owned-native-client-fencing"
+      ],
       "environment": "disposable native database",
       "criteria": [
         "Disposable native PostgreSQL admission idempotency serialized ownership stale lease cleanup fencing and administrative controls"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -2186,13 +2191,14 @@
         "docs/NATIVE_PREPARATION_GATES.md"
       ],
       "dependencies": [
-        "production-templates"
+        "production-templates",
+        "owned-native-client-fencing"
       ],
       "environment": "disposable native services; no production activation",
       "criteria": [
         "Retained reviewed orchestrator passes source-bound native baseline rehearsal and final owned-resource cleanup"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -2228,17 +2234,42 @@
         "docs/NATIVE_PREPARATION_GATES.md"
       ],
       "dependencies": [
-        "participant-archive-review"
+        "participant-archive-review",
+        "owned-native-client-fencing"
       ],
       "environment": "isolated native host sequential",
       "criteria": [
         "Run hardened owned worker reproducibility protocol on two fresh retained clean builds and exact frozen reference image; preserve failures and prove owned cleanup"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
       "next_action": "Review/freeze tooling; execute after serialized staging acceptance",
+      "checklist": []
+    },
+    {
+      "id": "owned-native-client-fencing",
+      "requirement": "Durably bind and gate Docker/upload client execution before mutations, cancel exact interrupted clients before retry cleanup",
+      "sources": [
+        "user-plan",
+        "independent review of native PostgreSQL/reproduction/recovery upload paths"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering and disposable native faults",
+      "criteria": [
+        "Independent review focused interruption tests and native owned-client fault acceptance pass; original failed/partial evidence retained"
+      ],
+      "status": "running",
+      "attempts": [
+        {
+          "protocol": "Pre-exec release gate with durable PID/start/UID/boot/cmdline identities; independent cleanup and bounded failure logs",
+          "result": "implementation and review in progress"
+        }
+      ],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Merge reviewed shared helper then native fault acceptance before resource-creating operational gates",
       "checklist": []
     }
   ],
