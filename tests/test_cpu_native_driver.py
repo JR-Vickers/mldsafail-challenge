@@ -94,6 +94,8 @@ def test_startup_receipt_publication_failure_preserves_fence_and_safe_client_cle
 
 
 def test_terminal_prior_state_archive_precedes_mutation_and_failure_prohibits_cleanup(tmp_path,monkeypatch):
+    for key in ('DOCKER_HOST', 'DOCKER_CONTEXT', 'MLDSAFAIL_OPERATOR_DAEMON_MANIFEST', 'MLDSAFAIL_CPU_DAEMON_MANIFEST'):
+        monkeypatch.setenv(key, '')
     from contextlib import nullcontext
     from deploy import owned_daemon,recovery_daemon
     path=tmp_path/'driver.json'
