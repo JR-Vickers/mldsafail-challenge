@@ -2429,8 +2429,16 @@
       "criteria": [
         "Run retained participant wheel installation smoke on isolated native Linux installation; preserve failures and prove owned cleanup"
       ],
-      "status": "waiting_dependency",
-      "attempts": [],
+      "status": "running",
+      "attempts": [
+        {
+          "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
+          "artifact_commit": "4a9d82d666dea328286631a5ffe62f19a1c985b3",
+          "artifact_sha256": "3c2490de73a99d31f57e9cadcd6fd9eb5a30540511d485b475a9330b76c008b5",
+          "protocol": "New native Linux install under own delegated service with verified helper; sanitize import environment; prove installed package path and prefix; exercise CLI and approved tiny starter; retain failure logs and prove final controller/cgroup absence.",
+          "result": "planned"
+        }
+      ],
       "evidence": [],
       "identities": {},
       "next_action": "Review/freeze tooling; execute after serialized staging acceptance",
