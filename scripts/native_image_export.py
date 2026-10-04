@@ -64,6 +64,9 @@ def seal(path, expected, destination):
             raise ValueError('Exported artifact identity changed or empty')
         os.fsync(descriptor)
         with os.fdopen(os.dup(descriptor),'rb') as stream:digest=hashlib.file_digest(stream,'sha256').hexdigest()
+        current=os.fstat(descriptor)
+        if (current.st_size,current.st_mtime_ns)!=(info.st_size,info.st_mtime_ns):
+            raise ValueError('Exported archive changed during hashing')
         os.fchmod(descriptor,0o400)
         os.fsync(descriptor)
         if file_identity(path)!=expected or destination.exists():
@@ -155,8 +158,13 @@ def execute(root,config,repository):
                 data['images'].append(artifact);operation.save()
                 operation.command(['docker','image','save','--output',str(partial),image],timeout=600)
                 data['native_executed']=True
+                # Docker save may atomically replace its output. The successful
+                # gated client acknowledgement proves no future writer remains;
+                # bind the actual produced inode inside our exclusive private root.
+                artifact['save_acknowledged']=True
+                artifact['produced_file_identity']=file_identity(partial)
                 artifact['state']='seal_intent';operation.save()
-                artifact.update(seal(partial,artifact['file_identity'],final),state='retained')
+                artifact.update(seal(partial,artifact['produced_file_identity'],final),state='retained')
                 operation.save()
     except BaseException as error:
         original=error;data['error_type']=type(error).__name__

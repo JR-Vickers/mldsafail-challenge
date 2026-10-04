@@ -95,3 +95,18 @@ def test_cleanup_never_preserves_pass_for_corrupt_archive(tmp_path,monkeypatch):
     with pytest.raises(ValueError):export.run(root,cleanup_only=True)
     receipt=json.loads((root/'journal.json').read_text())
     assert receipt['passed'] is False and receipt['cleanup_complete'] is True
+
+
+def test_successful_docker_save_atomic_replacement_binds_produced_inode(tmp_path,monkeypatch):
+    root=tmp_path/'output';monkeypatch.setattr(export,'validate',lambda *a:None)
+    def command(self,argv,**kw):
+        if argv[2]=='inspect':return SimpleNamespace(stdout=json.dumps([dict(Id=IMAGE,Architecture='amd64',RepoDigests=[],Size=1)]))
+        replacement=root/'docker-output';replacement.write_bytes(b'actual atomic Docker archive');replacement.chmod(0o600)
+        os.replace(replacement,argv[4]);return SimpleNamespace(stdout=b'')
+    monkeypatch.setattr(export.Export,'command',command)
+    result=export.execute(root,configuration(),tmp_path)
+    row=result['images'][0]
+    assert result['passed'] is True and row['save_acknowledged'] is True
+    assert row['file_identity']!=row['produced_file_identity']
+    assert Path(row['image_archive']).stat().st_ino==row['produced_file_identity']['inode']
+    assert export.run(root,cleanup_only=True)['passed'] is True
