@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "purpose": "unapproved separately versioned release preparation only",
+  "package_version": null,
+  "benchmark_version": "0.6.0",
+  "measurement_contract": {
+    "source_commit": null,
+    "contract_sha256": null,
+    "supervisor_review_reference": null,
+    "auditor_review_reference": null,
+    "native_fault_suite_reference": null,
+    "paired_stability_reference": null,
+    "owner_adoption_decision_reference": null
+  },
+  "artifact_identities": {
+    "wheel_source_commit": null,
+    "archive_documentation_source_commit": null,
+    "source_tree": null,
+    "wheel_sha256": null,
+    "archive_sha256": null,
+    "starter_sha256": null,
+    "worker_image_id": null,
+    "worker_lock_sha256": null,
+    "supported_python": "3.12.10",
+    "supported_worker_architecture": "linux/amd64"
+  },
+  "cohort": {
+    "benchmark_version": "0.6.0",
+    "fresh_epoch_public_alias": null,
+    "fresh_reference_audit_reference": null,
+    "version_selection_acceptance_reference": null,
+    "separate_evidence_audit_acceptance_reference": null,
+    "api_cli_compatibility_acceptance_reference": null,
+    "leaderboard_cohort_isolation_reference": null
+  },
+  "acceptance": {
+    "independent_public_archive_review_reference": null,
+    "clean_install_smoke_reference": null,
+    "native_public_reproduction_reference": null,
+    "approved_design_production_rehearsal_reference": null
+  },
+  "approval": {
+    "contract_adopted": false,
+    "production_default_approved": false,
+    "production_activation_approved": false,
+    "publication_approved": false,
+    "recruitment_approved": false
+  }
+}
