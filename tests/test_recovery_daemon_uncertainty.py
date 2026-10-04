@@ -15,7 +15,7 @@ def test_lost_docker_create_response_remains_fenced_across_retry(tmp_path, monke
         with pytest.raises(RuntimeError, match='cleanup incomplete'):
             resumed.cleanup()
         assert not resumed.data['cleanup_complete']
-        assert 'positive_dedicated_daemon_barrier_required' in resumed.data['cleanup_errors'][0]
+        assert any('positive_dedicated_daemon_barrier_required' in e for e in resumed.data['cleanup_errors'])
 
 
 def test_successful_request_acknowledged_read_only_request_not_mutation(tmp_path, monkeypatch):

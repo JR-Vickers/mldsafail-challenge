@@ -65,7 +65,7 @@ def test_command_delegates_durable_client_receipt(tmp_path, monkeypatch):
     monkeypatch.setattr(owned_client, 'run', interrupted)
     with pytest.raises(InterruptedError):
         runner.command(['docker', 'run'], tmp_path, value)
-    assert json.loads((tmp_path / 'ownership.json').read_text())['clients'] == [{'id': 'owned', 'finished': False}]
+    assert json.loads((tmp_path / 'ownership.json').read_text())['clients'] == [{'id': 'owned', 'finished': False, 'daemon_context': None}]
 
 
 def test_execute_and_cleanup_share_exclusive_lock(tmp_path, monkeypatch):

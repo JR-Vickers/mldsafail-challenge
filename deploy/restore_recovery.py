@@ -2,6 +2,8 @@
 import argparse
 from datetime import datetime, timezone
 import json
+import os
+import re
 from pathlib import Path
 import subprocess
 import time
@@ -10,6 +12,12 @@ from deploy.recovery import execute, private_file, validate_set
 
 
 def verify(config, destination, operation=None):
+    if operation is None: raise ValueError('Durable operator ownership required for disposable restoration')
+    daemon_manifest_path = config.get('owned_daemon_manifest') or os.environ.get('MLDSAFAIL_OPERATOR_DAEMON_MANIFEST')
+    if not daemon_manifest_path: raise ValueError('Explicit dedicated disposable restoration daemon required')
+    from deploy.recovery_daemon import bind
+    bind(operation.data, daemon_manifest_path)
+    operation.save('dedicated restoration daemon verified')
     execute(config, 'restore', destination=destination, journal=operation)
     roots = list(destination.rglob('recovery.json'))
     if len(roots) != 1:
@@ -20,19 +28,25 @@ def verify(config, destination, operation=None):
     if len(dumps) != 1:
         raise ValueError('Exactly one database snapshot required')
     for key in ['postgres_image', 'coordinator_image']:
-        if not config[key].startswith('sha256:') or len(config[key]) != 71:
+        if not re.fullmatch(r'sha256:[0-9a-f]{64}', config[key]):
             raise ValueError('Immutable restore images required')
     name = 'restore-' + uuid.uuid4().hex
     identifier = None
     def command(argv, **kwargs):
         timeout = kwargs.pop('timeout', 60)
         if operation:
-            return operation.command(argv, stderr=subprocess.DEVNULL, capture_output=True,
+            return operation.command(argv, daemon_manifest_path=daemon_manifest_path, stderr=subprocess.DEVNULL, capture_output=True,
                                      check=True, timeout=timeout, **kwargs).stdout
         return subprocess.check_output(argv, stderr=subprocess.DEVNULL, timeout=timeout, **kwargs)
-    run_command = operation.command if operation else subprocess.run
+    def run_command(argv, **kwargs):
+        return operation.command(argv, daemon_manifest_path=daemon_manifest_path, **kwargs)
+    for key in ('postgres_image', 'coordinator_image'):
+        info = json.loads(command(['docker', 'image', 'inspect', config[key]]))[0]
+        permitted = {'/var/lib/postgresql/data'} if key == 'postgres_image' else set()
+        if info['Id'] != config[key] or set(info.get('Config', {}).get('Volumes') or {}) - permitted:
+            raise ValueError('Restore image identity or unaccounted image volume mismatch')
     if operation:
-        operation.container(name, config['postgres_image'])
+        operation.container(name, config['postgres_image'], daemon_manifest_path=daemon_manifest_path)
     try:
         identifier = command(['docker', 'run', '-d', '--name', name, '--network', 'none',
                     '--label', 'org.mldsafail.recovery=' + name, '--memory', '256m',
@@ -54,7 +68,7 @@ def verify(config, destination, operation=None):
         owned = []
         if operation:
             verifier = 'recovery-verifier-' + uuid.uuid4().hex
-            operation.container(verifier, config['coordinator_image'])
+            operation.container(verifier, config['coordinator_image'], daemon_manifest_path=daemon_manifest_path)
             owned = ['--name', verifier, '--label', 'org.mldsafail.recovery=' + verifier]
         result = json.loads(command(['docker', 'run', *owned, '--rm', '--network', 'container:' + identifier,
                      '--read-only', '--user', '0:0', '--cap-drop', 'ALL',

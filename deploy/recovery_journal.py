@@ -97,38 +97,57 @@ class Journal:
         if set(identifiers) != set(states):
             raise ValueError('Service identity inventory mismatch')
         self.data.update(compose=compose, services=states, service_identifiers=identifiers,
-                         cleanup_complete=False)
+                         cleanup_complete=False, service_environment={key: os.environ.get(key) for key in (
+                             'DOCKER_HOST', 'DOCKER_CONTEXT', 'MLDSAFAIL_OPERATOR_DAEMON_MANIFEST', 'MLDSAFAIL_CPU_DAEMON_MANIFEST')})
         self.save('service maintenance intent')
 
-    def container(self, name, image):
-        self.data['containers'].append(dict(name=name, image=image, label=name))
+    def container(self, name, image, daemon_manifest_path=None):
+        context = None
+        if daemon_manifest_path:
+            from deploy.recovery_daemon import bind
+            context = bind(self.data, daemon_manifest_path)
+        self.data['containers'].append(dict(name=name, image=image, label=name, daemon_context=context))
         self.data['cleanup_complete'] = False
         self.save('container creation intent')
 
     def command(self, argv, **kwargs):
         from deploy.owned_client import run
+        from deploy.recovery_daemon import bind, scope
+        from contextlib import nullcontext
+        selected = kwargs.pop('daemon_manifest_path', None)
+        context = bind(self.data, selected) if selected else None
         self.data['cleanup_complete'] = False
         mutation = None
         if (Path(argv[0]).name == 'docker' and any(token in {
                 'create', 'run', 'up', 'start', 'stop', 'restart', 'kill', 'rm',
                 'down', 'pause', 'unpause', 'update'} for token in argv[1:])):
-            # Empty inventory cannot settle a request accepted by the daemon
-            # before a lost CLI response. Retain this intent until a positive
-            # dedicated-daemon shutdown barrier can invalidate the old epoch.
             import uuid
-            mutation = {'id': uuid.uuid4().hex, 'acknowledged': False,
+            mutation = {'id': uuid.uuid4().hex, 'acknowledged': False, 'daemon_context': context,
                         'argv_sha256': hashlib.sha256(json.dumps(argv).encode()).hexdigest()}
             self.data.setdefault('daemon_mutations', []).append(mutation)
             self.save('daemon mutation intent')
-        result = run(argv, self.data.setdefault('clients', []),
-                     lambda: self.save('owned host client'), self.path.parent, **kwargs)
+        start_index = len(self.data.setdefault('clients', []))
+        def publish():
+            for entry in self.data['clients'][start_index:]:
+                entry['daemon_context'] = context
+            self.save('owned host client')
+        with scope(selected) if selected else nullcontext():
+            if selected and kwargs.get('env') is not None:
+                environment = dict(kwargs['env'])
+                for key in ('DOCKER_HOST', 'DOCKER_CONTEXT', 'MLDSAFAIL_OPERATOR_DAEMON_MANIFEST', 'MLDSAFAIL_CPU_DAEMON_MANIFEST'):
+                    value = os.environ.get(key)
+                    if value is None: environment.pop(key, None)
+                    else: environment[key] = value
+                kwargs['env'] = environment
+            result = run(argv, self.data['clients'], publish, self.path.parent, **kwargs)
         if mutation is not None and result.returncode == 0:
             mutation['acknowledged'] = True
             self.save('daemon mutation acknowledged')
         return result
 
     def cleanup(self):
-        errors = []
+        from deploy.recovery_daemon import repair, shared_scope
+        errors = [str(item) for item in repair(self.data, self.path.parent, lambda: self.save('daemon epoch repaired'))]
         from deploy.owned_client import stop
         for entry in self.data.get('clients', []):
             try:
@@ -138,35 +157,50 @@ class Journal:
                 errors.append('host_client:' + str(entry.get('id', 'invalid') if isinstance(entry, dict) else 'invalid'))
         for container in self.data['containers']:
             try:
-                result = self.command(['docker', 'container', 'ls', '-aq', '--no-trunc',
+                selected = None
+                if container.get('daemon_context'):
+                    selected = self.data['daemon_contexts'][container['daemon_context']]['manifest_path']
+                def container_command(argv, **kwargs):
+                    return self.command(argv, daemon_manifest_path=selected, **kwargs)
+                result = container_command(['docker', 'container', 'ls', '-aq', '--no-trunc',
                                          '--filter', 'name=^/' + container['name'] + '$'],
                                         capture_output=True, text=True, check=True, timeout=30)
                 identifier = result.stdout.strip()
                 if not identifier:
                     continue
-                info = json.loads(self.command(['docker', 'inspect', identifier], capture_output=True, timeout=30).stdout)[0]
+                info = json.loads(container_command(['docker', 'inspect', identifier], capture_output=True, timeout=30).stdout)[0]
                 if (info['Name'] != '/' + container['name'] or container['image'] not in {info['Image'], info['Config'].get('Image')} or
                         info['Config']['Labels'].get('org.mldsafail.recovery') != container['label']):
                     raise ValueError('Container ownership mismatch')
-                self.command(['docker', 'rm', '-f', identifier], check=True, capture_output=True, timeout=60)
+                container_command(['docker', 'rm', '-f', identifier], check=True, capture_output=True, timeout=60)
             except Exception:
                 errors.append('container:' + container['name'])
         for role, running in self.data['services'].items():
             try:
-                identifiers = self.data.setdefault('service_identifiers', {})
-                if role not in identifiers:
-                    # Persist identities for interrupted pre-upgrade journals first.
-                    identifier = self.command(self.data['compose'] + ['ps', '-aq', role],
-                                              capture_output=True, text=True, timeout=30).stdout.strip()
-                    if not identifier or len(identifier.split()) != 1:
-                        raise ValueError('Expected exactly one existing service container')
-                    identifiers[role] = identifier
-                    self.save('service identity reconciliation')
-                restore_service(identifiers[role], running, runner=self.command)
+                with shared_scope(self.data.get('service_environment', {})):
+                    identifiers = self.data.setdefault('service_identifiers', {})
+                    if role not in identifiers:
+                        # Persist identities for interrupted pre-upgrade journals first.
+                        identifier = self.command(self.data['compose'] + ['ps', '-aq', role],
+                                                  capture_output=True, text=True, timeout=30).stdout.strip()
+                        if not identifier or len(identifier.split()) != 1:
+                            raise ValueError('Expected exactly one existing service container')
+                        identifiers[role] = identifier
+                        self.save('service identity reconciliation')
+                    restore_service(identifiers[role], running, runner=self.command)
             except Exception:
                 errors.append('service:' + role)
-        if any(item.get('acknowledged') is not True for item in self.data.get('daemon_mutations', [])):
+        if any(item.get('acknowledged') is not True and not item.get('resolved_by_barrier') for item in self.data.get('daemon_mutations', [])):
             errors.append('daemon_mutation_uncertainty:positive_dedicated_daemon_barrier_required')
+        import uuid
+        receipt_name = uuid.uuid4().hex + '-cleanup.json'
+        try:
+            atomic_json(self.path.parent / receipt_name, {'schema': 'mldsafail.recovery-cleanup.v1',
+                'configuration': self.identity, 'run_id': self.data.get('run_id'),
+                'cleanup_complete': not errors, 'errors': list(errors)})
+            self.data['latest_cleanup_receipt'] = receipt_name
+        except Exception as error:
+            errors.append('cleanup_receipt_publication:' + type(error).__name__)
         self.data.update(cleanup_errors=errors, cleanup_complete=not errors)
         self.save('cleanup')
         if errors:

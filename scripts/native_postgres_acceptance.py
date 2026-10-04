@@ -20,17 +20,31 @@ LABEL = 'org.mldsafail.native-postgres'
 
 def command(argv, output, receipt, timeout=90, env=None, log=None):
     from deploy.owned_client import run
+    from deploy.recovery_daemon import bind, scope
+    from contextlib import nullcontext
+    selected = receipt.get('owned_daemon_manifest_path')
+    context = bind(receipt, selected) if selected else None
     mutation = None
     if Path(argv[0]).name == 'docker' and any(token in {'create', 'run', 'start', 'stop', 'rm'} for token in argv[1:]):
-        mutation = {'id': uuid.uuid4().hex, 'acknowledged': False,
+        mutation = {'id': uuid.uuid4().hex, 'acknowledged': False, 'daemon_context': context,
                     'argv_sha256': hashlib.sha256(json.dumps(argv).encode()).hexdigest()}
         receipt.setdefault('daemon_mutations', []).append(mutation)
         receipt['cleanup_complete'] = False
         atomic_json(output / 'ownership.json', receipt)
-    result = run(argv, receipt.setdefault('clients', []),
-                 lambda: atomic_json(output / 'ownership.json', receipt), output,
-                 timeout=timeout, env=env, stdout=log,
-                 stderr=subprocess.STDOUT if log else None, text=True)
+    start_index = len(receipt.setdefault('clients', []))
+    def publish():
+        for entry in receipt['clients'][start_index:]: entry['daemon_context'] = context
+        atomic_json(output / 'ownership.json', receipt)
+    with scope(selected) if selected else nullcontext():
+        if selected and env is not None:
+            env = dict(env)
+            for key in ('DOCKER_HOST', 'DOCKER_CONTEXT', 'MLDSAFAIL_OPERATOR_DAEMON_MANIFEST', 'MLDSAFAIL_CPU_DAEMON_MANIFEST'):
+                value = os.environ.get(key)
+                if value is None: env.pop(key, None)
+                else: env[key] = value
+        result = run(argv, receipt['clients'], publish, output,
+                     timeout=timeout, env=env, stdout=log,
+                     stderr=subprocess.STDOUT if log else None, text=True)
     if mutation is not None and result.returncode == 0:
         mutation['acknowledged'] = True
         atomic_json(output / 'ownership.json', receipt)
@@ -48,7 +62,8 @@ def cleanup(output, receipt):
         raise ValueError('Invalid disposable ownership receipt')
     if not re.fullmatch(r'sha256:[0-9a-f]{64}', receipt.get('database_image', '')):
         raise ValueError('Invalid disposable image identity')
-    errors = []
+    from deploy.recovery_daemon import repair
+    errors = repair(receipt, output, lambda: atomic_json(output / 'ownership.json', receipt))
     receipt.update(phase='cleanup', cleanup_complete=False)
     try:
         atomic_json(output / 'ownership.json', receipt)
@@ -86,7 +101,7 @@ def cleanup(output, receipt):
             time.sleep(.5)
     except Exception as error:
         errors.append({'step': 'final_inventory', 'error_type': type(error).__name__})
-    if any(item.get('acknowledged') is not True for item in receipt.get('daemon_mutations', [])):
+    if any(item.get('acknowledged') is not True and not item.get('resolved_by_barrier') for item in receipt.get('daemon_mutations', [])):
         errors.append({'step': 'daemon_mutation_uncertainty', 'required': 'positive_dedicated_daemon_barrier'})
     receipt.update(cleanup_complete=not errors, cleanup_errors=errors,
                    phase='complete' if not errors else 'cleanup_incomplete')
@@ -141,6 +156,12 @@ def execute(image, output, cleanup_only):
     receipt = dict(schema_version=1, run_id=identity, name='launch-postgres-' + identity,
                    database_image=image, source_commit=commit, phase='creation_intent',
                    cleanup_complete=False, clients=[])
+    selected = os.environ.get('MLDSAFAIL_OPERATOR_DAEMON_MANIFEST')
+    if not selected:
+        raise ValueError('Explicit dedicated disposable PostgreSQL daemon manifest required')
+    receipt['owned_daemon_manifest_path'] = selected
+    from deploy.recovery_daemon import bind
+    bind(receipt, selected)
     atomic_json(output / 'ownership.json', receipt)
     database = 'mldsafail_acceptance_' + identity
     password = uuid.uuid4().hex
