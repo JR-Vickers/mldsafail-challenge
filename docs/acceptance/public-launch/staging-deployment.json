@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "run_id": "launch-prepare-fd4be66-20261004",
+  "release": "fd4be66575ae6dbef9785321a79a687f418df0b8",
+  "rollback": "b4d212da3109b7716eb41553986848e377fb5b3d",
+  "compatible_application_deployment": true,
+  "queue_repaired_idempotently": true,
+  "backup_disposable_restore_verified": true,
+  "immutable_state_preserved": true,
+  "epoch_compatibility": true,
+  "cleanup_verified": true,
+  "live_database_restored": false,
+  "raw_evidence": "Protected VPS acceptance directory keyed by run_id",
+  "expired_token_ui": "pending separate native image verification",
+  "seven_scenarios": "running separately",
+  "public_launch": false
+}

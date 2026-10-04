@@ -69,3 +69,15 @@ def test_blockers_and_readiness():
     data['tasks'][0]['status'] = 'blocked_external'
     assert any('external blocker' in error for error in ledger.validate(data))
     assert ledger.readiness(data)['tasks'][1]['status'] == 'waiting_dependency'
+
+
+def test_pass_rejects_missing_or_failed_json_pointer(tmp_path):
+    import json
+    (tmp_path / 'docs').mkdir()
+    (tmp_path / 'docs/evidence.json').write_text(json.dumps({'gate': {'status': 'failed'}}))
+    data = report()
+    evidence = data['tasks'][0]['evidence'][0]
+    evidence['reference'] = 'docs/evidence.json#/gate'
+    assert any('does not pass' in error for error in ledger.validate(data, tmp_path))
+    evidence['reference'] = 'docs/evidence.json#/missing'
+    assert any('JSON pointer' in error for error in ledger.validate(data, tmp_path))

@@ -59,6 +59,19 @@ def validate(report, root=None, require_complete_mapping=False):
                     path = evidence['reference'].split('#', 1)[0]
                     if not (root / path).is_file():
                         errors.append(f'{name}: evidence file absent')
+                    elif '#' in evidence['reference']:
+                        try:
+                            value = json.loads((root / path).read_text())
+                            pointer = evidence['reference'].split('#', 1)[1]
+                            for part in pointer.split('/')[1:]:
+                                part = part.replace('~1', '/').replace('~0', '~')
+                                value = value[int(part)] if isinstance(value, list) else value[part]
+                            disposition = value.get('status') if isinstance(value, dict) else value
+                            if disposition is False or (isinstance(disposition, str) and
+                                    disposition.split(';', 1)[0].strip() in {'fail', 'failed', 'pending'}):
+                                errors.append(f'{name}: cited evidence does not pass')
+                        except (ValueError, KeyError, IndexError, TypeError):
+                            errors.append(f'{name}: unresolved evidence JSON pointer')
             satisfied = {criterion for item in task.get('evidence', []) if isinstance(item, dict)
                          for criterion in item.get('criteria_met', [])}
             if satisfied != set(task.get('criteria', [])):
