@@ -1223,7 +1223,7 @@
       "criteria": [
         "Establish exclusive host-supervised native delegation"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "source_commit": "e24b1c3db88d3307a1a2f1f78185c3fb8d1cc136",
@@ -1231,9 +1231,16 @@
           "evidence": "docs/acceptance/public-launch/native-isolated-startup-report.json"
         }
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/native-cpu-generation-f.json#/delegation_passed",
+          "criteria_met": [
+            "Establish exclusive host-supervised native delegation"
+          ]
+        }
+      ],
       "identities": {},
-      "next_action": "Run fresh source-bound isolated driver with actual CPU delegation proven before daemon/image admission; retain earlier failure",
+      "next_action": "Complete separately tracked full fault suite and paired measurement gates",
       "checklist": []
     },
     {
@@ -1249,11 +1256,17 @@
       "criteria": [
         "Complete native accounting faults including ownership loss before client exec release and after input delivery, descendants, stream caps, counter/delegation/contamination failures and independently retryable cleanup"
       ],
-      "status": "waiting_dependency",
-      "attempts": [],
+      "status": "failed",
+      "attempts": [
+        {
+          "source_commit": "60ce7e8f2be8f94d3b2b7647d4cf6a6af8c7f2da",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-f.json",
+          "result": "Partial native faults passed; declared mutation injection not reached; no performance pairs ran; cleanup verified"
+        }
+      ],
       "evidence": [],
       "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "next_action": "Run reviewed bounded real-health-prelude repair on fresh retained source; preserve partial failure",
       "checklist": []
     },
     {
@@ -2804,11 +2817,16 @@
           "source_commit": "cc1f09a61e4fca26b64104ada8b25c7ca47db35a",
           "evidence": "docs/acceptance/public-launch/accounting-native-provisioning-failure.json",
           "result": "No measurement ran; startup contract repairs required; all actual owned processes and cgroup resources reconciled"
+        },
+        {
+          "source_commit": "60ce7e8f2be8f94d3b2b7647d4cf6a6af8c7f2da",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-f.json",
+          "result": "Actual lost-create probe failed before mutation; whole owned cleanup verified"
         }
       ],
       "evidence": [],
       "identities": {},
-      "next_action": "Complete startup corrective child and journal cleanup before new isolated native fault suite; preserve both failed generations",
+      "next_action": "Execute exact reviewed health-prelude repair in new isolated native generation",
       "checklist": []
     },
     {
