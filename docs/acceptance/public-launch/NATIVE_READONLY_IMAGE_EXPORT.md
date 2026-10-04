@@ -1,0 +1,9 @@
+# Private read-only native image export
+
+Run `python -m scripts.native_image_export --config PRIVATE_JSON --output NEW_PRIVATE_DIRECTORY` inside a delegated owned operator unit. This requests only `docker image inspect` and `docker image save` from the explicitly selected local user daemon. It never creates, deletes, stops, or starts daemon resources. The existing staging daemon may be read for this narrowly scoped operation.
+
+The private configuration has exactly these fields: `schema` (`mldsafail.native-image-export.v1`), `source_commit` (clean retained full Git commit), `script_sha256`, `docker_host` (explicit owned Unix socket), `expected_architecture` (`amd64` or `arm64`), `images` (unique full `sha256:` image IDs), and `minimum_free_bytes` (the existing predeclared host resource floor). The operator environment must supply the independently verified `MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT`. No tags or arbitrary Docker arguments are accepted.
+
+Each image requires the existing free-space floor plus twice its reported native size and 1 MiB of headroom. The new directory is private. `journal.json` retains native image inspections, gated client ownership, failed/partial artifacts, and final outcomes. Completed archives are inode-bound, hashed, fsynced, and sealed mode 0400. Raw inspections can include private image configuration; keep the entire directory private. Native frozen-source provenance and independent review must be supplied separately; an export does not establish benchmark acceptance or approve publication.
+
+Retry cleanup with `python -m scripts.native_image_export --output OWNED_DIRECTORY --cleanup`. Cleanup uses the same exclusive lock, independently cancels every unfinished exact owned client, retains partial archives, and checks integrity before retaining a previous successful outcome. Cleanup never promotes an interrupted export. Preserve failed evidence and select a new output directory for a new export attempt.
