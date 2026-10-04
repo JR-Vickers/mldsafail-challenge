@@ -77,6 +77,11 @@ def test_rehearsal_lock_fences_concurrent_cleanup(tmp_path, monkeypatch):
     descriptor = os.open(lock, os.O_CREAT | os.O_RDWR, 0o600)
     try:
         fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        root.mkdir(mode=0o700)
+        journal = root / 'journal.json'
+        journal.write_text(json.dumps({'run_id': 'a' * 32, 'owner_uid': os.getuid(), 'docker_socket': '/run/user/' + str(os.getuid()) + '/docker.sock'}))
+        journal.chmod(0o600)
+        value['docker_socket'] = '/run/user/' + str(os.getuid()) + '/docker.sock'
         monkeypatch.setattr('scripts.baseline_production_rehearsal._execute_locked',
                             lambda *_: pytest.fail('concurrent cleanup reached execution'))
         with pytest.raises(BlockingIOError):
@@ -118,3 +123,16 @@ def test_protected_roots_and_readiness_timeout_are_enforced(tmp_path, monkeypatc
     with pytest.raises(RuntimeError, match='readiness timeout'):
         wait_database(['docker', 'compose'], {}, evidence.append)
     assert evidence == [{'outcome': 'timeout', 'timeout_seconds_maximum': 10}]
+
+
+def test_cleanup_does_not_require_source_or_release_manifests(tmp_path):
+    from scripts.baseline_production_rehearsal import cleanup_authority
+    root = tmp_path / 'owned'
+    root.mkdir(mode=0o700)
+    socket = '/run/user/' + str(os.getuid()) + '/docker.sock'
+    journal = root / 'journal.json'
+    journal.write_text(json.dumps({'run_id': 'a' * 32, 'owner_uid': os.getuid(), 'docker_socket': socket}))
+    journal.chmod(0o600)
+    assert cleanup_authority({'run_directory': str(root), 'docker_socket': socket}) == root
+    with pytest.raises(ValueError, match='binding'):
+        cleanup_authority({'run_directory': str(root), 'docker_socket': '/run/user/999999/docker.sock'})

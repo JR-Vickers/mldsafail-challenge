@@ -134,3 +134,23 @@ as well as the configured staging evaluator root. Supply additional absolute
 `protected_roots` for any host-specific deployment, secret or evidence locations.
 Database readiness has a 120-second overall deadline and at most ten seconds per
 Docker invocation; failed and timed-out attempts are durably recorded.
+
+Independent baseline cleanup needs only `run_directory` and `docker_socket` in
+its private configuration: private durable journal UID/socket/run identity is
+authority under the same exclusive run lock. Missing or damaged optional source
+and release manifests are recorded and do not block cleanup. Never edit ownership
+fields to force cleanup; an invalid ownership journal requires operator review.
+
+For public frozen-worker reproducibility use the exact clean source's
+`scripts/mlwe_reproduce.py` with three immutable amd64 image IDs, a new private
+`--output` root, and explicit current-user rootless `DOCKER_HOST`. Its protocol
+remains all twelve public profile/eta/seed fixtures, each of three solvers, across
+both clean builds and the historical frozen worker; normalized outputs and
+artifact inventories must match. Each invocation durably records labeled/named
+creation intent before creating a container, retains request and partial output,
+and uses a 65-second limit. Timeout/SIGKILL leaves a retryable ownership journal.
+Run `python -m scripts.mlwe_reproduce --output OWNED_ROOT --cleanup` under the same
+socket environment to reconcile owned resources without source/release manifests.
+A result passes only with matching outputs/artifacts **and** journal cleanup
+complete with zero remaining owned containers. Native execution remains pending;
+this runner cannot establish public-safe accounting or approved 0.6.0 adoption.

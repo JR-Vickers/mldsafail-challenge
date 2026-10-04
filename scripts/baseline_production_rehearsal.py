@@ -154,8 +154,24 @@ def cleanup(root, env):
     return not errors
 
 
+def cleanup_authority(config):
+    root = safe_path(config['run_directory'])
+    if root.stat().st_uid != os.getuid() or root.stat().st_mode & 0o077:
+        raise ValueError('Private owned cleanup root required')
+    path = safe_path(root / 'journal.json')
+    if path.stat().st_uid != os.getuid() or path.stat().st_mode & 0o077:
+        raise ValueError('Private owned cleanup journal required')
+    journal = json.loads(path.read_text())
+    socket = journal.get('docker_socket', '')
+    if (not re.fullmatch(r'/run/user/' + str(os.getuid()) + r'/docker.sock', socket)
+            or config['docker_socket'] != socket or journal.get('owner_uid') != os.getuid()
+            or not re.fullmatch(r'[a-f0-9]{32}', journal.get('run_id', ''))):
+        raise ValueError('Durable cleanup ownership/socket binding mismatch')
+    return root
+
+
 def execute(config, cleanup_only=False):
-    root, _ = validate(config)
+    root = cleanup_authority(config) if cleanup_only else validate(config)[0]
     root.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     lock_path = root.with_name('.' + root.name + '-run.lock')
     descriptor = os.open(lock_path, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
@@ -167,17 +183,29 @@ def execute(config, cleanup_only=False):
 
 
 def _execute_locked(config, cleanup_only=False):
-    root, source = validate(config)
+    root, source = (cleanup_authority(config), None) if cleanup_only else validate(config)
     env = {**os.environ, 'DOCKER_HOST': 'unix://' + config['docker_socket'],
            'XDG_RUNTIME_DIR': str(Path(config['docker_socket']).parent)}
     if cleanup_only:
-        return {'cleanup_complete': cleanup(root, env)}
+        journal = json.loads((root / 'journal.json').read_text())
+        errors = []
+        for field in ('source_manifest', 'release_manifest', 'rollback_manifest'):
+            if field in config:
+                try:
+                    json.loads(safe_path(config[field]).read_text())
+                except Exception as error:
+                    errors.append({'artifact_role': field, 'error_type': type(error).__name__})
+        journal['cleanup_unrelated_evidence_errors'] = errors
+        atomic_json(root / 'journal.json', journal)
+        return {'cleanup_complete': cleanup(root, env), 'unrelated_evidence_errors': errors}
     if root.exists():
         raise ValueError('Rehearsal directory must be new; reconcile existing run instead')
     root.mkdir(mode=0o700, parents=True)
     run_id = uuid.uuid4().hex
     project = 'mldsafail-rehearsal-' + run_id
-    journal = dict(run_id=run_id, project=project, cleanup_complete=False, state='prepared')
+    journal = dict(run_id=run_id, project=project, cleanup_complete=False, state='prepared',
+                   docker_socket=config['docker_socket'], owner_uid=os.getuid(),
+                   source_commit=json.loads(Path(config['source_manifest']).read_text())['source_commit'])
     atomic_json(root / 'journal.json', journal)
     report = dict(scope='disposable frozen-0.5.0 baseline only', benchmark_version='0.5.0',
                   production_activation=False, public_exposure=False, complete=False, stages=[])
