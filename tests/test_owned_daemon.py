@@ -53,7 +53,7 @@ def test_barrier_kills_entire_registered_worker_parent_and_preserves_identity_fa
     assert any(item['step']=='dedicated_worker_domain_stop' for item in result['errors'])
 
 
-def test_wrong_unit_epoch_prevents_daemon_kill_but_worker_cleanup_is_independent(tmp_path,monkeypatch):
+def test_wrong_unit_epoch_prohibits_daemon_and_worker_control(tmp_path,monkeypatch):
     manifest=fixture_manifest(tmp_path,monkeypatch)
     monkeypatch.setattr(owned_daemon,'_unit',lambda unit:{'ActiveState':'active','MainPID':'456',
                     'domain_path':manifest['domain']['path'],'unit_fragment_sha256':'b'*64})
@@ -61,7 +61,7 @@ def test_wrong_unit_epoch_prevents_daemon_kill_but_worker_cleanup_is_independent
     monkeypatch.setattr(owned_client,'stop',lambda entry:killed.append(entry))
     receipt=owned_daemon.shutdown_barrier(manifest,evidence_directory=tmp_path,attempt_id='attempt')
     assert not receipt['shutdown_proven'] and killed==[]
-    assert (tmp_path/'worker/cgroup.kill').read_text()=='1'
+    assert (tmp_path/'worker/cgroup.kill').read_text()==''
 
 
 def test_restart_rejects_unproved_shutdown_before_any_start(tmp_path,monkeypatch):
@@ -69,3 +69,34 @@ def test_restart_rejects_unproved_shutdown_before_any_start(tmp_path,monkeypatch
     with pytest.raises(RuntimeError,match='Positive exact'):
         owned_daemon.restart_and_refresh(manifest,{'shutdown_proven':False},manifest_path=tmp_path/'manifest',
                 evidence_directory=tmp_path,attempt_id='attempt')
+
+
+def test_arbitrary_worker_slice_rejected_before_native_identity():
+    with pytest.raises(RuntimeError,match='birth identity'):
+        owned_daemon._worker_binding(dict(unit='mldsafail-owned-daemon-test.service',id='a'*32),{'path':'/sys/fs/cgroup/staging.slice'},'staging.slice')
+
+
+def test_worker_birth_rejects_arbitrary_slice(tmp_path):
+    with pytest.raises(RuntimeError,match='nonce-named'):
+        owned_daemon.bind_worker(dict(unit='mldsafail-owned-daemon-test.service',id='a'*32),worker_parent=tmp_path/'staging.slice',worker_cgroup_parent='staging.slice',operator_parent=tmp_path/'operator',protected_domains=[])
+
+
+def test_worker_birth_is_durable_empty_and_disjoint(tmp_path,monkeypatch):
+    monkeypatch.setattr(owned_client,'boot_id',lambda:'boot')
+    tmp_path.chmod(0o700)
+    provisioning=owned_daemon.provision(tmp_path/'fresh',unit='mldsafail-owned-daemon-test.service',protected_roots=[tmp_path/'staging'])
+    worker=tmp_path/('mldsafail-owned-workers-'+provisioning['id']+'.slice');worker.mkdir()
+    operator=tmp_path/'operator';operator.mkdir()
+    monkeypatch.setattr(owned_client,'prepare_domain',lambda *args:None)
+    monkeypatch.setattr(owned_client,'populated',lambda path:True)
+    with pytest.raises(RuntimeError,match='empty'):
+        owned_daemon.bind_worker(provisioning,worker_parent=worker,worker_cgroup_parent=worker.name,operator_parent=operator,protected_domains=[])
+    monkeypatch.setattr(owned_client,'populated',lambda path:False)
+    with pytest.raises(RuntimeError,match='disjoint'):
+        owned_daemon.bind_worker(provisioning,worker_parent=worker,worker_cgroup_parent=worker.name,operator_parent=operator,protected_domains=[worker])
+    receipt=owned_daemon.bind_worker(provisioning,worker_parent=worker,worker_cgroup_parent=worker.name,operator_parent=operator,protected_domains=[])
+    assert receipt['worker_birth']==owned_client.domain_identity(worker)
+    monkeypatch.setenv('MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT',str(operator))
+    owned_daemon._worker_binding(receipt,receipt['worker_birth'],worker.name)
+    with pytest.raises(RuntimeError,match='disjoint'):
+        owned_daemon._worker_binding(receipt,receipt['worker_birth'],worker.name,receipt['operator_domain'])

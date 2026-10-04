@@ -78,6 +78,39 @@ def provision(base, *, unit, protected_roots):
     return receipt
 
 
+def bind_worker(provisioning, *, worker_parent, worker_cgroup_parent, operator_parent, protected_domains):
+    """Durably bind a fresh empty nonce-named parent before daemon mutations."""
+    expected='mldsafail-'+provisioning['unit'].split('-')[1]+'-workers-'+provisioning['id']+'.slice'
+    if worker_cgroup_parent!=expected or Path(worker_parent).name!=expected:
+        raise RuntimeError('Fresh nonce-named dedicated worker slice required')
+    if 'worker_birth' in provisioning: raise RuntimeError('Worker birth already bound')
+    paths=[_canonical(worker_parent),_canonical(operator_parent)]
+    protected=[_canonical(path) for path in protected_domains]
+    _disjoint(paths,protected)
+    for path in paths: owned_client.prepare_domain({'id':uuid.uuid4().hex},path)
+    if owned_client.populated(paths[0]): raise RuntimeError('Fresh worker parent must be empty')
+    receipt=dict(provisioning,worker_birth=owned_client.domain_identity(paths[0]),operator_domain=owned_client.domain_identity(paths[1]),worker_cgroup_parent=expected,protected_domains=[str(path) for path in protected])
+    publish(Path(provisioning['base']['path'])/'provision.json',receipt)
+    return receipt
+
+
+def _disjoint(paths,protected):
+    if any(a==b or a in b.parents or b in a.parents for index,a in enumerate(paths) for b in paths[index+1:]) or any(a==b or a in b.parents or b in a.parents for a in paths for b in protected):
+        raise RuntimeError('Daemon/operator/worker/protected domains must be disjoint')
+
+
+def _worker_binding(provisioning,worker_domain,worker_cgroup_parent,daemon_domain=None):
+    expected='mldsafail-'+provisioning['unit'].split('-')[1]+'-workers-'+provisioning['id']+'.slice'
+    if worker_cgroup_parent!=expected or Path(worker_domain['path']).name!=expected or provisioning.get('worker_birth')!=worker_domain:
+        raise RuntimeError('Fresh dedicated worker birth identity required')
+    operator=provisioning.get('operator_domain')
+    if not operator or owned_client.domain_identity(operator['path'])!=operator or os.environ.get('MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT')!=operator['path']:
+        raise RuntimeError('Exact provisioned operator domain required')
+    paths=[Path(worker_domain['path']),Path(operator['path'])]
+    if daemon_domain is not None: paths.append(Path(daemon_domain['path']))
+    _disjoint(paths,[Path(path) for path in provisioning['protected_domains']])
+
+
 def _provisioning(value, unit, roots):
     if not isinstance(value,dict) or value.get('schema')!='mldsafail.owned-daemon-provision.v1' or value.get('unit')!=unit:
         raise RuntimeError('Fresh dedicated daemon provisioning receipt required')
@@ -159,12 +192,12 @@ def register(*, unit, socket, root_dir, exec_root, rootless_state, manifest_path
     worker_domain=owned_client.domain_identity(worker_parent)
     if worker_domain['uid']!=os.getuid() or worker_domain['mode'] & 0o022 or (Path(worker_parent)/'cgroup.type').read_text().strip()!='domain':
         raise RuntimeError('Exclusive owned worker domain required')
-    if not isinstance(worker_cgroup_parent,str) or Path(worker_parent).name!=worker_cgroup_parent or not worker_cgroup_parent.endswith('.slice'):
-        raise RuntimeError('Explicit isolated systemd worker slice required')
+    _worker_binding(provisioning,worker_domain,worker_cgroup_parent)
     _endpoint(socket)
     state=_unit(unit)
     if state['ActiveState']!='active': raise RuntimeError('Dedicated daemon unit is not active')
     domain=owned_client.domain_identity(state['domain_path'])
+    _worker_binding(provisioning,worker_domain,worker_cgroup_parent,domain)
     daemon_process=_daemon_process(domain['path'],expected_executable_sha256)
     argv=(Path('/proc')/str(daemon_process['pid'])/'cmdline').read_bytes().split(b'\0')
     arguments=[os.fsdecode(value) for value in argv if value]
@@ -228,6 +261,7 @@ def verify_environment(manifest, *, measurement_parent=None, docker_info=None):
     if _hash_executable(manifest['daemon_process']['pid'])!=manifest['daemon_executable_sha256']:
         raise RuntimeError('Dedicated daemon executable identity changed')
     _provisioning(manifest['provisioning'],manifest['unit'],manifest['roots'])
+    _worker_binding(manifest['provisioning'],manifest['worker_domain'],manifest['worker_cgroup_parent'],manifest['domain'])
     for name,value in manifest['roots'].items():
         if _private_directory(value['path'])!=value: raise RuntimeError('Dedicated daemon root identity changed')
     owned_client.prepare_domain({'id':uuid.uuid4().hex},manifest['worker_domain']['path'])
@@ -276,6 +310,7 @@ def shutdown_barrier(manifest, *, worker_domains=(), evidence_directory, attempt
     # and explicit operator overrides, so the complete parent is mandatory.
     for domain in [manifest['worker_domain']]:
         try:
+            if not control_safe: raise RuntimeError('Old daemon epoch authority not proved; worker control prohibited')
             path=owned_client.verify_domain({'cgroup':domain})
             if path is not None:
                 (path/'cgroup.kill').write_text('1')
