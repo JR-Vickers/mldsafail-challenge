@@ -135,3 +135,15 @@ def test_terminal_environment_restores_prior_aliases_on_success_and_failure(tmp_
             native_driver.cleanup_state(tmp_path/'state',controller_config={},repository=tmp_path)
     else:assert native_driver.cleanup_state(tmp_path/'state',controller_config={},repository=tmp_path)['cleanup_complete']
     assert all(os.environ[name]=='prior-'+name for name in names)
+
+
+def test_worker_cpu_admission_rejects_missing_controller_before_measurement(tmp_path):
+    tmp_path.chmod(0o700)
+    (tmp_path/'cgroup.type').write_text('domain')
+    (tmp_path/'cgroup.controllers').write_text('memory pids')
+    (tmp_path/'cpu.stat').write_text('usage_usec 0\n')
+    with pytest.raises(RuntimeError,match='delegation'):native_driver.validate_worker_admission(tmp_path)
+    (tmp_path/'cgroup.controllers').write_text('cpu memory pids')
+    native_driver.validate_worker_admission(tmp_path)
+    (tmp_path/'cpu.stat').write_text('usage_usec -1\n')
+    with pytest.raises(RuntimeError,match='counter'):native_driver.validate_worker_admission(tmp_path)

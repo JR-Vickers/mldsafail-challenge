@@ -231,6 +231,15 @@ def cleanup(journal,*,terminal=False):
     return receipt
 
 
+def validate_worker_admission(parent):
+    """Read-only kernel CPU availability before daemon/image admission."""
+    from research.cpu_measurement.harness import validate_delegation,fields
+    validate_delegation(parent)
+    counters=fields(parent/'cpu.stat')
+    if 'usage_usec' not in counters or counters['usage_usec']<0:
+        raise RuntimeError('Authoritative CPU usage counter missing before daemon admission')
+
+
 def execute(config,repository,*,acceptance=None,daemon_kind='cpu'):
     if daemon_kind not in {'cpu','owned'} or (daemon_kind=='owned' and acceptance is None):
         raise ValueError('Explicit reviewed dedicated daemon purpose required')
@@ -262,7 +271,7 @@ def execute(config,repository,*,acceptance=None,daemon_kind='cpu'):
             if info.st_uid!=os.getuid() or info.st_mode & 0o022 or directory.is_symlink(): raise RuntimeError('Owner-controlled systemd configuration ancestors required')
         data.update(daemon_unit=unit,worker_slice=worker,socket=str(root/'daemon/docker.sock'),manifest_path=str(root/'daemon-manifest.json'),provisioning=provision)
         journal.save()
-        data['units'].append(install(units/worker,'[Unit]\nDescription=Fresh isolated MLDSA accounting parent\n[Slice]\nCPUAccounting=yes\nMemoryAccounting=yes\n'))
+        data['units'].append(install(units/worker,'[Unit]\nDescription=Fresh isolated MLDSA accounting parent\n[Slice]\nCPUAccounting=yes\nCPUWeight=100\nMemoryAccounting=yes\n'))
         journal.save();journal.command(['systemctl','--user','daemon-reload'],kind='unit_reload')
         data['worker_start_intent']=True;journal.save()
         journal.command(['systemctl','--user','start',worker],kind='worker_start')
@@ -274,6 +283,8 @@ def execute(config,repository,*,acceptance=None,daemon_kind='cpu'):
         secured=dict(id='fresh-worker-'+data['id'])
         owned_client.secure_created_domain(secured,parent)
         data['worker_secured_birth']=secured['cgroup'];journal.save()
+        validate_worker_admission(parent)
+        data['worker_cpu_delegation_verified']=True;journal.save()
         provision=owned_daemon.bind_worker(provision,worker_parent=parent,worker_cgroup_parent=worker,
                 operator_parent=config['operator_parent'],protected_domains=config['protected_cgroups'])
         data['provisioning']=provision;journal.save()
