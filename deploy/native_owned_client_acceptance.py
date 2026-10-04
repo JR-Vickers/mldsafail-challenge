@@ -81,7 +81,7 @@ class Fixture:
         return self.poll()
 
 
-def cleanup(output):
+def _cleanup_locked(output):
     output = safe_path(output)
     if output.stat().st_uid != os.getuid() or output.stat().st_mode & 0o077:
         raise RuntimeError('Private owner-held evidence directory required')
@@ -107,7 +107,7 @@ def cleanup(output):
     return {'cleanup_complete': True}
 
 
-def execute(output):
+def _execute_locked(output):
     if sys.platform != 'linux':
         raise RuntimeError('Native Linux required')
     if output.exists() or output.resolve() != output:
@@ -200,6 +200,17 @@ def execute(output):
     report['passed'] = True
     atomic_json(output / 'report.json', report)
     return report
+
+
+def execute(output):
+    if sys.platform != 'linux': raise RuntimeError('Native Linux required')
+    from deploy.native_synthetic_s3 import run_lock
+    with run_lock(output): return _execute_locked(output)
+
+
+def cleanup(output):
+    from deploy.native_synthetic_s3 import run_lock
+    with run_lock(output): return _cleanup_locked(output)
 
 
 if __name__ == '__main__':
