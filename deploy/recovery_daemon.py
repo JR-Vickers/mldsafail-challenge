@@ -5,6 +5,9 @@ Callers serialize their complete operation and retain failed private evidence.
 """
 from contextlib import contextmanager
 import os
+import fcntl
+import stat
+from functools import wraps
 from pathlib import Path
 import threading
 import uuid
@@ -12,6 +15,54 @@ from deploy import owned_client, owned_daemon
 
 _ENVIRONMENT = ('DOCKER_HOST', 'DOCKER_CONTEXT', 'MLDSAFAIL_OPERATOR_DAEMON_MANIFEST', 'MLDSAFAIL_CPU_DAEMON_MANIFEST')
 _CONTEXT_LOCK = threading.RLock()
+
+
+@contextmanager
+def operation_lock(path):
+    """Serialize complete consumers sharing one provisioned daemon, across processes."""
+    if path is None:
+        yield
+        return
+    manifest = owned_daemon.load_manifest(path)
+    base_identity = manifest['provisioning']['base']
+    base = Path(base_identity['path'])
+    if owned_daemon._private_directory(base) != base_identity:
+        raise ValueError('Dedicated daemon provisioning root changed')
+    # A whole-operation process-local lock also prevents environment races. Nested
+    # verification/cleanup reuse the already-held flock without releasing it.
+    with _CONTEXT_LOCK:
+        active = getattr(operation_lock, '_active', {})
+        key = (os.getpid(), str(base))
+        if key in active:
+            yield
+            return
+        descriptor = os.open(base / 'operator.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+        try:
+            info = os.fstat(descriptor)
+            if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or
+                    info.st_mode & 0o077 or info.st_nlink != 1):
+                raise ValueError('Private exclusive daemon operator lock required')
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            if owned_daemon._private_directory(base) != base_identity:
+                raise ValueError('Dedicated daemon provisioning root changed during locking')
+            active[key] = descriptor
+            operation_lock._active = active
+            try:
+                yield
+            finally:
+                del active[key]
+        finally:
+            os.close(descriptor)
+
+
+def locked_config_operation(function):
+    @wraps(function)
+    def wrapped(config, *args, **kwargs):
+        backup = config.get('backup', config)
+        selected = backup.get('owned_daemon_manifest') or os.environ.get('MLDSAFAIL_OPERATOR_DAEMON_MANIFEST')
+        with operation_lock(selected):
+            return function(config, *args, **kwargs)
+    return wrapped
 
 
 @contextmanager
@@ -57,6 +108,14 @@ def repair(record, directory, publish):
     """Prove old epoch dead before creator cancellation/restart; retain uncertainty."""
     errors = []
     pending = {}
+    corruption = record.get('corrupt_fields', {})
+    if (not isinstance(corruption, dict) or 'invalid_corrupt_fields' in record or
+            any(field in corruption for field in ('clients', 'daemon_mutations'))):
+        return [{'step': 'retained_corrupt_creator_authority', 'required': 'manual_creator_authority_reconciliation'}]
+    for field in ('daemon_mutations', 'clients'):
+        value = record.get(field, [])
+        if not isinstance(value, list) or any(not isinstance(item, dict) for item in value):
+            return [{'step': 'corrupt_' + field, 'required': 'manual_creator_authority_reconciliation'}]
     for mutation in record.get('daemon_mutations', []):
         if mutation.get('acknowledged') is True or mutation.get('resolved_by_barrier'):
             continue
@@ -125,3 +184,19 @@ def shared_scope(environment):
             for key, value in original.items():
                 if value is None: os.environ.pop(key, None)
                 else: os.environ[key] = value
+
+
+def cleanup_entries(record, field, errors):
+    """Retain corruption, use a fresh safe registry, and keep cleanup fenced."""
+    value = record.get(field, [])
+    if isinstance(value, list) and all(isinstance(item, dict) for item in value):
+        return value
+    errors.append({'step': 'corrupt_' + field, 'required': 'manual_authority_reconciliation'})
+    corruption = record.setdefault('corrupt_fields', {})
+    if not isinstance(corruption, dict):
+        record.setdefault('invalid_corrupt_fields', corruption)
+        corruption = record['corrupt_fields'] = {}
+    corruption.setdefault(field, value)
+    valid = [item for item in value if isinstance(item, dict)] if isinstance(value, list) else []
+    record[field] = valid
+    return valid

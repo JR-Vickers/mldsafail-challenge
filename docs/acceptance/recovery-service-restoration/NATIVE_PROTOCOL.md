@@ -1,7 +1,13 @@
 # Disposable native recovery acceptance
 
-Run only on a rootless Docker host with no overlapping host measurements or
-maintenance. Use a preloaded immutable Alpine-compatible image with `sh`, `sleep`,
+Run only on a freshly provisioned dedicated rootless Docker daemon with no
+staging resources or overlapping host measurements/maintenance. Set the exact
+private `MLDSAFAIL_OPERATOR_DAEMON_MANIFEST` and provision-bound
+`MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT`; a shared/default daemon is ineligible.
+The full execution and independent `--cleanup` hold the same private per-daemon
+operator flock across distinct journal roots. Clients use durable pre-exec gates
+and owned cgroups; lost Docker responses require positive whole-daemon/worker
+shutdown, creator cancellation, and durable epoch refresh before new requests. Use a preloaded immutable Alpine-compatible image with `sh`, `sleep`,
 `cat` and `true`. Record host/kernel/Docker/image/source identities before running:
 
 ```sh
@@ -15,9 +21,21 @@ original application containers, injects interruption or cleanup failure, reject
 concurrent ownership, retries cleanup twice, and verifies unchanged container IDs,
 migration state and sentinel count. Raw logs and interrupted/reconciled journals
 remain protected in the output directory. The final report passes only after
-owned containers are removed. If cleanup fails, use the exact project recorded
-in ownership.json to inspect and repair only those fixture resources before any
-conflicting operation; do not run broad Docker cleanup.
+owned containers, volumes and networks are absent and all creator/service
+journals reconcile. The fault-owner fork waits for a durable PID/start/boot/UID/
+command identity before any mutation; independent cleanup proves exact owner exit
+with a pidfd before any daemon restart. Preserve failed receipts and invoke:
+
+```sh
+python -m deploy.native_recovery_acceptance --cleanup \
+  --output "$SAME_PRIVATE_ABSOLUTE_EVIDENCE_DIRECTORY"
+```
+
+Cleanup uses its recorded private manifest and project; it never removes other
+projects or restarts staging. Unproven fault-owner/client authority remains fenced
+for exact repair, even if a resource inventory is empty. Source must be clean and
+retained; the report binds commit, script digest, image, daemon fingerprint,
+Python and kernel. No native pass is claimed from local mocked tests.
 
 The `connection_loss` case models loss of the controlling process with SIGKILL;
 it does **not** pass actual SSH transport or host power-loss acceptance. For actual

@@ -1,3 +1,4 @@
+from deploy.recovery_daemon import locked_config_operation
 """Inactive daily recovery with durable interruption cleanup and local retention."""
 import argparse
 from datetime import datetime, timezone
@@ -74,6 +75,7 @@ def record_cleanup(operation, journals):
         atomic_json(path, record)
 
 
+@locked_config_operation
 def run(config, cleanup_only=False):
     root = safe_path(config['recovery_root'])
     root.mkdir(mode=0o700, parents=True, exist_ok=True)

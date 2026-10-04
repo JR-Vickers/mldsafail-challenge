@@ -1,3 +1,4 @@
+from deploy.recovery_daemon import locked_config_operation
 """Durable recovery ownership and independently retryable cleanup."""
 import hashlib
 import json
@@ -93,12 +94,15 @@ class Journal:
         self.data['phase'] = phase
         atomic_json(self.path, self.data)
 
-    def services(self, compose, states, identifiers):
+    def services(self, compose, states, identifiers, daemon_manifest_path=None):
         if set(identifiers) != set(states):
             raise ValueError('Service identity inventory mismatch')
         self.data.update(compose=compose, services=states, service_identifiers=identifiers,
                          cleanup_complete=False, service_environment={key: os.environ.get(key) for key in (
                              'DOCKER_HOST', 'DOCKER_CONTEXT', 'MLDSAFAIL_OPERATOR_DAEMON_MANIFEST', 'MLDSAFAIL_CPU_DAEMON_MANIFEST')})
+        if daemon_manifest_path:
+            from deploy.recovery_daemon import bind
+            self.data['service_daemon_context'] = bind(self.data, daemon_manifest_path)
         self.save('service maintenance intent')
 
     def container(self, name, image, daemon_manifest_path=None):
@@ -146,8 +150,16 @@ class Journal:
         return result
 
     def cleanup(self):
-        from deploy.recovery_daemon import repair, shared_scope
-        errors = [str(item) for item in repair(self.data, self.path.parent, lambda: self.save('daemon epoch repaired'))]
+        from deploy.recovery_daemon import repair, shared_scope, cleanup_entries, scope
+        errors = []
+        try:
+            errors.extend(str(item) for item in repair(self.data, self.path.parent, lambda: self.save('daemon epoch repaired')))
+        except BaseException as error:
+            errors.append('daemon_repair:' + type(error).__name__)
+        for field in ('clients', 'containers', 'daemon_mutations'):
+            cleanup_entries(self.data, field, errors)
+        if self.data.get('corrupt_fields'):
+            errors.append('retained_corrupt_authority')
         from deploy.owned_client import stop
         for entry in self.data.get('clients', []):
             try:
@@ -174,20 +186,29 @@ class Journal:
                     raise ValueError('Container ownership mismatch')
                 container_command(['docker', 'rm', '-f', identifier], check=True, capture_output=True, timeout=60)
             except Exception:
-                errors.append('container:' + container['name'])
-        for role, running in self.data['services'].items():
+                errors.append('container:' + str(container.get('name', 'invalid')))
+        services = self.data.get('services', {})
+        if not isinstance(services, dict):
+            errors.append('corrupt_service_authority')
+            services = {}
+        for role, running in services.items():
             try:
-                with shared_scope(self.data.get('service_environment', {})):
+                selected = None
+                if self.data.get('service_daemon_context'):
+                    selected = self.data['daemon_contexts'][self.data['service_daemon_context']]['manifest_path']
+                def service_command(argv, **kwargs):
+                    return self.command(argv, daemon_manifest_path=selected, **kwargs)
+                with scope(selected) if selected else shared_scope(self.data.get('service_environment', {})):
                     identifiers = self.data.setdefault('service_identifiers', {})
                     if role not in identifiers:
                         # Persist identities for interrupted pre-upgrade journals first.
-                        identifier = self.command(self.data['compose'] + ['ps', '-aq', role],
+                        identifier = service_command(self.data['compose'] + ['ps', '-aq', role],
                                                   capture_output=True, text=True, timeout=30).stdout.strip()
                         if not identifier or len(identifier.split()) != 1:
                             raise ValueError('Expected exactly one existing service container')
                         identifiers[role] = identifier
                         self.save('service identity reconciliation')
-                    restore_service(identifiers[role], running, runner=self.command)
+                    restore_service(identifiers[role], running, runner=service_command)
             except Exception:
                 errors.append('service:' + role)
         if any(item.get('acknowledged') is not True and not item.get('resolved_by_barrier') for item in self.data.get('daemon_mutations', [])):
@@ -207,6 +228,7 @@ class Journal:
             raise RuntimeError('Recovery cleanup incomplete')
 
 
+@locked_config_operation
 def standalone_operation(config, parent, role, action, cleanup_only=False):
     """Durable serial ownership for manual operator entry points."""
     import fcntl

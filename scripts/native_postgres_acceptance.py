@@ -62,8 +62,16 @@ def cleanup(output, receipt):
         raise ValueError('Invalid disposable ownership receipt')
     if not re.fullmatch(r'sha256:[0-9a-f]{64}', receipt.get('database_image', '')):
         raise ValueError('Invalid disposable image identity')
-    from deploy.recovery_daemon import repair
-    errors = repair(receipt, output, lambda: atomic_json(output / 'ownership.json', receipt))
+    from deploy.recovery_daemon import repair, cleanup_entries
+    errors = []
+    try:
+        errors.extend(repair(receipt, output, lambda: atomic_json(output / 'ownership.json', receipt)))
+    except BaseException as error:
+        errors.append({'step': 'daemon_repair', 'error_type': type(error).__name__})
+    for field in ('clients', 'daemon_mutations'):
+        cleanup_entries(receipt, field, errors)
+    if receipt.get('corrupt_fields'):
+        errors.append({'step': 'retained_corrupt_authority'})
     receipt.update(phase='cleanup', cleanup_complete=False)
     try:
         atomic_json(output / 'ownership.json', receipt)
@@ -123,7 +131,12 @@ def run(image, output, cleanup_only=False):
     descriptor = os.open(lock_path, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
     try:
         fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        return execute(image, output, cleanup_only)
+        from deploy.recovery_daemon import operation_lock
+        selected = os.environ.get('MLDSAFAIL_OPERATOR_DAEMON_MANIFEST')
+        if cleanup_only:
+            selected = json.loads((output / 'ownership.json').read_text()).get('owned_daemon_manifest_path')
+        with operation_lock(selected):
+            return execute(image, output, cleanup_only)
     finally:
         os.close(descriptor)
 

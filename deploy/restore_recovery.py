@@ -1,3 +1,4 @@
+from deploy.recovery_daemon import locked_config_operation
 """Restore-check sealed recovery material in disposable private containers."""
 import argparse
 from datetime import datetime, timezone
@@ -11,6 +12,7 @@ import uuid
 from deploy.recovery import execute, private_file, validate_set
 
 
+@locked_config_operation
 def verify(config, destination, operation=None):
     if operation is None: raise ValueError('Durable operator ownership required for disposable restoration')
     daemon_manifest_path = config.get('owned_daemon_manifest') or os.environ.get('MLDSAFAIL_OPERATOR_DAEMON_MANIFEST')
