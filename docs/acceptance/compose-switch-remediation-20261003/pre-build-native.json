@@ -1,0 +1,43 @@
+{
+  "cleanup_verified": true,
+  "compose_version": "Docker Compose version v5.5.1",
+  "dependency_restarts": 0,
+  "earlier_failed_probe": {
+    "disposable_cleanup_verified": true,
+    "live_services_changed": false,
+    "migration_restarted_by_compose_start": true,
+    "raw_evidence_retained_on_vps": true
+  },
+  "failure_restoration_and_repeated_cleanup": true,
+  "live_services_changed": false,
+  "migration_invocations": 1,
+  "passed": true,
+  "project": "mldsafail-switch-drill-a1d82af07158",
+  "release_commit": "b85ce57283fd21d1ccdf7eb4ed1ded84a233a063",
+  "rollback_commit": "b4d212da3109b7716eb41553986848e377fb5b3d",
+  "stage": "pre-build native validation",
+  "switches": [
+    {
+      "coordinator_stopped": true,
+      "direction": "forward",
+      "exact_application_images": true,
+      "migration_and_db_unchanged": true
+    },
+    {
+      "coordinator_stopped": true,
+      "direction": "rollback",
+      "exact_application_images": true,
+      "migration_and_db_unchanged": true
+    },
+    {
+      "coordinator_stopped": true,
+      "direction": "forward_again",
+      "exact_application_images": true,
+      "migration_and_db_unchanged": true
+    }
+  ],
+  "tested_source_sha256": {
+    "scripts/hosted_compose_switch_drill.py": "eb129a38874401148ae72cd54e6405056c1fa27673849a602bc17389e9bfb45f",
+    "scripts/hosted_vps_failure_driver.py": "3e9a017bfd3ae8296a25ed5b5cdc26b5334f830536daeff82cbfcff122773bab"
+  }
+}
