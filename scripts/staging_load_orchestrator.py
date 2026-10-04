@@ -62,7 +62,9 @@ class Progress:
                 if time.monotonic()-last>=5:os.fsync(self.descriptor);last=time.monotonic()
             os.fsync(self.descriptor)
         except BaseException as error:self.errors.append(type(error).__name__)
-        finally:os.close(self.descriptor)
+        finally:
+            try:os.close(self.descriptor)
+            except BaseException as error:self.errors.append(type(error).__name__)
     def close(self):
         self.stopping.set();self.thread.join(timeout=10)
         require(not self.thread.is_alive() and not self.errors,'Partial evidence cleanup/publication incomplete')
@@ -82,7 +84,7 @@ class Operator:
         require(self.j['configuration_sha256']==binding,'Run configuration changed; cleanup requires original authority')
         require(self.j['gate']==config['gate'] and self.j['protocol_sha256']==PROTOCOL_SHA,'Journal protocol mismatch')
         require(self.j['probe_sha256']==config['probe_sha256'],'Journal probe source mismatch')
-        self.save()
+        if not self.path.exists():self.save()
 
     def save(self):atomic_json(self.path,self.j)
 
@@ -244,6 +246,11 @@ class Operator:
 
     def cleanup(self):
         errors=[]
+        clients=self.j.get('clients')
+        if not isinstance(clients,list) or any(not isinstance(entry,dict) for entry in clients):
+            self.j.setdefault('corrupt_clients_receipt',clients)
+            self.j['clients']=[entry for entry in clients if isinstance(entry,dict)] if isinstance(clients,list) else []
+        if 'corrupt_clients_receipt' in self.j:errors.append('CorruptClientAuthority')
         try:
             identifier=self.reconcile()
             if self.j.get('submission_intent') and not identifier:raise RuntimeError('Unresolved request intent remains fenced')
@@ -261,7 +268,14 @@ class Operator:
             except BaseException as error:errors.append(type(error).__name__)
         self.j['cleanup_complete']=not errors;self.j['cleanup_errors']=errors
         if errors:self.j['passed']=False
-        self.save()
+        try:self.save()
+        except BaseException as original:
+            self.j['passed']=False;self.j['cleanup_complete']=False
+            self.j['evidence_publication_failed']=True
+            self.j['cleanup_errors'].append(type(original).__name__)
+            try:self.save()
+            except BaseException as publication:original.add_note('Negative cleanup publication failed: '+type(publication).__name__)
+            raise
         return not errors
 
 
@@ -290,11 +304,11 @@ def run(config, cleanup_only=False, cleanup_source_commit=None):
         if not root.exists():root.mkdir(mode=0o700)
         require(root.stat().st_uid==os.getuid() and not root.stat().st_mode&0o077,'Private run directory required')
         operator=Operator(config,root);original=None
-        if cleanup_only:
-            operator.j.setdefault('cleanup_generations',[]).append(dict(source_commit=cleanup_source_commit or config['operator_source_commit'],
-                orchestrator_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()))
-            operator.save()
         try:
+            if cleanup_only:
+                operator.j.setdefault('cleanup_generations',[]).append(dict(source_commit=cleanup_source_commit or config['operator_source_commit'],
+                    orchestrator_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()))
+                operator.save()
             if not cleanup_only:operator.execute()
         except BaseException as error:
             original=error;operator.j['failure_class']=type(error).__name__;operator.j['passed']=False

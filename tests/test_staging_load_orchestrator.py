@@ -72,3 +72,36 @@ def test_interrupted_measurement_is_not_repeated(tmp_path,monkeypatch):
     value.reconcile=lambda:None
     monkeypatch.setattr(staging_read_load,'run',lambda *args,**kwargs:pytest.fail('Measurement must not repeat'))
     with pytest.raises(RuntimeError,match='do not repeat'):value.execute()
+
+
+def cleanup_ready(value):
+    value.j.update(passed=True,identity={'epoch':'unchanged'})
+    value.reconcile=lambda:None
+    value.guard=lambda:True
+    value.containers=lambda:[]
+    value.identity=lambda:{'epoch':'unchanged'}
+
+
+def test_cleanup_publication_after_rename_failure_retracts_positive(tmp_path):
+    value=operator(tmp_path);cleanup_ready(value);original=OSError('directory fsync failed');calls=[]
+    def save():
+        value.path.write_text(json.dumps(value.j));calls.append(value.j['passed'])
+        if len(calls)==1:raise original
+    value.save=save
+    with pytest.raises(OSError) as caught:value.cleanup()
+    assert caught.value is original and calls==[True,False]
+    retained=json.loads(value.path.read_text())
+    assert retained['passed'] is False and retained['cleanup_complete'] is False
+    assert retained['evidence_publication_failed'] is True
+
+
+def test_corrupt_clients_keeps_known_cleanup_and_persistent_fence(tmp_path,monkeypatch):
+    from deploy import owned_client
+    value=operator(tmp_path);cleanup_ready(value);entry={'known':'identity'}
+    value.j['clients']=[entry,None];stopped=[]
+    monkeypatch.setattr(owned_client,'stop',lambda row:stopped.append(row))
+    assert value.cleanup() is False
+    assert stopped==[entry] and value.j['passed'] is False
+    assert value.j['corrupt_clients_receipt']==[entry,None]
+    assert value.cleanup() is False
+    assert value.j['cleanup_complete'] is False
