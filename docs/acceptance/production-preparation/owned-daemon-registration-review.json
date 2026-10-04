@@ -1,0 +1,21 @@
+{
+  "schema": "mldsafail.source-review.v1",
+  "reviewed_source": "39c4131",
+  "scope": "deploy/owned_daemon.py registration and whole-parent shutdown authority",
+  "status": "changes_required",
+  "native_execution": false,
+  "focused_tests": {"suite": "tests/test_owned_daemon.py", "passed": 5},
+  "findings": [
+    {
+      "id": "dedicated-worker-parent-authority",
+      "requirement": "Whole-parent shutdown must control only a freshly provisioned isolated worker parent.",
+      "observed": "Registration accepts any owner-writable domain whose basename matches an arbitrary .slice name; fresh data-root provisioning does not bind worker-parent creation or exclude staging worker domains. Shutdown always kills the entire registered worker parent.",
+      "correction": "Require dedicated worker namespace and explicit fresh kernel-parent provisioning receipt, exact native identity and protected-domain disjointness before publishing a controllable manifest. Enforce daemon/operator/worker disjointness during registration rather than relying on a later caller verification."
+    }
+  ],
+  "positive_observations": [
+    "Default Docker service is ineligible.",
+    "Fresh daemon data and execution directories reject existing roots and protected infrastructure overlaps.",
+    "Shutdown retains exact epoch and kernel identity failures; it does not replace a positive barrier with empty container inventory."
+  ]
+}
