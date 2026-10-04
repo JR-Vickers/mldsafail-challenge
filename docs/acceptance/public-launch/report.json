@@ -1303,7 +1303,8 @@
         "user-plan"
       ],
       "dependencies": [
-        "owned-native-client-fencing"
+        "owned-native-client-fencing",
+        "native-daemon-request-fencing"
       ],
       "environment": "disposable native database",
       "criteria": [
@@ -2151,13 +2152,14 @@
         "docs/acceptance/compatible-v050/report.json#/gates/expired_token_ui"
       ],
       "dependencies": [
-        "compatible-deployment"
+        "compatible-deployment",
+        "native-daemon-request-fencing"
       ],
       "environment": "disposable exact deployed web image",
       "criteria": [
         "Expired status rendered; expired credentials cannot authenticate"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
