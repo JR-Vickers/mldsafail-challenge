@@ -49,6 +49,7 @@ def spawn(argv, owner, accounting_parent):
         if process.pid not in [int(value) for value in (domain/'cgroup.procs').read_text().split()]:
             raise RuntimeError('Gated bootstrap membership unproven')
         save()  # All exact kernel/process identities are durable before exec.
+        owner.mutation('host_client_release_intent', **entry)
         os.write(write_fd,b'1')
         os.close(write_fd);write_fd=None
         return process,entry

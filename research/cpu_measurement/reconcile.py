@@ -66,6 +66,11 @@ def reconcile(directory, parent):
             journal.update(state='cleanup_incomplete', latest_cleanup_evidence=name)
             publish(directory / 'journal.json', journal)
             return receipt
+        released = any(entry['operation'] == 'host_client_release_intent' for entry in journal['mutations'])
+        acknowledged_worker = any(entry['operation'] == 'input_delivery_intent' for entry in journal['mutations'])
+        if not changed_boot and released and not acknowledged_worker:
+            errors.append(dict(step='daemon_mutation_uncertainty',
+                error='Released creator has no acknowledged worker; pending daemon create/start is not fenced'))
         for name in names:
             if not name.startswith('cpu-proposal-') or len(name) != len('cpu-proposal-') + 32:
                 raise RuntimeError('Malformed owned container identity')

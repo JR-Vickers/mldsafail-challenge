@@ -407,3 +407,26 @@ def test_client_domain_cleanup_precedes_worker_inventory_and_retains_failures(tm
     assert reconcile.reconcile(directory,parent)['cleanup_complete']
     assert order==['client','client','inventory']
     assert len(list(directory.glob('*-cleanup-*.json')))==2
+
+
+def test_released_unacknowledged_daemon_mutation_never_completes_cleanup(tmp_path, monkeypatch):
+    from research.cpu_measurement.ownership import Ownership
+    from research.cpu_measurement import reconcile
+    from deploy import owned_client
+    parent=tmp_path/'parent';parent.mkdir()
+    (parent/'cgroup.events').write_text('populated 0\n')
+    (parent/'cpu.stat').write_text('usage_usec 100\n')
+    directory=tmp_path/'private'
+    with pytest.raises(ValueError):
+        with Ownership(directory,parent) as owner:
+            owner.mutation('container_create_intent',name='cpu-proposal-'+'a'*32,counter_before_usec=20)
+            owner.mutation('host_client_domain',id='client',pid=123)
+            owner.mutation('host_client_release_intent',id='client')
+            raise ValueError('interrupted possible daemon request')
+    monkeypatch.setattr(owned_client,'stop',lambda entry:None)
+    monkeypatch.setattr(reconcile.subprocess,'check_output',lambda *args,**kwargs:b'')
+    receipt=reconcile.reconcile(directory,parent)
+    assert receipt['cleanup_complete'] is False
+    assert receipt['errors'][0]['step']=='daemon_mutation_uncertainty'
+    with pytest.raises(RuntimeError,match='reconciliation'):
+        with Ownership(directory,parent):pass
