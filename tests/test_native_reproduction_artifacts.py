@@ -48,3 +48,16 @@ def test_cli_rejects_missing_approved_offline_protocol_before_driver(monkeypatch
     monkeypatch.setattr(artifacts,'wheel_protocol',lambda config:{})
     monkeypatch.setattr(artifacts.native_driver,'execute',lambda *args,**kwargs:pytest.fail('must not mutate host'))
     with pytest.raises(ValueError,match='offline'):artifacts.main()
+
+def test_callback_registry_mapping_failure_cannot_publish_positive_provenance(tmp_path,monkeypatch):
+    monkeypatch.setattr(artifacts,'require_source_review',lambda config:{'passed':True,'evidence_refs':['independent-review']})
+    monkeypatch.setattr(artifacts,'wheel_protocol',lambda config:{'approved':True})
+    def command(argv,**kwargs):
+        assert kwargs['timeout']<=600
+        return SimpleNamespace(stdout=b'' if 'status' in argv else b'b'*40+b'\n')
+    journal=SimpleNamespace(path=tmp_path/'journal.json',command=command)
+    monkeypatch.setattr(artifacts,'inspect_image',lambda *args:{'Id':IMAGE,'Architecture':'amd64','RepoDigests':['python@sha256:'+'f'*64],'Config':{'Env':['PYTHON_VERSION=3.12.10']}})
+    monkeypatch.setattr(artifacts,'export_image',lambda *args:pytest.fail('untrusted registry mapping must not export'))
+    with pytest.raises(RuntimeError,match='registry image mapping'):
+        artifacts.callback(journal,{'source_commit':'b'*40}, {})
+    assert not (tmp_path/'reproduction-artifacts/python-base-provenance.json').exists()
