@@ -3,6 +3,7 @@
 No real storage, production credentials, benchmark epochs or owner custody claim.
 """
 import argparse
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -164,6 +165,9 @@ def _execute_locked(output, artifacts):
         generator = random.Random(0)
         with (data / 'upload-fault.bin').open('wb') as stream:
             for _ in range(1024): stream.write(generator.randbytes(65536))
+        synthetic_epoch = 'synthetic-only-' + uuid.uuid4().hex
+        atomic_json(data / 'synthetic-manifest.json', {'schema': 'synthetic.restore.v1',
+            'epoch_id': synthetic_epoch, 'files': {p.name: digest(p) for p in data.iterdir()}})
         prior = set((storage / 'syntheticbucket' / 'staging' / 'data').rglob('xl.meta'))
         failure = []
         def upload():
@@ -192,13 +196,29 @@ def _execute_locked(output, artifacts):
         if not failure: raise RuntimeError('Interrupted upload unexpectedly passed')
         restic('unlock')
         restic('check', '--read-data')
-        restic('backup', str(data), '--tag', 'synthetic-staging', timeout=300)
+        uploaded = restic('backup', str(data), '--tag', 'synthetic-staging', '--json', timeout=300)
+        summaries = [json.loads(line) for line in uploaded.stdout.splitlines()]
+        snapshot = next(row['snapshot_id'] for row in summaries if row.get('message_type') == 'summary')
+        uploaded_at = datetime.now(timezone.utc).isoformat()
         destination = output / 'restored'
-        restic('restore', 'latest', '--target', str(destination), timeout=300)
+        restic('restore', snapshot, '--target', str(destination), timeout=300)
         restored = destination / str(data).lstrip('/')
         for path in data.iterdir():
             if digest(path) != digest(restored / path.name): raise RuntimeError('Synthetic restore bytes differ')
         stage('real upload interrupted/retried and bytes restored', passed=True)
+        operation.cleanup()
+        from deploy.recovery import STATE_SCHEMA, validate_prune_state
+        state = {'schema': STATE_SCHEMA, 'repository': restic_env['RESTIC_REPOSITORY'],
+            'snapshot': snapshot, 'epoch_id': synthetic_epoch, 'result_count': 0,
+            'restored_manifest_sha256': digest(restored / 'synthetic-manifest.json'),
+            'restore_verified': True, 'cleanup_complete': True, 'uploaded_at': uploaded_at,
+            'verified_at': datetime.now(timezone.utc).isoformat(), 'synthetic_only': True}
+        atomic_json(output / 'verified-state.json', state)
+        validate_prune_state({'backup_state': str(output / 'verified-state.json'),
+            'repository': restic_env['RESTIC_REPOSITORY'], 'restore_verified_snapshot': snapshot,
+            'expected_epoch_id': synthetic_epoch})
+        protocol['strict_verified_state_accepted'] = True
+        protocol['synthetic_manifest_sha256'] = state['restored_manifest_sha256']
         restic('forget', '--keep-last', '1', '--prune', timeout=300)
         if len(json.loads(restic('snapshots', '--json').stdout)) != 1: raise RuntimeError('Synthetic retention inventory mismatch')
         restic('check', '--read-data')
