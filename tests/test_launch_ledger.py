@@ -48,8 +48,9 @@ def test_missing_source_explicitly_blocks_completion():
 def test_secret_fields_and_values_rejected():
     data = report()
     data['password'] = 'redacted'
+    data['api_token'] = 'opaque-value'
     data['tasks'][0]['next_action'] = 'Bearer sensitive'
-    assert len(ledger.validate(data)) == 2
+    assert len(ledger.validate(data)) == 3
 
 
 def test_evidence_must_cover_exact_criteria():

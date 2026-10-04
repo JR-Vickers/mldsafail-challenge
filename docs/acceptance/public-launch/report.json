@@ -1970,10 +1970,20 @@
         {
           "source": "71f5ff2",
           "protocol": "Reject unknown missing IDs/daemon errors; tolerate only exact disappeared IDs with complete retained JSON inventory"
+        },
+        {
+          "source": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+          "protocol": "Native Docker snapshot disappearance probe; then compatible application-only switch with quiescent protected backup and exact rollback installed before stopping services",
+          "result": "inventory probe passed; deployment running",
+          "private_evidence": "/home/mldsafail/inventory-probe-a668b9fa4a9a4f068a6553679350be32",
+          "run_id": "launch-prepare-6b332cd-20261004"
         }
       ],
       "evidence": [],
-      "identities": {},
+      "identities": {
+        "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe"
+      },
       "next_action": "Complete builds retention native verification and compatible switch before fresh scenario run",
       "checklist": []
     }

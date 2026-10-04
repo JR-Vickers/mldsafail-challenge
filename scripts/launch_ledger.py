@@ -8,7 +8,7 @@ from pathlib import Path
 STATUSES = {'pending', 'ready', 'running', 'passed', 'failed', 'blocked_external', 'waiting_dependency'}
 REQUIRED = {'id', 'requirement', 'sources', 'dependencies', 'environment', 'criteria',
             'status', 'attempts', 'evidence', 'identities', 'next_action', 'checklist'}
-SECRET_KEY = re.compile(r'(password|bearer|access_key|secret_value|private_key|token_value)', re.I)
+SECRET_KEY = re.compile(r'(^|[_-])(password|bearer|access_key|secret|private_key|token|credential)([_-]|$)', re.I)
 SECRET_VALUE = re.compile(r'Bearer\s+\S+|-----BEGIN .*PRIVATE KEY|\bAKIA[A-Z0-9]{16}\b|https?://[^\s/@]+:[^\s/@]+@')
 
 
