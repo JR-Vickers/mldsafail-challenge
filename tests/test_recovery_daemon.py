@@ -183,3 +183,11 @@ def test_provision_lock_covers_registration_and_nested_manifest_consumer(tmp_pat
         with daemon.operation_lock(tmp_path/'later-manifest.json'):
             assert len(daemon.operation_lock._active)==1
     assert not daemon.operation_lock._active
+
+
+def test_new_shared_service_inventory_clears_previous_disposable_context(tmp_path):
+    from deploy.recovery_journal import Journal
+    operation=Journal(tmp_path/'operation.json',{})
+    operation.data['service_daemon_context']='old-disposable-context'
+    operation.services([],{'web':True},{'web':'d'*64})
+    assert operation.data['service_daemon_context'] is None

@@ -98,7 +98,7 @@ class Journal:
         if set(identifiers) != set(states):
             raise ValueError('Service identity inventory mismatch')
         self.data.update(compose=compose, services=states, service_identifiers=identifiers,
-                         cleanup_complete=False, service_environment={key: os.environ.get(key) for key in (
+                         cleanup_complete=False, service_daemon_context=None, service_environment={key: os.environ.get(key) for key in (
                              'DOCKER_HOST', 'DOCKER_CONTEXT', 'MLDSAFAIL_OPERATOR_DAEMON_MANIFEST', 'MLDSAFAIL_CPU_DAEMON_MANIFEST')})
         if daemon_manifest_path:
             from deploy.recovery_daemon import bind
