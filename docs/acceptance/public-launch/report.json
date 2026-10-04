@@ -2618,17 +2618,26 @@
       "criteria": [
         "Native host checks reach readiness, service and lease inspection; absent approved backup is reported as backup failure; alerts remain disabled and cleanup proven"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
           "protocol": "Protected disposable config references live services and missing approved backup state, alert_enabled false, no scheduled jobs; expect exactly backup failure. Own delegated unit, final controller/domain absence.",
-          "result": "planned"
+          "result": "passed; actual monitoring reported exactly missing backup; native terminal state reconciled"
         }
       ],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute read-only monitoring and independently reconcile service/client state",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/monitor-live-readonly-report.json#/passed",
+          "criteria_met": [
+            "Native host checks reach readiness, service and lease inspection; absent approved backup is reported as backup failure; alerts remain disabled and cleanup proven"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7"
+      },
+      "next_action": "None; real backup freshness and approved receiver remain external dependent gates",
       "checklist": []
     }
   ],

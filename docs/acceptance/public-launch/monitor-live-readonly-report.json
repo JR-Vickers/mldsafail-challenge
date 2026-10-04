@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
+  "live_readiness_verified": true,
+  "live_service_states_verified": true,
+  "live_lease_inspection_verified": true,
+  "observed_failures": [
+    "backup"
+  ],
+  "missing_approved_backup_correctly_reported": true,
+  "alerts_disabled": true,
+  "timers_activated": false,
+  "cleanup_complete": true,
+  "controller_absent": true,
+  "parent_absent": true,
+  "private_report_sha256": "ded8296585850ec6420c2f73e67fb20e9a388c8d9be907d15c22c36064b9aec6",
+  "private_evidence_reference": "protected native live read-only monitoring acceptance attempt 20261004"
+}
