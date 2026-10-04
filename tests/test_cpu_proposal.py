@@ -55,19 +55,11 @@ def test_experimental_worker_ignores_reported_cpu_and_verification(tmp_path, mon
             (tmp_path / 'cpu.stat').write_text('usage_usec 1020\n')
         return SimpleNamespace(returncode=0, stdout='{"Pid":123}')
     monkeypatch.setattr(harness.subprocess, 'run', command)
-    class Worker:
-        def __init__(self, argv, **kwargs):
-            self.stdout = kwargs['stdout']
-            self.returncode = None
-        def communicate(self, payload, timeout):
-            self.stdout.write(output)
-            self.stdout.flush()
-            self.returncode = exitcode
-        def poll(self):
-            return self.returncode
-        def wait(self, **kwargs):
-            return exitcode
-    monkeypatch.setattr(harness.subprocess, 'Popen', Worker)
+    import subprocess
+    real_popen = subprocess.Popen
+    monkeypatch.setattr(harness.subprocess, 'Popen', lambda *args, **kw: real_popen(
+        [__import__('sys').executable, '-c',
+         'import sys; sys.stdin.buffer.read(); sys.stdout.buffer.write(' + repr(output) + '); sys.exit(' + str(exitcode) + ')'], **kw))
     result = harness._run('sha256:' + 'a' * 64, tmp_path, 'dedicated', tmp_path,
                           generate_mlwe('small', 0, 1).public.to_dict(), lambda *args: True)
     assert result['authoritative_cpu_usec'] == 1000
@@ -78,16 +70,75 @@ def test_predeclared_cpu_adoption_gates():
     from research.cpu_measurement.native_suite import measurement_gates
     rows = [dict(fixture=name, repetition=i, authoritative_cpu_usec=cpu, wall_seconds=1.)
             for i in range(30) for name, cpu in [('empty', 200_000), ('child', 500_000)]]
+    for index, row in enumerate(rows):
+        row.update(schema='mldsafail.cpu-evidence.v1', status='no_answer', cleanup_complete=True,
+                   suite_id='suite', source_sha256='source', image='image', host_identity='host',
+                   parent_inode=1, parent_device=2, generation=str(index),
+                   started_monotonic=index * 2., finished_monotonic=index * 2. + 1.,
+                   counter_before_usec=0, counter_after_usec=row['authoritative_cpu_usec'])
     assert measurement_gates(rows)['passed']
     for row in rows:
         if row['fixture'] == 'empty':
             row['authoritative_cpu_usec'] = 100_000 if row['repetition'] % 2 else 300_000
+    for row in rows: row['counter_after_usec'] = row['authoritative_cpu_usec']
     assert measurement_gates(rows)['passed']  # Empty CV is deliberately not a gate.
     rows[1]['authoritative_cpu_usec'] = 2_000_000
+    rows[1]['counter_after_usec'] = 2_000_000
     assert not measurement_gates(rows)['gates']['deterministic_cpu_cv']
     rows[1]['authoritative_cpu_usec'] = 500_000
+    rows[1]['counter_after_usec'] = 500_000
     for row in rows:
         if row['fixture'] == 'empty': row['wall_seconds'] = 6.
     assert not measurement_gates(rows)['gates']['empty_wall_p95']
     with pytest.raises(ValueError, match='30'):
         measurement_gates(rows[:-1])
+
+
+def test_durable_generation_fences_interrupted_owner(tmp_path):
+    from research.cpu_measurement.ownership import Ownership
+    parent = tmp_path / 'parent'
+    parent.mkdir()
+    journal = tmp_path / 'private'
+    with pytest.raises(ValueError):
+        with Ownership(journal, parent) as owner:
+            owner.mutation('container_create', name='owned-container')
+            raise ValueError('injected interruption')
+    with pytest.raises(RuntimeError, match='reconciliation'):
+        with Ownership(journal, parent):
+            pass
+    import json
+    record = json.loads((journal / 'journal.json').read_text())
+    assert record['state'] == 'interrupted'
+    assert record['mutations'][0]['name'] == 'owned-container'
+
+
+def test_ownership_publishes_before_release_and_requires_cleanup(tmp_path):
+    import json
+    from research.cpu_measurement.ownership import Ownership
+    parent = tmp_path / 'parent'
+    parent.mkdir()
+    with Ownership(tmp_path / 'private', parent) as owner:
+        with pytest.raises(RuntimeError, match='cleanup'):
+            owner.finish({'cleanup_complete': False})
+        evidence = owner.finish({'cleanup_complete': True})
+        journal = json.loads((tmp_path / 'private/journal.json').read_text())
+        assert journal['state'] == 'complete'
+        assert json.loads((tmp_path / 'private' / journal['evidence_file']).read_text()) == evidence
+    with Ownership(tmp_path / 'private', parent) as owner:
+        owner.finish({'cleanup_complete': True})
+
+
+def test_stream_capture_caps_flood_and_preserves_crash():
+    import subprocess
+    import sys
+    import time
+    from research.cpu_measurement.harness import capture
+    process = subprocess.Popen([sys.executable, '-c', 'import sys; sys.stdout.buffer.write(b"x"*1000000)'],
+                               stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        status, raw = capture(process, b'input', time.monotonic() + 5, cap=1024)
+        assert status == 'output_limit' and len(raw) <= 1024
+    finally:
+        process.kill()
+        process.wait()
+        for stream in (process.stdin, process.stdout, process.stderr): stream.close()
