@@ -1590,7 +1590,9 @@
       "dependencies": [
         "recovery-offhost",
         "webhook-acceptance",
-        "monitor-live-readonly-wiring"
+        "monitor-live-readonly-wiring",
+        "operator-unit-native-verification",
+        "operator-repeat-activation-lifecycle"
       ],
       "environment": "private staging",
       "criteria": [
@@ -2668,6 +2670,56 @@
         "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7"
       },
       "next_action": "None; real backup freshness and approved receiver remain external dependent gates",
+      "checklist": []
+    },
+    {
+      "id": "operator-unit-native-verification",
+      "requirement": "Verify inactive retained operator unit executable paths, module inventories and systemd parsing on native Linux",
+      "sources": [
+        "user-plan",
+        "docs/INACTIVE_OPERATOR_UNIT_VERIFICATION.md"
+      ],
+      "dependencies": [
+        "owned-native-client-fencing"
+      ],
+      "environment": "isolated native Linux read-only",
+      "criteria": [
+        "Exact retained module and interpreter identities and inactive unit hashes verified; native systemd-analyze verify passes; no installation or activation; owned cleanup proven"
+      ],
+      "status": "running",
+      "attempts": [
+        {
+          "protocol": "Verify inactive retained operator unit executable paths, module inventories and systemd parsing on native Linux",
+          "result": "source preparation and independent review in progress"
+        }
+      ],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Complete source-bound isolated verification; keep real timers inactive",
+      "checklist": []
+    },
+    {
+      "id": "operator-repeat-activation-lifecycle",
+      "requirement": "Implement and verify repeat operator activation without reusing a vanished or replaced manifest-bound parent inode",
+      "sources": [
+        "user-plan",
+        "docs/INACTIVE_OPERATOR_UNIT_VERIFICATION.md"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering and disposable native user services",
+      "criteria": [
+        "Independent source review and two disposable native activations prove exact persistent parent identity, serialization and independent cleanup"
+      ],
+      "status": "running",
+      "attempts": [
+        {
+          "protocol": "Implement and verify repeat operator activation without reusing a vanished or replaced manifest-bound parent inode",
+          "result": "source preparation and independent review in progress"
+        }
+      ],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Complete source-bound isolated verification; keep real timers inactive",
       "checklist": []
     }
   ],
