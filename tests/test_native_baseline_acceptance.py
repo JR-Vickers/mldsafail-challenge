@@ -77,3 +77,18 @@ def test_base_provenance_accepts_native_untagged_official_digest(monkeypatch,tmp
     assert len(published)==1
     proof['original_image_inspection']['RepoDigests']=['attacker/python@'+registry.rsplit('@',1)[1]]
     with pytest.raises(ValueError,match='registry digest/image mapping'):verify_base_provenance(setup,config,journal)
+
+
+def test_frozen_image_cannot_substitute_an_unreviewed_lookalike(monkeypatch,tmp_path):
+    from scripts.native_baseline_acceptance import verify_frozen_provenance
+    from deploy import owned_daemon
+    from types import SimpleNamespace
+    image='sha256:'+'a'*64
+    monkeypatch.setattr(owned_daemon,'read_private_json',lambda path:dict(schema='mldsafail.native-worker-provenance.v1',
+        status='passed',native_executed=True,source_review_passed=True,source_commit='b'*40,image=image,
+        architecture='amd64',source_files_sha256={},evidence_refs=['public-output-match']))
+    called=[]
+    with pytest.raises(ValueError,match='reviewed frozen primitive worker'):
+        verify_frozen_provenance({'frozen_image':image,'frozen_provenance':'private'}, {},
+            SimpleNamespace(path=tmp_path/'driver.json',command=lambda *args,**kwargs:called.append('host')))
+    assert called==[]

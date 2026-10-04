@@ -6,5 +6,6 @@
   "wheel_directory": "/PRIVATE/APPROVED_PINNED_WHEELS",
   "wheel_sha256": {
     "EXACT_PINNED_WHEEL_FILENAME.whl": "ACTUAL_SHA256"
-  }
+  },
+  "frozen_provenance": "/PRIVATE/ACTUAL_REVIEWED_PRIMITIVE_WORKER_PROVENANCE.json"
 }
