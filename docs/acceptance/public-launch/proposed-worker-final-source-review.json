@@ -1,0 +1,36 @@
+{
+  "schema": "mldsafail.independent-source-review.v1",
+  "review_passed": true,
+  "native_executed": false,
+  "reviewed_commits": [
+    "c26f776",
+    "f4d8261",
+    "02902b0",
+    "68d33eb",
+    "de033bb"
+  ],
+  "reviewed_tree_commit": "4846cb1dc50c503696b463aae4529815fd990297",
+  "file_sha256": {
+    "src/mldsafail/benchmark_v060/worker.py": "64befb3165e88d982c92ef9122a8621532386ca070df1efc5307e0ec053cef15",
+    "src/mldsafail/benchmark_v060/build.py": "92b3d507ee6b2bb4225cea2cddb2833cd8831dc27e0232672b419b20ef65b6e7",
+    "scripts/native_v060_worker_preparation.py": "8bb358667c85555d4efcc33679698a8eff2c3e40204ab8df718a3421898e402f",
+    "research/mlwe_v060_preparation/native_acceptance.py": "f5ac1d47985ab7101d4223f6820ff96e0d9e46fa6789ef86785e22b584654666",
+    "src/mldsafail/benchmark_v060/candidate_authority.py": "aed18a537839600d5255c20b462c05ed0cf24d0266b4db2c1df47d1f161dea01",
+    "deploy/recovery_daemon.py": "bfcc4057dec8658fd4918db878a42e1fa1146f783957826d1348a98407d77331"
+  },
+  "focused_tests_passed": 27,
+  "scope": [
+    "unchanged proposed worker memory and CPU affinity limits; frozen timing adapter import removed",
+    "build-only callback exact immutable image configuration and durable sealed artifact",
+    "candidate acceptance requires exactly natively gated worker image/context/source instead of rebuilding",
+    "exact shared recovery daemon helper copied from primary"
+  ],
+  "unresolved_required_gates": [
+    "new retained worker build",
+    "complete native accounting fault suite on new artifact",
+    "at least 30 sequential pairs under unchanged thresholds",
+    "candidate application native acceptance",
+    "contract/default adoption decision"
+  ],
+  "prior_failed_native_pairs_preserved": true
+}
