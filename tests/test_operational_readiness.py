@@ -334,7 +334,7 @@ def test_verification_published_only_after_cleanup(tmp_path, monkeypatch, cleanu
     assert record['restore_verified'] != cleanup_failure
 
 
-@pytest.mark.parametrize('boundary', ['coordinator', 'web', 'run'])
+@pytest.mark.parametrize('boundary', ['coordinator', 'web', 'exec'])
 def test_assembly_maintenance_boundaries(tmp_path, monkeypatch, boundary):
     from deploy.assemble_recovery import assemble
     calls = []
@@ -344,8 +344,9 @@ def test_assembly_maintenance_boundaries(tmp_path, monkeypatch, boundary):
             return argv[-1]
         if 'inspect' in argv:
             return '{"Running":true}'
-        if ('stop' in argv and argv[-1] == boundary) or ('run' in argv and boundary == 'run'):
+        if ('stop' in argv and argv[-1] == boundary) or ('exec' in argv and boundary == 'exec'):
             raise InterruptedError()
+        if 'exec' in argv: return '{"epoch":"/synthetic","runs":[],"epoch_id":"synthetic"}'
         return ''
     monkeypatch.setattr('deploy.assemble_recovery.subprocess.check_output', output)
     monkeypatch.setattr('deploy.recovery_journal.subprocess.run', lambda argv, **kw: calls.append(argv))

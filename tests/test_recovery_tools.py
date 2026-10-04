@@ -68,8 +68,9 @@ def test_assembly_failure_restores_original_service_states(tmp_path, monkeypatch
             return argv[-1]
         if 'inspect' in argv:
             return '{"Running":true}'
-        if 'run' in argv:
+        if 'exec' in argv:
             raise RuntimeError('interrupted snapshot inspection')
+        if 'exec' in argv: return '{"epoch":"/synthetic","runs":[],"epoch_id":"synthetic"}'
         return ''
     monkeypatch.setattr('deploy.assemble_recovery.subprocess.check_output', output)
     monkeypatch.setattr('deploy.recovery_journal.subprocess.run', lambda argv, **kw: calls.append(argv))
@@ -143,3 +144,25 @@ def _mock_owned_run(argv, entries, save, evidence_directory, **kwargs):
         subprocess.run(argv, **kwargs)
         output = ''
     return subprocess.CompletedProcess(argv, 0, stdout=output)
+
+
+def test_assembly_inventory_uses_original_stopped_coordinator_without_creating_container(tmp_path, monkeypatch):
+    from deploy.assemble_recovery import assemble
+    calls = []
+    def output(argv, **kwargs):
+        calls.append(argv)
+        if 'ps' in argv: return argv[-1]
+        if 'inspect' in argv:
+            return '{"Running":false}' if argv[-1] == 'coordinator' else '{"Running":true}'
+        if 'exec' in argv:
+            assert calls.index(['docker', 'container', 'stop', 'web']) < calls.index(['docker', 'container', 'start', 'coordinator'])
+            assert argv[2] == 'coordinator'
+            raise RuntimeError('Active evaluation work prevents backup')
+        return ''
+    monkeypatch.setattr('deploy.assemble_recovery.subprocess.check_output', output)
+    monkeypatch.setattr('deploy.recovery_journal.subprocess.run', lambda argv, **kw: calls.append(argv))
+    with pytest.raises(RuntimeError, match='Active evaluation'):
+        assemble({'env_file': '/private/env', 'compose': '/app/private.yaml'}, tmp_path / 'set')
+    assert ['docker', 'container', 'stop', 'coordinator'] in calls
+    assert not any('run' in argv or 'create' in argv or 'backup_postgres.py' in ' '.join(argv) for argv in calls)
+    assert json.loads((tmp_path / 'set/maintenance.json').read_text())['cleanup_complete']

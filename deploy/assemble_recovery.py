@@ -35,7 +35,8 @@ def assemble(config, destination, operation=None):
                           'service_identifiers': identifiers, 'cleanup_complete': False})
     categories = {key: [] for key in ['database', 'epoch', 'evidence', 'configuration', 'secrets', 'release', 'images']}
     try:
-        for role in ['coordinator', 'web']:
+        # Close submission admission before inspecting the original coordinator.
+        for role in ['web']:
             if operation:
                 operation.save('stop ' + role + ' intent')
             command(['docker', 'container', 'stop', identifiers[role]], 60)
@@ -62,16 +63,15 @@ with Session(engine) as session:
   paths.append(str(run))
 print(json.dumps({'epoch':str(epoch),'runs':paths,'epoch_id':manifest['id']}))
 '''
-        owned = []
+        if not states['coordinator']:
+            if operation:
+                operation.save('temporary pinned coordinator start intent')
+            command(['docker', 'container', 'start', identifiers['coordinator']], 60)
+        inventory = json.loads(command(['docker', 'exec', identifiers['coordinator'],
+                                        '/app/.venv/bin/python', '-c', code], 600))
         if operation:
-            import uuid
-            name = 'recovery-inventory-' + uuid.uuid4().hex
-            image = command(compose + ['images', '-q', 'coordinator']).strip()
-            image = json.loads(command(['docker', 'inspect', image]))[0]['Id']
-            operation.container(name, image)
-            owned = ['--name', name, '--label', 'org.mldsafail.recovery=' + name]
-        inventory = json.loads(command(compose + ['run', *owned, '--rm', '--no-deps', '--entrypoint',
-                                       '/app/.venv/bin/python', 'coordinator', '-c', code], 600))
+            operation.save('stop coordinator intent')
+        command(['docker', 'container', 'stop', identifiers['coordinator']], 60)
         output = destination / 'database'
         command([config['python'], str(Path(__file__).with_name('backup_postgres.py')),
                  '--env-file', config['env_file'], '--compose', config['compose'],
