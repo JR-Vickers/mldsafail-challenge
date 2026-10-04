@@ -1,0 +1,18 @@
+{
+  "passed": false,
+  "operator_source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
+  "artifact_commit": "4a9d82d666dea328286631a5ffe62f19a1c985b3",
+  "artifact_sha256": "3c2490de73a99d31f57e9cadcd6fd9eb5a30540511d485b475a9330b76c008b5",
+  "checks_passed": [
+    "install",
+    "installed-identity",
+    "help"
+  ],
+  "failed_check": "mlwe-clone",
+  "failure": "Fresh native operator account has no global Git author identity; scaffolding initial commit failed.",
+  "cleanup_complete": true,
+  "controller_absent": true,
+  "parent_absent": true,
+  "private_evidence_reference": "protected native participant installation attempt 20261004 generation 1",
+  "repair": "Use scoped synthetic initial-commit identity without modifying global Git configuration; independently verify fresh-account behavior and retain corrected source-bound wheel."
+}
