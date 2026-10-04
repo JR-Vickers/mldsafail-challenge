@@ -34,9 +34,11 @@ def fixture_manifest(tmp_path,monkeypatch):
         path=tmp_path/name;path.mkdir()
         for control,value in [('cgroup.events','populated 0\n'),('cgroup.kill','')]: (path/control).write_text(value)
         domains.append(owned_client.domain_identity(path))
-    return dict(schema=owned_daemon.SCHEMA,epoch='a'*32,unit='mldsafail-owned-daemon-test.service',
+    manifest=dict(schema=owned_daemon.SCHEMA,epoch='a'*32,unit='mldsafail-owned-daemon-test.service',
                 unit_fragment_sha256='b'*64,domain=domains[0],worker_domain=domains[1],
                 leader={'pid':123},roots={})
+    monkeypatch.setattr(owned_daemon,'load_manifest',lambda:manifest)
+    return manifest
 
 
 def test_barrier_kills_entire_registered_worker_parent_and_preserves_identity_failures(tmp_path,monkeypatch):
@@ -100,3 +102,14 @@ def test_worker_birth_is_durable_empty_and_disjoint(tmp_path,monkeypatch):
     owned_daemon._worker_binding(receipt,receipt['worker_birth'],worker.name)
     with pytest.raises(RuntimeError,match='disjoint'):
         owned_daemon._worker_binding(receipt,receipt['worker_birth'],worker.name,receipt['operator_domain'])
+
+
+def test_stale_inactive_manifest_cannot_control_new_epoch(tmp_path,monkeypatch):
+    manifest=fixture_manifest(tmp_path,monkeypatch)
+    monkeypatch.setattr(owned_daemon,'load_manifest',lambda:dict(manifest,epoch='c'*32))
+    monkeypatch.setattr(owned_daemon,'_unit',lambda unit:dict(ActiveState='inactive',unit_fragment_sha256='b'*64))
+    killed=[]
+    monkeypatch.setattr(owned_client,'stop',lambda entry:killed.append(entry))
+    receipt=owned_daemon.shutdown_barrier(manifest,evidence_directory=tmp_path,attempt_id='attempt')
+    assert not receipt['shutdown_proven'] and not killed
+    assert (tmp_path/'worker/cgroup.kill').read_text()==''

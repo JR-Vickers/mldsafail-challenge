@@ -287,6 +287,8 @@ def shutdown_barrier(manifest, *, worker_domains=(), evidence_directory, attempt
     errors=[]
     control_safe=False
     try:
+        if fingerprint(load_manifest())!=fingerprint(manifest):
+            raise RuntimeError('Current dedicated manifest authority differs from old epoch')
         state=_unit(manifest['unit'])
         if state['unit_fragment_sha256']!=manifest['unit_fragment_sha256']:
             raise RuntimeError('Dedicated unit config changed; control prohibited')
