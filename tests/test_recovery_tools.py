@@ -94,6 +94,7 @@ def test_restoration_uses_pinned_container_and_retains_stopped_state(tmp_path, m
         assert argv[-1] == 'original-container'
         return '{"Running":false}'
     monkeypatch.setattr('deploy.recovery_journal.subprocess.check_output', inspect)
+    monkeypatch.setattr('deploy.owned_client.run', _mock_owned_run)
     journal.cleanup()
     assert calls == [['docker', 'container', 'stop', 'original-container']]
     assert journal.data['cleanup_complete']
@@ -108,6 +109,7 @@ def test_missing_pinned_container_never_recreates_service(tmp_path, monkeypatch)
         calls.append(argv)
         raise RuntimeError('container disappeared')
     monkeypatch.setattr('deploy.recovery_journal.subprocess.run', missing)
+    monkeypatch.setattr('deploy.owned_client.run', _mock_owned_run)
     with pytest.raises(RuntimeError, match='cleanup incomplete'):
         journal.cleanup()
     assert not journal.data['cleanup_complete']
@@ -128,5 +130,16 @@ def test_old_journal_reconciles_identity_before_restoration(tmp_path, monkeypatc
         assert argv == ['docker', 'container', 'start', 'existing-container']
     monkeypatch.setattr('deploy.recovery_journal.subprocess.check_output', output)
     monkeypatch.setattr('deploy.recovery_journal.subprocess.run', command)
+    monkeypatch.setattr('deploy.owned_client.run', _mock_owned_run)
     journal.cleanup()
     assert journal.data['cleanup_complete']
+
+
+def _mock_owned_run(argv, entries, save, evidence_directory, **kwargs):
+    import subprocess
+    if 'inspect' in argv or 'ps' in argv:
+        output = subprocess.check_output(argv, **kwargs)
+    else:
+        subprocess.run(argv, **kwargs)
+        output = ''
+    return subprocess.CompletedProcess(argv, 0, stdout=output)

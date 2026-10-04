@@ -25,3 +25,21 @@ def test_successful_request_acknowledged_read_only_request_not_mutation(tmp_path
     assert not journal.data.get('daemon_mutations')
     journal.command(['docker', 'create', '--name', 'synthetic', 'image'], timeout=1)
     assert journal.data['daemon_mutations'][0]['acknowledged'] is True
+
+
+def test_service_restore_response_loss_is_fenced_even_after_known_state_retry(tmp_path, monkeypatch):
+    journal = Journal(tmp_path / 'operation.json', {})
+    journal.services(['docker', 'compose'], {'web': True}, {'web': 'pinned'})
+    calls = []
+    def lost(argv, *args, **kwargs):
+        calls.append(argv)
+        raise TimeoutError('daemon start response lost')
+    monkeypatch.setattr('deploy.owned_client.run', lost)
+    with pytest.raises(RuntimeError): journal.cleanup()
+    assert calls == [['docker', 'container', 'start', 'pinned']]
+    def success(argv, *args, **kwargs):
+        return subprocess.CompletedProcess(argv, 0, stdout='{"Running":true}')
+    monkeypatch.setattr('deploy.owned_client.run', success)
+    with pytest.raises(RuntimeError): journal.cleanup()
+    assert any('positive_dedicated_daemon_barrier_required' in e for e in journal.data['cleanup_errors'])
+    assert not journal.data['cleanup_complete']

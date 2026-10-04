@@ -34,16 +34,21 @@ def atomic_json(path, value):
     sync_directory(path.parent)
 
 
-def restore_service(identifier, running):
+def restore_service(identifier, running, runner=None):
     """Restore an existing container without Compose dependency activation."""
     if not identifier or len(identifier.split()) != 1:
         raise ValueError('Expected exactly one existing service container')
-    subprocess.run(['docker', 'container', 'start' if running else 'stop', identifier],
-                   check=True, capture_output=True, timeout=60)
+    runner = runner or subprocess.run
+    runner(['docker', 'container', 'start' if running else 'stop', identifier],
+           check=True, capture_output=True, timeout=60)
     deadline = time.monotonic() + 60
     while True:
-        state = json.loads(subprocess.check_output(
-            ['docker', 'inspect', '--format', '{{json .State}}', identifier], text=True, timeout=30))
+        if runner is subprocess.run:
+            output = subprocess.check_output(['docker', 'inspect', '--format', '{{json .State}}', identifier], text=True, timeout=30)
+        else:
+            output = runner(['docker', 'inspect', '--format', '{{json .State}}', identifier],
+                            text=True, capture_output=True, timeout=30).stdout
+        state = json.loads(output)
         if state['Running'] == running and (not running or state.get('Health', {}).get('Status', 'healthy') == 'healthy'):
             return
         if time.monotonic() >= deadline:
@@ -130,20 +135,20 @@ class Journal:
                 stop(entry)
                 entry['finished'] = True
             except Exception:
-                errors.append('host_client:' + entry['id'])
+                errors.append('host_client:' + str(entry.get('id', 'invalid') if isinstance(entry, dict) else 'invalid'))
         for container in self.data['containers']:
             try:
-                result = subprocess.run(['docker', 'container', 'ls', '-aq', '--no-trunc',
+                result = self.command(['docker', 'container', 'ls', '-aq', '--no-trunc',
                                          '--filter', 'name=^/' + container['name'] + '$'],
                                         capture_output=True, text=True, check=True, timeout=30)
                 identifier = result.stdout.strip()
                 if not identifier:
                     continue
-                info = json.loads(subprocess.check_output(['docker', 'inspect', identifier], timeout=30))[0]
+                info = json.loads(self.command(['docker', 'inspect', identifier], capture_output=True, timeout=30).stdout)[0]
                 if (info['Name'] != '/' + container['name'] or container['image'] not in {info['Image'], info['Config'].get('Image')} or
                         info['Config']['Labels'].get('org.mldsafail.recovery') != container['label']):
                     raise ValueError('Container ownership mismatch')
-                subprocess.run(['docker', 'rm', '-f', identifier], check=True, capture_output=True, timeout=60)
+                self.command(['docker', 'rm', '-f', identifier], check=True, capture_output=True, timeout=60)
             except Exception:
                 errors.append('container:' + container['name'])
         for role, running in self.data['services'].items():
@@ -151,13 +156,13 @@ class Journal:
                 identifiers = self.data.setdefault('service_identifiers', {})
                 if role not in identifiers:
                     # Persist identities for interrupted pre-upgrade journals first.
-                    identifier = subprocess.check_output(self.data['compose'] + ['ps', '-aq', role],
-                                                         text=True, timeout=30).strip()
+                    identifier = self.command(self.data['compose'] + ['ps', '-aq', role],
+                                              capture_output=True, text=True, timeout=30).stdout.strip()
                     if not identifier or len(identifier.split()) != 1:
                         raise ValueError('Expected exactly one existing service container')
                     identifiers[role] = identifier
                     self.save('service identity reconciliation')
-                restore_service(identifiers[role], running)
+                restore_service(identifiers[role], running, runner=self.command)
             except Exception:
                 errors.append('service:' + role)
         if any(item.get('acknowledged') is not True for item in self.data.get('daemon_mutations', [])):
