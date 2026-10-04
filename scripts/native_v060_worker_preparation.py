@@ -12,7 +12,7 @@ import re
 import stat
 from deploy import owned_daemon
 from research.cpu_measurement import native_driver
-from mldsafail.benchmark_v060.build import prepare_context
+from mldsafail.benchmark_v060.build import prepare_context, wheel_protocol
 
 
 def retain_archive(path):
@@ -41,7 +41,7 @@ def retain_archive(path):
 
 def callback(journal,config,data):
     root=journal.path.parent/'v060-worker';root.mkdir(mode=0o700)
-    context=prepare_context(root/'context',command=lambda argv:journal.command(argv,kind='read',timeout=15).stdout)
+    context=prepare_context(root/'context',command=lambda argv:journal.command(argv,kind='read',timeout=15).stdout,**wheel_protocol(config))
     if context['source_tree_clean'] is not True or context['source_commit']!=config['source_commit']:
         raise RuntimeError('Worker context must bind clean retained operator source')
     image_file=root/'image.id'
@@ -77,6 +77,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--config',type=Path,required=True)
     args=parser.parse_args()
     config=owned_daemon.read_private_json(args.config)
+    wheel_protocol(config)  # Admission before any owned daemon/client mutation.
     native_driver.execute(config,repository=Path(__file__).resolve().parents[1],acceptance=callback,daemon_kind='owned')
 
 if __name__=='__main__':main()

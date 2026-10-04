@@ -80,3 +80,32 @@ supervisor identity and independently accepted fault/pair evidence. It prepares
 and hashes the current context for equality, then inspects the exact loaded
 image. Candidate authority repeats the same artifact binding against the fresh
 epoch manifest. Missing, swapped or legacy artifact identities are rejected.
+
+## Approved offline wheel inventory
+
+The failed native-A build selected a newer published wheel with a hash outside
+the frozen requirements. Preserve that failure; do not edit requirements.
+Both native entry points accept optional private
+`v060-worker-protocol.json` beside `config.state_root`:
+
+```json
+{
+  "schema": "mldsafail.v060-worker-protocol.v1",
+  "approved_wheel_directory": "/PRIVATE/RETAINED/WHEELS",
+  "approved_wheel_sha256": {
+    "cysignals-1.12.5-cp312-cp312-EXACT_RETAINED_PLATFORM.whl": "9c8011f72efc59fda3cf72096e7cdfc00f415629252c161c29eb721427a666a8",
+    "fpylll-0.6.4-cp312-cp312-EXACT_RETAINED_PLATFORM.whl": "ed5b1ddbab1605b8c8ea4797609a74655244820ab01273e12bafa371f3e9df96"
+  }
+}
+```
+
+Replace the placeholder filenames with the exact retained native x86_64 wheel
+names. Inventory must contain exactly one wheel for each frozen dependency,
+with the unchanged package/version/hash and CPython 3.12 native platform tags.
+No extra files, symlinks, writable shared files or nonregular objects are
+admitted. The CLI validates before driver mutation and each callback rechecks
+before image build or reference execution. Copies are rehashed and included in
+the worker context identity. Provide the same inventory to build-only and
+later candidate acceptance; omitting or changing wheels changes the context
+and cannot reuse the former native prerequisites. Private paths are not public
+participant inputs. No dependency hash or frozen artifact is replaced.

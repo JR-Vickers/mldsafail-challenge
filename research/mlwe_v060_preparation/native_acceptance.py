@@ -20,7 +20,7 @@ from research.mlwe_v060_preparation.native_reference_audit import audit_referenc
 from research.mlwe_v060_preparation.reference_authority import seal
 from mldsafail.benchmark_v050.generator import generate_mlwe
 from mldsafail.benchmark_v050.models import digest as instance_digest
-from mldsafail.benchmark_v060.build import prepare_context
+from mldsafail.benchmark_v060.build import prepare_context, wheel_protocol
 from mldsafail.benchmark_v060.deadline import deadline, COMPLETE_EVALUATION_SECONDS
 from mldsafail.benchmark_v060.references import prepare_references
 
@@ -68,7 +68,7 @@ def callback(journal, config, data):
         protocol=owned_daemon.read_private_json(journal.path.parent.parent/'v060-protocol.json')
         if protocol.get('schema')!='mldsafail.v060-native-protocol.v1': raise ValueError('Explicit private candidate protocol required')
         source=Path(__file__).resolve().parents[2]
-        context=prepare_context(root/'worker-context',command=lambda argv:journal.command(argv,kind='read',timeout=15).stdout)
+        context=prepare_context(root/'worker-context',command=lambda argv:journal.command(argv,kind='read',timeout=15).stdout,**wheel_protocol(config))
         if not context['source_tree_clean'] or context['source_commit']!=config['source_commit']:
             raise RuntimeError('Worker context must bind exact retained clean source')
         image=config['image']
@@ -333,7 +333,9 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config',type=Path,required=True)
     args=parser.parse_args()
-    result=native_driver.execute(owned_daemon.read_private_json(args.config),Path(__file__).resolve().parents[2],
+    config=owned_daemon.read_private_json(args.config)
+    wheel_protocol(config)
+    result=native_driver.execute(config,Path(__file__).resolve().parents[2],
         acceptance=callback,daemon_kind='owned')
     print(json.dumps(dict(passed=result['native_acceptance_passed'],native_executed=True,
         contract_adopted=False,production_default_changed=False)))

@@ -22,7 +22,7 @@ def setup(monkeypatch,tmp_path,*,wrong_image=False,fail_export=False):
                 if fail_export:raise RuntimeError('export failure')
                 Path(args[args.index('--output')+1]).write_bytes(b'immutable exported image')
             return SimpleNamespace(stdout='')
-    config=dict(source_commit='b'*40,supervisor_source_sha256='e'*64,acceptance_source_sha256='f'*64)
+    config=dict(state_root=str(tmp_path/'new-state'),source_commit='b'*40,supervisor_source_sha256='e'*64,acceptance_source_sha256='f'*64)
     return Journal(),config,calls
 
 
