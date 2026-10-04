@@ -13,5 +13,24 @@
     "private native generation a state/driver.json",
     "private native generation a permission-repair.json"
   ],
-  "next_action": "New generation b, unchanged source/image/protocol; execute native faults before the predeclared pair gate."
+  "next_action": "New generation b, unchanged source/image/protocol; execute native faults before the predeclared pair gate.",
+  "subsequent_failure": {
+    "generation": "b",
+    "measurement_executed": false,
+    "failure": "Rootless daemon inherited shared default pidfile and refused startup; registration also rejected daemon-managed data-root mode transition.",
+    "private_evidence": [
+      "generation b state/driver.json",
+      "generation b failed-start-resource-reconciliation.json",
+      "generation b dedicated daemon journal"
+    ],
+    "resources_reconciled": true,
+    "authority_journal_remains_fenced": true,
+    "proof": [
+      "No image load admitted",
+      "Exact dedicated unit fragment retained; daemon PID zero and cgroup absent",
+      "Worker birth inode/device/UID verified; no PIDs/children and populated zero before exact slice stop",
+      "Worker, controller and client domains absent"
+    ],
+    "next_action": "Repair isolated pidfile and daemon-managed directory identity contracts; independently review startup failure cleanup before new provisioning."
+  }
 }
