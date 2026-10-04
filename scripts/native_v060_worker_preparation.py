@@ -30,7 +30,7 @@ def retain_archive(path):
         if ((current.st_dev,current.st_ino,current.st_size,current.st_mtime_ns)!=(info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns)
                 or (retained.st_dev,retained.st_ino)!=(info.st_dev,info.st_ino)):
             raise RuntimeError('Worker archive changed while sealing')
-        os.fchmod(descriptor,0o400)
+        os.fchmod(descriptor,0o400);os.fsync(descriptor)
         result=dict(sha256=digest.hexdigest(),bytes=info.st_size)
     finally:os.close(descriptor)
     descriptor=os.open(Path(path).parent,os.O_RDONLY|os.O_NOFOLLOW)
