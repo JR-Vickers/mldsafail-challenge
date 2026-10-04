@@ -31,11 +31,7 @@ def spawn(argv, owner, accounting_parent, *, phase="attach", receipt_file=None):
     release_uncertain = False
     try:
         domain.mkdir()
-        entry['cgroup']=owned_client.domain_identity(domain)
-        if domain.stat().st_uid != os.getuid() or domain.stat().st_mode & 0o022:
-            raise RuntimeError('Client domain lacks exclusive write access')
-        if not all((domain/name).is_file() for name in ('cgroup.procs','cgroup.events','cgroup.kill')):
-            raise RuntimeError('Client domain lacks kernel cleanup controls')
+        owned_client.secure_created_domain(entry,domain)
         save()
         read_fd,write_fd=os.pipe()
         code='import os,sys;fd=int(sys.argv[1]);gate=os.read(fd,1);os.close(fd);os.execv(sys.argv[2],sys.argv[2:]) if gate==b"1" else sys.exit(0)'

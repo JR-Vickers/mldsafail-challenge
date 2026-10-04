@@ -352,7 +352,7 @@ def test_client_birth_acknowledgement_precedes_exec_and_failed_save_cancels(monk
     accounting=tmp_path/'measurements';accounting.mkdir()
     marker=tmp_path/'executed'
     monkeypatch.setenv('MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT',str(parent))
-    monkeypatch.setattr(client.owned_client,'domain_identity',lambda path:{'path':str(path)})
+    monkeypatch.setattr(client.owned_client,'boot_id',lambda:'boot')
     monkeypatch.setattr(client.owned_client,'identity',lambda pid:dict(pid=pid,start_ticks=1,uid=1,boot_id='boot',cmdline_sha256='a'*64))
     def prepare(entry,parent):
         path=parent/entry['id']
@@ -362,7 +362,7 @@ def test_client_birth_acknowledgement_precedes_exec_and_failed_save_cancels(monk
     real_mkdir=__import__('pathlib').Path.mkdir
     def mkdir(path,*args,**kwargs):
         real_mkdir(path,*args,**kwargs)
-        for name in ('cgroup.procs','cgroup.events','cgroup.kill'): (path/name).touch()
+        for name in ('cgroup.procs','cgroup.events','cgroup.kill'): (path/name).write_text('populated 0\n' if name=='cgroup.events' else '')
     monkeypatch.setattr(__import__('pathlib').Path,'mkdir',mkdir)
     monkeypatch.setattr(client.owned_client,'stop',lambda entry:None)
     receipts=[]
