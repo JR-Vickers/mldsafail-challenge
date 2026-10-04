@@ -52,8 +52,10 @@ def callback(journal,config,data):
     if not isinstance(inspected,list) or len(inspected)!=1 or inspected[0].get('Id')!=image:
         raise RuntimeError('Exact built worker inspection required')
     metadata=inspected[0]['Config'];labels=metadata.get('Labels',{})
+    if inspected[0].get('Architecture')!='amd64':raise RuntimeError('Native amd64 worker architecture required')
     if (labels.get('org.mldsafail.benchmark.version')!='0.6.0'
             or labels.get('org.mldsafail.measurement')!='cgroup-v2-usage-usec'
+            or labels.get('org.mldsafail.architecture')!='linux/amd64'
             or metadata.get('Entrypoint')!=['python','-m','mldsafail.benchmark_v060.worker']
             or metadata.get('User')!='65534:65534'):
         raise RuntimeError('Version-correct minimal worker configuration required')
@@ -62,7 +64,8 @@ def callback(journal,config,data):
     journal.command(['docker','image','save','--output',str(archive),image],kind='read',timeout=600)
     sealed=retain_archive(archive)
     artifact=dict(schema='mldsafail.v060-worker-preparation.v1',passed=True,native_executed=True,
-        benchmark_version='0.6.0',measurement_method='cgroup-v2-usage-usec',image=image,
+        benchmark_version='0.6.0',measurement_method='cgroup-v2-usage-usec',architecture='linux/amd64',
+        architecture_lock_sha256=context['architecture_lock_sha256'],image=image,
         image_archive=str(archive),image_archive_sha256=sealed['sha256'],image_archive_bytes=sealed['bytes'],
         source_commit=context['source_commit'],source_context_sha256=context['source_sha256'],
         source_manifest=context,supervisor_source_sha256=config['supervisor_source_sha256'],

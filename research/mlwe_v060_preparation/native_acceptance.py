@@ -76,9 +76,9 @@ def callback(journal, config, data):
             worker_image=image,worker_context_sha256=context['source_sha256'],worker_source_commit=context['source_commit'])
         result['native_executed']=True
         inspected=json.loads(journal.command(['docker','image','inspect',image]).stdout)[0]
-        if inspected.get('Id')!=image: raise RuntimeError('Exact previously gated worker image required')
+        if inspected.get('Id')!=image or inspected.get('Architecture')!='amd64': raise RuntimeError('Exact previously gated worker image required')
         labels=inspected['Config']['Labels']
-        if labels.get('org.mldsafail.benchmark.version')!='0.6.0' or labels.get('org.mldsafail.measurement')!='cgroup-v2-usage-usec':
+        if labels.get('org.mldsafail.benchmark.version')!='0.6.0' or labels.get('org.mldsafail.measurement')!='cgroup-v2-usage-usec' or labels.get('org.mldsafail.architecture')!='linux/amd64':
             raise RuntimeError('Version-specific worker artifact labels required')
         artifact=dict(benchmark_version='0.6.0',measurement_method='cgroup-v2-usage-usec',image=image,
             source_context_sha256=context['source_sha256'],source_commit=config['source_commit'])

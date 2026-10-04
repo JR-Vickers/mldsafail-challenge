@@ -12,7 +12,7 @@ def inventory(monkeypatch,tmp_path):
         content=('approved fixture '+package).encode()
         (directory/name).write_bytes(content)
         digest=hashlib.sha256(content).hexdigest();pins[package]=(version,digest);hashes[name]=digest
-    monkeypatch.setattr(build,'frozen_wheel_pins',lambda:pins)
+    monkeypatch.setattr(build,'native_wheel_pins',lambda:pins)
     return directory,hashes
 
 
@@ -47,3 +47,26 @@ def test_actual_frozen_dependency_hashes_are_unchanged():
     pins=build.frozen_wheel_pins()
     assert pins['cysignals']==('1.12.5','9c8011f72efc59fda3cf72096e7cdfc00f415629252c161c29eb721427a666a8')
     assert pins['fpylll']==('0.6.4','ed5b1ddbab1605b8c8ea4797609a74655244820ab01273e12bafa371f3e9df96')
+
+
+def test_proposed_amd64_lock_is_separate_and_matches_approved_native_lock():
+    import hashlib
+    lock=Path(build.__file__).parent/'requirements.amd64.lock'
+    assert hashlib.sha256(lock.read_bytes()).hexdigest()=='35890cf7c5ed544124dc4cc86269009f11d029a5388d1627b6899e986650c1f0'
+    assert build.native_wheel_pins()=={
+        'cysignals':('1.12.5','eccbcfd762de37daf4a01a0a77ef653561a153c48c2db9104916d36ebbd3cf24'),
+        'fpylll':('0.6.4','05f43362f2803207a8a6dfe5bad41c64df2479cded1338490bad773ca78b5ba1')}
+    assert build.native_wheel_pins()!=build.frozen_wheel_pins()
+
+
+def test_private_protocol_binds_actual_retained_native_provenance(monkeypatch,tmp_path):
+    from deploy import owned_daemon
+    directory,hashes=inventory(monkeypatch,tmp_path)
+    provenance=dict(schema='mldsafail.v060-offline-wheel-provenance.v1',source_image='sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe',architecture='linux/amd64',wheel_sha256=hashes,artifacts_sha256='0aaec49378c4b61c93fb5edf475fb619f5b7b7950406628283773ea6470eb01c')
+    receipt=tmp_path/'provenance.json';owned_daemon.publish(receipt,provenance)
+    protocol=dict(schema='mldsafail.v060-worker-protocol.v1',approved_wheel_directory=str(directory),approved_wheel_sha256=hashes,provenance_receipt=str(receipt))
+    owned_daemon.publish(tmp_path/'v060-worker-protocol.json',protocol)
+    assert build.wheel_protocol({'state_root':str(tmp_path/'fresh')})['wheel_provenance']==provenance
+    for field in ('source_image','artifacts_sha256','architecture'):
+        owned_daemon.publish(receipt,dict(provenance,**{field:'unrelated'}))
+        with pytest.raises(ValueError):build.wheel_protocol({'state_root':str(tmp_path/'fresh')})

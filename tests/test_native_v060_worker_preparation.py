@@ -8,7 +8,7 @@ from scripts import native_v060_worker_preparation as preparation
 
 def setup(monkeypatch,tmp_path,*,wrong_image=False,fail_export=False):
     image='sha256:'+'a'*64;calls=[]
-    context=dict(source_tree_clean=True,source_commit='b'*40,source_sha256='c'*64,files={})
+    context=dict(source_tree_clean=True,source_commit='b'*40,source_sha256='c'*64,architecture_lock_sha256='d'*64,files={})
     monkeypatch.setattr(preparation,'prepare_context',lambda path,**kwargs:context)
     class Journal:
         path=tmp_path/'driver.json'
@@ -16,8 +16,8 @@ def setup(monkeypatch,tmp_path,*,wrong_image=False,fail_export=False):
             calls.append((args,kwargs))
             if args[1]=='build':Path(args[args.index('--iidfile')+1]).write_text(image)
             if args[1:3]==['image','inspect']:
-                config=dict(Labels={'org.mldsafail.benchmark.version':'0.6.0','org.mldsafail.measurement':'cgroup-v2-usage-usec'},Entrypoint=['python','-m','mldsafail.benchmark_v060.worker'],User='65534:65534')
-                return SimpleNamespace(stdout=json.dumps([dict(Id=('sha256:'+'d'*64) if wrong_image else image,Config=config)]))
+                config=dict(Labels={'org.mldsafail.benchmark.version':'0.6.0','org.mldsafail.measurement':'cgroup-v2-usage-usec','org.mldsafail.architecture':'linux/amd64'},Entrypoint=['python','-m','mldsafail.benchmark_v060.worker'],User='65534:65534')
+                return SimpleNamespace(stdout=json.dumps([dict(Architecture='amd64',Id=('sha256:'+'d'*64) if wrong_image else image,Config=config)]))
             if args[1:3]==['image','save']:
                 if fail_export:raise RuntimeError('export failure')
                 Path(args[args.index('--output')+1]).write_bytes(b'immutable exported image')

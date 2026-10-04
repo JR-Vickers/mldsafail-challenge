@@ -92,20 +92,48 @@ Both native entry points accept optional private
 {
   "schema": "mldsafail.v060-worker-protocol.v1",
   "approved_wheel_directory": "/PRIVATE/RETAINED/WHEELS",
+  "provenance_receipt": "/PRIVATE/RETAINED/PROVENANCE.json",
   "approved_wheel_sha256": {
-    "cysignals-1.12.5-cp312-cp312-EXACT_RETAINED_PLATFORM.whl": "9c8011f72efc59fda3cf72096e7cdfc00f415629252c161c29eb721427a666a8",
-    "fpylll-0.6.4-cp312-cp312-EXACT_RETAINED_PLATFORM.whl": "ed5b1ddbab1605b8c8ea4797609a74655244820ab01273e12bafa371f3e9df96"
+    "cysignals-1.12.5-cp312-cp312-EXACT_RETAINED_PLATFORM.whl": "eccbcfd762de37daf4a01a0a77ef653561a153c48c2db9104916d36ebbd3cf24",
+    "fpylll-0.6.4-cp312-cp312-EXACT_RETAINED_PLATFORM.whl": "05f43362f2803207a8a6dfe5bad41c64df2479cded1338490bad773ca78b5ba1"
   }
 }
 ```
 
 Replace the placeholder filenames with the exact retained native x86_64 wheel
 names. Inventory must contain exactly one wheel for each frozen dependency,
-with the unchanged package/version/hash and CPython 3.12 native platform tags.
+with the unchanged package/version and reviewed native hash and CPython 3.12 native platform tags.
 No extra files, symlinks, writable shared files or nonregular objects are
 admitted. The CLI validates before driver mutation and each callback rechecks
 before image build or reference execution. Copies are rehashed and included in
 the worker context identity. Provide the same inventory to build-only and
 later candidate acceptance; omitting or changing wheels changes the context
 and cannot reuse the former native prerequisites. Private paths are not public
-participant inputs. No dependency hash or frozen artifact is replaced.
+participant inputs. No historical dependency hash or frozen artifact is replaced.
+
+The subsequent native architecture investigation established that the historical
+benchmark-directory lock is ARM64, while the already reviewed
+`deploy/worker-linux-amd64.requirements.txt` is the native x86_64 lock. The
+prospective worker now has its own `requirements.amd64.lock`, byte-identical to
+that approved native lock (SHA256
+`35890cf7c5ed544124dc4cc86269009f11d029a5388d1627b6899e986650c1f0`).
+No historical lock or worker changes. Its dependency hashes are:
+
+- cysignals 1.12.5: `eccbcfd762de37daf4a01a0a77ef653561a153c48c2db9104916d36ebbd3cf24`.
+- fpylll 0.6.4: `05f43362f2803207a8a6dfe5bad41c64df2479cded1338490bad773ca78b5ba1`.
+
+Use those native hashes in the private wheel inventory, with the exact retained
+filenames. The protocol additionally requires `provenance_receipt` pointing to
+private schema `mldsafail.v060-offline-wheel-provenance.v1` with exactly
+`source_image`, `architecture`, `wheel_sha256`, and `artifacts_sha256`.
+The trusted operator must verify actual extracted bytes before publishing it.
+It binds retained image
+`sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe`,
+canonical architecture `linux/amd64`, exact filename/hash inventory, and actual
+`/artifacts.json` digest
+`0aaec49378c4b61c93fb5edf475fb619f5b7b7950406628283773ea6470eb01c`.
+The sanitized provenance is copied into both worker contexts and their digest;
+private path values are excluded. The prospective Dockerfile selects
+`linux/amd64`; both callbacks verify actual inspected architecture and label.
+The historical ARM64 hashes remain inadmissible for this prospective native
+artifact. An unverifiable provenance receipt fails closed.
