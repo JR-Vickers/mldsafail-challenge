@@ -70,3 +70,19 @@ def test_private_protocol_binds_actual_retained_native_provenance(monkeypatch,tm
     for field in ('source_image','artifacts_sha256','architecture'):
         owned_daemon.publish(receipt,dict(provenance,**{field:'unrelated'}))
         with pytest.raises(ValueError):build.wheel_protocol({'state_root':str(tmp_path/'fresh')})
+
+
+@pytest.mark.parametrize('entrypoint',['build','acceptance'])
+def test_invalid_offline_protocol_rejects_before_driver_mutation(tmp_path,monkeypatch,entrypoint):
+    import sys
+    from deploy import owned_daemon
+    from scripts import native_v060_worker_preparation
+    from research.mlwe_v060_preparation import native_acceptance
+    module=native_v060_worker_preparation if entrypoint=='build' else native_acceptance
+    config=tmp_path/'config.json';owned_daemon.publish(config,dict(state_root=str(tmp_path/'new-state')))
+    owned_daemon.publish(tmp_path/'v060-worker-protocol.json',dict(schema='invalid'))
+    called=[]
+    monkeypatch.setattr(module.native_driver,'execute',lambda *a,**kw:called.append(True))
+    monkeypatch.setattr(sys,'argv',['operator','--config',str(config)])
+    with pytest.raises(ValueError):module.main()
+    assert called==[]
