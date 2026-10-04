@@ -29,5 +29,13 @@
   ],
   "native_acceptance_pending": true,
   "contract_adoption_approved": false,
-  "production_activation_approved": false
+  "production_activation_approved": false,
+  "corrective_re_review": {
+    "source_commit": "2ec93c1bed20f531745d2cbcb09732b7873866da",
+    "reference_validator_sha256": "98e2f8f99407bb84a1e0b83574256b39e94b5360c95fea00a6c081b403765fdf",
+    "finding_id": "v060-reference-worker-source-binding",
+    "disposition": "passed: worker image, reference source and audit receipt now equal separately supplied trusted expectations; mismatch regression tests pass",
+    "focused_tests_passed": 6,
+    "scope": "inactive adapter source review only; actual backend/native accounting/audit/activation remain pending"
+  }
 }
