@@ -1,0 +1,66 @@
+{
+  "passed": true,
+  "scope": "Compatible frozen0.5 seven-scenario and exact application rollback/forward acceptance only",
+  "native_outcome": {
+    "scenario_gates": {
+      "cancellation": true,
+      "crash": true,
+      "exhaustion": true,
+      "invalid": true,
+      "lease": true,
+      "retry": true,
+      "timeout": true
+    },
+    "rollback_passed": true,
+    "backup_restore_verified": true,
+    "full_timeout_cohort_tested": false,
+    "migration_complete": false,
+    "remaining": [
+      "automated off-host backups",
+      "overall migration acceptance",
+      "production launch prerequisites"
+    ],
+    "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe",
+    "evaluator_fingerprint": "a5cad96917636a4d32da9bbf217e3c38253cb7e211cc030f9cc63f9d6d7eba54",
+    "release_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+    "rollback_commit": "b4d212da3109b7716eb41553986848e377fb5b3d",
+    "operator_attempts": [
+      {
+        "source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "sha256": {
+          "driver": "6dc6d34534a3355a83400f9a7a231e9ff5ed872da48f8f8cc80be6b16c52037a",
+          "probe": "a65d01f6b8e1d6696273b0fdb875e8d34f774b91a7a6c290d84eb96c61603875"
+        },
+        "generation": 2
+      }
+    ],
+    "cleanup_verified": true
+  },
+  "independent_final_reconciliation": {
+    "passed": true,
+    "active_jobs": 0,
+    "workers": 0,
+    "acceptance_containers": 0,
+    "running_services": 4,
+    "preserved_historical_stopped_containers": 3,
+    "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+    "cleanup_credential_removed": true,
+    "health_verified": true
+  },
+  "source_protocol": {
+    "operator_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+    "fixture_commit": "e547caffb06ced2e82f28cf1c130c8131613384d",
+    "benchmark_version": "0.5.0",
+    "ordinary_failure_penalty_seconds": 60,
+    "cancellation_ceiling_seconds": 90,
+    "timeout_probe_ceiling_seconds": 150,
+    "complete_evaluation_ceiling_seconds": 1200,
+    "resumed_generation": 2,
+    "resubmitted_completed_scenarios": false,
+    "migrations_invoked": false,
+    "live_database_restored": false
+  },
+  "private_evidence_reference": "private:launch-scenarios-6b332cd-20261004/generation2",
+  "preserved_prior_failure_reference": "private:launch-scenarios-6b332cd-20261004/prior-generation-1",
+  "remaining": "Expired-token native UI, capacity, measurement, recovery, monitoring, distribution and owner launch gates remain separately tracked"
+}

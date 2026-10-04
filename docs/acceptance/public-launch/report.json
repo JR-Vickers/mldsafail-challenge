@@ -289,7 +289,7 @@
       "criteria": [
         "Verify running-cancellation transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
@@ -309,11 +309,29 @@
           "run_id": "launch-scenarios-6b332cd-20261004",
           "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
           "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "generation": 2,
+          "outcome": "passed; exact journal resumed, completed submissions reverified without POST; final independent cleanup passed"
         }
       ],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Review heartbeat lifetime correction; resume exact journal and reverify completed submissions without POST; repeat protected backup and exact application rollback/forward/privacy gates",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Verify running-cancellation transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
+          ]
+        }
+      ],
+      "identities": {
+        "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "operator_source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "fixture_source_commit": "e547caffb06ced2e82f28cf1c130c8131613384d",
+        "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe",
+        "evaluator_fingerprint": "a5cad96917636a4d32da9bbf217e3c38253cb7e211cc030f9cc63f9d6d7eba54"
+      },
+      "next_action": "Retain native evidence and preserved failures; continue separately tracked launch gates",
       "checklist": []
     },
     {
@@ -330,7 +348,7 @@
       "criteria": [
         "Verify real-timeout-cancellation transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
@@ -350,11 +368,29 @@
           "run_id": "launch-scenarios-6b332cd-20261004",
           "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
           "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "generation": 2,
+          "outcome": "passed; exact journal resumed, completed submissions reverified without POST; final independent cleanup passed"
         }
       ],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Review heartbeat lifetime correction; resume exact journal and reverify completed submissions without POST; repeat protected backup and exact application rollback/forward/privacy gates",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Verify real-timeout-cancellation transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
+          ]
+        }
+      ],
+      "identities": {
+        "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "operator_source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "fixture_source_commit": "e547caffb06ced2e82f28cf1c130c8131613384d",
+        "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe",
+        "evaluator_fingerprint": "a5cad96917636a4d32da9bbf217e3c38253cb7e211cc030f9cc63f9d6d7eba54"
+      },
+      "next_action": "Retain native evidence and preserved failures; continue separately tracked launch gates",
       "checklist": []
     },
     {
@@ -371,7 +407,7 @@
       "criteria": [
         "Verify invalid-answer transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
@@ -391,11 +427,29 @@
           "run_id": "launch-scenarios-6b332cd-20261004",
           "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
           "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "generation": 2,
+          "outcome": "passed; exact journal resumed, completed submissions reverified without POST; final independent cleanup passed"
         }
       ],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Review heartbeat lifetime correction; resume exact journal and reverify completed submissions without POST; repeat protected backup and exact application rollback/forward/privacy gates",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Verify invalid-answer transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
+          ]
+        }
+      ],
+      "identities": {
+        "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "operator_source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "fixture_source_commit": "e547caffb06ced2e82f28cf1c130c8131613384d",
+        "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe",
+        "evaluator_fingerprint": "a5cad96917636a4d32da9bbf217e3c38253cb7e211cc030f9cc63f9d6d7eba54"
+      },
+      "next_action": "Retain native evidence and preserved failures; continue separately tracked launch gates",
       "checklist": []
     },
     {
@@ -412,7 +466,7 @@
       "criteria": [
         "Verify immediate-crash transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
@@ -432,11 +486,29 @@
           "run_id": "launch-scenarios-6b332cd-20261004",
           "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
           "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "generation": 2,
+          "outcome": "passed; exact journal resumed, completed submissions reverified without POST; final independent cleanup passed"
         }
       ],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Review heartbeat lifetime correction; resume exact journal and reverify completed submissions without POST; repeat protected backup and exact application rollback/forward/privacy gates",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Verify immediate-crash transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
+          ]
+        }
+      ],
+      "identities": {
+        "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "operator_source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "fixture_source_commit": "e547caffb06ced2e82f28cf1c130c8131613384d",
+        "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe",
+        "evaluator_fingerprint": "a5cad96917636a4d32da9bbf217e3c38253cb7e211cc030f9cc63f9d6d7eba54"
+      },
+      "next_action": "Retain native evidence and preserved failures; continue separately tracked launch gates",
       "checklist": []
     },
     {
@@ -453,7 +525,7 @@
       "criteria": [
         "Verify recoverable-infrastructure-failure transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
@@ -473,11 +545,29 @@
           "run_id": "launch-scenarios-6b332cd-20261004",
           "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
           "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "generation": 2,
+          "outcome": "passed; exact journal resumed, completed submissions reverified without POST; final independent cleanup passed"
         }
       ],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Review heartbeat lifetime correction; resume exact journal and reverify completed submissions without POST; repeat protected backup and exact application rollback/forward/privacy gates",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Verify recoverable-infrastructure-failure transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
+          ]
+        }
+      ],
+      "identities": {
+        "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "operator_source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "fixture_source_commit": "e547caffb06ced2e82f28cf1c130c8131613384d",
+        "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe",
+        "evaluator_fingerprint": "a5cad96917636a4d32da9bbf217e3c38253cb7e211cc030f9cc63f9d6d7eba54"
+      },
+      "next_action": "Retain native evidence and preserved failures; continue separately tracked launch gates",
       "checklist": []
     },
     {
@@ -494,7 +584,7 @@
       "criteria": [
         "Verify three-attempt-exhaustion transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
@@ -513,11 +603,29 @@
           "run_id": "launch-scenarios-6b332cd-20261004",
           "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
           "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "generation": 2,
+          "outcome": "passed; exact journal resumed, completed submissions reverified without POST; final independent cleanup passed"
         }
       ],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Review heartbeat lifetime correction; resume exact journal and reverify completed submissions without POST; repeat protected backup and exact application rollback/forward/privacy gates",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Verify three-attempt-exhaustion transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
+          ]
+        }
+      ],
+      "identities": {
+        "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "operator_source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "fixture_source_commit": "e547caffb06ced2e82f28cf1c130c8131613384d",
+        "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe",
+        "evaluator_fingerprint": "a5cad96917636a4d32da9bbf217e3c38253cb7e211cc030f9cc63f9d6d7eba54"
+      },
+      "next_action": "Retain native evidence and preserved failures; continue separately tracked launch gates",
       "checklist": []
     },
     {
@@ -534,7 +642,7 @@
       "criteria": [
         "Verify expired-lease-recovery transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
@@ -553,11 +661,29 @@
           "run_id": "launch-scenarios-6b332cd-20261004",
           "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
           "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "generation": 2,
+          "outcome": "passed; exact journal resumed, completed submissions reverified without POST; final independent cleanup passed"
         }
       ],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Review heartbeat lifetime correction; resume exact journal and reverify completed submissions without POST; repeat protected backup and exact application rollback/forward/privacy gates",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Verify expired-lease-recovery transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
+          ]
+        }
+      ],
+      "identities": {
+        "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "operator_source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "fixture_source_commit": "e547caffb06ced2e82f28cf1c130c8131613384d",
+        "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe",
+        "evaluator_fingerprint": "a5cad96917636a4d32da9bbf217e3c38253cb7e211cc030f9cc63f9d6d7eba54"
+      },
+      "next_action": "Retain native evidence and preserved failures; continue separately tracked launch gates",
       "checklist": []
     },
     {
@@ -580,7 +706,7 @@
       "criteria": [
         "Quiescent disposable restore and actual exact b4d212d application rollback/forward preserving immutable state without migration"
       ],
-      "status": "waiting_dependency",
+      "status": "passed",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
@@ -594,11 +720,29 @@
           "run_id": "launch-scenarios-6b332cd-20261004",
           "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
           "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "generation": 2,
+          "outcome": "passed; exact journal resumed, completed submissions reverified without POST; final independent cleanup passed"
         }
       ],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Review heartbeat lifetime correction; resume exact journal and reverify completed submissions without POST; repeat protected backup and exact application rollback/forward/privacy gates",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Quiescent disposable restore and actual exact b4d212d application rollback/forward preserving immutable state without migration"
+          ]
+        }
+      ],
+      "identities": {
+        "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "operator_source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "fixture_source_commit": "e547caffb06ced2e82f28cf1c130c8131613384d",
+        "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe",
+        "evaluator_fingerprint": "a5cad96917636a4d32da9bbf217e3c38253cb7e211cc030f9cc63f9d6d7eba54"
+      },
+      "next_action": "Retain native evidence and preserved failures; continue separately tracked launch gates",
       "checklist": []
     },
     {
