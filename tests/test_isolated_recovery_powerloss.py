@@ -90,3 +90,32 @@ def test_retained_bootstrap_archive_checksum_binds_offline_image(tmp_path):
     assert verified_bootstrap_artifact(manifest)==value
     image.write_bytes(b'corruption')
     with pytest.raises(ValueError,match='checksum mismatch'):verified_bootstrap_artifact(manifest)
+
+
+def test_evidence_export_retains_operator_proofs_but_not_opaque_runtime_graph(tmp_path):
+    from deploy.qemu_isolated_recovery_powerloss import evidence_tar_command
+    command=evidence_tar_command()
+    for name in ('root_dir','exec_root','rootless_state','docker.sock','dockerd.pid'):
+        assert "--exclude='powerloss-evidence/*-driver/daemon/"+name+"'" in command
+    assert 'powerloss-evidence powerloss-artifacts' in command
+    assert 'daemon-provision' not in command and 'driver.json' not in command
+
+
+def test_actual_tar_export_omits_unreadable_graph_and_preserves_proof_files(tmp_path):
+    import io,shlex,subprocess,tarfile
+    from deploy.qemu_isolated_recovery_powerloss import evidence_tar_command
+    graph=tmp_path/'powerloss-evidence/prepare-driver/daemon/root_dir/work'
+    graph.mkdir(parents=True)
+    blocked=graph/'opaque';blocked.write_bytes(b'opaque graph');blocked.chmod(0)
+    proof=tmp_path/'powerloss-evidence/prepare-driver/driver.json';proof.write_text('{}')
+    dump=tmp_path/'powerloss-evidence/immutable-synthetic.dump';dump.write_bytes(b'logical')
+    artifacts=tmp_path/'powerloss-artifacts';artifacts.mkdir();(artifacts/'postgres.tar').write_bytes(b'pinned')
+    argv=shlex.split(evidence_tar_command());argv[argv.index('-C')+1]=str(tmp_path)
+    try:
+        result=subprocess.run(argv,capture_output=True,check=True,timeout=10)
+        with tarfile.open(fileobj=io.BytesIO(result.stdout)) as archive:names=archive.getnames()
+        assert not any('/root_dir' in name for name in names)
+        assert 'powerloss-evidence/prepare-driver/driver.json' in names
+        assert 'powerloss-evidence/immutable-synthetic.dump' in names
+        assert 'powerloss-artifacts/postgres.tar' in names
+    finally:blocked.chmod(0o600)

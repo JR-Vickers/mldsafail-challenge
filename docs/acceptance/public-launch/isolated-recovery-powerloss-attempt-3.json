@@ -1,0 +1,23 @@
+{
+  "schema": "mldsafail.native-recovery-powerloss-attempt.v1",
+  "attempt": "modern-powerloss-20261004-3",
+  "source_commit": "8ec328eca6d562160aa6398349fc4a9137fb2852",
+  "passed": false,
+  "hard_power_loss_injected": true,
+  "changed_boot_proven": true,
+  "native_restore_behavior_passed": true,
+  "native_driver_cleanup_complete": true,
+  "native_driver_cleanup_errors": [],
+  "failure": "Host raw archive exporter included unreadable rootless UID-mapped Docker graph; overall evidence gate failed despite restoration behavior passing.",
+  "repair": "Export authority/outcome journals, immutable logical dump and pinned image archive; exclude only exact opaque runtime trees retained separately on the stopped owned VM disk.",
+  "owned_vm_stopped": true,
+  "cleanup_errors": [
+    {
+      "error_type": "CalledProcessError",
+      "step": "private_evidence_collection"
+    }
+  ],
+  "protected_original_disk_unchanged": true,
+  "protected_original_vars_unchanged": true,
+  "evidence_ref": "private:modern-powerloss-20261004-3/{ownership.json,guest-evidence.tar,boot-0.log,boot-1.log}; private:recovery-modern-powerloss/run-3.log"
+}

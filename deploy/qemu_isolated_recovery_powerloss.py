@@ -51,6 +51,14 @@ def verified_bootstrap_artifact(path):
     return value
 
 
+def evidence_tar_command():
+    # Kernel/UID-mapped Docker runtime trees remain on the retained VM disk.
+    # Export operator authority, outcomes, logical dump and pinned image archive.
+    excluded=('root_dir','exec_root','rootless_state','docker.sock','dockerd.pid')
+    options=' '.join("--exclude='powerloss-evidence/*-driver/daemon/"+name+"'" for name in excluded)
+    return 'tar '+options+' -cf - -C /home/ubuntu powerloss-evidence powerloss-artifacts'
+
+
 def require_base_quiescent(base):
     result=subprocess.run(['lsof','-t','--',str(base/'disk.qcow2'),str(base/'vars.fd')],capture_output=True,timeout=15)
     if result.returncode not in (0,1) or result.stdout.strip() or result.stderr.strip():raise RuntimeError('Protected base VM files are open or quiescence unproved')
@@ -228,7 +236,7 @@ print(json.dumps(dict(image=image,image_archive=str(archive),image_archive_sha25
             attempt('guest_unit_journal',lambda:guest('journalctl --user --no-pager > /home/ubuntu/powerloss-evidence/unit.log',30))
             def collect():
                 with (output/'guest-evidence.tar').open('wb') as stream:
-                    subprocess.run(ssh+['tar -cf - -C /home/ubuntu powerloss-evidence powerloss-artifacts'],stdout=stream,check=True,timeout=180)
+                    subprocess.run(ssh+[evidence_tar_command()],stdout=stream,check=True,timeout=180)
             attempt('private_evidence_collection',collect)
         for entry in record['vm_attempts']:
             if not entry.get('exit_proven'):attempt('owned_vm_stop',lambda entry=entry:owned_vm.stop(entry))
