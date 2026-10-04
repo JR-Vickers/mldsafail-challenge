@@ -2471,7 +2471,7 @@
       "criteria": [
         "Independent review focused interruption tests and native owned-client fault acceptance pass; original failed/partial evidence retained"
       ],
-      "status": "failed",
+      "status": "running",
       "attempts": [
         {
           "protocol": "Pre-exec release gate with durable PID/start/UID/boot/cmdline identities; independent cleanup and bounded failure logs",
@@ -2481,11 +2481,17 @@
           "source_commit": "9703f2eeacc5efb7387332c8090863dbe44d0283",
           "result": "failed before command spawn; cleanup verified",
           "evidence_reference": "docs/acceptance/public-launch/native-client-permission-failure.json"
+        },
+        {
+          "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
+          "protocol": "Actual non-root Linux UID1000 delegated service, owner termination before release and after descendant birth, inode mismatch refusal, prior-boot no-signal and repeated exact cleanup. Newly owned child permissions restricted before process admission.",
+          "result": "native verification planned",
+          "evidence_reference": "protected native operator acceptance attempt 20261004, generation 2"
         }
       ],
       "evidence": [],
       "identities": {},
-      "next_action": "Restrict newly created owned child permissions before admission; review and rerun on corrected retained source.",
+      "next_action": "Execute corrected exact retained source and independently prove terminal service, absent old parent and client domains.",
       "checklist": []
     },
     {
