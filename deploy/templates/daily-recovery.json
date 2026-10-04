@@ -1,0 +1,38 @@
+{
+  "recovery_root": "/CHANGE_ME_PRIVATE_ROOT/recovery",
+  "local_verified_sets_to_keep": 2,
+  "assembly": {
+    "env_file": "/CHANGE_ME_PRIVATE_ROOT/staging.env",
+    "compose": "/CHANGE_ME_RELEASE_ROOT/compose.private.yaml",
+    "python": "/CHANGE_ME_INSTALLED_ENV/bin/python",
+    "material": {
+      "configuration": {
+        "staging.env": "/CHANGE_ME_PRIVATE_ROOT/staging.env",
+        "compose.private.yaml": "/CHANGE_ME_RELEASE_ROOT/compose.private.yaml"
+      },
+      "secrets": {
+        "signing.key": "/CHANGE_ME_EVALUATOR_ROOT/secrets/signing.key"
+      },
+      "release": {
+        "manifest.json": "/CHANGE_ME_RETAINED_RELEASE/manifest.json",
+        "checksums.txt": "/CHANGE_ME_RETAINED_RELEASE/checksums.txt",
+        "rollback.json": "/CHANGE_ME_RETAINED_RELEASE/rollback.json"
+      },
+      "images": {
+        "images.tar": "/CHANGE_ME_RETAINED_RELEASE/images.tar"
+      }
+    }
+  },
+  "backup": {
+    "restic_binary": "/CHANGE_ME_PINNED_BINARY/restic",
+    "restic_sha256": "CHANGE_ME_VERIFIED_INSTALLED_BINARY_SHA256",
+    "repository": "s3:https://CHANGE_ME_ENDPOINT/CHANGE_ME_BUCKET/staging",
+    "environment": "staging",
+    "password_file": "/CHANGE_ME_PRIVATE_ROOT/restic-password",
+    "credentials_file": "/CHANGE_ME_PRIVATE_ROOT/backup-credentials.json",
+    "owner_retained_recovery_key": false,
+    "backup_state": "/CHANGE_ME_PRIVATE_ROOT/verified-backup.json",
+    "postgres_image": "sha256:CHANGE_ME_RETAINED_POSTGRES_IMAGE_ID",
+    "coordinator_image": "sha256:CHANGE_ME_RETAINED_COMPATIBLE_COORDINATOR_IMAGE_ID"
+  }
+}

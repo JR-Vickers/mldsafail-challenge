@@ -1,0 +1,15 @@
+{
+  "env_file": "/CHANGE_ME_PRIVATE_ROOT/staging.env",
+  "compose": "/CHANGE_ME_RELEASE_ROOT/compose.private.yaml",
+  "readiness_url": "http://127.0.0.1:8080/health/ready",
+  "backup_state": "/CHANGE_ME_PRIVATE_ROOT/verified-backup.json",
+  "repository": "s3:https://CHANGE_ME_ENDPOINT/CHANGE_ME_BUCKET/staging",
+  "scheduled_units": [
+    "mldsafail-offhost-backup.service",
+    "mldsafail-offhost-check.service"
+  ],
+  "alert_enabled": false,
+  "alert_url": "https://CHANGE_ME_APPROVED_RECEIVER/alerts",
+  "alert_token_file": "/CHANGE_ME_PRIVATE_ROOT/alert-token",
+  "alert_state": "/CHANGE_ME_PRIVATE_ROOT/alert-state.json"
+}
