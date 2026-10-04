@@ -1,0 +1,28 @@
+{
+  "schema": "mldsafail.source-review.v1",
+  "status": "source_clear_native_pending",
+  "passed": true,
+  "native_executed": false,
+  "reviewer": "independent-preparation-agent",
+  "source_commit": "b5a9e8f19056e90e0a86e4639ed46877388e61b5",
+  "files": {
+    "scripts/native_protected_local_restoration.py": "111c184f8403703c39cbbc56f81a4120d9fc85706f6c0cfe590fecfa7efca733",
+    "deploy/restore_recovery.py": "24b8b402a8c5642293530fa2958de8e9baf1715e330750e92d9a6c4bf322a8de",
+    "deploy/assemble_recovery.py": "780842d3d1eba4fe952892ff43776127d7d581095c903a646ca993965ff4d964"
+  },
+  "scope": [
+    "Protected local sealed-set restoration only; no off-host storage or custody acceptance",
+    "Mandatory durable Journal before assembly mutations",
+    "Both immutable PostgreSQL and coordinator inputs preloaded before native callback mutation",
+    "COPY and SQL quoted bodies retained in schema/data comparison; ordinary and E-prefixed literals distinct",
+    "Independent cleanup preserves original execution failures; publication cannot support native pass here"
+  ],
+  "verification": {
+    "focused_tests": 53,
+    "author_full_tests_passed": 756,
+    "author_full_tests_skipped": 27
+  },
+  "remaining": [
+    "Exact-source native protected-local restoration acceptance"
+  ]
+}
