@@ -173,3 +173,13 @@ def test_corrupt_corruption_metadata_cannot_bypass_fence_or_abort_safe_registry_
     assert daemon.cleanup_entries(record,'clients',errors)==[]
     assert record['invalid_corrupt_fields'] is None
     assert daemon.repair(record,tmp_path,lambda:None) and calls==[]
+
+
+def test_provision_lock_covers_registration_and_nested_manifest_consumer(tmp_path, monkeypatch):
+    tmp_path.chmod(0o700)
+    provisioning={'base':daemon.owned_daemon._private_directory(tmp_path)}
+    monkeypatch.setattr(daemon.owned_daemon,'load_manifest',lambda path:{'provisioning':provisioning})
+    with daemon.provision_lock(provisioning):
+        with daemon.operation_lock(tmp_path/'later-manifest.json'):
+            assert len(daemon.operation_lock._active)==1
+    assert not daemon.operation_lock._active

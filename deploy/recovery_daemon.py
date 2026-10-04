@@ -24,7 +24,14 @@ def operation_lock(path):
         yield
         return
     manifest = owned_daemon.load_manifest(path)
-    base_identity = manifest['provisioning']['base']
+    with provision_lock(manifest['provisioning']):
+        yield
+
+
+@contextmanager
+def provision_lock(provisioning):
+    """Lock the fresh daemon base before manifest registration and through teardown."""
+    base_identity = provisioning['base']
     base = Path(base_identity['path'])
     if owned_daemon._private_directory(base) != base_identity:
         raise ValueError('Dedicated daemon provisioning root changed')
