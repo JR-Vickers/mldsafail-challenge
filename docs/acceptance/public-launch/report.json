@@ -588,11 +588,25 @@
       "criteria": [
         "Resolve CPU review finding 2: durable ownership and fencing"
       ],
-      "status": "ready",
-      "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
+          "result": "passed"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+          "criteria_met": [
+            "Resolve CPU review finding 2: durable ownership and fencing"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
+      },
+      "next_action": "Execute distinct native delegation/fault/pair prerequisites before versioned contract integration",
       "checklist": []
     },
     {
@@ -606,11 +620,25 @@
       "criteria": [
         "Resolve CPU review finding 3: ownership through synchronized evidence publication"
       ],
-      "status": "ready",
-      "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
+          "result": "passed"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+          "criteria_met": [
+            "Resolve CPU review finding 3: ownership through synchronized evidence publication"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
+      },
+      "next_action": "Execute distinct native delegation/fault/pair prerequisites before versioned contract integration",
       "checklist": []
     },
     {
@@ -624,11 +652,25 @@
       "criteria": [
         "Resolve CPU review finding 4: bounded streaming"
       ],
-      "status": "ready",
-      "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
+          "result": "passed"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+          "criteria_met": [
+            "Resolve CPU review finding 4: bounded streaming"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
+      },
+      "next_action": "Execute distinct native delegation/fault/pair prerequisites before versioned contract integration",
       "checklist": []
     },
     {
@@ -642,11 +684,25 @@
       "criteria": [
         "Resolve CPU review finding 5: continuous accounting exclusivity"
       ],
-      "status": "ready",
-      "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
+          "result": "passed"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+          "criteria_met": [
+            "Resolve CPU review finding 5: continuous accounting exclusivity"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
+      },
+      "next_action": "Execute distinct native delegation/fault/pair prerequisites before versioned contract integration",
       "checklist": []
     },
     {
@@ -660,11 +716,25 @@
       "criteria": [
         "Resolve CPU review finding 6: independently retryable cleanup"
       ],
-      "status": "ready",
-      "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
+          "result": "passed"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+          "criteria_met": [
+            "Resolve CPU review finding 6: independently retryable cleanup"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
+      },
+      "next_action": "Execute distinct native delegation/fault/pair prerequisites before versioned contract integration",
       "checklist": []
     },
     {
@@ -678,11 +748,25 @@
       "criteria": [
         "Resolve CPU review finding 7: strict paired-measurement validation"
       ],
-      "status": "ready",
-      "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
+          "result": "passed"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+          "criteria_met": [
+            "Resolve CPU review finding 7: strict paired-measurement validation"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
+      },
+      "next_action": "Execute distinct native delegation/fault/pair prerequisites before versioned contract integration",
       "checklist": []
     },
     {
@@ -696,11 +780,25 @@
       "criteria": [
         "Resolve CPU review finding 8: versioned independently audited evidence"
       ],
-      "status": "ready",
-      "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
+          "result": "passed"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+          "criteria_met": [
+            "Resolve CPU review finding 8: versioned independently audited evidence"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
+      },
+      "next_action": "Execute distinct native delegation/fault/pair prerequisites before versioned contract integration",
       "checklist": []
     },
     {
@@ -722,11 +820,25 @@
       "criteria": [
         "Independent supervisor review with every finding resolved"
       ],
-      "status": "waiting_dependency",
-      "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
+          "result": "passed"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+          "criteria_met": [
+            "Independent supervisor review with every finding resolved"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
+      },
+      "next_action": "Execute distinct native delegation/fault/pair prerequisites before versioned contract integration",
       "checklist": []
     },
     {
@@ -742,11 +854,25 @@
       "criteria": [
         "Independent evidence auditor review with every finding resolved"
       ],
-      "status": "waiting_dependency",
-      "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
+          "result": "passed"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/accounting-auditor-review.json#/source_review_passed",
+          "criteria_met": [
+            "Independent evidence auditor review with every finding resolved"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
+      },
+      "next_action": "Execute distinct native delegation/fault/pair prerequisites before versioned contract integration",
       "checklist": []
     },
     {
@@ -762,7 +888,7 @@
       "criteria": [
         "Establish exclusive host-supervised native delegation"
       ],
-      "status": "waiting_dependency",
+      "status": "ready",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -1635,7 +1761,7 @@
       "criteria": [
         "Reconcile historical unresolved gate cpu_contract_review"
       ],
-      "status": "waiting_dependency",
+      "status": "ready",
       "attempts": [],
       "evidence": [],
       "identities": {},
