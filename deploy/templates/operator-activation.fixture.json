@@ -1,0 +1,8 @@
+{
+  "schema": "mldsafail.operator-activation.v1",
+  "driver_template": "/CHANGE_ME_PRIVATE_ROOT/source-bound-driver.json",
+  "activation_root": "/CHANGE_ME_PRIVATE_ROOT/repeat-activation-evidence",
+  "job": "fixture",
+  "job_config": null,
+  "staging_socket": null
+}
