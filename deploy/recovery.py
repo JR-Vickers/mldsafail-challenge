@@ -54,13 +54,15 @@ def validate_verified_state(config, *, now=None, expected_snapshot=None):
     """Accept only a private, versioned, exact restored snapshot receipt."""
     from deploy.recovery_journal import safe_path
     path = safe_path(Path(config['backup_state']))
-    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     with os.fdopen(descriptor) as stream:
         info = os.fstat(stream.fileno())
         if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or
                 info.st_mode & 0o077 or info.st_nlink != 1):
             raise ValueError('Recovery state requires owned private regular file')
-        state = json.load(stream)
+        raw = stream.read(65537)
+        if len(raw) > 65536: raise ValueError('Recovery state exceeds private receipt cap')
+        state = json.loads(raw)
     return validate_verified_receipt(state, config, now=now, expected_snapshot=expected_snapshot)
 
 

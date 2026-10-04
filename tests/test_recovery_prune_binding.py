@@ -50,3 +50,21 @@ def test_monitoring_state_requires_matching_epoch_and_valid_json(tmp_path):
     with pytest.raises(ValueError): validate_verified_state(config)
     path.write_text('{corrupt')
     with pytest.raises(ValueError): validate_verified_state(config)
+
+
+def test_nonregular_private_fifo_cannot_block_state_validation(tmp_path):
+    import os
+    import subprocess
+    import sys
+    path = tmp_path / 'fifo'; os.mkfifo(path, 0o600)
+    code = 'from deploy.recovery import validate_verified_state;import sys;validate_verified_state({"backup_state":sys.argv[1],"repository":"synthetic"})'
+    result = subprocess.run([sys.executable, '-c', code, str(path)], capture_output=True, timeout=3)
+    assert result.returncode != 0
+    assert b'owned private regular' in result.stderr
+
+
+def test_oversized_private_receipt_is_rejected_before_json_parsing(tmp_path):
+    from deploy.recovery import validate_verified_state
+    path = tmp_path / 'state'; path.write_text(' ' * 65537); path.chmod(0o600)
+    with pytest.raises(ValueError, match='receipt cap'):
+        validate_verified_state({'backup_state': str(path), 'repository': 'synthetic'})
