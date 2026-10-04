@@ -62,6 +62,19 @@ def test_private_gateway_requires_durable_request_before_evaluation(tmp_path,mon
         assert not thread.is_alive() and not errors and len(observed)==1
         retained=json.loads((tmp_path/'gateway'/request/'journal.json').read_text())
         assert retained['state']=='evaluated' and retained['passed'] is False
+        thread=threading.Thread(target=serve);thread.start()
+        with socket.socket(socket.AF_UNIX) as connection:
+            connection.connect(str(value.socket_path))
+            protocol.send(connection,dict(operation='lookup',request_id=request,binding=binding))
+            assert protocol.receive(connection)=={'envelope':{'signed':'tiny synthetic envelope'}}
+        thread.join(timeout=5)
+        assert not thread.is_alive() and not errors and len(observed)==1
+        thread=threading.Thread(target=serve);thread.start()
+        with socket.socket(socket.AF_UNIX) as connection:
+            connection.connect(str(value.socket_path))
+            protocol.send(connection,dict(operation='evaluate',request_id='b'*32,files=files,binding=binding,attempt_id='33333333-3333-4333-8333-333333333333'))
+        thread.join(timeout=5)
+        assert not thread.is_alive() and len(errors)==1 and 'Prior job remains fenced' in str(errors[0]) and len(observed)==1
     finally:
         value.close()
         import shutil

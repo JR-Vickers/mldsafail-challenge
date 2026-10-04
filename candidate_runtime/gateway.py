@@ -47,7 +47,7 @@ def snapshot(root,files):
 class Gateway:
     def __init__(self,*,root,worker_domain,authority,evaluate_source):
         if sys.platform!='linux' or not hasattr(socket,'SO_PEERCRED'):raise RuntimeError('Native Linux Unix peer binding required')
-        self.root=Path(root);self.domain=worker_domain;self.authority=authority;self.evaluator=evaluate_source
+        self.root=Path(root).resolve();self.domain=worker_domain;self.authority=authority;self.evaluator=evaluate_source
         if self.root.exists():raise ValueError('Fresh protected gateway root required')
         self.root.mkdir(mode=0o700);self.socket_path=self.root/'candidate.sock'
         self.server=socket.socket(socket.AF_UNIX);self.server.settimeout(30)
