@@ -23,7 +23,7 @@ def test_reproduction_requires_immutable_image_and_private_cleanup_authority(tmp
 def test_reproduction_persists_intent_timeout_and_partial_output(tmp_path, monkeypatch):
     run = ReproductionRun(tmp_path, ['sha256:' + 'a' * 64])
     run.journal = {'run_id': 'a' * 32, 'attempts': []}
-    def command(argv, **kwargs):
+    def command(_self, argv, **kwargs):
         if argv[:2] == ['docker', 'create']:
             assert json.loads((tmp_path / 'journal.json').read_text())['attempts'][0]['phase'] == 'create_intent'
             assert '--label' in argv
@@ -34,7 +34,7 @@ def test_reproduction_persists_intent_timeout_and_partial_output(tmp_path, monke
         if argv[:3] == ['docker', 'container', 'inspect']:
             return SimpleNamespace(returncode=0, stdout=json.dumps([{'Config': {'Labels': {LABEL: 'a' * 32}}}]).encode())
         return SimpleNamespace(returncode=0)
-    monkeypatch.setattr('scripts.reproduction_lifecycle.subprocess.run', command)
+    monkeypatch.setattr('scripts.reproduction_lifecycle.ReproductionRun.command', command)
     with pytest.raises(subprocess.TimeoutExpired):
         run.invoke(run.images[0], ['-m', 'worker'], b'public-input')
     journal = json.loads((tmp_path / 'journal.json').read_text())
@@ -45,9 +45,22 @@ def test_reproduction_persists_intent_timeout_and_partial_output(tmp_path, monke
 def test_reproduction_cleanup_rejects_other_owner_and_proves_remaining_inventory(tmp_path, monkeypatch):
     run = ReproductionRun(tmp_path, [])
     run.journal = {'run_id': 'a' * 32, 'attempts': []}
-    monkeypatch.setattr('scripts.reproduction_lifecycle.subprocess.check_output', lambda *_args, **_kwargs: b'container-id\n')
-    monkeypatch.setattr('scripts.reproduction_lifecycle.subprocess.run', lambda *_args, **_kwargs:
-        SimpleNamespace(returncode=0, stdout=json.dumps([{'Config': {'Labels': {LABEL: 'other'}}}]).encode()))
+    def command(_self, argv, **_kwargs):
+        data = b'container-id\n' if argv[:3] == ['docker', 'ps', '-aq'] else json.dumps([{'Config': {'Labels': {LABEL: 'other'}}}]).encode()
+        return SimpleNamespace(returncode=0, stdout=data)
+    monkeypatch.setattr('scripts.reproduction_lifecycle.ReproductionRun.command', command)
     assert run.cleanup() is False
     assert run.journal['remaining_owned_containers'] == ['container-id']
     assert run.journal['cleanup_errors'] == ['ValueError']
+
+
+def test_cleanup_retains_client_failure_even_when_container_inventory_empty(tmp_path, monkeypatch):
+    run = ReproductionRun(tmp_path, [])
+    run.journal = {'run_id': 'a' * 32, 'attempts': [], 'clients': [{'pid': 123}]}
+    def refuse(_):
+        raise RuntimeError('identity mismatch')
+    monkeypatch.setattr('scripts.reproduction_lifecycle.owned_client.stop', refuse)
+    monkeypatch.setattr('scripts.reproduction_lifecycle.ReproductionRun.command', lambda *_args, **_kwargs: SimpleNamespace(stdout=b''))
+    assert run.cleanup() is False
+    assert run.journal['cleanup_errors'] == ['RuntimeError']
+    assert run.journal['remaining_owned_containers'] == []

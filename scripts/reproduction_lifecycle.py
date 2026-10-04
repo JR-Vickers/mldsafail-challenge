@@ -9,6 +9,7 @@ import subprocess
 import uuid
 
 from deploy.recovery_journal import atomic_json, safe_path
+from deploy import owned_client
 
 LABEL = 'org.mldsafail.public-reproduction'
 
@@ -44,13 +45,16 @@ class ReproductionRun:
                 source = Path(__file__).resolve().parents[1]
                 if subprocess.check_output(['git', '-C', str(source), 'status', '--porcelain']).strip():
                     raise ValueError('Clean retained reproduction source required')
+                from mldsafail.benchmark_v050 import generator as current_generator
+                from research.primitive_selection import generator as frozen_generator
+                for module, expected in ((current_generator, source / 'src/mldsafail/benchmark_v050/generator.py'),
+                                         (frozen_generator, source / 'research/primitive_selection/generator.py')):
+                    if Path(module.__file__).resolve() != expected.resolve():
+                        raise ValueError('Resolved reproduction module differs from retained source')
                 identity = subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD']).decode().strip()
-                for image in self.images:
-                    item = json.loads(subprocess.check_output(['docker', 'image', 'inspect', image], timeout=10))[0]
-                    if item['Id'] != image or item['Architecture'] != 'amd64':
-                        raise ValueError('Exact retained Linux amd64 images required')
                 self.journal = {'run_id': uuid.uuid4().hex, 'source_commit': identity, 'images': self.images,
                                 'cleanup_complete': False, 'attempts': [],
+                                'docker_host': os.environ.get('DOCKER_HOST'),
                                 'orchestrator_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
                 self.save()
             expected_socket = 'unix:///run/user/' + str(os.getuid()) + '/docker.sock'
@@ -62,6 +66,11 @@ class ReproductionRun:
             self.save()
             if not re.fullmatch(r'[a-f0-9]{32}', self.journal.get('run_id', '')):
                 raise ValueError('Invalid durable ownership identity')
+            if not self.cleanup_only:
+                for image in self.images:
+                    item = json.loads(self.command(['docker', 'image', 'inspect', image], timeout=10).stdout)[0]
+                    if item['Id'] != image or item['Architecture'] != 'amd64':
+                        raise ValueError('Exact retained Linux amd64 images required')
             return self
         except BaseException:
             os.close(self.descriptor)
@@ -70,6 +79,10 @@ class ReproductionRun:
 
     def save(self):
         atomic_json(self.root / 'journal.json', self.journal)
+
+    def command(self, argv, **kwargs):
+        return owned_client.run(argv, self.journal.setdefault('clients', []), self.save,
+                                self.root, **kwargs)
 
     def invoke(self, image, arguments, request=None):
         if image not in self.images:
@@ -85,7 +98,7 @@ class ReproductionRun:
             source_input.flush()
             os.fsync(source_input.fileno())
         try:
-            subprocess.run(['docker', 'create', '--name', name, '--label', LABEL + '=' + self.journal['run_id'],
+            self.command(['docker', 'create', '--name', name, '--label', LABEL + '=' + self.journal['run_id'],
                             '--network=none', '--read-only', '--cpus=1', '--memory=2g',
                             '--entrypoint=' + ('cat' if arguments == ['/artifacts.json'] else 'python'), '-i',
                             image, *arguments], check=True, capture_output=True, timeout=10)
@@ -93,11 +106,16 @@ class ReproductionRun:
             self.save()
             # File-backed streams retain partial output without unbounded RAM.
             with prefix.with_suffix('.stdout').open('xb') as output, prefix.with_suffix('.stderr').open('xb') as error:
-                subprocess.run(['docker', 'start', '-ai', name], input=request, stdout=output, stderr=error,
+                self.command(['docker', 'start', '-ai', name], input=request, stdout=output, stderr=error,
                                check=True, timeout=65)
             attempt['phase'] = 'finished'
             self.save()
-            return prefix.with_suffix('.stdout').read_bytes()
+            output_path = prefix.with_suffix('.stdout')
+            if output_path.stat().st_size > 32 * 1024 * 1024:
+                attempt.update(phase='failed', error_type='OutputLimitExceeded', output_limit_bytes=32 * 1024 * 1024)
+                self.save()
+                raise RuntimeError('Public worker output exceeded 32MiB; raw evidence retained')
+            return output_path.read_bytes()
         except BaseException as error:
             attempt.update(phase='failed', error_type=type(error).__name__)
             self.save()
@@ -106,22 +124,27 @@ class ReproductionRun:
             self.remove(name)
 
     def remove(self, name):
-        item = subprocess.run(['docker', 'container', 'inspect', name], capture_output=True, timeout=10)
+        item = self.command(['docker', 'container', 'inspect', name], capture_output=True, check=False, timeout=10)
         if item.returncode:
             # Absence must be confirmed by final inventory, never inferred passed here.
             return
         data = json.loads(item.stdout)[0]
         if data['Config'].get('Labels', {}).get(LABEL) != self.journal['run_id']:
             raise ValueError('Reproduction container ownership mismatch')
-        subprocess.run(['docker', 'rm', '-f', name], check=True, capture_output=True, timeout=10)
+        self.command(['docker', 'rm', '-f', name], check=True, capture_output=True, timeout=10)
 
     def cleanup(self):
         self.journal['cleanup_phase'] = 'running'
         self.save()
         errors = []
+        for entry in list(self.journal.get('clients', [])):
+            try:
+                owned_client.stop(entry)
+            except Exception as error:
+                errors.append(type(error).__name__)
         try:
-            names = subprocess.check_output(['docker', 'ps', '-aq', '--filter',
-                        'label=' + LABEL + '=' + self.journal['run_id']], timeout=10).decode().splitlines()
+            names = self.command(['docker', 'ps', '-aq', '--filter',
+                        'label=' + LABEL + '=' + self.journal['run_id']], timeout=10).stdout.decode().splitlines()
             for name in names:
                 try:
                     self.remove(name)
@@ -130,8 +153,8 @@ class ReproductionRun:
         except Exception as error:
             errors.append(type(error).__name__)
         try:
-            remaining = subprocess.check_output(['docker', 'ps', '-aq', '--filter',
-                         'label=' + LABEL + '=' + self.journal['run_id']], timeout=10).decode().splitlines()
+            remaining = self.command(['docker', 'ps', '-aq', '--filter',
+                         'label=' + LABEL + '=' + self.journal['run_id']], timeout=10).stdout.decode().splitlines()
         except Exception as error:
             errors.append(type(error).__name__)
             remaining = ['inventory_unavailable']

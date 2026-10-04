@@ -154,3 +154,12 @@ socket environment to reconcile owned resources without source/release manifests
 A result passes only with matching outputs/artifacts **and** journal cleanup
 complete with zero remaining owned containers. Native execution remains pending;
 this runner cannot establish public-safe accounting or approved 0.6.0 adoption.
+
+Both baseline and public-reproduction operators use the shared native Linux
+owned-client gate. It writes client intent, then durably records boot ID,
+PID/start time, UID and allowed bootstrap/executable command identities before
+releasing exec. Recovery cancels each exact recorded client independently before
+container inventory/removal. A client identity or cancellation failure prevents
+cleanup completion even when an inventory is empty. Native interruption testing
+must exercise the create/start boundary and verify zero late-created resources;
+source inspection does not establish this native gate.

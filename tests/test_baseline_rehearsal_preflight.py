@@ -118,7 +118,7 @@ def test_protected_roots_and_readiness_timeout_are_enforced(tmp_path, monkeypatc
     def hang(argv, **kwargs):
         assert kwargs['timeout'] == 10
         raise subprocess.TimeoutExpired(argv, 10)
-    monkeypatch.setattr('scripts.baseline_production_rehearsal.subprocess.run', hang)
+    monkeypatch.setattr('scripts.baseline_production_rehearsal.client_run', hang)
     evidence = []
     with pytest.raises(RuntimeError, match='readiness timeout'):
         wait_database(['docker', 'compose'], {}, evidence.append)

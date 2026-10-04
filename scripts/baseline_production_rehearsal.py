@@ -20,6 +20,7 @@ import urllib.request
 import uuid
 
 from deploy.recovery_journal import atomic_json, safe_path
+from deploy import owned_client
 
 LABEL = 'org.mldsafail.disposable-rehearsal'
 ROLE = 'org.mldsafail.disposable-role'
@@ -29,8 +30,8 @@ def wait_database(compose, env, record):
     deadline = time.monotonic() + 120
     while time.monotonic() < deadline:
         try:
-            result = subprocess.run(compose + ['exec', '-T', 'db', 'pg_isready', '-U', 'mldsafail'],
-                                    env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            result = client_run(compose + ['exec', '-T', 'db', 'pg_isready', '-U', 'mldsafail'],
+                                    env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
                                     timeout=min(10, max(0.001, deadline - time.monotonic())))
             record({'outcome': 'ready' if result.returncode == 0 else 'failed', 'returncode': result.returncode})
             if result.returncode == 0:
@@ -95,9 +96,16 @@ def validate(config):
     return root, source
 
 
+def client_run(argv, *, env=None, **kwargs):
+    root = Path(env['MLDSAFAIL_OWNED_CLIENT_ROOT'])
+    path = root / 'clients.json'
+    clients = json.loads(path.read_text()) if path.exists() else []
+    return owned_client.run(argv, clients, lambda: atomic_json(path, clients), root, env=env, **kwargs)
+
+
 def command(argv, *, cwd=None, env=None, timeout=120, input=None):
-    return subprocess.check_output(argv, cwd=cwd, env=env, input=input,
-                                   stderr=subprocess.DEVNULL, timeout=timeout)
+    return client_run(argv, cwd=cwd, env=env, input=input,
+                      stderr=subprocess.DEVNULL, timeout=timeout).stdout
 
 
 def cleanup(root, env):
@@ -105,6 +113,13 @@ def cleanup(root, env):
     journal = json.loads((root / 'journal.json').read_text())
     run_id = journal['run_id']
     errors = []
+    client_path = root / 'clients.json'
+    clients = json.loads(client_path.read_text()) if client_path.exists() else []
+    for entry in clients:
+        try:
+            owned_client.stop(entry)
+        except Exception as error:
+            errors.append({'kind': 'owned_client', 'error_type': type(error).__name__})
     retained_failure_volumes = []
     # Stop dispatch controllers before workers, then rescan once for a worker
     # whose create request raced the first inventory. Every resource is labeled.
@@ -185,7 +200,8 @@ def execute(config, cleanup_only=False):
 def _execute_locked(config, cleanup_only=False):
     root, source = (cleanup_authority(config), None) if cleanup_only else validate(config)
     env = {**os.environ, 'DOCKER_HOST': 'unix://' + config['docker_socket'],
-           'XDG_RUNTIME_DIR': str(Path(config['docker_socket']).parent)}
+           'XDG_RUNTIME_DIR': str(Path(config['docker_socket']).parent),
+           'MLDSAFAIL_OWNED_CLIENT_ROOT': str(root)}
     if cleanup_only:
         journal = json.loads((root / 'journal.json').read_text())
         errors = []
@@ -265,7 +281,7 @@ def _execute_locked(config, cleanup_only=False):
                       'cli.environment=lambda:execution.environment(' + repr(images['worker']) + '); '
                       'cli.create_epoch(Path(' + repr(str(evaluator / 'epoch')) + '))')
         with (root / 'epoch-setup.log').open('xb') as log:
-            subprocess.run(owned_python + [epoch_code], env=env,
+            client_run(owned_python + [epoch_code], env=env,
                            stdout=log, stderr=subprocess.STDOUT, check=True, timeout=5400)
         epoch = json.loads((evaluator / 'epoch/manifest.json').read_text())
         if not (evaluator / 'epoch/COMPLETE.json').is_file():

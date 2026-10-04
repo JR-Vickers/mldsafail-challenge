@@ -52,7 +52,7 @@ def reproduce(args, owned):
     assert artifacts[0] == artifacts[1]
     (args.output / 'artifacts.json').write_text(json.dumps(artifacts[0],sort_keys=True,indent=2)+'\n')
     result = {'fixture_match':True,'normalized_output_match':True,'dependency_artifacts_match':True,'cases':len(normalized),
-              'images': {image: json.loads(subprocess.check_output(['docker','image','inspect',image], timeout=10))[0]['Id'] for image in [args.image_a,args.image_b,args.frozen_image]}}
+              'images': {image: json.loads(owned.command(['docker','image','inspect',image], timeout=10).stdout)[0]['Id'] for image in [args.image_a,args.image_b,args.frozen_image]}}
     (args.output / 'result.json').write_text(json.dumps(result,sort_keys=True,indent=2)+'\n')
 
 
