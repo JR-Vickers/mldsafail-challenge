@@ -440,7 +440,8 @@ def failed_startup_barrier(state, *, evidence_directory, attempt_id):
             raise RuntimeError('Fresh unit fragment identity changed')
         if unit['ActiveState'] not in {'inactive','failed'} or int(unit['MainPID'])!=0:
             raise RuntimeError('Never-admitted daemon must be inactive with no leader')
-        jobs=json.loads(subprocess.check_output(['systemctl','--user','list-jobs','--output=json'],timeout=15))
+        raw_jobs=subprocess.check_output(['systemctl','--user','list-jobs','--output=json'],timeout=15)
+        jobs=[] if not raw_jobs.strip() else json.loads(raw_jobs)
         if not isinstance(jobs,list) or any(row.get('unit')==state['daemon_unit'] for row in jobs):
             raise RuntimeError('Fresh daemon startup jobs remain pending')
         group=unit.get('ControlGroup','')

@@ -379,6 +379,11 @@ def cleanup_state(path,*,controller_config,repository):
     from deploy.recovery_daemon import provision_lock
     journal=Journal(path,data)
     with provision_lock(data['provisioning']):
+        retained=owned_daemon.read_private_json(path,cap=4*1024*1024)
+        if retained!=data: raise RuntimeError('Driver state changed while acquiring terminal lease')
+        data=retained
+        owned_daemon.publish(Path(path).parent/('prior-driver-state-'+uuid.uuid4().hex+'.json'),data)
+        journal=Journal(path,data)
         os.environ['DOCKER_HOST']='unix://'+data['socket']
         os.environ['MLDSAFAIL_OPERATOR_DAEMON_MANIFEST']=data['manifest_path']
         os.environ.pop('MLDSAFAIL_CPU_DAEMON_MANIFEST',None)

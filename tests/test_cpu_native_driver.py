@@ -91,3 +91,27 @@ def test_startup_receipt_publication_failure_preserves_fence_and_safe_client_cle
     assert calls==['acknowledged'] and receipt['cleanup_complete'] is False
     assert data['state']=='cleanup_incomplete' and journal.path.exists()
     assert any(row['step']=='failed_startup_proof' for row in receipt['errors'])
+
+
+def test_terminal_prior_state_archive_precedes_mutation_and_failure_prohibits_cleanup(tmp_path,monkeypatch):
+    from contextlib import nullcontext
+    from deploy import owned_daemon,recovery_daemon
+    path=tmp_path/'driver.json'
+    original=dict(schema='mldsafail.cpu-native-driver-state.v1',provisioning=dict(worker_birth={'path':'/old-worker'},protected_domains=[]),manifest_path=str(tmp_path/'absent'),socket='/old/socket',cleanup={'failed':'preserve'})
+    owned_daemon.publish(path,original)
+    monkeypatch.setattr(native_driver,'validate',lambda *a:None)
+    monkeypatch.setattr(owned_daemon,'_disjoint',lambda *a:None)
+    monkeypatch.setattr(recovery_daemon,'provision_lock',lambda *a:nullcontext())
+    controller=dict(operator_parent='/new/operator',source_commit='a'*40,supervisor_source_sha256='b'*64)
+    calls=[]
+    def retire(journal,**kw):
+        prior=list(tmp_path.glob('prior-driver-state-*.json'))
+        assert len(prior)==1 and owned_daemon.read_private_json(prior[0])==original
+        assert 'terminal_controller' not in owned_daemon.read_private_json(prior[0])
+        calls.append('cleanup');return {'cleanup_complete':True}
+    monkeypatch.setattr(native_driver,'cleanup',retire)
+    assert native_driver.cleanup_state(path,controller_config=controller,repository=tmp_path)['cleanup_complete'] is True
+    monkeypatch.setattr(owned_daemon,'publish',lambda *a:(_ for _ in ()).throw(OSError('archive failure')))
+    with pytest.raises(OSError,match='archive failure'):
+        native_driver.cleanup_state(path,controller_config=controller,repository=tmp_path)
+    assert calls==['cleanup']

@@ -205,7 +205,8 @@ def test_docker_data_710_preserves_birth_identity_and_private_parent(tmp_path,mo
     with pytest.raises(RuntimeError,match='roots differ'):owned_daemon._provisioning(provision,provision['unit'],roots)
 
 
-def test_failed_startup_proof_is_distinct_and_rejects_uncertain_manager_request(tmp_path,monkeypatch):
+@pytest.mark.parametrize('job_output',[b'[]',b''])
+def test_failed_startup_proof_is_distinct_and_rejects_uncertain_manager_request(tmp_path,monkeypatch,job_output):
     from deploy import owned_client
     monkeypatch.setattr(owned_client,'boot_id',lambda:'synthetic-boot')
     base=tmp_path/'owned';provision=owned_daemon.provision(base,unit='mldsafail-cpu-daemon-retire.service',protected_roots=[tmp_path/'protected'])
@@ -213,11 +214,13 @@ def test_failed_startup_proof_is_distinct_and_rejects_uncertain_manager_request(
     provision.update(worker_birth={'path':str(worker)},operator_domain={'path':str(tmp_path/'operator')},protected_domains=[])
     state=dict(id='attempt',worker_slice=worker.name,commands=[dict(kind='daemon_start',state='passed',argv=['systemctl'])],provisioning=provision,daemon_unit=provision['unit'],manifest_path=str(base/'absent-manifest'),socket=str(base/'docker.sock'),units=[dict(path=provision['unit'],sha256='a'*64)])
     monkeypatch.setattr(owned_daemon,'_unit',lambda unit:dict(unit_fragment_sha256='a'*64,ActiveState='failed',MainPID='0',ControlGroup=''))
-    monkeypatch.setattr(owned_daemon.subprocess,'check_output',lambda *a,**kw:b'[]')
+    monkeypatch.setattr(owned_daemon.subprocess,'check_output',lambda *a,**kw:job_output)
     monkeypatch.setattr(owned_client,'verify_domain',lambda entry:worker)
     monkeypatch.setattr(owned_client,'populated',lambda domain:False)
     receipt=owned_daemon.failed_startup_barrier(state,evidence_directory=tmp_path,attempt_id='attempt')
     assert receipt['startup_shutdown_proven'] is True and receipt['healthy_daemon_registered'] is False
+    monkeypatch.setattr(owned_daemon.subprocess,'check_output',lambda *a,**kw:b'malformed')
+    assert owned_daemon.failed_startup_barrier(state,evidence_directory=tmp_path,attempt_id='attempt')['startup_shutdown_proven'] is False
     state['commands'][0]['state']='uncertain'
     receipt=owned_daemon.failed_startup_barrier(state,evidence_directory=tmp_path,attempt_id='attempt')
     assert receipt['startup_shutdown_proven'] is False
