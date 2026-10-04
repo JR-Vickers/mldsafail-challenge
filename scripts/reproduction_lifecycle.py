@@ -83,7 +83,7 @@ class ReproductionRun:
             return self
         except BaseException:
             if self.daemon_descriptor is not None:
-                os.close(self.daemon_descriptor)
+                operator_daemon_lifecycle.release_daemon(self.daemon_descriptor)
                 self.daemon_descriptor = None
             os.close(self.descriptor)
             self.descriptor = None
@@ -241,5 +241,5 @@ class ReproductionRun:
                 error.add_note('Reproduction cleanup remains incomplete')
         finally:
             if self.daemon_descriptor is not None:
-                os.close(self.daemon_descriptor)
+                operator_daemon_lifecycle.release_daemon(self.daemon_descriptor)
             os.close(self.descriptor)

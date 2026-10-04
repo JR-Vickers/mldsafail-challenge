@@ -245,7 +245,7 @@ def execute(config, cleanup_only=False):
         return _execute_locked(config, cleanup_only)
     finally:
         if daemon_descriptor is not None:
-            os.close(daemon_descriptor)
+            operator_daemon_lifecycle.release_daemon(daemon_descriptor)
         os.close(descriptor)
 
 

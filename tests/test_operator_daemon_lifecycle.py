@@ -49,17 +49,28 @@ def test_durable_pending_barrier_resumes_restart_without_killing_new_daemon(monk
     assert 'daemon_reconciliation' not in journal
 
 
-def test_distinct_run_roots_cannot_share_daemon_concurrently(tmp_path):
+def test_nested_consumers_keep_parent_lease_and_reject_fork(tmp_path):
     import os
-    import pytest
+    from deploy.recovery_daemon import provision_lock
     tmp_path.chmod(0o700)
     manifest = {'provisioning': {'base': module.owned_daemon._private_directory(tmp_path)}}
-    descriptor = module.lock_daemon(manifest)
-    try:
-        with pytest.raises(BlockingIOError):
-            module.lock_daemon(manifest)
-    finally:
-        os.close(descriptor)
+    with provision_lock(manifest['provisioning']):
+        nested = module.lock_daemon(manifest)
+        module.release_daemon(nested)
+        child = os.fork()
+        if child == 0:
+            try:
+                unwanted = module.lock_daemon(manifest)
+                module.release_daemon(unwanted)
+            except BlockingIOError:
+                os._exit(73)
+            except BaseException:
+                os._exit(74)
+            os._exit(0)
+        _, status = os.waitpid(child, 0)
+        assert os.waitstatus_to_exitcode(status) == 73
+    after = module.lock_daemon(manifest)
+    module.release_daemon(after)
 
 
 def test_damaged_creator_authority_prohibits_restart_after_positive_barrier(monkeypatch, tmp_path):

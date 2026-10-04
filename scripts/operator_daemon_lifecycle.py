@@ -1,28 +1,20 @@
 """Positive isolated-daemon shutdown before creator cancellation and inventory."""
 from pathlib import Path
-import fcntl
-import os
-import stat
 import uuid
 
 from deploy import owned_client, owned_daemon
 
 
 def lock_daemon(manifest):
-    """Hold for the entire consumer run and cleanup, across distinct run roots."""
-    base = Path(manifest['provisioning']['base']['path'])
-    if owned_daemon._private_directory(base) != manifest['provisioning']['base']:
-        raise RuntimeError('Dedicated daemon provisioning root changed')
-    descriptor = os.open(base/'operator.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
-    try:
-        info = os.fstat(descriptor)
-        if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077 or info.st_nlink != 1:
-            raise RuntimeError('Private exclusive daemon operator lock required')
-        fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except BaseException:
-        os.close(descriptor)
-        raise
-    return descriptor
+    """Acquire the PID-bound shared lease, including nested driver callbacks."""
+    from deploy.recovery_daemon import provision_lock
+    lease = provision_lock(manifest['provisioning'])
+    lease.__enter__()
+    return lease
+
+
+def release_daemon(lease):
+    lease.__exit__(None, None, None)
 
 
 def bind(journal, publish):
