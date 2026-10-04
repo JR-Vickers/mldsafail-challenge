@@ -124,12 +124,20 @@ class Operator:
         for role in ('web','coordinator'):
             found=[row for row in images if row['Name'].lstrip('/')==self.c[role+'_container']]
             require(len(found)==1 and found[0]['Image']==release['images'][role]['id'],'Deployed application image identity mismatch')
-            require(found[0]['State']['Running'] and found[0]['State'].get('Health',{}).get('Status')=='healthy','Application not healthy')
+            require(found[0]['State']['Running'] is True,'Application not running')
         require(len(self.c['service_images'])==4,'Exact four-service health inventory required')
+        required_health={self.c['web_container'],self.c['database_container']}
+        require(len(required_health)==2 and required_health<=set(self.c['service_images']),'Web/database health inventory required')
         for name,image in self.c['service_images'].items():
             found=[row for row in images if row['Name'].lstrip('/')==name]
-            require(len(found)==1 and found[0]['Image']==image and found[0]['State']['Running']
-                and found[0]['State'].get('Health',{}).get('Status')=='healthy','Service health/image changed')
+            require(len(found)==1 and found[0]['Image']==image and found[0]['State']['Running'] is True,'Service running/image changed')
+            health=found[0]['State'].get('Health')
+            configured=found[0].get('Config',{}).get('Healthcheck')
+            has_check=isinstance(configured,dict) and configured.get('Test') not in (None,[],['NONE'])
+            if name in required_health:require(has_check and isinstance(health,dict),'Required web/database Health missing')
+            if has_check or health is not None:
+                require(isinstance(health,dict) and health.get('Status')=='healthy','Service Health not healthy')
+        self.api('/health/ready',json_response=False)
         value=self.probe('identity')
         require(value['worker']==release['images']['worker']['id'],'Frozen worker identity mismatch')
         return value

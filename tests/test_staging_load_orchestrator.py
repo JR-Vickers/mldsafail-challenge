@@ -105,3 +105,37 @@ def test_corrupt_clients_keeps_known_cleanup_and_persistent_fence(tmp_path,monke
     assert value.j['corrupt_clients_receipt']==[entry,None]
     assert value.cleanup() is False
     assert value.j['cleanup_complete'] is False
+
+
+def health_inventory(value,monkeypatch):
+    from deploy import owned_daemon
+    from scripts.staging_load_orchestrator import SOURCE
+    value.c.update(web_container='web',coordinator_container='coordinator',database_container='db',
+        service_images={name:name+'-image' for name in ('web','db','coordinator','proxy')},release_manifest='private')
+    monkeypatch.setattr(owned_daemon,'read_private_json',lambda path:{'source_commit':SOURCE,
+        'images':{role:{'id':role+'-image'} for role in ('web','coordinator','worker')}})
+    rows=[{'Name':'/'+name,'Image':image,'State':{'Running':True},'Config':{}} for name,image in value.c['service_images'].items()]
+    for row in rows[:2]:row['Config']['Healthcheck']={'Test':['CMD','true']};row['State']['Health']={'Status':'healthy'}
+    value.containers=lambda:rows;value.probe=lambda action:{'worker':'worker-image'}
+    calls=[];value.api=lambda route,**kwargs:calls.append((route,kwargs))
+    return rows,calls
+
+
+def test_native_absent_coordinator_proxy_health_is_valid(tmp_path,monkeypatch):
+    value=operator(tmp_path);rows,calls=health_inventory(value,monkeypatch)
+    assert value.identity()=={'worker':'worker-image'}
+    assert calls==[('/health/ready',{'json_response':False})]
+
+
+@pytest.mark.parametrize('status',['unhealthy','starting','invalid'])
+def test_present_health_must_be_healthy(tmp_path,monkeypatch,status):
+    value=operator(tmp_path);rows,_=health_inventory(value,monkeypatch)
+    rows[2]['State']['Health']={'Status':status}
+    with pytest.raises(RuntimeError,match='Health not healthy'):value.identity()
+
+
+@pytest.mark.parametrize('index',[0,1])
+def test_web_database_missing_required_health_is_rejected(tmp_path,monkeypatch,index):
+    value=operator(tmp_path);rows,_=health_inventory(value,monkeypatch)
+    rows[index]['State'].pop('Health')
+    with pytest.raises(RuntimeError,match='Health missing'):value.identity()
