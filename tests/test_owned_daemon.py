@@ -145,3 +145,24 @@ def test_restart_rejects_corrupt_positive_barrier(tmp_path,monkeypatch,field,val
     barrier[field]=value
     with pytest.raises(RuntimeError,match='Positive exact'):
         owned_daemon.restart_and_refresh(manifest,barrier,manifest_path=tmp_path/'manifest',evidence_directory=tmp_path,attempt_id='attempt')
+
+
+def test_provisioned_daemon_config_cannot_inherit_or_change_staging_settings(tmp_path,monkeypatch):
+    monkeypatch.setattr(owned_client,'boot_id',lambda:'boot')
+    tmp_path.chmod(0o700)
+    receipt=owned_daemon.provision(tmp_path/'fresh',unit='mldsafail-cpu-daemon-test.service',protected_roots=[tmp_path/'staging'])
+    config=Path(receipt['daemon_config']['path'])
+    assert owned_daemon.read_private_json(config)=={}
+    config.write_text('{"live-restore":true}')
+    with pytest.raises(RuntimeError,match='empty dedicated daemon config'):
+        owned_daemon._provisioning(receipt,receipt['unit'],receipt['roots'])
+
+
+def test_teardown_only_birth_capture_does_not_admit_new_operator_for_evaluation(tmp_path,monkeypatch):
+    provision=dict(unit='mldsafail-owned-daemon-test.service',id='a'*32)
+    worker=dict(path=str(tmp_path/('mldsafail-owned-workers-'+'a'*32+'.slice')))
+    provision.update(worker_birth=worker,operator_domain={'path':str(tmp_path/'old-operator')},protected_domains=[])
+    monkeypatch.setattr(owned_client,'domain_identity',lambda path: (_ for _ in ()).throw(FileNotFoundError()))
+    owned_daemon._worker_binding(provision,worker,Path(worker['path']).name,teardown_only=True)
+    with pytest.raises(FileNotFoundError):
+        owned_daemon._worker_binding(provision,worker,Path(worker['path']).name)

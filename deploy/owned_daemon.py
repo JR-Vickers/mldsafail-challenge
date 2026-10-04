@@ -115,12 +115,13 @@ def _disjoint(paths,protected):
         raise RuntimeError('Daemon/operator/worker/protected domains must be disjoint')
 
 
-def _worker_binding(provisioning,worker_domain,worker_cgroup_parent,daemon_domain=None):
+def _worker_binding(provisioning,worker_domain,worker_cgroup_parent,daemon_domain=None,*,teardown_only=False):
     expected='mldsafail-'+provisioning['unit'].split('-')[1]+'-workers-'+provisioning['id']+'.slice'
     if worker_cgroup_parent!=expected or Path(worker_domain['path']).name!=expected or provisioning.get('worker_birth')!=worker_domain:
         raise RuntimeError('Fresh dedicated worker birth identity required')
     operator=provisioning.get('operator_domain')
-    if not operator or owned_client.domain_identity(operator['path'])!=operator or os.environ.get('MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT')!=operator['path']:
+    if not operator: raise RuntimeError('Exact provisioned operator domain required')
+    if not teardown_only and (owned_client.domain_identity(operator['path'])!=operator or os.environ.get('MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT')!=operator['path']):
         raise RuntimeError('Exact provisioned operator domain required')
     paths=[Path(worker_domain['path']),Path(operator['path'])]
     if daemon_domain is not None: paths.append(Path(daemon_domain['path']))
@@ -198,7 +199,7 @@ def _endpoint(socket):
 
 def register(*, unit, socket, root_dir, exec_root, rootless_state, manifest_path,
              expected_server_version, expected_server_git_commit, expected_executable_sha256,
-             worker_parent, worker_cgroup_parent, provisioning, epoch=None):
+             worker_parent, worker_cgroup_parent, provisioning, epoch=None, teardown_only=False):
     """Register already provisioned/started dedicated native services explicitly."""
     if not re.fullmatch('[0-9a-f]{64}',expected_executable_sha256):
         raise RuntimeError('Expected native dockerd executable SHA256 required')
@@ -211,12 +212,12 @@ def register(*, unit, socket, root_dir, exec_root, rootless_state, manifest_path
     worker_domain=owned_client.domain_identity(worker_parent)
     if worker_domain['uid']!=os.getuid() or worker_domain['mode'] & 0o022 or (Path(worker_parent)/'cgroup.type').read_text().strip()!='domain':
         raise RuntimeError('Exclusive owned worker domain required')
-    _worker_binding(provisioning,worker_domain,worker_cgroup_parent)
+    _worker_binding(provisioning,worker_domain,worker_cgroup_parent,teardown_only=teardown_only)
     _endpoint(socket)
     state=_unit(unit)
     if state['ActiveState']!='active': raise RuntimeError('Dedicated daemon unit is not active')
     domain=owned_client.domain_identity(state['domain_path'])
-    _worker_binding(provisioning,worker_domain,worker_cgroup_parent,domain)
+    _worker_binding(provisioning,worker_domain,worker_cgroup_parent,domain,teardown_only=teardown_only)
     daemon_process=_daemon_process(domain['path'],expected_executable_sha256)
     argv=(Path('/proc')/str(daemon_process['pid'])/'cmdline').read_bytes().split(b'\0')
     arguments=[os.fsdecode(value) for value in argv if value]
