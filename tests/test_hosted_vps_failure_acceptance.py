@@ -163,7 +163,7 @@ def test_cleanup_restores_permissions_and_only_owned_containers(tmp_path, monkey
     assert work.stat().st_mode & 0o777 == 0o700
     assert ['docker', 'rm', '-f', 'owned'] in calls
     assert not any('other' in call for call in calls)
-    assert ['docker', 'compose', 'start', 'coordinator'] in calls
+    assert ['docker', 'start', 'normal'] in calls
     assert json.loads(journal.read_text())['cleanup_complete']
 
 
@@ -265,10 +265,11 @@ def test_switch_never_starts_coordinator_or_migrations(tmp_path, monkeypatch):
             return '[{}]'
         return 'coordinator' if 'ps' in args else ''
     monkeypatch.setattr(driver, 'command', command)
-    subject.switch({'images': {'web': {'id': 'sha256:web'}, 'coordinator': {'id': 'sha256:coordinator'}}})
-    assert any('create' in c and c[-1] == 'coordinator' and '--no-deps' in c for c in calls)
+    subject.switch({'images': {'web': {'id': 'sha256:' + 'a' * 64}, 'coordinator': {'id': 'sha256:' + 'b' * 64}}})
+    assert any('up' in c and c[-1] == 'coordinator' and '--no-start' in c and '--no-deps' in c for c in calls)
+    assert (tmp_path / 'switch.json').read_text().count('depends_on: !reset {}') == 2
     assert any('up' in c and c[-1] == 'web' and '--no-deps' in c for c in calls)
-    assert not any('up' in c and 'coordinator' in c for c in calls)
+    assert not any('up' in c and 'coordinator' in c and '--no-start' not in c for c in calls)
     assert not any('migrate' in c or 'db' in c for c in calls)
 
 
@@ -304,11 +305,11 @@ def test_cleanup_attempts_service_restore_when_permission_restore_fails(tmp_path
     (tmp_path / 'cleanup-token').write_text('private')
     calls = []
     monkeypatch.setattr(driver, 'containers', lambda: [])
-    monkeypatch.setattr(driver, 'command', lambda args, **kw: calls.append(args))
+    monkeypatch.setattr(driver, 'command', lambda args, **kw: (calls.append(args) or ('normal' if 'ps' in args else '')))
     with pytest.raises(RuntimeError, match='incomplete'):
         driver.cleanup(subject.path)
-    assert ['docker', 'compose', 'stop', 'web'] in calls
-    assert ['docker', 'compose', 'start', 'coordinator'] in calls
+    assert ['docker', 'stop', 'normal'] in calls
+    assert ['docker', 'start', 'normal'] in calls
     assert not (tmp_path / 'cleanup-token').exists()
     assert not json.loads(subject.path.read_text())['cleanup_complete']
     (tmp_path / 'missing').mkdir()
@@ -408,7 +409,7 @@ def test_cleanup_independently_attempts_each_boundary(tmp_path, monkeypatch, fai
         calls.append(boundary)
         if failure == boundary:
             raise RuntimeError()
-        return ''
+        return 'normal' if 'ps' in argv else ''
     monkeypatch.setattr(driver.os, 'chmod', permissions)
     monkeypatch.setattr(driver.Path, 'unlink', remove)
     monkeypatch.setattr(driver, 'containers', inventory)
@@ -418,3 +419,70 @@ def test_cleanup_independently_attempts_each_boundary(tmp_path, monkeypatch, fai
     assert {'permissions', 'inventory', 'release', 'service', 'credential', 'health'} <= set(calls)
     data = json.loads(subject.path.read_text())
     assert data['closing'] and data['cleanup_errors'] and not data['cleanup_complete']
+
+
+def test_postgres_probe_enters_read_only_transaction(monkeypatch):
+    from types import SimpleNamespace
+    probe = load('hosted_vps_failure_probe')
+    statements = []
+    class ReadOnlySession:
+        def __init__(self, engine):
+            pass
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+        def execute(self, statement):
+            statements.append(str(statement))
+            return []
+    monkeypatch.setenv('MLDSAFAIL_DATABASE_URL', 'postgresql://unused')
+    monkeypatch.setattr(probe, 'create_engine', lambda _: SimpleNamespace(
+        dialect=SimpleNamespace(name='postgresql')))
+    monkeypatch.setattr(probe, 'Session', ReadOnlySession)
+    assert set(probe.inspect({'action': 'snapshot'})) == {'digest'}
+    assert statements[0] == 'SET TRANSACTION READ ONLY'
+
+
+def test_command_failure_keeps_details_private(tmp_path, monkeypatch):
+    import sys
+    log = tmp_path / 'command-failures.jsonl'
+    monkeypatch.setattr(driver, 'COMMAND_FAILURE_LOG', log)
+    with pytest.raises(RuntimeError, match='details retained') as caught:
+        driver.command([sys.executable, '-c',
+                        "import sys; print('PRIVATE_SENTINEL'); sys.exit(2)"])
+    assert 'PRIVATE_SENTINEL' not in str(caught.value)
+    assert json.loads(log.read_text())['stdout'] == 'PRIVATE_SENTINEL\n'
+    assert log.stat().st_mode & 0o777 == 0o600
+
+
+@pytest.mark.parametrize('identifier', ['', '-bad', 'one\ntwo'])
+def test_missing_or_ambiguous_service_cannot_be_started(identifier):
+    calls = []
+    def execute(arguments):
+        calls.append(arguments)
+        return identifier
+    with pytest.raises(RuntimeError, match='exactly one container'):
+        driver.set_service_state(['docker', 'compose'], 'web', True, execute)
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize('prefix', ['Error: No such object: ', 'error: no such object: '])
+def test_inventory_preserves_objects_when_snapshot_worker_disappears(monkeypatch, prefix):
+    from types import SimpleNamespace
+    first, vanished = 'a' * 64, 'b' * 64
+    monkeypatch.setattr(driver, 'command', lambda _: first + '\n' + vanished)
+    monkeypatch.setattr(driver.subprocess, 'run', lambda *a, **k: SimpleNamespace(
+        returncode=1, stdout=json.dumps([{'Id': first, 'Name': '/retained'}]),
+        stderr=prefix + vanished + '\n'))
+    assert driver.containers() == [{'Id': first, 'Name': '/retained'}]
+
+
+@pytest.mark.parametrize('stderr', ['Cannot connect to Docker daemon',
+    'Error: No such object: ' + 'c' * 64, ''])
+def test_inventory_never_accepts_unproven_missing_or_daemon_failure(monkeypatch, stderr):
+    from types import SimpleNamespace
+    monkeypatch.setattr(driver, 'command', lambda _: 'a' * 64)
+    monkeypatch.setattr(driver.subprocess, 'run', lambda *a, **k: SimpleNamespace(
+        returncode=1, stdout='[]', stderr=stderr))
+    with pytest.raises(RuntimeError):
+        driver.containers()
