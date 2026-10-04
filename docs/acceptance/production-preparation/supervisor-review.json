@@ -4,16 +4,17 @@
   "scope": "supervisor/ownership/streaming/cleanup/native-protocol source review; root owns separate independent auditor review",
   "source_files_sha256": {
     "research/cpu_measurement/supervisor.py": "80fe92400d40663785aff4b11624f47a2b3e9e7a5735baaee6ccb4f404f03445",
-    "research/cpu_measurement/ownership.py": "68452f1a4e95a48697721770d849c9c864b96533d19fa71996089d682b4275ea",
-    "research/cpu_measurement/harness.py": "625a21c80dba0071a89b49669d169b84a1cf2f6a86d5821241809c4c1efc012f",
-    "research/cpu_measurement/reconcile.py": "c375b4b509d7a857811f39a6a213ec7655e98ed63cfe5431a5d25c29fabc197c",
-    "research/cpu_measurement/native_suite.py": "a367b74d0fce661f49fd7cad9979d92163a324f02944f7de3e11e8118246ef62",
-    "research/cpu_measurement/native_fault_suite.py": "06435e2c9e53f17e843595906eb893d46e7e4995aab4ebdc3132183bd2ab8d31"
+    "research/cpu_measurement/ownership.py": "3df6a5d1bb1ab8bb510e019030e5108f84c568a8046942dfaf232d18b3ea926e",
+    "research/cpu_measurement/harness.py": "986e37a165c21e66d89738dabbe0eac0df835eaa1f49a3cab204361ac7673104",
+    "research/cpu_measurement/reconcile.py": "f4f1672a682eac057dc14134696d6fb64925191d12b191e1235c609a838122f3",
+    "research/cpu_measurement/native_suite.py": "cc08fc2062eaf4a3fd3b4032db34ba571a9a9d45089c3fae7d6ac7c710edbf00",
+    "research/cpu_measurement/native_fault_suite.py": "d36aa58f619d590edda34e74945546b3197698529e08191708d30b6b2a357687",
+    "research/cpu_measurement/native_lifecycle.py": "90f4e752470938b0d1eef7dfd021ac77b6aa2eb2db4a8d7e58c5cf8f520892cf"
   },
   "result": "source_review_passed_native_gates_pending",
   "focused_verification": {
     "command": "uv run pytest tests/test_cpu_proposal.py -q",
-    "passed": 18
+    "passed": 21
   },
   "findings": [
     {
@@ -29,6 +30,13 @@
       "original_issue": "any unrelated exception counted as expected native fault",
       "correction": "native no-answer/positive-counter/cleanup baseline; injection-reached and designated failure cause checks; competing owner requires BlockingIOError",
       "status": "passed"
+    },
+    {
+      "id": "SUPERVISOR-REVIEW-3",
+      "requirement": "worker can traverse read-only source snapshot under UMask0077 without exposing private archived source",
+      "original_issue": "snapshot directory mode inherited restrictive caller umask",
+      "correction": "ephemeral mounted snapshot directories0755; private archive directories0700; umask0077 regression passes",
+      "status": "passed"
     }
   ],
   "verified_design": [
@@ -36,13 +44,16 @@
     "source artifact synchronization and evidence receipt publication before ownership release",
     "bounded selector output capture, EOF-with-live-process timeout and cleanup independent steps",
     "private same-UID fixture-only socket requests; response excludes raw evidence/source/filesystem details",
-    "SIGTERM/KeyboardInterrupt exits after cleanup with durable interruption state"
+    "SIGTERM/KeyboardInterrupt exits after cleanup with durable interruption state",
+    "full native fault-probe implementation includes contamination/delegation/connection loss/SIGKILL/grandchild-membership with exact reached/cause requirements and independent cleanup",
+    "boot-aware persisted ownership and PID-start/UID/command identity prevents destructive cleanup across reboot or PID reuse"
   ],
   "not_established": [
     "native delegation and actual supervisor socket acceptance",
-    "complete accounting fault suite: contamination, delegation, SIGKILL, connection loss, grandchild membership remain listed",
+    "complete accounting fault suite code now present, but exact-source native execution remains pending",
     "30 sequential audited empty-worker/deterministic-fixture pairs on exact retained source/images",
     "adopted 0.6.0 evidence/API/CLI/cohort integration or public/production activation"
   ],
-  "production_adoption_approved": false
+  "production_adoption_approved": false,
+  "reviewed_source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
 }
