@@ -13,7 +13,9 @@ import subprocess
 
 def private_file(path):
     path = Path(path)
-    if path.is_symlink() or not stat.S_ISREG(path.stat().st_mode) or path.stat().st_mode & 0o077:
+    info = path.stat()
+    if (path.is_symlink() or not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077 or
+            info.st_uid != os.getuid() or info.st_nlink != 1):
         raise ValueError('Recovery credentials require private regular files')
     return path
 

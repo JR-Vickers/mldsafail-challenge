@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import shutil
 import signal
+import stat
 import uuid
 from deploy.assemble_recovery import assemble
 from deploy.recovery import execute, private_file, validate_set, validate_verified_receipt
@@ -78,9 +79,17 @@ def run(config, cleanup_only=False):
     root.mkdir(mode=0o700, parents=True, exist_ok=True)
     journals = safe_path(root / 'journals')
     journals.mkdir(mode=0o700, exist_ok=True)
+    for directory in (root, journals):
+        info = directory.stat()
+        if info.st_uid != os.getuid() or info.st_mode & 0o077:
+            raise ValueError('Private owned daily recovery directories required')
     sync_directory(root.parent)
     sync_directory(root)
-    with safe_path(root / 'lock').open('a') as lock:
+    descriptor = os.open(safe_path(root / 'lock'), os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(descriptor, 'a') as lock:
+        info = os.fstat(lock.fileno())
+        if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077 or info.st_nlink != 1:
+            raise ValueError('Private owned recovery lock required')
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         operation = Journal(journals / 'operation.json', config)
         try:

@@ -237,7 +237,7 @@ def test_disk_floor_preserves_evidence(tmp_path, monkeypatch):
     from deploy.daily_recovery import run
     from types import SimpleNamespace
     root = tmp_path / 'root'
-    root.mkdir()
+    root.mkdir(mode=0o700)
     failed = root / ('set-' + 'a' * 32)
     failed.mkdir()
     monkeypatch.setattr('deploy.daily_recovery.shutil.disk_usage', lambda _: SimpleNamespace(free=1))
@@ -436,3 +436,21 @@ def test_local_pruning_never_uses_unversioned_or_future_receipts(tmp_path, monke
     prune(tmp_path, 'repo', 1)
     assert (tmp_path / record['restore_directory']).exists()
     assert (tmp_path / record['set_directory']).exists()
+
+
+def test_daily_recovery_rejects_shared_operator_directory_before_cleanup(tmp_path):
+    from deploy.daily_recovery import run
+    root = tmp_path / 'shared'; root.mkdir(mode=0o755)
+    with pytest.raises(ValueError, match='Private owned daily'):
+        run({'recovery_root': str(root)})
+    assert not (root / 'lock').exists()
+
+
+def test_daily_recovery_rejects_symlink_lock_before_reconciliation(tmp_path):
+    from deploy.daily_recovery import run
+    root = tmp_path / 'private'; root.mkdir(mode=0o700)
+    external = tmp_path / 'external'; external.write_text('preserve')
+    (root / 'lock').symlink_to(external)
+    with pytest.raises(ValueError, match='non-symlink'):
+        run({'recovery_root': str(root)})
+    assert external.read_text() == 'preserve'
