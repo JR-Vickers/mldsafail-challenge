@@ -39,6 +39,13 @@
       "passed": 379,
       "skipped": 8,
       "historical_small_score": 3901
+    },
+    {
+      "command": "make check with owner templates/native gate tools",
+      "outcome": "passed",
+      "passed": 379,
+      "skipped": 11,
+      "historical_small_score": 3901
     }
   ],
   "not_established": [
@@ -57,6 +64,23 @@
       "URL-delimiter passwords",
       "surrounding dotenv value whitespace"
     ],
-    "disposition": "corrected with regression tests; confirmation pending"
+    "disposition": "independent reviewer confirmed both corrected; templates match current recovery field names; no additional blocker"
+  },
+  "participant_artifacts": {
+    "source_commit": "4a9d82d666dea328286631a5ffe62f19a1c985b3",
+    "wheel_sha256": "3c2490de73a99d31f57e9cadcd6fd9eb5a30540511d485b475a9330b76c008b5",
+    "archive_sha256": "720c12130e769bacc3bbc7e8af6d9c91a2d172fd62cb7f29802bcd372a1797f6",
+    "installation_smoke_complete": true,
+    "independent_archive_review_pending": true,
+    "publication_approved": false,
+    "evidence_reference": "protected operator-local participant-releases/full-source-commit manifest and installation-smoke"
+  },
+  "retention_failure": {
+    "stage": "one-off local permission sealing",
+    "cause": "Path.is_file followed retained installation interpreter symlink and chmod changed shared interpreter target to0400",
+    "effect": "temporary local shared interpreter execution failure; no native-host/staging operation affected",
+    "repair": "exact interpreter target restored0755 and execution verified; retained installation executables restored0700",
+    "corrective_tool": "scripts/seal_participant_artifacts.py; checksum-bound descriptor-relative O_NOFOLLOW, excludes install trees and rejects hardlinks; regression checks protect external interpreter permissions",
+    "failure_evidence_preserved": true
   }
 }
