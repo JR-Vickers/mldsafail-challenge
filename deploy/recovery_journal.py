@@ -103,9 +103,24 @@ class Journal:
     def command(self, argv, **kwargs):
         from deploy.owned_client import run
         self.data['cleanup_complete'] = False
-        return run(argv, self.data.setdefault('clients', []),
-                   lambda: self.save('owned host client'), self.path.parent,
-                   **kwargs)
+        mutation = None
+        if (Path(argv[0]).name == 'docker' and any(token in {
+                'create', 'run', 'up', 'start', 'stop', 'restart', 'kill', 'rm',
+                'down', 'pause', 'unpause', 'update'} for token in argv[1:])):
+            # Empty inventory cannot settle a request accepted by the daemon
+            # before a lost CLI response. Retain this intent until a positive
+            # dedicated-daemon shutdown barrier can invalidate the old epoch.
+            import uuid
+            mutation = {'id': uuid.uuid4().hex, 'acknowledged': False,
+                        'argv_sha256': hashlib.sha256(json.dumps(argv).encode()).hexdigest()}
+            self.data.setdefault('daemon_mutations', []).append(mutation)
+            self.save('daemon mutation intent')
+        result = run(argv, self.data.setdefault('clients', []),
+                     lambda: self.save('owned host client'), self.path.parent, **kwargs)
+        if mutation is not None and result.returncode == 0:
+            mutation['acknowledged'] = True
+            self.save('daemon mutation acknowledged')
+        return result
 
     def cleanup(self):
         errors = []
@@ -145,6 +160,8 @@ class Journal:
                 restore_service(identifiers[role], running)
             except Exception:
                 errors.append('service:' + role)
+        if any(item.get('acknowledged') is not True for item in self.data.get('daemon_mutations', [])):
+            errors.append('daemon_mutation_uncertainty:positive_dedicated_daemon_barrier_required')
         self.data.update(cleanup_errors=errors, cleanup_complete=not errors)
         self.save('cleanup')
         if errors:
