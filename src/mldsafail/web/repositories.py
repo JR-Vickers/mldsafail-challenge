@@ -49,7 +49,8 @@ class DatabaseResultRepository:
         suites = {"public": {name: {} for name in ("small", "medium", "large")},
                   "hidden": {name: {} for name in ("small", "medium", "large")}}
         return {
-            "schema_version": "hosted-mlwe-1" if result.benchmark_version == "0.5.0" else "hosted-1",
+            "schema_version": ("hosted-mlwe-v060-1" if result.benchmark_version == "0.6.0" else
+                               "hosted-mlwe-1" if result.benchmark_version == "0.5.0" else "hosted-1"),
             "benchmark_version": result.benchmark_version,
             "experiment_id": result.id,
             "timestamp": result.accepted_at.isoformat(),
@@ -59,8 +60,8 @@ class DatabaseResultRepository:
             "tags": submission.tags,
             "notes": submission.notes,
             "correct": True,
-            "score": result.mlwe_score if result.benchmark_version == "0.5.0" else result.score,
-            "aggregate": {"score": result.mlwe_score if result.benchmark_version == "0.5.0" else result.score},
+            "score": result.mlwe_score if result.benchmark_version in {"0.5.0", "0.6.0"} else result.score,
+            "aggregate": {"score": result.mlwe_score if result.benchmark_version in {"0.5.0", "0.6.0"} else result.score},
             "profiles": {},
             "suites": suites,
             "integrity": {"trusted_fingerprint": result.evaluator_fingerprint},
