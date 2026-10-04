@@ -172,6 +172,34 @@ def write_stream(stream, data):
     stream.flush()
 
 
+def secure_created_domain(entry, domain):
+    """Secure only the child just created by this invocation before admission."""
+    created = domain_identity(domain)
+    if created['uid'] != os.getuid():
+        raise RuntimeError('Fresh child cgroup owner mismatch')
+    entry['cgroup'] = created  # Exact birth retained even if permission setup fails.
+    descriptor = os.open(domain, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        info = os.fstat(descriptor)
+        if (info.st_dev, info.st_ino, info.st_uid) != (created['device'], created['inode'], created['uid']):
+            raise RuntimeError('Fresh child cgroup identity changed before permissions')
+        # cgroupfs can inherit 0775 despite mkdir mode/umask. No process may be
+        # admitted until this newly owned inode is exclusive to its owner.
+        os.fchmod(descriptor, 0o700)
+        info = os.fstat(descriptor)
+        secured = dict(created, mode=info.st_mode & 0o777)
+        entry['cgroup'] = secured
+        if ((info.st_dev, info.st_ino, info.st_uid) != (created['device'], created['inode'], created['uid']) or
+                secured['mode'] != 0o700 or domain_identity(domain) != secured):
+            raise RuntimeError('Fresh child cgroup identity or exclusive permissions changed')
+        if not all((domain / name).is_file() for name in ('cgroup.procs', 'cgroup.events', 'cgroup.kill')):
+            raise RuntimeError('Delegated client domain lacks required kernel controls')
+        if populated(domain) or (domain / 'cgroup.procs').read_text().split():
+            raise RuntimeError('Fresh child cgroup must be empty before admission')
+    finally:
+        os.close(descriptor)
+
+
 def run(argv, entries, save, evidence_directory, *, timeout, env=None, stdout=None,
         stderr=None, text=False, check=True, capture_output=False, input=None, cwd=None, client_cgroup_root=None, stdin=None):
     if sys.platform != 'linux':
@@ -193,11 +221,7 @@ def run(argv, entries, save, evidence_directory, *, timeout, env=None, stdout=No
     save()
     try:
         domain.mkdir()
-        entry["cgroup"] = domain_identity(domain)
-        if domain.stat().st_uid != os.getuid() or domain.stat().st_mode & 0o022:
-            raise RuntimeError("Owned child cgroup lacks exclusive owner write access")
-        if not all((domain / name).is_file() for name in ('cgroup.procs', 'cgroup.events', 'cgroup.kill')):
-            raise RuntimeError('Delegated client domain lacks required kernel controls')
+        secure_created_domain(entry, domain)
         save()
     except BaseException as error:
         try:

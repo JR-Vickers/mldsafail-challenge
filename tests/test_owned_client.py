@@ -211,3 +211,43 @@ def test_missing_control_file_in_existing_domain_is_failure(tmp_path, monkeypatc
     entry = {'cgroup': client.domain_identity(domain)}
     with pytest.raises(FileNotFoundError):
         client.stop(entry)
+
+
+def test_inherited_group_writable_child_secured_before_spawn(emulated_domain, monkeypatch):
+    create = Path.mkdir
+    def inherited(path, *args, **kwargs):
+        create(path, *args, **kwargs)
+        path.chmod(0o775)
+    monkeypatch.setattr(Path, 'mkdir', inherited)
+    spawn = client.subprocess.Popen
+    entries = []
+    def admitted(*args, **kwargs):
+        domain = Path(entries[0]['cgroup']['path'])
+        assert domain.stat().st_mode & 0o777 == 0o700
+        assert entries[0]['cgroup']['mode'] == 0o700
+        return spawn(*args, **kwargs)
+    monkeypatch.setattr(client.subprocess, 'Popen', admitted)
+    assert client.run(['true'], entries, lambda: None, emulated_domain, timeout=5).returncode == 0
+    assert not Path(entries[0]['cgroup']['path']).exists()
+
+
+def test_chmod_failure_retains_birth_and_never_spawns(emulated_domain, monkeypatch):
+    monkeypatch.setattr(client.os, 'fchmod', lambda *args: (_ for _ in ()).throw(PermissionError('injected chmod')))
+    monkeypatch.setattr(client.subprocess, 'Popen', lambda *args, **kwargs: pytest.fail('admitted before permissions'))
+    entries = []
+    with pytest.raises(PermissionError, match='chmod'):
+        client.run(['true'], entries, lambda: None, emulated_domain, timeout=1)
+    assert entries[0]['pid'] is None
+    assert entries[0]['cgroup']['uid'] == client.os.getuid()
+    assert not Path(entries[0]['cgroup']['path']).exists()
+
+
+def test_permission_setup_refuses_preexisting_populated_domain(tmp_path, monkeypatch):
+    monkeypatch.setattr(client, 'boot_id', lambda: 'boot')
+    domain = tmp_path / 'new'; domain.mkdir(mode=0o775)
+    for name, content in [('cgroup.procs', '123\n'), ('cgroup.events', 'populated 1\n'), ('cgroup.kill', '')]:
+        (domain / name).write_text(content)
+    entry = {}
+    with pytest.raises(RuntimeError, match='empty before admission'):
+        client.secure_created_domain(entry, domain)
+    assert entry['cgroup']['mode'] == 0o700
