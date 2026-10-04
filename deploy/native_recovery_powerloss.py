@@ -10,11 +10,31 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import stat
 import time
 import uuid
 from deploy import owned_daemon, owned_client
 from deploy.recovery_journal import Journal, atomic_json
 from research.cpu_measurement import native_driver
+
+
+def secure_guest_configuration(home=None):
+    """Secure only the disposable VM user's own configuration ancestors."""
+    home=Path.home() if home is None else Path(home)
+    if home.resolve()!=home or home.is_symlink() or home.stat().st_uid!=os.getuid():
+        raise ValueError('Canonical owned guest home required')
+    for directory in (home,home/'.config',home/'.config/systemd',home/'.config/systemd/user'):
+        directory.mkdir(mode=0o700,exist_ok=True)
+        descriptor=os.open(directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+        try:
+            birth=os.fstat(descriptor)
+            if birth.st_uid!=os.getuid() or not stat.S_ISDIR(birth.st_mode):
+                raise ValueError('Owned guest configuration directory required')
+            os.fchmod(descriptor,0o700)
+            current=directory.stat(follow_symlinks=False)
+            if (current.st_dev,current.st_ino,current.st_uid,current.st_mode & 0o777)!=(birth.st_dev,birth.st_ino,os.getuid(),0o700):
+                raise ValueError('Guest configuration identity changed')
+        finally:os.close(descriptor)
 
 
 def digest(path):
@@ -163,6 +183,8 @@ def main():
     parser.add_argument('--config',type=Path,required=True)
     parser.add_argument('--phase',choices=['prepare','restore'],required=True)
     args=parser.parse_args()
+    if os.getuid()!=1000:raise ValueError('Disposable user-1000 VM context required')
+    secure_guest_configuration()
     config=owned_daemon.read_private_json(args.config)
     callback=prepare_callback if args.phase=='prepare' else restore_callback
     result=native_driver.execute(config,Path(__file__).resolve().parents[1],acceptance=callback,daemon_kind='owned')

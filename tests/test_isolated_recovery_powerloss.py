@@ -60,3 +60,21 @@ def test_vm_base_open_file_or_failed_probe_refuses_boot(monkeypatch):
     for result in (SimpleNamespace(returncode=0,stdout=b'123',stderr=b''),SimpleNamespace(returncode=2,stdout=b'',stderr=b''),SimpleNamespace(returncode=1,stdout=b'',stderr=b'inspection failure')):
         monkeypatch.setattr(host.subprocess,'run',lambda *args,**kwargs:result)
         with pytest.raises(RuntimeError,match='quiescence unproved'):host.require_base_quiescent(Path('/base'))
+
+
+def test_disposable_guest_inherited_groupwrite_is_secured_before_driver(tmp_path):
+    import os
+    home=tmp_path/'home';home.mkdir(mode=0o775)
+    (home/'.config').mkdir(mode=0o775)
+    os.chmod(home,0o775);os.chmod(home/'.config',0o775)
+    gate.secure_guest_configuration(home)
+    assert all(path.stat().st_mode & 0o777==0o700 for path in (home,home/'.config',home/'.config/systemd',home/'.config/systemd/user'))
+
+
+def test_disposable_guest_config_symlink_cannot_chmod_foreign_target(tmp_path):
+    home=tmp_path/'home';home.mkdir()
+    target=tmp_path/'target';target.mkdir(mode=0o755)
+    before=target.stat().st_mode
+    (home/'.config').symlink_to(target,target_is_directory=True)
+    with pytest.raises(OSError):gate.secure_guest_configuration(home)
+    assert target.stat().st_mode==before

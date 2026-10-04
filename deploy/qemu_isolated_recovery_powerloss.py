@@ -102,7 +102,9 @@ def execute(base,output,source,review_packet):
     def boot():
         nonlocal process,log
         log=(output/('boot-'+str(len(record['vm_attempts']))+'.log')).open('wb')
-        def publish(entry):record['vm_attempts'].append(entry);atomic_json(output/'ownership.json',record)
+        def publish(entry):
+            if not any(item is entry for item in record['vm_attempts']):record['vm_attempts'].append(entry)
+            atomic_json(output/'ownership.json',record)
         process,entry=owned_vm.spawn(argv,publish,log)
         deadline=time.monotonic()+240
         while True:
