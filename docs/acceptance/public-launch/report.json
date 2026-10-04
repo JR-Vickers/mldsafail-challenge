@@ -1508,12 +1508,14 @@
       "sources": [
         "user-plan"
       ],
-      "dependencies": [],
+      "dependencies": [
+        "owned-native-client-fencing"
+      ],
       "environment": "disposable native services",
       "criteria": [
         "Native retries dedup recovery notices freshness expired leases failed jobs and privacy acceptance"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -2113,11 +2115,21 @@
       "criteria": [
         "Reconcile historical unresolved gate application_rollback_forward"
       ],
-      "status": "waiting_dependency",
+      "status": "passed",
       "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Reconcile historical unresolved gate application_rollback_forward"
+          ]
+        }
+      ],
+      "identities": {
+        "operator_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "application_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf"
+      },
+      "next_action": "None; historical outcome retained and reconciled against later native acceptance",
       "checklist": []
     },
     {
@@ -2410,13 +2422,14 @@
         "docs/NATIVE_PREPARATION_GATES.md"
       ],
       "dependencies": [
-        "participant-archive-review"
+        "participant-archive-review",
+        "owned-native-client-fencing"
       ],
       "environment": "isolated native host sequential",
       "criteria": [
         "Run retained participant wheel installation smoke on isolated native Linux installation; preserve failures and prove owned cleanup"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
