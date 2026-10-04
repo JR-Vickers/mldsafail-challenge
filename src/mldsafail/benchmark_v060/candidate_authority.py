@@ -19,7 +19,6 @@ class CandidateRehearsalAuthority:
         if self.contract_adopted is not False:
             raise ValueError('Candidate authority cannot claim contract adoption')
         from research.mlwe_v060_preparation.native_acceptance import require_prerequisites
-        require_prerequisites(self.prerequisite_path,supervisor_source_sha256=self.supervisor_source_sha256)
         epoch=owned_daemon.read_private_json(self.epoch_manifest_path,cap=4*1024*1024)
         if (epoch.get('schema')!='mldsafail.mlwe-v060-epoch-draft.v1'
                 or epoch.get('benchmark_version')!='0.6.0' or epoch.get('epoch_id')!=self.epoch_id
@@ -27,6 +26,9 @@ class CandidateRehearsalAuthority:
                 or epoch['worker_artifact'].get('source_commit')!=self.source_commit
                 or epoch.get('cohort',{}).get('evaluator_fingerprint')!=self.supervisor_source_sha256):
             raise ValueError('Candidate authority source/image/fresh epoch mismatch')
+        require_prerequisites(self.prerequisite_path,supervisor_source_sha256=self.supervisor_source_sha256,
+            worker_image=self.worker_image,worker_context_sha256=epoch['worker_artifact'].get('source_context_sha256'),
+            worker_source_commit=self.source_commit)
         from mldsafail.benchmark_versions import Cohort
         if Cohort(**epoch['cohort']).public_id!=self.cohort_id:
             raise ValueError('Candidate authority cohort mismatch')

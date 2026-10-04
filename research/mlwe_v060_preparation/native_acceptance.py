@@ -31,10 +31,17 @@ def python_identity(source):
     return hashlib.sha256(json.dumps(files,sort_keys=True,separators=(',',':')).encode()).hexdigest()
 
 
-def require_prerequisites(path, *, supervisor_source_sha256):
+def require_prerequisites(path, *, supervisor_source_sha256, worker_image, worker_context_sha256, worker_source_commit):
+    import re
+    if (not isinstance(worker_image,str) or not re.fullmatch('sha256:[0-9a-f]{64}',worker_image)
+            or not isinstance(worker_context_sha256,str) or not re.fullmatch('[0-9a-f]{64}',worker_context_sha256)
+            or not isinstance(worker_source_commit,str) or not re.fullmatch('[0-9a-f]{40}',worker_source_commit)):
+        raise RuntimeError('Explicit gated worker artifact identities required')
     receipt=owned_daemon.read_private_json(path,cap=4*1024*1024)
     if (receipt.get('schema')!='mldsafail.v060-native-prerequisites.v1'
             or receipt.get('supervisor_source_sha256')!=supervisor_source_sha256
+            or receipt.get('worker_image')!=worker_image or receipt.get('worker_context_sha256')!=worker_context_sha256
+            or receipt.get('worker_source_commit')!=worker_source_commit
             or receipt.get('native_faults_passed') is not True or receipt.get('native_pairs_passed') is not True
             or receipt.get('supervisor_review_passed') is not True or receipt.get('auditor_review_passed') is not True
             or not isinstance(receipt.get('evidence_refs'),list) or not receipt['evidence_refs']):
@@ -53,24 +60,23 @@ def restore_environment(values):
 
 
 def callback(journal, config, data):
-    """Build and retain actual worker + fresh audited references in owned context."""
+    """Reuse the exactly gated worker and prepare fresh audited references."""
     root=journal.path.parent/'v060';root.mkdir(mode=0o700)
     original=None;result=dict(schema='mldsafail.v060-native-acceptance.v1',passed=False,
         native_executed=False,production_adopted=False,default_changed=False)
     try:
         protocol=owned_daemon.read_private_json(journal.path.parent.parent/'v060-protocol.json')
         if protocol.get('schema')!='mldsafail.v060-native-protocol.v1': raise ValueError('Explicit private candidate protocol required')
-        require_prerequisites(protocol['prerequisites'],supervisor_source_sha256=config['supervisor_source_sha256'])
         source=Path(__file__).resolve().parents[2]
         context=prepare_context(root/'worker-context')
         if not context['source_tree_clean'] or context['source_commit']!=config['source_commit']:
             raise RuntimeError('Worker context must bind exact retained clean source')
-        image_id=root/'worker-image.id'
-        journal.command(['docker','build','--iidfile',str(image_id),str(root/'worker-context')],kind='image_build',timeout=600)
+        image=config['image']
+        require_prerequisites(protocol['prerequisites'],supervisor_source_sha256=config['supervisor_source_sha256'],
+            worker_image=image,worker_context_sha256=context['source_sha256'],worker_source_commit=context['source_commit'])
         result['native_executed']=True
-        image=image_id.read_text().strip()
-        if not __import__('re').fullmatch('sha256:[0-9a-f]{64}',image): raise RuntimeError('Immutable separately built worker required')
         inspected=json.loads(journal.command(['docker','image','inspect',image]).stdout)[0]
+        if inspected.get('Id')!=image: raise RuntimeError('Exact previously gated worker image required')
         labels=inspected['Config']['Labels']
         if labels.get('org.mldsafail.benchmark.version')!='0.6.0' or labels.get('org.mldsafail.measurement')!='cgroup-v2-usage-usec':
             raise RuntimeError('Version-specific worker artifact labels required')

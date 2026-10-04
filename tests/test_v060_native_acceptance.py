@@ -12,12 +12,12 @@ from deploy import owned_daemon
 
 def test_native_prerequisite_rejects_mismatched_source_and_unsupported_claim(tmp_path):
     path=tmp_path/'receipt'
-    receipt=dict(schema='mldsafail.v060-native-prerequisites.v1',supervisor_source_sha256='a'*64,native_faults_passed=True,native_pairs_passed=True,supervisor_review_passed=True,auditor_review_passed=True,evidence_refs=['retained-native-packet'])
+    receipt=dict(worker_image='sha256:'+'c'*64,worker_context_sha256='d'*64,worker_source_commit='e'*40,schema='mldsafail.v060-native-prerequisites.v1',supervisor_source_sha256='a'*64,native_faults_passed=True,native_pairs_passed=True,supervisor_review_passed=True,auditor_review_passed=True,evidence_refs=['retained-native-packet'])
     owned_daemon.publish(path,receipt)
-    assert native_acceptance.require_prerequisites(path,supervisor_source_sha256='a'*64)==receipt
-    with pytest.raises(RuntimeError): native_acceptance.require_prerequisites(path,supervisor_source_sha256='b'*64)
+    assert native_acceptance.require_prerequisites(path,supervisor_source_sha256='a'*64,worker_image='sha256:'+'c'*64,worker_context_sha256='d'*64,worker_source_commit='e'*40)==receipt
+    with pytest.raises(RuntimeError): native_acceptance.require_prerequisites(path,supervisor_source_sha256='b'*64,worker_image='sha256:'+'c'*64,worker_context_sha256='d'*64,worker_source_commit='e'*40)
     owned_daemon.publish(path,dict(receipt,native_pairs_passed=False))
-    with pytest.raises(RuntimeError): native_acceptance.require_prerequisites(path,supervisor_source_sha256='a'*64)
+    with pytest.raises(RuntimeError): native_acceptance.require_prerequisites(path,supervisor_source_sha256='a'*64,worker_image='sha256:'+'c'*64,worker_context_sha256='d'*64,worker_source_commit='e'*40)
 
 
 def test_reference_auditor_recomputes_all_cases_and_refuses_tampered_cost(tmp_path,monkeypatch):
@@ -47,11 +47,12 @@ def test_candidate_authority_is_scoped_and_cannot_activate_default(tmp_path):
     from mldsafail.benchmark_v060.candidate_authority import CandidateRehearsalAuthority
     from mldsafail.benchmark_versions import RegisteredBackend,VersionRegistry,application_cohort,UnsupportedBenchmark
     from research.mlwe_v060_preparation.epochs import prepare_epoch
+    image='sha256:'+'c'*64
     prerequisite=tmp_path/'prerequisite.json'
-    owned_daemon.publish(prerequisite,dict(schema='mldsafail.v060-native-prerequisites.v1',supervisor_source_sha256='a'*64,native_faults_passed=True,native_pairs_passed=True,supervisor_review_passed=True,auditor_review_passed=True,evidence_refs=['native-packet']))
+    owned_daemon.publish(prerequisite,dict(worker_image=image,worker_context_sha256='e'*64,worker_source_commit='d'*40,schema='mldsafail.v060-native-prerequisites.v1',supervisor_source_sha256='a'*64,native_faults_passed=True,native_pairs_passed=True,supervisor_review_passed=True,auditor_review_passed=True,evidence_refs=['native-packet']))
     image='sha256:'+'c'*64
     cohort=Cohort('0.6.0','fresh','a'*64,'fresh',image,'b'*64,'cgroup-v2-usage-usec')
-    prepare_epoch(tmp_path/'epoch',cohort,worker_artifact=dict(benchmark_version='0.6.0',measurement_method=cohort.measurement_method,image=image,source_commit='d'*40))
+    prepare_epoch(tmp_path/'epoch',cohort,worker_artifact=dict(benchmark_version='0.6.0',measurement_method=cohort.measurement_method,image=image,source_commit='d'*40,source_context_sha256='e'*64))
     authority=CandidateRehearsalAuthority(prerequisite,tmp_path/'epoch/manifest.json','d'*40,'a'*64,image,cohort.epoch_id,cohort.public_id)
     authority.require()
     with pytest.raises(ValueError,match='scope'):authority.require_private(False)
@@ -121,3 +122,13 @@ def test_publication_after_rename_failure_retries_negative_disposition(tmp_path,
     retained=json.loads((tmp_path/'application.json').read_text())
     assert calls==[True,False]
     assert retained['passed'] is False and retained['evidence_publication_failed'] is True
+
+
+@pytest.mark.parametrize('field,replacement',[('worker_image','sha256:'+'f'*64),('worker_context_sha256','f'*64),('worker_source_commit','f'*40)])
+def test_native_prerequisite_never_authorizes_another_worker_artifact(tmp_path,field,replacement):
+    expected=dict(supervisor_source_sha256='a'*64,worker_image='sha256:'+'b'*64,worker_context_sha256='c'*64,worker_source_commit='d'*40)
+    receipt=dict(expected,schema='mldsafail.v060-native-prerequisites.v1',native_faults_passed=True,native_pairs_passed=True,supervisor_review_passed=True,auditor_review_passed=True,evidence_refs=['actual-source-bound-native-packet'])
+    path=tmp_path/'prerequisites';owned_daemon.publish(path,dict(receipt,**{field:replacement}))
+    with pytest.raises(RuntimeError):native_acceptance.require_prerequisites(path,**expected)
+    missing=dict(receipt);missing.pop(field);owned_daemon.publish(path,missing)
+    with pytest.raises(RuntimeError):native_acceptance.require_prerequisites(path,**expected)

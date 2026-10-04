@@ -63,3 +63,20 @@ then run the full native faults and thirty-pair protocol on that exact image.
 A failure requires diagnosis and preserved evidence, not another unchanged
 measurement attempt. The lean dependency path is a legitimate implementation
 correction, not evidence that native overhead or CV will pass.
+
+The followup prospective-worker branch also imports the exact root
+`dd9ccc7:deploy/recovery_daemon.py` terminal bridge. This changes the prospective
+CPU supervisor source identity to
+`d0ca17d2e7f1353c1c352c059971291f9137a769024407d25e55bb563b406b15`.
+The earlier `f7ad...323b` identity remains historical evidence only; new native
+review/configuration/prerequisite receipts must bind the new identity. Worker
+accounting window, harness, fixtures and thresholds are unchanged.
+
+The reference/application callback reuses `config.image`; it must not build a
+replacement after native acceptance. Its private prerequisites additionally
+require exact `worker_image`, `worker_context_sha256`, and
+`worker_source_commit` from the retained build-only artifact, alongside exact
+supervisor identity and independently accepted fault/pair evidence. It prepares
+and hashes the current context for equality, then inspects the exact loaded
+image. Candidate authority repeats the same artifact binding against the fresh
+epoch manifest. Missing, swapped or legacy artifact identities are rejected.
