@@ -7,23 +7,25 @@
     "f4d8261",
     "02902b0",
     "68d33eb",
-    "de033bb"
+    "de033bb",
+    "e6f03ece8a744b41f9435125703017386fd66bf3"
   ],
-  "reviewed_tree_commit": "4846cb1dc50c503696b463aae4529815fd990297",
+  "reviewed_tree_commit": "e6f03ece8a744b41f9435125703017386fd66bf3",
   "file_sha256": {
     "src/mldsafail/benchmark_v060/worker.py": "64befb3165e88d982c92ef9122a8621532386ca070df1efc5307e0ec053cef15",
-    "src/mldsafail/benchmark_v060/build.py": "92b3d507ee6b2bb4225cea2cddb2833cd8831dc27e0232672b419b20ef65b6e7",
-    "scripts/native_v060_worker_preparation.py": "8bb358667c85555d4efcc33679698a8eff2c3e40204ab8df718a3421898e402f",
-    "research/mlwe_v060_preparation/native_acceptance.py": "f5ac1d47985ab7101d4223f6820ff96e0d9e46fa6789ef86785e22b584654666",
+    "src/mldsafail/benchmark_v060/build.py": "d1737559419d8d882ffd78a47d461c64868f9ba13f0007840e6ec42013402e41",
+    "scripts/native_v060_worker_preparation.py": "e705050015cd97ecda32970cbcc53f99f7b0af67268d8aa4e7b30e80e9032cc8",
+    "research/mlwe_v060_preparation/native_acceptance.py": "c4d148058cb41352f37dde98441bc725bbef15aa9eb226b677fec7e999135161",
     "src/mldsafail/benchmark_v060/candidate_authority.py": "aed18a537839600d5255c20b462c05ed0cf24d0266b4db2c1df47d1f161dea01",
     "deploy/recovery_daemon.py": "bfcc4057dec8658fd4918db878a42e1fa1146f783957826d1348a98407d77331"
   },
-  "focused_tests_passed": 27,
+  "focused_tests_passed": 28,
   "scope": [
     "unchanged proposed worker memory and CPU affinity limits; frozen timing adapter import removed",
     "build-only callback exact immutable image configuration and durable sealed artifact",
     "candidate acceptance requires exactly natively gated worker image/context/source instead of rebuilding",
-    "exact shared recovery daemon helper copied from primary"
+    "exact shared recovery daemon helper copied from primary",
+    "native source Git checks use bounded gated clients; default local source checks bounded15seconds"
   ],
   "unresolved_required_gates": [
     "new retained worker build",
