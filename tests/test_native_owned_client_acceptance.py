@@ -30,3 +30,19 @@ def test_native_cleanup_independently_attempts_both_journals(tmp_path, monkeypat
     monkeypatch.setattr(native.owned_client, 'stop', lambda entry: None)
     assert native.cleanup(tmp_path)['cleanup_complete']
     assert len(list(tmp_path.glob('cleanup-*.json'))) == 2
+
+
+def test_nested_fixture_program_compiles(tmp_path, monkeypatch):
+    seen = []
+    def inspect(argv, *args, **kwargs):
+        compile(argv[2], '<native-leader>', 'exec')
+        # Parse literal nested code without executing any fixture.
+        import ast
+        tree = ast.parse(argv[2])
+        nested = next(node for node in ast.walk(tree) if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == 'Popen')
+        code = nested.args[0].elts[2].value
+        compile(code, '<native-grandchild>', 'exec')
+        seen.append(True)
+    monkeypatch.setattr(native.owned_client, 'run', inspect)
+    native.owner(tmp_path, False)
+    assert seen == [True]

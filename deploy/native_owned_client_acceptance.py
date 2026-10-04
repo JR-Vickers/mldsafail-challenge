@@ -37,10 +37,12 @@ def owner(root, before):
             (root / 'before-release').touch()
             time.sleep(60)
     # Both leader and grandchild remain in inherited client cgroup.
+    grandchild = ('import pathlib,sys,time,os,json;root=pathlib.Path(sys.argv[1]);'
+                  'root.joinpath("descendant-ready").write_text(json.dumps({"pid":os.getpid()}));'
+                  'time.sleep(20);root.joinpath("late-mutation").touch()')
     code = ('import pathlib,subprocess,sys,time;root=pathlib.Path(sys.argv[1]);'
             'root.joinpath("mutation").touch();'
-            'subprocess.Popen([sys.executable,"-c",'
-            '"import pathlib,sys,time;time.sleep(20);pathlib.Path(sys.argv[1]).touch()",str(root/"late-mutation")]);'
+            'subprocess.Popen([sys.executable,"-c",' + repr(grandchild) + ',str(root)]);'
             'time.sleep(.2)')
     owned_client.run([sys.executable, '-c', code, str(root)], entries, save, root, timeout=90)
 
@@ -129,8 +131,24 @@ def execute(output):
         entry = None
         try:
             await_file(root / ('before-release' if before else 'mutation'), process)
+            descendant = None
             if not before:
-                time.sleep(.4)  # CLI leader exits while its grandchild keeps inherited pipes/domain.
+                await_file(root / 'descendant-ready', process)
+                descendant = owned_client.identity(json.loads((root / 'descendant-ready').read_text())['pid'])
+                client = json.loads((root / 'ownership.json').read_text())['clients'][0]
+                if descendant['pid'] not in [int(value) for value in (Path(client['cgroup']['path']) / 'cgroup.procs').read_text().split()]:
+                    raise RuntimeError('Grandchild does not inherit the owned domain')
+                deadline = time.monotonic() + 10
+                while True:
+                    try:
+                        stat = (Path('/proc') / str(client['pid']) / 'stat').read_text()
+                        exited = stat[stat.rindex(')') + 2:].split()[0] == 'Z'
+                    except FileNotFoundError:
+                        exited = True
+                    if exited: break
+                    if time.monotonic() >= deadline: raise RuntimeError('Fixture CLI leader remains executable')
+                    time.sleep(.02)
+
             process.kill(); process.wait(timeout=15)  # Popen-owned fixture controller only.
             entry = json.loads((root / 'ownership.json').read_text())['clients'][0]
             path = owned_client.verify_domain(entry)
@@ -163,7 +181,8 @@ def execute(output):
             if (root / 'late-mutation').exists() or owned_client.verify_domain(entry) is not None:
                 raise RuntimeError('Owned client cleanup proof failed')
             report['cases'].append({'case': root.name, 'passed': True, 'mismatch_refused': True,
-                                    'domain_removed': True, 'repeated_cleanup': True})
+                                    'domain_removed': True, 'repeated_cleanup': True,
+                                    'leader_exit_verified': not before, 'descendant_identity': descendant})
         finally:
             if process.poll() is None:
                 process.kill()
