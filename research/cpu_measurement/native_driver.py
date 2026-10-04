@@ -349,8 +349,27 @@ def execute(config,repository,*,acceptance=None,daemon_kind='cpu'):
             else: raise
         finally:
             if lease_entered: lease.__exit__(None,None,None)
+    return finalize_acceptance(journal)
+
+
+def finalize_acceptance(journal):
+    """Publish acceptance only when its durable final disposition succeeds."""
+    data=journal.data
     data['native_acceptance_passed']=data.get('native_consumer_passed') is True and data['cleanup']['cleanup_complete'] is True
-    journal.save()
+    try:
+        journal.save()
+    except BaseException as original:
+        # Rename may already have exposed the positive file before directory
+        # fsync fails. Independently attempt a negative replacement; never turn
+        # an ambiguous publication into accepted native evidence.
+        data['native_acceptance_passed']=False
+        data['evidence_publication_failed']=True
+        data['final_publication_failure']=dict(type=type(original).__name__,message=str(original))
+        try:
+            journal.save()
+        except BaseException as retry:
+            original.add_note('Negative native acceptance publication failed: '+repr(retry))
+        raise
     if not data['cleanup']['cleanup_complete']: raise RuntimeError('Native driver cleanup remains fenced')
     return data
 

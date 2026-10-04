@@ -147,3 +147,36 @@ def test_worker_cpu_admission_rejects_missing_controller_before_measurement(tmp_
     native_driver.validate_worker_admission(tmp_path)
     (tmp_path/'cpu.stat').write_text('usage_usec -1\n')
     with pytest.raises(RuntimeError,match='counter'):native_driver.validate_worker_admission(tmp_path)
+
+def test_final_acceptance_publish_then_raise_replaces_durable_positive(tmp_path,monkeypatch):
+    import json
+    from deploy import owned_daemon
+    journal=native_driver.Journal(tmp_path/'journal.json',dict(native_consumer_passed=True,cleanup=dict(cleanup_complete=True)))
+    real_publish=owned_daemon.publish
+    original=OSError('directory fsync failed after rename')
+    calls=[]
+    def publish(path,data):
+        real_publish(path,data);calls.append(data['native_acceptance_passed'])
+        if len(calls)==1:raise original
+    monkeypatch.setattr(owned_daemon,'publish',publish)
+    with pytest.raises(OSError) as failure:native_driver.finalize_acceptance(journal)
+    assert failure.value is original and calls==[True,False]
+    retained=json.loads(journal.path.read_text())
+    assert retained['native_acceptance_passed'] is False
+    assert retained['evidence_publication_failed'] is True
+    assert retained['cleanup']['cleanup_complete'] is True
+
+
+def test_final_acceptance_retry_failure_keeps_original_and_negative_memory(tmp_path,monkeypatch):
+    journal=native_driver.Journal(tmp_path/'journal.json',dict(native_consumer_passed=True,cleanup=dict(cleanup_complete=True)))
+    original=OSError('original publication')
+    calls=[]
+    def save():
+        calls.append(journal.data['native_acceptance_passed'])
+        if len(calls)==1:raise original
+        raise RuntimeError('negative retry publication')
+    monkeypatch.setattr(journal,'save',save)
+    with pytest.raises(OSError) as failure:native_driver.finalize_acceptance(journal)
+    assert failure.value is original and calls==[True,False]
+    assert journal.data['native_acceptance_passed'] is False
+    assert 'negative retry publication' in original.__notes__[0]
