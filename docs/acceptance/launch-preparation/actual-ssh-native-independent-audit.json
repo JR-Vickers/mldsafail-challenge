@@ -1,0 +1,24 @@
+{
+  "schema": "mldsafail.independent-native-audit.v1",
+  "status": "passed",
+  "native_executed": true,
+  "source_commit": "805d9c886529e41056202184dc3f96500a2c1d8a",
+  "evidence_refs": [
+    "protected modern-ssh-20261004-1 ownership.json",
+    "protected modern-ssh-20261004-1 guest-evidence.tar"
+  ],
+  "archive_sha256": "aa310a8bff041cbbe185d4ce981b60701a2046795bd38fa45a5dacdc9b41452f",
+  "archive_bytes": 114841600,
+  "verified": [
+    "actual owned SSH exit -9",
+    "unchanged boot and complete owner PID/start/UID/command identity after fresh connection",
+    "actual fixture and repeated operation cleanup",
+    "driver complete and outer positive whole-daemon barrier cleanup without errors",
+    "independently no QEMU processes",
+    "protected original disk and variable hashes unchanged"
+  ],
+  "limitations": [
+    "Disposable synthetic VM transport recovery only",
+    "No VPS, CPU, off-host storage, owner custody or private epoch acceptance"
+  ]
+}

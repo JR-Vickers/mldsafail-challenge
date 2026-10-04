@@ -1,0 +1,15 @@
+{
+  "schema": "mldsafail.source-review.v1",
+  "status": "source_review_passed",
+  "source_commit": "b0421cdcda842e4dd6c4b43fafd90541a7ae0cd2",
+  "native_executed": false,
+  "tests": {
+    "passed": 31,
+    "command": "uv run --extra dev python -m pytest tests/test_owned_daemon.py -q"
+  },
+  "scope": [
+    "same-inode/UID data-root700/710 transition only under exact private700 base",
+    "other root modes and identities unchanged",
+    "durable original-manifest-bound mode observation"
+  ]
+}
