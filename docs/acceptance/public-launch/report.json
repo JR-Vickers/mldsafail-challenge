@@ -586,16 +586,22 @@
       "sources": [
         "docs/acceptance/operational-followup/CPU_REVIEW.md"
       ],
-      "dependencies": [],
+      "dependencies": [
+        "cpu-client-birth-fencing"
+      ],
       "environment": "isolated engineering",
       "criteria": [
         "Implement and independently review source resolution of CPU review finding 2: durable ownership and fencing; focused tests and make check pass; separate native gates remain required"
       ],
-      "status": "passed",
+      "status": "failed",
       "attempts": [
         {
           "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
           "result": "passed"
+        },
+        {
+          "protocol": "Broader birth-window audit",
+          "result": "corrective child cpu-client-birth-fencing required"
         }
       ],
       "evidence": [
@@ -609,7 +615,7 @@
       "identities": {
         "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
       },
-      "next_action": "Execute distinct native delegation/fault/pair prerequisites before versioned contract integration",
+      "next_action": "Repair birth-window and repeat source/native gate reviews",
       "checklist": []
     },
     {
@@ -823,7 +829,7 @@
       "criteria": [
         "Independent supervisor review with every finding resolved"
       ],
-      "status": "passed",
+      "status": "waiting_dependency",
       "attempts": [
         {
           "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
@@ -841,7 +847,7 @@
       "identities": {
         "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
       },
-      "next_action": "Execute distinct native delegation/fault/pair prerequisites before versioned contract integration",
+      "next_action": "Repeat/reconcile against corrected accounting source; retain earlier review evidence",
       "checklist": []
     },
     {
@@ -857,7 +863,7 @@
       "criteria": [
         "Independent evidence auditor review with every finding resolved"
       ],
-      "status": "passed",
+      "status": "waiting_dependency",
       "attempts": [
         {
           "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
@@ -875,7 +881,7 @@
       "identities": {
         "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
       },
-      "next_action": "Execute distinct native delegation/fault/pair prerequisites before versioned contract integration",
+      "next_action": "Repeat/reconcile against corrected accounting source; retain earlier review evidence",
       "checklist": []
     },
     {
@@ -891,11 +897,11 @@
       "criteria": [
         "Establish exclusive host-supervised native delegation"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "next_action": "Repeat/reconcile against corrected accounting source; retain earlier review evidence",
       "checklist": []
     },
     {
@@ -1770,7 +1776,7 @@
       "criteria": [
         "Reconcile historical unresolved gate cpu_contract_review"
       ],
-      "status": "passed",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [
         {
@@ -1783,7 +1789,7 @@
       "identities": {
         "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
       },
-      "next_action": "Native gates and owner adoption remain separate",
+      "next_action": "Repeat/reconcile against corrected accounting source; retain earlier review evidence",
       "checklist": []
     },
     {
@@ -2295,6 +2301,31 @@
       "evidence": [],
       "identities": {},
       "next_action": "Repair trusted expected-identity validation; repeat independent review",
+      "checklist": []
+    },
+    {
+      "id": "cpu-client-birth-fencing",
+      "requirement": "Prevent unacknowledged Docker client from creating measured workers after interrupted accounting reconciliation",
+      "sources": [
+        "research/cpu_measurement/harness.py Popen before host_client_spawned durable mutation",
+        "user-plan durable ownership/fencing"
+      ],
+      "dependencies": [],
+      "environment": "isolated accounting development; source-bound native fault suite",
+      "criteria": [
+        "Client cannot execute Docker mutations before durable identity/domain receipt; native before-release owner-loss fault passes; worker CPU parent remains separate and thresholds unchanged"
+      ],
+      "status": "running",
+      "attempts": [
+        {
+          "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
+          "protocol": "Broader interruption-path source audit",
+          "result": "Popen-before-receipt window requires birth gate correction; existing post-input SIGKILL acceptance does not cover it"
+        }
+      ],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Implement gated accounting client; repeat independent reviews and native interruption tests before performance collection",
       "checklist": []
     }
   ],
