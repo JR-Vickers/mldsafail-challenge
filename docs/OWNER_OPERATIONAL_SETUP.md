@@ -106,8 +106,12 @@ Receiver should tolerate retry duplicates if a response is lost.
 
 Copy [monitor.json](../deploy/templates/monitor.json) outside the checkout with
 0600 mode. Fill deployed env/Compose paths, readiness endpoint, matching verified
-backup state/repository, actual scheduled units, receiver URL and private token
-file. Leave `alert_enabled` false while wiring read-only checks. Operator must
+backup state/repository, `expected_epoch_id` matching the exact deployed audited
+epoch, actual scheduled units, receiver URL and private token file. Monitoring
+requires the versioned `mldsafail.recovery-state.v1` receipt to bind full immutable
+snapshot, repository, epoch, result count and restored manifest digest, with
+strict restore/cleanup booleans and nonfuture timezone-aware upload/verification
+times. Freshness uses `uploaded_at`: re-verifying an old upload cannot refresh it. Leave `alert_enabled` false while wiring read-only checks. Operator must
 verify the readiness URL: production proxy blocks operational endpoints, so use
 an approved private internal route rather than publicly exposing health checks.
 Place the token in a private regular 0600 file, not the JSON itself. `alert_state`
