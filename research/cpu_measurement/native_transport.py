@@ -98,11 +98,18 @@ def _drop_acknowledgement(client, upstream, receipt, operation, after_receipt=No
 
 
 def drop_acknowledgement(client, upstream, receipt, operation, after_receipt=None, preludes=None):
+    original=None
     try:
         return _drop_acknowledgement(client,upstream,receipt,operation,after_receipt,preludes)
+    except BaseException as error:
+        original=error
+        raise
     finally:
         errors=[]
         for connection in (client,upstream):
             try: connection.close()
             except OSError as error: errors.append(repr(error))
-        if errors: raise RuntimeError('Diagnostic socket cleanup failed: '+repr(errors))
+        if errors:
+            message='Diagnostic socket cleanup failed: '+repr(errors)
+            if original is not None: original.add_note(message)
+            else: raise RuntimeError(message)

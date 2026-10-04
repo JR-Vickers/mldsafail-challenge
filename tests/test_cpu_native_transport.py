@@ -74,3 +74,17 @@ def test_other_read_or_mutation_is_not_a_health_prelude(tmp_path):
     assert errors==['Only the declared mutation may be faulted']
     assert not (tmp_path/'receipt').exists()
     client.close();server.close()
+
+
+def test_socket_cleanup_preserves_original_and_attempts_both(tmp_path,monkeypatch):
+    from research.cpu_measurement import native_transport
+    original=RuntimeError('original parser failure');closed=[]
+    class Broken:
+        def close(self):closed.append(self);raise OSError('close failed')
+    def fail(*args):raise original
+    monkeypatch.setattr(native_transport,'_drop_acknowledgement',fail)
+    first,second=Broken(),Broken()
+    with pytest.raises(RuntimeError) as caught:
+        drop_acknowledgement(first,second,tmp_path/'receipt','create')
+    assert caught.value is original and closed==[first,second]
+    assert 'Diagnostic socket cleanup failed' in original.__notes__[0]
