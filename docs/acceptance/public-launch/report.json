@@ -1420,7 +1420,8 @@
       ],
       "dependencies": [
         "production-templates",
-        "measurement-adoption"
+        "measurement-adoption",
+        "production-baseline-rehearsal"
       ],
       "environment": "disposable production-like environment",
       "criteria": [
@@ -1761,11 +1762,20 @@
       "criteria": [
         "Reconcile historical unresolved gate cpu_contract_review"
       ],
-      "status": "ready",
+      "status": "passed",
       "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/accounting-auditor-review.json#/source_review_passed",
+          "criteria_met": [
+            "Reconcile historical unresolved gate cpu_contract_review"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
+      },
+      "next_action": "Native gates and owner adoption remain separate",
       "checklist": []
     },
     {
@@ -2153,6 +2163,27 @@
         "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe"
       },
       "next_action": "Complete fresh seven scenarios and rollback/forward",
+      "checklist": []
+    },
+    {
+      "id": "production-baseline-rehearsal",
+      "requirement": "Execute disposable frozen0.5 production-like fresh epoch deployment restoration rollback isolation synthetic auth submission and leaderboard before owner adoption",
+      "sources": [
+        "user-plan",
+        "docs/NATIVE_PREPARATION_GATES.md"
+      ],
+      "dependencies": [
+        "production-templates"
+      ],
+      "environment": "disposable native services; no production activation",
+      "criteria": [
+        "Retained reviewed orchestrator passes source-bound native baseline rehearsal and final owned-resource cleanup"
+      ],
+      "status": "ready",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Freeze reviewed orchestrator; execute after serialized staging gates",
       "checklist": []
     }
   ],
