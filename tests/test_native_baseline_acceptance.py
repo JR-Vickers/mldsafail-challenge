@@ -116,3 +116,14 @@ def test_driver_artifact_schema_normalizes_only_primary_archive():
     assert driver_artifacts({'image':'sha256:'+'a'*64,'image_archive':'primary.tar',
         'image_archive_sha256':'d'*64,'additional_images':[additional]})==[
         {'image':'sha256:'+'a'*64,'archive':'primary.tar','archive_sha256':'d'*64},additional]
+
+
+def test_fifo_wheel_is_rejected_without_blocking_or_context_creation(tmp_path):
+    import os
+    wheels=tmp_path/'wheels';wheels.mkdir()
+    pins={'cysignals-1.12.5-cp312-cp312-manylinux2014_x86_64.whl':'eccbcfd762de37daf4a01a0a77ef653561a153c48c2db9104916d36ebbd3cf24',
+        'fpylll-0.6.4-cp312-cp312-manylinux2014_x86_64.whl':'05f43362f2803207a8a6dfe5bad41c64df2479cded1338490bad773ca78b5ba1'}
+    for name in pins:os.mkfifo(wheels/name,0o600)
+    with pytest.raises(ValueError,match='bounded regular wheel'):
+        build_context(tmp_path/'context',wheels,pins,'sha256:'+'a'*64,architecture='amd64')
+    assert not (tmp_path/'context').exists()
