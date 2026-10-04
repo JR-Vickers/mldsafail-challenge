@@ -195,3 +195,15 @@ fences and immutable failure receipts. These source/configuration tests do not
 establish native daemon shutdown, rootless stdin, mutation-loss or measurement
 acceptance. Installed Docker 29.8.1 source could not be matched to an upstream
 tag during investigation; no older locking behavior waives this barrier.
+
+Native lost-RPC acceptance now has separately retained create and start probes
+(`native_loss.py`). A bounded diagnostic proxy forwards a real request and
+retains an actual successful Docker response before withholding acknowledgement
+and SIGKILLing the gated owner. The probe then requires the durable owner fence,
+exact dedicated daemon/entire-worker-parent shutdown, independently cancelled
+clients, and refreshed daemon epoch. The fault CLI must declare a supported
+`--api-version`; its shim affects only the selected mutating Docker command,
+never registration reads or ordinary measurements. These are mandatory native
+fault-suite cases; their source and local socket tests do not establish native
+acceptance. After-start-before-attach stdin behavior remains a separate native
+compatibility observation and must not be inferred from a source test.

@@ -39,7 +39,7 @@ def read_message(stream):
     return headers+b'\r\n\r\n'+body,headers.split(b'\r\n',1)[0]
 
 
-def _drop_acknowledgement(client, upstream, receipt, operation):
+def _drop_acknowledgement(client, upstream, receipt, operation, after_receipt=None):
     """Forward a single proven create/start and retain the actual HTTP response."""
     client.settimeout(15);upstream.settimeout(45)
     request,line=read_message(client)
@@ -61,6 +61,7 @@ def _drop_acknowledgement(client, upstream, receipt, operation):
         response_digest_encoding='status_headers_decoded_body.v1',
         daemon_response_code=code,actual_mutation_response_observed=code in {201,204},
         response_delivered=False))
+    if after_receipt is not None: after_receipt()
     # Close both sockets without ever acknowledging the mutation to Docker CLI.
     for connection in (client,upstream):
         try: connection.shutdown(socket.SHUT_RDWR)
@@ -68,9 +69,9 @@ def _drop_acknowledgement(client, upstream, receipt, operation):
         connection.close()
 
 
-def drop_acknowledgement(client, upstream, receipt, operation):
+def drop_acknowledgement(client, upstream, receipt, operation, after_receipt=None):
     try:
-        return _drop_acknowledgement(client,upstream,receipt,operation)
+        return _drop_acknowledgement(client,upstream,receipt,operation,after_receipt)
     finally:
         errors=[]
         for connection in (client,upstream):

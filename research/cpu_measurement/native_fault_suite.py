@@ -136,6 +136,9 @@ def execute(args):
             from research.cpu_measurement.native_birth import probe
             results.append(probe(args, args.output / 'birth_gap.json'))
             results.extend(lifecycle(args, args.output / 'lifecycle'))
+            from research.cpu_measurement.native_loss import probe as lost_mutation
+            for operation in ('create','start'):
+                results.append(lost_mutation(args,args.output/('lost_'+operation+'_ack.json'),operation=operation,api_version=args.api_version))
             results.append(grandchild_probe(args, directory, instance))
             publish(args.output / 'grandchild_membership.json', results[-1])
         except Exception as error:
@@ -143,7 +146,7 @@ def execute(args):
             publish(args.output / 'lifecycle_failure.json', failure)
             results.append(failure)
     summary = dict(schema='mldsafail.cpu-native-fault.v1', native_executed=True,
-                   passed=len(results) == len(cases) + 4 and all(row['passed'] for row in results),
+                   passed=len(results) == len(cases) + 6 and all(row['passed'] for row in results),
                    cases=results, remaining_native_faults=[])
 
     summary['contract_fault_gate_passed'] = summary['passed']
@@ -198,6 +201,7 @@ def main():
     parser.add_argument('--parent', type=Path, required=True)
     parser.add_argument('--cgroup-parent', required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--api-version', required=True, help='Predeclared supported dedicated Docker API version for fault-only CLI shim')
     args = parser.parse_args()
     report = execute(args)
     raise SystemExit(0 if report['passed'] else 1)
