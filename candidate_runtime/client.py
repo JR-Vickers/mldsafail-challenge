@@ -11,6 +11,7 @@ import uuid
 from mldsafail.benchmark_v050.constants import MAX_SERIALIZED_BYTES
 from mldsafail.benchmark_v060.candidate_authority import CandidateRehearsalAuthority
 from candidate_runtime.protocol import send,receive
+from deploy import owned_daemon
 
 
 def connect(path):
@@ -61,14 +62,38 @@ def source_files(source):
     return result
 
 
-def evaluate(path,source,checkpoint):
+def source_digest(files):
+    material={name:dict(bytes=len(base64.b64decode(block,validate=True)),sha256=hashlib.sha256(base64.b64decode(block,validate=True)).hexdigest()) for name,block in files.items()}
+    return hashlib.sha256(json.dumps(material,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+
+
+def evaluate(path,source,checkpoint,*,binding,request_directory,attempt_id):
     files=source_files(source)
+    if binding.get('source_sha256')!=source_digest(files):raise ValueError('Job-bound public source digest differs')
+    directory=Path(request_directory);directory.mkdir(mode=0o700,parents=True,exist_ok=True)
+    info=directory.lstat()
+    if not stat.S_ISDIR(info.st_mode) or info.st_uid!=os.getuid() or info.st_mode&0o077:raise ValueError('Private owned request directory required')
+    uuid.UUID(attempt_id)
+    intent_path=directory/(str(uuid.UUID(binding['job_id']))+'.json')
+    if intent_path.exists():
+        intent=owned_daemon.read_private_json(intent_path)
+        if intent.get('binding')!=binding:raise RuntimeError('Retained request job/source identity changed')
+        operation='lookup'
+    else:
+        intent=dict(schema='mldsafail.private-candidate-request.v1',request_id=uuid.uuid4().hex,binding=binding,
+            initial_attempt_id=attempt_id,dispatch_uncertain=True)
+        owned_daemon.publish(intent_path,intent)
+        operation='evaluate'
     with connect(path) as connection:
-        send(connection,dict(operation='evaluate',request_id=uuid.uuid4().hex,files=files))
+        request=dict(operation=operation,request_id=intent['request_id'],binding=binding)
+        if operation=='evaluate':request.update(files=files,attempt_id=attempt_id)
+        send(connection,request)
         deadline=time.monotonic()+1200
         while True:
             value=receive(connection,seconds=max(.001,deadline-time.monotonic()))
             if value=={'checkpoint':True}:
                 checkpoint();send(connection,{'checkpoint_complete':True})
-            elif isinstance(value,dict) and set(value)=={'envelope'}:return value['envelope']
-            else:raise RuntimeError('Candidate host evaluation failed')
+            elif isinstance(value,dict) and set(value)=={'envelope'}:
+                intent['response_reconciled']=True;owned_daemon.publish(intent_path,intent)
+                return value['envelope']
+            else:raise RuntimeError('Private request remains fenced; reconcile existing identity, never resubmit')

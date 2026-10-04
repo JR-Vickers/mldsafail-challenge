@@ -46,8 +46,23 @@ def coordinator(path):
     from mldsafail.benchmark_v060.coordinator import Coordinator
     value,cohort,authority,_=load(path);engine=create_engine(value['database_url'])
     try:
+        def run_source(source,checkpoint):
+            import uuid
+            from sqlalchemy import select
+            from sqlalchemy.orm import Session
+            from mldsafail.web.models import EvaluationJob,EvaluationAttempt
+            from candidate_runtime.client import source_files,source_digest
+            with Session(engine) as database:
+                jobs=list(database.scalars(select(EvaluationJob).where(EvaluationJob.lease_owner==worker.worker_id,EvaluationJob.status=='running')))
+                if len(jobs)!=1:raise RuntimeError('Exactly one owned running job required')
+                job=jobs[0]
+                attempt=database.scalar(select(EvaluationAttempt).where(EvaluationAttempt.job_id==job.id,EvaluationAttempt.number==job.attempts))
+                if attempt is None:raise RuntimeError('Owned evaluation attempt missing')
+                binding=dict(job_id=job.id,submission_id=job.submission_id,cohort_id=cohort.public_id,source_sha256=source_digest(source_files(source)))
+                return evaluate(value['gateway_socket'],source,checkpoint,binding=binding,
+                    request_directory=Path(value['work_root'])/'.gateway-requests',attempt_id=attempt.id)
         worker=Coordinator(engine=engine,cohort=cohort,gates=authority,private_rehearsal=True,
-            work_root=value['work_root'],evaluate_source=lambda source,checkpoint:evaluate(value['gateway_socket'],source,checkpoint),
+            work_root=value['work_root'],evaluate_source=run_source,
             signing_key=bytes.fromhex(value['signing_key_hex']))
         return worker.run_once()
     finally:engine.dispose()

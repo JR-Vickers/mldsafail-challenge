@@ -61,18 +61,38 @@ class Gateway:
             if request=={'operation':'authorize','cohort_id':self.authority.cohort_id}:
                 self.authority.require_private(True)
                 send(connection,{'authorized':True,'cohort_id':self.authority.cohort_id,'candidate_only':True,'contract_adopted':False});return 'authorized'
-            if not isinstance(request,dict) or set(request)!={'operation','request_id','files'} or request['operation']!='evaluate':raise ValueError('Fixed gateway operations only')
+            if not isinstance(request,dict) or request.get('operation') not in {'evaluate','lookup'} or set(request)!=({'operation','request_id','binding'} if request.get('operation')=='lookup' else {'operation','request_id','files','binding','attempt_id'}):raise ValueError('Fixed gateway operations only')
             identifier=request['request_id']
             if not isinstance(identifier,str) or len(identifier)!=32 or any(c not in '0123456789abcdef' for c in identifier):raise ValueError('Durable request identity required')
+            binding=request['binding']
+            if not isinstance(binding,dict) or set(binding)!={'job_id','submission_id','cohort_id','source_sha256'} or binding.get('cohort_id')!=self.authority.cohort_id:
+                raise ValueError('Exact job/cohort/source request binding required')
+            for name in ('job_id','submission_id'):uuid.UUID(binding[name])
+            if len(binding['source_sha256'])!=64 or any(c not in '0123456789abcdef' for c in binding['source_sha256']):raise ValueError('Source digest required')
             run=self.root/identifier
+            if request['operation']=='lookup':
+                journal=run/'journal.json'
+                if not journal.exists():send(connection,{'fenced':True});return 'fenced'
+                from deploy import owned_daemon
+                retained=owned_daemon.read_private_json(journal)
+                if retained.get('binding')!=binding:raise ValueError('Retained request binding differs')
+                if retained.get('state')=='evaluated':send(connection,{'envelope':retained['envelope']});return 'reconciled'
+                send(connection,{'fenced':True});return 'fenced'
+            job_index=self.root/('job-'+str(uuid.UUID(binding['job_id']))+'.json')
+            if job_index.exists():raise RuntimeError('Prior job remains fenced; never repeat evaluation under a new identity')
+            uuid.UUID(request['attempt_id'])
+            atomic_json(job_index,dict(request_id=identifier,binding=binding))
             if run.exists():raise RuntimeError('Prior request remains fenced; never repeat evaluation')
-            run.mkdir(mode=0o700);journal=run/'journal.json';record={'request_id':identifier,'peer':identity,'state':'intent','passed':False}
+            run.mkdir(mode=0o700);journal=run/'journal.json';record={'request_id':identifier,'peer':identity,'binding':binding,'initial_attempt_id':request['attempt_id'],'state':'intent','passed':False}
             atomic_json(journal,record)
             try:
+                uuid.UUID(request['attempt_id'])
                 source=snapshot(run/'public-source',request['files'])
+                from candidate_runtime.client import source_digest
+                if source_digest(request['files'])!=binding['source_sha256']:raise ValueError('Independent public source digest differs')
                 self.authority.require_private(True)
                 def checkpoint():
-                    if owned_client.identity(identity['pid'])!=identity:raise RuntimeError('Owned application peer disappeared')
+                    if peer_identity(connection,self.domain)!=identity:raise RuntimeError('Owned application peer disappeared')
                     send(connection,{'checkpoint':True})
                     if receive(connection)!=dict(checkpoint_complete=True):raise RuntimeError('Application checkpoint unacknowledged')
                 checkpoint()
@@ -80,7 +100,8 @@ class Gateway:
                 record.update(state='evaluated',envelope=envelope);atomic_json(journal,record)
                 send(connection,{'envelope':envelope});return 'evaluated'
             except BaseException as error:
-                record.update(state='failed',failure_class=type(error).__name__)
+                if record.get('state')!='evaluated':record.update(state='failed')
+                record['failure_class']=type(error).__name__
                 try:atomic_json(journal,record)
                 except BaseException as publication:error.add_note('Gateway failure publication: '+type(publication).__name__)
                 raise

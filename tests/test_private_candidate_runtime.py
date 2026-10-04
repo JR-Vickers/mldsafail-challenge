@@ -51,7 +51,10 @@ def test_private_gateway_requires_durable_request_before_evaluation(tmp_path,mon
     try:
         with socket.socket(socket.AF_UNIX) as connection:
             connection.connect(str(value.socket_path))
-            protocol.send(connection,{'operation':'evaluate','request_id':request,'files':{'solver.py':base64.b64encode(b'def solve(x): return None').decode()}})
+            from candidate_runtime.client import source_digest
+            files={'solver.py':base64.b64encode(b'def solve(x): return None').decode()}
+            binding=dict(job_id='11111111-1111-4111-8111-111111111111',submission_id='22222222-2222-4222-8222-222222222222',cohort_id='cohort',source_sha256=source_digest(files))
+            protocol.send(connection,{'operation':'evaluate','request_id':request,'files':files,'binding':binding,'attempt_id':'33333333-3333-4333-8333-333333333333'})
             for _ in range(2):
                 assert protocol.receive(connection)=={'checkpoint':True};protocol.send(connection,{'checkpoint_complete':True})
             assert protocol.receive(connection)=={'envelope':{'signed':'tiny synthetic envelope'}}
@@ -92,3 +95,26 @@ def test_fifo_private_configuration_rejected_without_blocking(tmp_path):
     from candidate_runtime.config import load
     path=tmp_path/'config.json';os.mkfifo(path,0o600)
     with pytest.raises(ValueError,match='bounded application'):load(path)
+
+
+def test_lost_private_response_reuses_durable_job_identity_without_evaluation(tmp_path,monkeypatch):
+    from candidate_runtime import client
+    source=tmp_path/'source';source.mkdir();(source/'solver.py').write_text('def solve(x): return None')
+    binding=dict(job_id='11111111-1111-4111-8111-111111111111',submission_id='22222222-2222-4222-8222-222222222222',cohort_id='cohort',source_sha256=client.source_digest(client.source_files(source)))
+    requests=[]
+    class Connection:
+        def __enter__(self):return self
+        def __exit__(self,*args):pass
+    monkeypatch.setattr(client,'connect',lambda path:Connection())
+    def send(connection,value):
+        retained=json.loads((tmp_path/'requests'/('11111111-1111-4111-8111-111111111111.json')).read_text())
+        assert retained['request_id']==value['request_id'] and retained['binding']==binding
+        requests.append(value)
+    monkeypatch.setattr(client,'send',send)
+    def lost(*args,**kwargs):raise TimeoutError('lost response')
+    monkeypatch.setattr(client,'receive',lost)
+    with pytest.raises(TimeoutError):client.evaluate('private',source,lambda:None,binding=binding,request_directory=tmp_path/'requests',attempt_id='33333333-3333-4333-8333-333333333333')
+    monkeypatch.setattr(client,'receive',lambda *args,**kwargs:{'envelope':{'retained':'signed'}})
+    assert client.evaluate('private',source,lambda:None,binding=binding,request_directory=tmp_path/'requests',attempt_id='44444444-4444-4444-8444-444444444444')=={'retained':'signed'}
+    assert [request['operation'] for request in requests]==['evaluate','lookup']
+    assert requests[0]['request_id']==requests[1]['request_id'] and 'files' not in requests[1]
