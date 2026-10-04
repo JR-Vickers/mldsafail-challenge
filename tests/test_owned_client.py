@@ -190,3 +190,24 @@ def test_closed_child_stdin_stops_file_reads(emulated_domain):
                         lambda: None, emulated_domain, timeout=5, stdin=source)
     assert result.returncode == 0
     assert source.reads <= 5
+
+
+def test_concurrent_exact_empty_domain_removal_is_idempotent(tmp_path, monkeypatch):
+    monkeypatch.setattr(client, 'boot_id', lambda: 'boot')
+    domain = tmp_path / 'client'; domain.mkdir()
+    (domain / 'cgroup.kill').write_text('')
+    entry = {'cgroup': client.domain_identity(domain)}
+    def concurrent_remove(path):
+        (path / 'cgroup.kill').unlink(); path.rmdir()
+        raise FileNotFoundError('concurrent kernel domain removal')
+    monkeypatch.setattr(client, 'populated', concurrent_remove)
+    client.stop(entry)
+    assert not domain.exists()
+
+
+def test_missing_control_file_in_existing_domain_is_failure(tmp_path, monkeypatch):
+    monkeypatch.setattr(client, 'boot_id', lambda: 'boot')
+    domain = tmp_path / 'client'; domain.mkdir()
+    entry = {'cgroup': client.domain_identity(domain)}
+    with pytest.raises(FileNotFoundError):
+        client.stop(entry)

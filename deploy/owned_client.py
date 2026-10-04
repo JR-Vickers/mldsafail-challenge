@@ -77,14 +77,20 @@ def stop(entry):
         return
     # The birth gate moves the child before exec. All descendants inherit this
     # exact kernel domain, regardless of CLI exit or process/session changes.
-    (path / 'cgroup.kill').write_text('1')
-    deadline = time.monotonic() + 15
-    while populated(path):
-        if time.monotonic() >= deadline:
-            raise RuntimeError('Owned client cgroup remains populated')
-        time.sleep(.05)
-    verify_domain(entry)
-    path.rmdir()
+    try:
+        (path / 'cgroup.kill').write_text('1')
+        deadline = time.monotonic() + 15
+        while populated(path):
+            if time.monotonic() >= deadline:
+                raise RuntimeError('Owned client cgroup remains populated')
+            time.sleep(.05)
+        if verify_domain(entry) is not None:
+            path.rmdir()
+    except FileNotFoundError:
+        # A concurrent exact-owned cleanup can remove an empty kernel domain.
+        # Missing pseudo-files in an existing/replaced domain are not success.
+        if verify_domain(entry) is not None:
+            raise
 
 
 def prepare_domain(entry, parent):
@@ -260,7 +266,11 @@ def run(argv, entries, save, evidence_directory, *, timeout, env=None, stdout=No
                         # Leader exit never proves descendant exit.
                         stop(entry)
                     else:
-                        path.rmdir()
+                        try:
+                            path.rmdir()
+                        except FileNotFoundError:
+                            if verify_domain(entry) is not None:
+                                raise
                 if process.poll() is None:
                     raise RuntimeError('Owned client is not reaped')
                 entry['finished'] = True
