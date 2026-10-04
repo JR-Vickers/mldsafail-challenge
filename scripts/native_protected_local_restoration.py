@@ -10,7 +10,7 @@ from deploy.native_recovery_powerloss import receipt
 
 
 def callback(driver, config, data):
-    protocol = json.loads(private_file(config['acceptance_protocol']).read_text())
+    protocol = json.loads(private_file(Path(config['state_root']).parent / 'protected-local-restoration-protocol.json').read_text())
     required = {'schema', 'recovery_set', 'manifest_sha256', 'epoch_id', 'result_count', 'coordinator_image'}
     if set(protocol) != required or protocol['schema'] != 'mldsafail.local-protected-restore-protocol.v1':
         raise ValueError('Exact protected local restoration protocol required')

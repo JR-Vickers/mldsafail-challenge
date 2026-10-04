@@ -60,7 +60,7 @@ def test_local_callback_preserves_failure_and_independently_cleans(tmp_path, mon
     sealed.mkdir(mode=0o700)
     manifest = sealed / 'recovery.json'
     manifest.write_text('{}'); manifest.chmod(0o600)
-    protocol = tmp_path / 'protocol.json'
+    protocol = tmp_path / 'protected-local-restoration-protocol.json'
     protocol.write_text(json.dumps(dict(schema='mldsafail.local-protected-restore-protocol.v1',
         recovery_set=str(sealed), manifest_sha256=hashlib.sha256(manifest.read_bytes()).hexdigest(),
         epoch_id='expected', result_count=1, coordinator_image='sha256:'+'a'*64)))
@@ -78,7 +78,7 @@ def test_local_callback_preserves_failure_and_independently_cleans(tmp_path, mon
     monkeypatch.setenv('MLDSAFAIL_OPERATOR_DAEMON_MANIFEST', '/private/owned')
     with pytest.raises(RuntimeError) as error:
         runner.callback(SimpleNamespace(path=tmp_path/'driver.json'),
-            {'acceptance_protocol':str(protocol),'image':'sha256:'+'b'*64},
+            {'state_root':str(tmp_path/'state'),'image':'sha256:'+'b'*64},
             {'loaded_images':['sha256:'+'a'*64,'sha256:'+'b'*64]})
     assert error.value is original and cleanup == [True]
     outcome = json.loads((tmp_path/'protected-local-restoration/result.json').read_text())
@@ -105,13 +105,21 @@ def test_restore_callback_rejects_unbound_archive_before_output(tmp_path):
     import json
     from types import SimpleNamespace
     from scripts.native_protected_local_restoration import callback
-    protocol = tmp_path / 'protocol.json'
+    protocol = tmp_path / 'protected-local-restoration-protocol.json'
     protocol.write_text(json.dumps(dict(schema='mldsafail.local-protected-restore-protocol.v1',
         recovery_set='/unopened',manifest_sha256='a'*64,epoch_id='expected',result_count=1,
         coordinator_image='sha256:'+'a'*64)))
     protocol.chmod(0o600)
     with pytest.raises(ValueError, match='archive provenance'):
         callback(SimpleNamespace(path=tmp_path/'driver.json'),
-            {'acceptance_protocol':str(protocol),'image':'sha256:'+'b'*64},
+            {'state_root':str(tmp_path/'state'),'image':'sha256:'+'b'*64},
             {'loaded_images':['sha256:'+'b'*64]})
     assert not (tmp_path/'protected-local-restoration').exists()
+
+
+def test_standard_conforming_and_escape_literals_are_distinguished():
+    ordinary = b"SELECT '" + bytes([92]) + b"path" + bytes([92]) + b"';"
+    escaped = b"SELECT E'can" + bytes([92]) + b"'t';"
+    assert normalized_sql_dump(ordinary) == ordinary
+    assert normalized_sql_dump(escaped) == escaped
+    assert normalized_sql_dump(b"SELECT 'it''s';") == b"SELECT 'it''s';"

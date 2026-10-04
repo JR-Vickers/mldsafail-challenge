@@ -17,6 +17,7 @@ def normalized_sql_dump(data):
     rows = []
     copying = False
     quote = None
+    escaped_string = False
     dollar = re.compile(rb'\$[A-Za-z_][A-Za-z_0-9]*\$|\$\$')
     for line in data.splitlines():
         if copying:
@@ -38,13 +39,16 @@ def normalized_sql_dump(data):
                         continue
                     index += len(quote)
                     quote = None
-                elif quote == b"'" and line[index:index+1] == b'\\':
+                elif quote == b"'" and escaped_string and line[index:index+1] == b'\\':
                     index += 2
                 else: index += 1
             elif line.startswith(b'--', index):
                 break
             elif line[index:index+1] in (b"'", b'"'):
                 quote = line[index:index+1]
+                escaped_string = (quote == b"'" and index > 0 and
+                    line[index-1:index].lower() == b'e' and
+                    (index < 2 or not (line[index-2:index-1].isalnum() or line[index-2:index-1] == b'_')))
                 index += 1
             else:
                 match = dollar.match(line, index)
