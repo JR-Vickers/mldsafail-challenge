@@ -8,24 +8,29 @@
     "02902b0",
     "68d33eb",
     "de033bb",
-    "e6f03ece8a744b41f9435125703017386fd66bf3"
+    "e6f03ece8a744b41f9435125703017386fd66bf3",
+    "ba6ec2777b69fb82d2762d57702147b81e81a1a9",
+    "cc8b13c1e6ffd539421c498a535cacb5810f14e5"
   ],
-  "reviewed_tree_commit": "e6f03ece8a744b41f9435125703017386fd66bf3",
+  "reviewed_tree_commit": "b232c544ff4823da13775eaa1e5bbbdf68500936",
   "file_sha256": {
     "src/mldsafail/benchmark_v060/worker.py": "64befb3165e88d982c92ef9122a8621532386ca070df1efc5307e0ec053cef15",
-    "src/mldsafail/benchmark_v060/build.py": "d1737559419d8d882ffd78a47d461c64868f9ba13f0007840e6ec42013402e41",
-    "scripts/native_v060_worker_preparation.py": "e705050015cd97ecda32970cbcc53f99f7b0af67268d8aa4e7b30e80e9032cc8",
-    "research/mlwe_v060_preparation/native_acceptance.py": "c4d148058cb41352f37dde98441bc725bbef15aa9eb226b677fec7e999135161",
+    "src/mldsafail/benchmark_v060/build.py": "5e87efb7edb42f4d8a9209084894b4b053bf76e40c9df5bb446200a94c90f2f2",
+    "scripts/native_v060_worker_preparation.py": "6f163b30bf1c51d41a51a6426c71b581244fdf1fa1ee04cda4cc1800fa614098",
+    "research/mlwe_v060_preparation/native_acceptance.py": "cb56018f2e2aac628a56817b14a22a65c21e5376f974a5534eed7112bc94527f",
     "src/mldsafail/benchmark_v060/candidate_authority.py": "aed18a537839600d5255c20b462c05ed0cf24d0266b4db2c1df47d1f161dea01",
-    "deploy/recovery_daemon.py": "bfcc4057dec8658fd4918db878a42e1fa1146f783957826d1348a98407d77331"
+    "deploy/recovery_daemon.py": "bfcc4057dec8658fd4918db878a42e1fa1146f783957826d1348a98407d77331",
+    "src/mldsafail/benchmark_v060/requirements.amd64.lock": "35890cf7c5ed544124dc4cc86269009f11d029a5388d1627b6899e986650c1f0",
+    "src/mldsafail/benchmark_v060/Dockerfile": "55bd1ca7e56de1ba398a2dd94f6eb7f971a51fc4bb5203ec787baaab8c3c4e12"
   },
-  "focused_tests_passed": 28,
+  "focused_tests_passed": 39,
   "scope": [
     "unchanged proposed worker memory and CPU affinity limits; frozen timing adapter import removed",
     "build-only callback exact immutable image configuration and durable sealed artifact",
     "candidate acceptance requires exactly natively gated worker image/context/source instead of rebuilding",
     "exact shared recovery daemon helper copied from primary",
-    "native source Git checks use bounded gated clients; default local source checks bounded15seconds"
+    "native source Git checks use bounded gated clients; default local source checks bounded15seconds",
+    "approved native amd64 architecture lock exactly matches existing deploy lock SHA35890; offline wheel inventory and actual6a/artifacts provenance bound into both contexts"
   ],
   "unresolved_required_gates": [
     "new retained worker build",
