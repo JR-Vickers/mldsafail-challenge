@@ -95,7 +95,8 @@ The new artifact requires separate supervisor/auditor acceptance, the complete
 native fault suite, and at least thirty sequential empty/child pairs under the
 unchanged limits: child CV at most 5%, empty median CPU at most 250,000
 microseconds, empty wall nearest-rank p95 at most five seconds, and demonstrated
-descendant accounting. Preserve every failure; do not average separate attempts
+descendant accounting. Empty-worker CV must be retained as a diagnostic; it is
+not a gate. Preserve every failure; do not average separate attempts
 or discard outliers. Exact-source reference/audit/sealing and native API/CLI,
 queue, signed evidence, cohort privacy, compatibility, deadline and cleanup
 acceptance must then pass. No current evidence slot claims these passed.

@@ -26,7 +26,7 @@
     "fresh_epoch_id": null,
     "cohort_id": null,
     "reference_authority_sha256": null,
-    "contract_document_sha256": "dbe2acb7b2e3b38cc43c8f23e4a1f7729e353685f1a1c2cb99ae7062b9487569",
+    "contract_document_sha256": "303b47fcaee1e96b2a9f49e3de3ffce05e5a1abaa721e35ff64b3a6a94f05000",
     "contract_source_files_sha256": {
       "src/mldsafail/benchmark_v060/backend.py": "65d77ade32d7d6c2b105d0798b22729a5adfdc39dcac8c1dd543aedc5a8f427a",
       "src/mldsafail/benchmark_v060/evaluation.py": "103ed484df1711d5d9845c8ae00900415993d002efd1da41e4734efe93bd72f8",
@@ -131,7 +131,15 @@
       "receipt_sha256": null,
       "sanitized_evidence_refs": [],
       "reviewer": null,
-      "attempts": []
+      "attempts": [],
+      "metrics": {
+        "paired_count": null,
+        "deterministic_child_cpu_cv": null,
+        "empty_worker_cpu_cv": null,
+        "empty_cpu_median_usec": null,
+        "empty_wall_nearest_rank_p95_seconds": null,
+        "descendant_accounting_demonstrated": null
+      }
     },
     "fresh_reference_execution": {
       "status": "pending",
