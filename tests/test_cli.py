@@ -70,6 +70,32 @@ def test_default_scaffold_uses_approved_starter(tmp_path, monkeypatch):
     assert cli.build_parser().parse_args(['submit', '--repo', 'url', '--commit', 'sha', '--hypothesis', 'test']).benchmark_version == '0.5.0'
 
 
+def test_fresh_home_scaffolds_without_git_identity_or_signing(tmp_path, monkeypatch):
+    import subprocess
+    home = tmp_path/'fresh-home'
+    home.mkdir()
+    monkeypatch.setenv('HOME', str(home))
+    monkeypatch.setenv('XDG_CONFIG_HOME', str(home/'config'))
+    monkeypatch.setenv('GIT_CONFIG_NOSYSTEM', '1')
+    monkeypatch.setenv('GIT_CONFIG_GLOBAL', str(home/'absent-gitconfig'))
+    monkeypatch.setenv('GIT_AUTHOR_NAME', 'Inherited Identity')
+    monkeypatch.setenv('GIT_COMMITTER_EMAIL', 'inherited@example.invalid')
+    monkeypatch.setenv('GIT_CONFIG_COUNT', '2')
+    monkeypatch.setenv('GIT_CONFIG_KEY_0', 'commit.gpgSign')
+    monkeypatch.setenv('GIT_CONFIG_VALUE_0', 'true')
+    monkeypatch.setenv('GIT_CONFIG_KEY_1', 'gpg.program')
+    monkeypatch.setenv('GIT_CONFIG_VALUE_1', '/nonexistent/scaffold-signing-program')
+    for version in ('0.5.0', '0.4.0'):
+        workspace = tmp_path/('workspace-'+version)
+        assert cli.main(['clone', '--benchmark-version', version, str(workspace)]) == 0
+        identity = subprocess.check_output(['git', '-C', str(workspace), 'show', '-s', '--format=%an <%ae>|%cn <%ce>|%G?'], text=True).strip()
+        assert identity == 'MLDSAFAIL Workspace <workspace@mldsafail.invalid>|MLDSAFAIL Workspace <workspace@mldsafail.invalid>|N'
+        assert subprocess.check_output(['git', '-C', str(workspace), 'status', '--porcelain']) == b''
+        assert 'user.name' not in (workspace/'.git/config').read_text()
+    assert not (home/'.gitconfig').exists()
+    assert not (home/'absent-gitconfig').exists()
+
+
 def test_follow_waits_for_retry(tmp_path, monkeypatch):
     monkeypatch.setenv('XDG_CONFIG_HOME', str(tmp_path))
     cli._write_config({'server': 'https://staging.test', 'token': 'private'})

@@ -23,6 +23,12 @@ and refuses an existing destination; it installs the verified wheel with its
 dependency metadata; dependency resolution may require access to the package index.
 No login is necessary for offline historical checks or source scaffolding.
 
+Scaffolding creates its initial commit with the synthetic identity
+`MLDSAFAIL Workspace <workspace@mldsafail.invalid>` and disables signing and hooks
+for that generated commit only. It works without Git identity configuration and
+does not change local or global Git settings. Configure your own Git identity
+before committing subsequent solver changes.
+
 ```sh
 sh scripts/install.sh mldsafail_challenge-0.5.1-py3-none-any.whl VERIFIED_WHEEL_SHA256 NEW_INSTALL_DIRECTORY
 NEW_INSTALL_DIRECTORY/bin/mldsafail --help

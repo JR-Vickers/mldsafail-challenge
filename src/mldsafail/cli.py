@@ -173,6 +173,18 @@ def submission_action(args):
     return 0
 
 
+def _scaffold_commit(directory, message):
+    """Generated initial commit only; never writes participant Git settings."""
+    environment = dict(os.environ)
+    environment.update(GIT_AUTHOR_NAME='MLDSAFAIL Workspace',
+                       GIT_AUTHOR_EMAIL='workspace@mldsafail.invalid',
+                       GIT_COMMITTER_NAME='MLDSAFAIL Workspace',
+                       GIT_COMMITTER_EMAIL='workspace@mldsafail.invalid')
+    return subprocess_run(['git', '-C', str(directory), '-c', 'commit.gpgSign=false',
+                           '-c', 'core.hooksPath=/dev/null', 'commit', '-q', '-m', message],
+                          env=environment, check=True, capture_output=True)
+
+
 def clone_workspace(args) -> int:
     from pathlib import Path
 
@@ -202,7 +214,7 @@ def clone_workspace(args) -> int:
             '--commit FULL_SHA --solver-path solver --hypothesis "..."\n'
             'mldsafail status ID --server "$STAGING_SERVER" --follow\n')
         subprocess_run(["git", "-C", str(dir_path), "add", "."], check=True)
-        subprocess_run(["git", "-C", str(dir_path), "commit", "-q", "-m", "Scaffold MLWE 0.5.0 solver"], check=True)
+        _scaffold_commit(dir_path, 'Scaffold MLWE 0.5.0 solver')
         print(f"Workspace created at {dir_path}; publish a full commit to public GitHub before submitting.")
         return 0
     solver_dir = dir_path / "src" / "mldsafail" / "solver"
@@ -220,10 +232,7 @@ def clone_workspace(args) -> int:
     math_init.write_text('"""Participant math primitives workspace."""\n')
     try:
         subprocess_run(["git", "-C", str(dir_path), "add", "."], check=True)
-        subprocess_run(
-            ["git", "-C", str(dir_path), "commit", "-q", "-m", "feat: scaffold participant workspace"],
-            check=True, capture_output=True,
-        )
+        _scaffold_commit(dir_path, 'feat: scaffold participant workspace')
     except Exception as exc:
         raise CliError(f"git commit failed: {exc}") from exc
     head = subprocess_run(
