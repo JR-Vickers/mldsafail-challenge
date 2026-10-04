@@ -278,6 +278,33 @@ def load_manifest(path=None):
     return manifest
 
 
+def verify_root_identities(manifest):
+    """Admit only Docker's data-root traversal-bit change under the same base."""
+    base=manifest['provisioning']['base']
+    if _private_directory(base['path'])!=base:
+        raise RuntimeError('Dedicated daemon private base identity changed')
+    observed={}
+    for name,value in manifest['roots'].items():
+        current=_private_directory(value['path'],docker_data=name=='root_dir')
+        expected=dict(value)
+        if name=='root_dir':
+            if type(expected.get('mode')) is not int or expected['mode'] not in {0o700,0o710}:
+                raise RuntimeError('Dedicated daemon retained data-root mode is invalid')
+            expected['mode']=current['mode']
+        if current!=expected:
+            raise RuntimeError('Dedicated daemon root identity changed')
+        observed[name]=current
+    if observed['root_dir']!=manifest['roots']['root_dir']:
+        record=dict(schema='mldsafail.owned-daemon-root-mode.v1',manifest_sha256=fingerprint(manifest),
+            private_base=base,registered_root=manifest['roots']['root_dir'],observed_root=observed['root_dir'])
+        path=Path(base['path'])/('root-mode-'+record['manifest_sha256']+'-'+str(observed['root_dir']['mode'])+'.json')
+        if path.is_symlink():raise RuntimeError('Retained data-root observation is a symlink')
+        if path.exists():
+            if read_private_json(path)!=record:raise RuntimeError('Retained data-root observation differs')
+        else:publish(path,record)
+    return observed
+
+
 def verify_environment(manifest, *, measurement_parent=None, docker_info=None):
     if manifest.get('terminal_only') is True: raise RuntimeError('Terminal-only daemon authority cannot evaluate')
     _endpoint(manifest['socket'])
@@ -290,8 +317,7 @@ def verify_environment(manifest, *, measurement_parent=None, docker_info=None):
         raise RuntimeError('Dedicated daemon executable identity changed')
     _provisioning(manifest['provisioning'],manifest['unit'],manifest['roots'])
     _worker_binding(manifest['provisioning'],manifest['worker_domain'],manifest['worker_cgroup_parent'],manifest['domain'])
-    for name,value in manifest['roots'].items():
-        if _private_directory(value['path'],docker_data=name=='root_dir')!=value: raise RuntimeError('Dedicated daemon root identity changed')
+    verify_root_identities(manifest)
     owned_client.prepare_domain({'id':uuid.uuid4().hex},manifest['worker_domain']['path'])
     if owned_client.domain_identity(manifest['worker_domain']['path'])!=manifest['worker_domain']:
         raise RuntimeError('Entire owned worker parent identity changed')

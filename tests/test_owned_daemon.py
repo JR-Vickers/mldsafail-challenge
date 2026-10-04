@@ -235,3 +235,40 @@ def test_restart_rejects_lost_original_controller_before_unit_control(tmp_path,m
     with pytest.raises(RuntimeError,match='old controller'):
         owned_daemon.restart_and_refresh(manifest,barrier,manifest_path=tmp_path/'manifest',evidence_directory=tmp_path,attempt_id='attempt')
     assert calls==[]
+
+
+def test_delayed_native_data_root_mode_change_retains_exact_identity(tmp_path):
+    import json
+    tmp_path.chmod(0o700);base=tmp_path/'private';base.mkdir(mode=0o700)
+    roots={}
+    for name in ('root_dir','exec_root','rootless_state'):
+        path=base/name;path.mkdir(mode=0o700);roots[name]=owned_daemon._private_directory(path)
+    manifest=dict(provisioning=dict(base=owned_daemon._private_directory(base)),roots=roots)
+    Path(roots['root_dir']['path']).chmod(0o710)
+    observed=owned_daemon.verify_root_identities(manifest)
+    assert observed['root_dir']['mode']==0o710
+    assert manifest['roots']['root_dir']['mode']==0o700
+    receipt=json.loads(next(base.glob('root-mode-*.json')).read_text())
+    assert receipt['registered_root']==roots['root_dir'] and receipt['observed_root']==observed['root_dir']
+    assert receipt['private_base']==manifest['provisioning']['base']
+    assert owned_daemon.verify_root_identities(manifest)==observed
+    assert len(list(base.glob('root-mode-*.json')))==1
+
+
+@pytest.mark.parametrize('damage',['data_mode','exec_mode','base_mode','inode','uid','path','invalid_registered_mode'])
+def test_data_root_transition_never_masks_other_identity_changes(tmp_path,damage):
+    tmp_path.chmod(0o700);base=tmp_path/'private';base.mkdir(mode=0o700)
+    roots={}
+    for name in ('root_dir','exec_root','rootless_state'):
+        path=base/name;path.mkdir(mode=0o700);roots[name]=owned_daemon._private_directory(path)
+    manifest=dict(provisioning=dict(base=owned_daemon._private_directory(base)),roots=roots)
+    Path(roots['root_dir']['path']).chmod(0o710)
+    if damage=='data_mode':Path(roots['root_dir']['path']).chmod(0o750)
+    if damage=='exec_mode':Path(roots['exec_root']['path']).chmod(0o710)
+    if damage=='base_mode':base.chmod(0o710)
+    if damage=='inode':roots['root_dir']['inode']+=1
+    if damage=='uid':roots['root_dir']['uid']+=1
+    if damage=='path':roots['root_dir']['path']=roots['exec_root']['path']
+    if damage=='invalid_registered_mode':roots['root_dir']['mode']=0o750
+    with pytest.raises(RuntimeError):owned_daemon.verify_root_identities(manifest)
+    assert not list(base.glob('root-mode-*.json'))
