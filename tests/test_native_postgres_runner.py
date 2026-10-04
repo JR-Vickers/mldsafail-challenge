@@ -91,3 +91,18 @@ def test_output_symlink_and_public_parent_rejected(tmp_path, monkeypatch):
     tmp_path.chmod(0o755)
     with pytest.raises(ValueError, match='Private evidence parent'):
         runner.run(None, tmp_path / 'run', True)
+
+
+def test_lost_daemon_run_request_empty_inventory_never_clears_fence(tmp_path, monkeypatch):
+    identity = 'a' * 32
+    receipt = {'run_id': identity, 'name': 'launch-postgres-' + identity,
+               'database_image': 'sha256:' + 'b' * 64, 'clients': []}
+    def lost(*args, **kwargs): raise TimeoutError('daemon accepted, response lost')
+    monkeypatch.setattr('deploy.owned_client.run', lost)
+    with pytest.raises(TimeoutError):
+        runner.command(['docker', 'run', '--name', receipt['name'], receipt['database_image']], tmp_path, receipt)
+    monkeypatch.setattr(runner, 'command', lambda *args, **kwargs: '')
+    monkeypatch.setattr(runner.time, 'sleep', lambda _: None)
+    for _ in range(2):
+        assert not runner.cleanup(tmp_path, receipt)
+        assert any(e['step'] == 'daemon_mutation_uncertainty' for e in receipt['cleanup_errors'])

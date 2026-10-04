@@ -20,10 +20,20 @@ LABEL = 'org.mldsafail.native-postgres'
 
 def command(argv, output, receipt, timeout=90, env=None, log=None):
     from deploy.owned_client import run
+    mutation = None
+    if Path(argv[0]).name == 'docker' and any(token in {'create', 'run', 'start', 'stop', 'rm'} for token in argv[1:]):
+        mutation = {'id': uuid.uuid4().hex, 'acknowledged': False,
+                    'argv_sha256': hashlib.sha256(json.dumps(argv).encode()).hexdigest()}
+        receipt.setdefault('daemon_mutations', []).append(mutation)
+        receipt['cleanup_complete'] = False
+        atomic_json(output / 'ownership.json', receipt)
     result = run(argv, receipt.setdefault('clients', []),
                  lambda: atomic_json(output / 'ownership.json', receipt), output,
                  timeout=timeout, env=env, stdout=log,
                  stderr=subprocess.STDOUT if log else None, text=True)
+    if mutation is not None and result.returncode == 0:
+        mutation['acknowledged'] = True
+        atomic_json(output / 'ownership.json', receipt)
     return result.stdout.strip() if result.stdout is not None else ''
 
 
@@ -69,13 +79,15 @@ def cleanup(output, receipt):
         except Exception as error:
             errors.append({'step': 'container_remove', 'error_type': type(error).__name__})
     try:
-        # Repeated empty inventories detect a create that raced the first scan.
+        # Inventory is resource evidence, never a daemon request completion barrier.
         for _ in range(3):
             if command(['docker', 'ps', '-aq', '--no-trunc', '--filter', 'label=' + label], output, receipt):
                 raise RuntimeError('Owned disposable database remains')
             time.sleep(.5)
     except Exception as error:
         errors.append({'step': 'final_inventory', 'error_type': type(error).__name__})
+    if any(item.get('acknowledged') is not True for item in receipt.get('daemon_mutations', [])):
+        errors.append({'step': 'daemon_mutation_uncertainty', 'required': 'positive_dedicated_daemon_barrier'})
     receipt.update(cleanup_complete=not errors, cleanup_errors=errors,
                    phase='complete' if not errors else 'cleanup_incomplete')
     attempt = uuid.uuid4().hex + '-cleanup.json'
