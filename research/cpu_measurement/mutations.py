@@ -66,7 +66,7 @@ def resolve(journal, directory, parent):
         if repair.get('schema')!='mldsafail.cpu-mutation-repair.v1' or repair.get('generation')!=journal['generation'] or repair.get('manifest_sha256')!=owned_daemon.fingerprint(manifest):
             raise RuntimeError('Retained mutation repair identity changed')
         barrier=repair['barrier']
-        if barrier.get('shutdown_proven') is not True or barrier.get('daemon_manifest_sha256')!=owned_daemon.fingerprint(manifest) or barrier.get('daemon_epoch')!=manifest['epoch']:
+        if not isinstance(barrier,dict) or barrier.get('schema')!='mldsafail.owned-daemon-barrier.v1' or barrier.get('attempt_id')!=journal['generation'] or barrier.get('errors')!=[] or barrier.get('shutdown_proven') is not True or barrier.get('daemon_manifest_sha256')!=owned_daemon.fingerprint(manifest) or barrier.get('daemon_epoch')!=manifest['epoch']:
             raise RuntimeError('Retained positive barrier differs from owned daemon')
     else:
         barrier=owned_daemon.shutdown_barrier(manifest,worker_domains=[worker],
