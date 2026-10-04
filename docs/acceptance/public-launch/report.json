@@ -793,7 +793,7 @@
         "docs/acceptance/operational-followup/CPU_REVIEW.md"
       ],
       "dependencies": [
-        "cpu-client-birth-fencing"
+        "cpu-client-birth-source-review"
       ],
       "environment": "isolated engineering",
       "criteria": [
@@ -808,6 +808,9 @@
         {
           "protocol": "Broader birth-window audit",
           "result": "corrective child cpu-client-birth-fencing required"
+        },
+        {
+          "result": "Separate source-only correction review from required native client and daemon fault execution; earlier source and runtime tasks retained"
         }
       ],
       "evidence": [
@@ -1238,7 +1241,8 @@
         "user-plan"
       ],
       "dependencies": [
-        "cpu-30-pairs"
+        "cpu-30-pairs",
+        "v060-cli-capability-preflight"
       ],
       "environment": "isolated engineering",
       "criteria": [
@@ -1360,7 +1364,8 @@
         "user-plan"
       ],
       "dependencies": [
-        "recovery-native-restoration"
+        "recovery-native-restoration",
+        "recovery-fault-report-publication"
       ],
       "environment": "disposable native services",
       "criteria": [
@@ -2748,18 +2753,94 @@
       "dependencies": [],
       "environment": "isolated engineering and disposable native user services",
       "criteria": [
-        "Independent source review and two disposable native activations prove exact persistent parent identity, serialization and independent cleanup"
+        "Independent source review and two disposable native activations prove fresh exact daemon/operator/worker identities, serialized activation and independent cleanup"
       ],
       "status": "running",
       "attempts": [
         {
           "protocol": "Implement and verify repeat operator activation without reusing a vanished or replaced manifest-bound parent inode",
           "result": "source preparation and independent review in progress"
+        },
+        {
+          "protocol": "Fresh daemon, worker and operator registration per activation; teardown before exit; no reuse of previous vanished parent inode",
+          "result": "shared provisioning callback API preparation in progress"
         }
       ],
       "evidence": [],
       "identities": {},
       "next_action": "Complete source-bound isolated verification; keep real timers inactive",
+      "checklist": []
+    },
+    {
+      "id": "cpu-client-birth-source-review",
+      "requirement": "Independently review corrected source for durable client admission and daemon mutation fencing",
+      "sources": [
+        "user-plan",
+        "independent corrective review"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Exact corrected source has independent reviews, focused tests and full source-bound checks; native fault outcomes remain separately gated"
+      ],
+      "status": "running",
+      "attempts": [
+        {
+          "protocol": "Independently review corrected source for durable client admission and daemon mutation fencing",
+          "result": "corrective source preparation and independent review in progress"
+        }
+      ],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Complete exact source verification; preserve earlier findings and failures",
+      "checklist": []
+    },
+    {
+      "id": "recovery-fault-report-publication",
+      "requirement": "Prevent native recovery fault receipt publication from claiming success before owner exit and independent cleanup are proven",
+      "sources": [
+        "user-plan",
+        "independent corrective review"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Independent review and regression tests prove original errors and unreaped owners force false published outcome"
+      ],
+      "status": "running",
+      "attempts": [
+        {
+          "protocol": "Prevent native recovery fault receipt publication from claiming success before owner exit and independent cleanup are proven",
+          "result": "corrective source preparation and independent review in progress"
+        }
+      ],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Complete exact source verification; preserve earlier findings and failures",
+      "checklist": []
+    },
+    {
+      "id": "v060-cli-capability-preflight",
+      "requirement": "Prevent explicit proposed0.6 submission from silently queuing legacy0.5 work on an old server",
+      "sources": [
+        "user-plan",
+        "independent corrective review"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Source-bound compatibility test proves unsupported0.6 rejected before POST, with zero legacy jobs created"
+      ],
+      "status": "running",
+      "attempts": [
+        {
+          "protocol": "Prevent explicit proposed0.6 submission from silently queuing legacy0.5 work on an old server",
+          "result": "corrective source preparation and independent review in progress"
+        }
+      ],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Complete exact source verification; preserve earlier findings and failures",
       "checklist": []
     }
   ],
