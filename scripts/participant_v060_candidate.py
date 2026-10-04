@@ -58,6 +58,8 @@ def public_files(source,wheel,identity):
 
 def build(source,destination):
     source=Path(source).resolve();destination=Path(destination).absolute()
+    operator_source=Path(__file__).resolve().parents[1]
+    if git(operator_source,'status','--porcelain').strip():raise ValueError('Clean artifact preparation source required')
     if git(source,'status','--porcelain').strip():raise ValueError('Clean retained candidate source required')
     commit=git(source,'rev-parse','HEAD').decode().strip()
     if destination.exists():raise ValueError('Fresh private candidate destination required')
@@ -72,6 +74,8 @@ def build(source,destination):
     identity=dict(schema='mldsafail.participant-candidate.v1',source_commit=commit,source_tree=git(source,'rev-parse','HEAD^{tree}').decode().strip(),
         package_version='0.5.1',benchmark_protocol='0.6.0',candidate_only=True,contract_adopted=False,
         production_default_approved=False,publication_approved=False,native_install_passed=False,native_reproduction_passed=False,
+        archive_preparation_source_commit=git(operator_source,'rev-parse','HEAD').decode().strip(),
+        archive_preparation_script_sha256=sha(Path(__file__).read_bytes()),
         documentation_source_sha256=sha((Path(__file__).resolve().parents[1]/'docs/PARTICIPANT_V060_CANDIDATE.md').read_bytes()))
     files,checks=public_files(source,wheel,identity)
     archive=destination/'participant-v060-unapproved-candidate.tar.gz'
