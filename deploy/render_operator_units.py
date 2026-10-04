@@ -88,6 +88,7 @@ def render(source, interpreter, metadata, configuration, user, uid, output):
                   interpreter=str(interpreter), interpreter_version=version, interpreter_sha256=hashlib.sha256(interpreter.read_bytes()).hexdigest(),
                   module_source_verified=True, configuration=config_status, unit_sha256=checksums,
                   installed=False, activated=False, native_systemd_verification_pending=True,
+                  repeat_activation_parent_binding='blocked_requires_persistent_delegated_parent_or_reviewed_per_activation_registration',
                   operator_client_cgroup='per-unit delegated system.slice unit; separate from benchmark accounting parent')
     path = output / 'render-report.json'
     path.write_text(json.dumps(report, indent=2) + '\n')

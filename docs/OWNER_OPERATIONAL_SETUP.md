@@ -156,8 +156,18 @@ Missing private configs are explicitly activation-blocking in the render report.
 Present configs must be private regular files; content acceptance remains separate.
 No unit is installed or activated by this command.
 
-Primary operator must native-verify the rendered units using `systemd-analyze
-verify` plus manual exact-interpreter/module/container/readiness acceptance under
+The backup object also supplies `owned_daemon_manifest` for a freshly provisioned
+isolated restoration daemon. Assembly and dumping retain the established staging
+Docker endpoint; only disposable restoration switches to the dedicated endpoint.
+Do not replace the daily service's global staging socket with the restoration
+socket. The manifest binds its exact operator kernel parent, so repeat timer
+activation requires a persistent delegated parent or independently reviewed
+per-activation registration. The current per-unit oneshot rendering explicitly
+keeps that lifecycle activation gate blocked.
+
+Primary operator can run the [inactive native verification runner](INACTIVE_OPERATOR_UNIT_VERIFICATION.md)
+for retained-source/interpreter/module checks and `systemd-analyze verify`.
+Manual exact-interpreter/module/container/readiness acceptance under
 the intended account and rootless environment. Confirm runtime socket availability,
 user/UID ownership and lingering policy. Install/enable timers only after these
 checks, required owner inputs and manual recovery/monitoring acceptance pass.

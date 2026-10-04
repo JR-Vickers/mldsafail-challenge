@@ -32,6 +32,7 @@
     "credentials_file": "/CHANGE_ME_PRIVATE_ROOT/backup-credentials.json",
     "owner_retained_recovery_key": false,
     "backup_state": "/CHANGE_ME_PRIVATE_ROOT/verified-backup.json",
+    "owned_daemon_manifest": "/CHANGE_ME_PRIVATE_ROOT/isolated-restoration-daemon.json",
     "postgres_image": "sha256:CHANGE_ME_RETAINED_POSTGRES_IMAGE_ID",
     "coordinator_image": "sha256:CHANGE_ME_RETAINED_COMPATIBLE_COORDINATOR_IMAGE_ID"
   }
