@@ -114,6 +114,23 @@ def test_untyped_positive_prior_cleanup_cannot_authorize_another_activation(tmp_
         prior_complete(state, tmp_path)
 
 
+def test_never_admitted_startup_proof_is_terminal_only_not_healthy_daemon_evidence(tmp_path):
+    from deploy.operator_activation import prior_complete
+    startup = dict(schema='mldsafail.owned-daemon-failed-startup.v1', attempt_id='run',
+                   startup_shutdown_proven=True, healthy_daemon_registered=False, errors=[])
+    state = dict(schema='mldsafail.cpu-native-driver-state.v1', daemon_kind='owned', id='run',
+        config={'state_root': str(tmp_path)}, state='complete', start_intent=True,
+        manifest_path=str(tmp_path/'daemon-manifest.json'), failed_startup_barrier=startup,
+        cleanup=dict(schema='mldsafail.cpu-native-driver-cleanup.v1', id='run', errors=[], cleanup_complete=True,
+                     daemon_barrier=dict(shutdown_proven=True, errors=[], failed_startup_receipt=startup)))
+    assert prior_complete(state, tmp_path) is True
+    state['image_load_intent'] = True
+    assert prior_complete(state, tmp_path) is False
+    state['image_load_intent'] = False
+    startup['healthy_daemon_registered'] = True
+    assert prior_complete(state, tmp_path) is False
+
+
 def test_corrupt_prior_receipt_does_not_skip_other_known_cleanup(monkeypatch, tmp_path):
     from deploy import operator_activation as activation
     from research.cpu_measurement import native_driver
@@ -148,7 +165,7 @@ def test_daily_callback_keeps_stage_endpoint_and_injects_only_restore_manifest(m
     tmp_path.chmod(0o700)
     template, private = tmp_path/'template.json', tmp_path/'daily.json'
     template.write_text('{}')
-    private.write_text(json.dumps({'backup': {'repository': 'synthetic'}}))
+    private.write_text(json.dumps({'backup': {'repository': 'synthetic'}, 'recovery_root': str(tmp_path/'recovery')}))
     template.chmod(0o600)
     private.chmod(0o600)
     monkeypatch.setenv('DOCKER_HOST', 'unix:///isolated/newdaemon.sock')
@@ -156,15 +173,36 @@ def test_daily_callback_keeps_stage_endpoint_and_injects_only_restore_manifest(m
     monkeypatch.setattr(activation, 'current_configuration', lambda *args:
         dict(state_root=str(tmp_path/'new'), source_commit='a'*40, acceptance_source_sha256='b'*64))
     def daily(config):
+        retained = json.loads((tmp_path/'new/driver.json').read_text())['operator_job']
+        assert retained['state'] == 'running'
+        assert json.loads(Path(retained['effective_config_path']).read_text()) == config
+        from deploy.recovery_terminal import journal_published
+        expected = Path(config['recovery_root'])/'journals/operation.json'
+        with pytest.raises(OSError, match='acknowledgement'):
+            journal_published(expected)
+        assert json.loads((tmp_path/'new/driver.json').read_text())['operator_job']['journal_created'] is False
+        journal_published(expected)
+        assert json.loads((tmp_path/'new/driver.json').read_text())['operator_job']['journal_created'] is True
         observed.append((os.environ['DOCKER_HOST'], config['backup']))
         return {'daily_recovery_verified': True}
     monkeypatch.setattr(daily_recovery, 'run', daily)
     def driver(config, repository, *, acceptance, daemon_kind):
         root = Path(config['state_root'])
         root.mkdir(mode=0o700)
-        journal = native_driver.Journal(root/'driver.json', {})
-        receipt = acceptance(journal, config, {'manifest_path': '/private/new-owned-manifest.json'})
+        data = {'manifest_path': '/private/new-owned-manifest.json'}
+        journal = native_driver.Journal(root/'driver.json', data)
+        original_save = journal.save
+        attempts = []
+        def flaky_save():
+            if data.get('operator_job', {}).get('journal_created') is True:
+                attempts.append('ack')
+                if len(attempts) == 1:
+                    raise OSError('injected acknowledgement publication failure')
+            original_save()
+        journal.save = flaky_save
+        receipt = acceptance(journal, config, data)
         assert receipt['passed'] is True
+        assert attempts[:2] == ['ack', 'ack']
         return dict(provisioning={'operator_domain': {}}, registered_manifest={'epoch': 'new', 'worker_domain': {}}, cleanup={'cleanup_complete': True})
     monkeypatch.setattr(native_driver, 'execute', driver)
     config = dict(schema='mldsafail.operator-activation.v1', driver_template=str(template),
@@ -174,4 +212,4 @@ def test_daily_callback_keeps_stage_endpoint_and_injects_only_restore_manifest(m
     assert observed == [('unix:///run/user/'+str(os.getuid())+'/docker.sock',
                         {'repository': 'synthetic', 'owned_daemon_manifest': '/private/new-owned-manifest.json'})]
     assert os.environ['DOCKER_HOST'] == 'unix:///isolated/newdaemon.sock'
-    assert json.loads(private.read_text()) == {'backup': {'repository': 'synthetic'}}
+    assert json.loads(private.read_text()) == {'backup': {'repository': 'synthetic'}, 'recovery_root': str(tmp_path/'recovery')}

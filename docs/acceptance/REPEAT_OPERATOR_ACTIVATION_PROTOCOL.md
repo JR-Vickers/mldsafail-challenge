@@ -78,3 +78,5 @@ This gate proves lifecycle repetition and serialization. It supplies no CPU
 measurement, scoring-contract adoption, external storage acceptance, timer
 activation or production approval. Preserve every failure instead of treating
 an empty Docker inventory as daemon quiescence.
+
+Interrupted daily/check jobs retain a private effective configuration and exact journal path before invocation. Each first durable job-journal publication must be acknowledged in the activation journal before a client can execute; failed acknowledgement is retried on subsequent publication. The next activation terminally retires the old dedicated daemon and worker domains, then reconciles the original job journal under the same provision lease before provisioning another daemon. Shared staging mutation uncertainty remains fenced and requires its own quiescence proof. Missing job journals are permitted only for a typed durable never-admitted intent. Native two-fixture activation success does not establish daily interruption or external backup acceptance.

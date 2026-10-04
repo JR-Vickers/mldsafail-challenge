@@ -22,6 +22,19 @@ class ActivationContended(BlockingIOError):
     """Only the activation ownership flock emits the rejection marker."""
 
 
+def configuration_digest(configuration):
+    return hashlib.sha256(json.dumps(configuration, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+
+
+def job_journal_path(job, configuration):
+    from deploy.recovery_journal import safe_path
+    if job == 'daily-recovery':
+        return safe_path(Path(configuration['recovery_root'])/'journals/operation.json')
+    if job == 'recovery-check':
+        return safe_path(Path(configuration['backup_state']).parent/'.mldsafail-restic-operation/operation.json')
+    raise ValueError('Fixed recovery job required')
+
+
 @contextmanager
 def activation_lock(root):
     root = owned_daemon._canonical(root)
@@ -88,6 +101,10 @@ def prior_complete(state, prior):
     if (state.get('schema') != 'mldsafail.cpu-native-driver-state.v1' or
         state.get('daemon_kind') != 'owned' or state.get('config', {}).get('state_root') != str(prior)):
         raise RuntimeError('Unknown prior activation driver authority')
+    if 'provisioning' in state:
+        if (state['provisioning']['base']['path'] != str(prior/'daemon') or
+            state['provisioning']['unit'] != state.get('daemon_unit')):
+            raise RuntimeError('Prior activation provisioning root binding changed')
     cleanup = state.get('cleanup', {})
     if cleanup.get('cleanup_complete') is not True:
         return False
@@ -97,6 +114,16 @@ def prior_complete(state, prior):
     if state.get('start_intent'):
         if state.get('manifest_path') != str(prior/'daemon-manifest.json'):
             raise RuntimeError('Prior activation manifest root binding changed')
+        startup = state.get('failed_startup_barrier')
+        if startup is not None:
+            return (isinstance(startup, dict) and
+                startup.get('schema') == 'mldsafail.owned-daemon-failed-startup.v1' and
+                startup.get('attempt_id') == state.get('id') and
+                startup.get('startup_shutdown_proven') is True and startup.get('errors') == [] and
+                startup.get('healthy_daemon_registered') is False and
+                not state.get('image_load_intent') and not state.get('registered_manifest') and
+                not Path(state['manifest_path']).exists() and
+                cleanup.get('daemon_barrier') == dict(shutdown_proven=True, errors=[], failed_startup_receipt=startup))
         manifest = owned_daemon.load_manifest(state['manifest_path'])
         barrier = cleanup.get('daemon_barrier', {})
         if (barrier.get('schema') != 'mldsafail.owned-daemon-barrier.v1' or
@@ -132,10 +159,43 @@ def execute(configuration, unit, *, cleanup_only=False):
                 if prior.is_symlink() or not prior.is_dir() or not re.fullmatch('activation-[a-f0-9]{32}', prior.name):
                     raise RuntimeError('Unknown prior activation ownership')
                 state = owned_daemon.read_private_json(prior/'driver.json', cap=4*1024*1024)
-                if not prior_complete(state, prior):
-                    result = native_driver.cleanup_state(prior/'driver.json', controller_config=config, repository=repository)
-                    if result.get('cleanup_complete') is not True:
-                        raise RuntimeError('Earlier activation remains fenced')
+                prior_complete(state, prior)  # Validate ownership before acquiring its declared lease.
+                # Keep the prior provision lock across its terminal daemon proof
+                # and shared job restoration, closing the gap for other recovery
+                # consumers that do not use this activation-root lock.
+                from contextlib import nullcontext
+                from deploy.recovery_daemon import provision_lock
+                lease = provision_lock(state['provisioning']) if 'provisioning' in state else nullcontext()
+                with lease:
+                    state = owned_daemon.read_private_json(prior/'driver.json', cap=4*1024*1024)
+                    complete = prior_complete(state, prior)
+                    if not complete:
+                        result = native_driver.cleanup_state(prior/'driver.json', controller_config=config, repository=repository)
+                        if result.get('cleanup_complete') is not True:
+                            raise RuntimeError('Earlier activation remains fenced')
+                        state = owned_daemon.read_private_json(prior/'driver.json', cap=4*1024*1024)
+                    job = state.get('operator_job')
+                    if job is not None:
+                        path = prior/'job-config.json'
+                        if (not isinstance(job, dict) or job.get('schema') != 'mldsafail.operator-job-intent.v1' or
+                            job.get('effective_config_path') != str(path) or type(job.get('journal_created')) is not bool):
+                            raise RuntimeError('Prior effective job configuration identity changed')
+                        effective = owned_daemon.read_private_json(path)
+                        if configuration_digest(effective) != job.get('effective_config_digest'):
+                            raise RuntimeError('Prior effective job configuration identity changed')
+                        expected = job_journal_path(job['job'], effective)
+                        if job.get('journal_path') != str(expected):
+                            raise RuntimeError('Prior recovery journal binding changed')
+                        if not expected.exists() and job['journal_created'] is False:
+                            # Every trusted job save acknowledges fsynced journal
+                            # publication in driver state before admitting an RPC.
+                            job_result = dict(cleanup_complete=True, job_never_admitted=True)
+                        else:
+                            from deploy.recovery_terminal import terminal_job_cleanup
+                            job_result = terminal_job_cleanup(job['job'], effective, state)
+                        owned_daemon.publish(prior/('job-reconciliation-'+uuid.uuid4().hex+'.json'), job_result)
+                        if job_result.get('cleanup_complete') is not True:
+                            raise RuntimeError('Earlier operator job remains fenced')
             except BaseException as error:
                 if first_error is None:
                     first_error = error
@@ -157,21 +217,40 @@ def execute(configuration, unit, *, cleanup_only=False):
             environment = dict(DOCKER_HOST='unix://'+configuration['staging_socket'],
                                DOCKER_CONTEXT=None, MLDSAFAIL_OPERATOR_DAEMON_MANIFEST=None,
                                MLDSAFAIL_CPU_DAEMON_MANIFEST=None)
-            with shared_scope(environment):
+            if configuration['job'] == 'daily-recovery':
+                private = dict(private, backup=dict(private['backup'], owned_daemon_manifest=data['manifest_path']))
+            else:
+                private = dict(private, owned_daemon_manifest=data['manifest_path'])
+            effective = journal.path.parent/'job-config.json'
+            owned_daemon.publish(effective, private)
+            expected_journal = job_journal_path(configuration['job'], private)
+            data['operator_job'] = dict(schema='mldsafail.operator-job-intent.v1', job=configuration['job'], effective_config_path=str(effective),
+                effective_config_digest=configuration_digest(private), state='running', journal_path=str(expected_journal), journal_created=False)
+            journal.save()  # Job/config authority is durable before any shared maintenance or restic work.
+            from deploy.recovery_terminal import observe_job_journal
+            def created():
+                if data['operator_job']['journal_created'] is not True:
+                    data['operator_job']['journal_created'] = True
+                    try:
+                        journal.save()
+                    except BaseException:
+                        data['operator_job']['journal_created'] = False
+                        raise
+            with shared_scope(environment), observe_job_journal(expected_journal, created):
                 if configuration['job'] == 'daily-recovery':
                     from deploy import daily_recovery
-                    private = dict(private, backup=dict(private['backup'], owned_daemon_manifest=data['manifest_path']))
                     result = daily_recovery.run(private)
                     if result.get('daily_recovery_verified') is not True:
                         raise RuntimeError('Complete daily recovery acceptance required')
                 else:
                     from deploy.recovery import execute as check
                     from deploy.recovery_journal import standalone_operation
-                    private = dict(private, owned_daemon_manifest=data['manifest_path'])
                     result = standalone_operation(private, Path(private['backup_state']).parent, 'restic',
                         lambda operation: check(private, 'check', journal=operation))
                     if result.get('completed') is not True:
                         raise RuntimeError('Complete recovery repository check required')
+            data['operator_job']['state'] = 'passed'
+            journal.save()
             receipt = journal.path.parent/'operator-job.json'
             owned_daemon.publish(receipt, dict(passed=True, job=configuration['job'], result=result,
                                  source_sha256=config['acceptance_source_sha256']))

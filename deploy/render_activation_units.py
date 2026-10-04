@@ -25,6 +25,9 @@ def render(source, interpreter, metadata, configurations, output):
         raise ValueError('Full retained source identity required')
     if source.resolve() != source or not source.is_dir() or not interpreter.is_file() or not os.access(interpreter, os.X_OK):
         raise ValueError('Real retained source and installed executable required')
+    if (subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD'], timeout=15).decode().strip() != metadata['source_commit'] or
+        subprocess.check_output(['git', '-C', str(source), 'status', '--porcelain'], timeout=15)):
+        raise ValueError('Exact clean retained source commit required')
     files = [*sorted((source/'deploy').glob('*.py')), *sorted((source/'research/cpu_measurement').glob('*.py')),
              source/'research/cpu_measurement/templates/owned-daemon.service.in']
     expected = metadata.get('source_files_sha256', {})
