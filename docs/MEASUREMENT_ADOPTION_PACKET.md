@@ -103,7 +103,7 @@ acceptance must then pass. No current evidence slot claims these passed.
 | Evidence identity | Current disposition |
 | --- | --- |
 | Candidate clean source commit and tree | Bind exact coherent candidate checkpoint; later fixes remain separate |
-| Contract document SHA and source | Pending exact final binding |
+| Contract document SHA and source | Companion JSON binds this document and contract source files; native release binding remains pending |
 | Worker image/context SHA and approved AMD64 lock35890 | Separately reviewed candidate build/provenance; actual retained artifact receipt required |
 | Independent supervisor and auditor source receipts | Bind exact current CPU source digest; historical receipts do not cover later source changes |
 | Native fault suite and30 paired protocol/result | Earlier G failure retained; final changed-artifact acceptance pending |

@@ -25,7 +25,17 @@
     "worker_archive_sha256": null,
     "fresh_epoch_id": null,
     "cohort_id": null,
-    "reference_authority_sha256": null
+    "reference_authority_sha256": null,
+    "contract_document_sha256": "dbe2acb7b2e3b38cc43c8f23e4a1f7729e353685f1a1c2cb99ae7062b9487569",
+    "contract_source_files_sha256": {
+      "src/mldsafail/benchmark_v060/backend.py": "65d77ade32d7d6c2b105d0798b22729a5adfdc39dcac8c1dd543aedc5a8f427a",
+      "src/mldsafail/benchmark_v060/evaluation.py": "103ed484df1711d5d9845c8ae00900415993d002efd1da41e4734efe93bd72f8",
+      "src/mldsafail/benchmark_v060/deadline.py": "6ab8a2b3ac72b348452e25defab338c02beead0076f83bb56366e183023c6590",
+      "src/mldsafail/benchmark_v060/envelope.py": "ad8aaf630909ea76a18df7115f7ca7a6820609206458f3e240e577803791bbfb",
+      "src/mldsafail/benchmark_v060/candidate_authority.py": "aed18a537839600d5255c20b462c05ed0cf24d0266b4db2c1df47d1f161dea01",
+      "src/mldsafail/benchmark_versions.py": "c8268e561ff7fbaf3699f18c09ed9af0526ddb960a5aa9d0ab5b0e2a4f2b0000",
+      "research/cpu_measurement/audit.py": "c534851a760e1d19140309f83642ec496720948ebc1a35ffc9d3bdf380814fbc"
+    }
   },
   "contract": {
     "version": "0.6.0",
