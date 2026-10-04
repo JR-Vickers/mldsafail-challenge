@@ -222,3 +222,14 @@ def test_proposed_adapter_preserves_memory_and_cpu_affinity_limits(monkeypatch):
     monkeypatch.setattr(worker.os,'sched_setaffinity',lambda pid,cores:calls.append(('cpu',pid,cores)),raising=False)
     assert worker.limits()=={'rlimits_applied':['RLIMIT_AS'],'cpu_affinity':2}
     assert calls==[('memory',worker.resource.RLIMIT_AS,(2*1024**3,2*1024**3)),('cpu',0,{2})]
+
+
+def test_worker_context_uses_operator_owned_source_identity_commands(tmp_path):
+    from mldsafail.benchmark_v060.build import prepare_context
+    calls=[]
+    def command(argv):
+        calls.append(argv)
+        return b'a'*40+b'\n' if argv[-2:]==['rev-parse','HEAD'] else b''
+    record=prepare_context(tmp_path/'context',command=command)
+    assert record['source_commit']=='a'*40 and record['source_tree_clean'] is True
+    assert [argv[-2:] for argv in calls]==[['rev-parse','HEAD'],['status','--porcelain']]

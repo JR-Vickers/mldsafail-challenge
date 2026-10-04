@@ -41,7 +41,7 @@ def retain_archive(path):
 
 def callback(journal,config,data):
     root=journal.path.parent/'v060-worker';root.mkdir(mode=0o700)
-    context=prepare_context(root/'context')
+    context=prepare_context(root/'context',command=lambda argv:journal.command(argv,kind='read',timeout=15).stdout)
     if context['source_tree_clean'] is not True or context['source_commit']!=config['source_commit']:
         raise RuntimeError('Worker context must bind clean retained operator source')
     image_file=root/'image.id'

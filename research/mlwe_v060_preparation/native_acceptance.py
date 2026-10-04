@@ -68,7 +68,7 @@ def callback(journal, config, data):
         protocol=owned_daemon.read_private_json(journal.path.parent.parent/'v060-protocol.json')
         if protocol.get('schema')!='mldsafail.v060-native-protocol.v1': raise ValueError('Explicit private candidate protocol required')
         source=Path(__file__).resolve().parents[2]
-        context=prepare_context(root/'worker-context')
+        context=prepare_context(root/'worker-context',command=lambda argv:journal.command(argv,kind='read',timeout=15).stdout)
         if not context['source_tree_clean'] or context['source_commit']!=config['source_commit']:
             raise RuntimeError('Worker context must bind exact retained clean source')
         image=config['image']

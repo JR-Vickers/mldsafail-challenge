@@ -7,7 +7,7 @@ from pathlib import Path
 from mldsafail.benchmark_v050.execution import WORKER_FILES
 
 
-def prepare_context(output):
+def prepare_context(output, *, command=None):
     output = Path(output)
     if output.exists():
         raise ValueError('New retained context directory required')
@@ -30,10 +30,13 @@ def prepare_context(output):
     manifest = {path.relative_to(output).as_posix():hashlib.sha256(path.read_bytes()).hexdigest()
                 for path in sorted(output.rglob('*')) if path.is_file()}
     identity = hashlib.sha256(json.dumps(manifest,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    def git_output(argv):
+        value=command(argv) if command is not None else subprocess.check_output(argv,timeout=15)
+        return value.decode() if isinstance(value,bytes) else value
     record = dict(schema='mldsafail.mlwe-v060-worker-context.v1', benchmark_version='0.6.0',
                   measurement_method='cgroup-v2-usage-usec', source_sha256=identity, files=manifest,
                   native_verified=False, image=None,
-                  source_commit=subprocess.check_output(['git','-C',str(root),'rev-parse','HEAD'],text=True).strip(),
-                  source_tree_clean=not bool(subprocess.check_output(['git','-C',str(root),'status','--porcelain'],text=True).strip()))
+                  source_commit=git_output(['git','-C',str(root),'rev-parse','HEAD']).strip(),
+                  source_tree_clean=not bool(git_output(['git','-C',str(root),'status','--porcelain']).strip()))
     (output/'source-manifest.json').write_text(json.dumps(record,sort_keys=True,indent=2)+'\n')
     return record

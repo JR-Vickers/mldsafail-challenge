@@ -9,7 +9,7 @@ from scripts import native_v060_worker_preparation as preparation
 def setup(monkeypatch,tmp_path,*,wrong_image=False,fail_export=False):
     image='sha256:'+'a'*64;calls=[]
     context=dict(source_tree_clean=True,source_commit='b'*40,source_sha256='c'*64,files={})
-    monkeypatch.setattr(preparation,'prepare_context',lambda path:context)
+    monkeypatch.setattr(preparation,'prepare_context',lambda path,**kwargs:context)
     class Journal:
         path=tmp_path/'driver.json'
         def command(self,args,**kwargs):
