@@ -46,6 +46,20 @@
       "passed": 379,
       "skipped": 11,
       "historical_small_score": 3901
+    },
+    {
+      "command": "make check after safe descriptor-bound sealing corrections",
+      "outcome": "passed",
+      "passed": 381,
+      "skipped": 11,
+      "historical_small_score": 3901
+    },
+    {
+      "command": "safe checksum-bound participant sealing",
+      "outcome": "passed",
+      "sealed_artifacts": 19,
+      "installed_environment_excluded": true,
+      "shared_interpreter_executable_after_sealing": true
     }
   ],
   "not_established": [
