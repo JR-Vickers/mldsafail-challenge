@@ -93,6 +93,8 @@ class Journal:
     def save(self, phase):
         self.data['phase'] = phase
         atomic_json(self.path, self.data)
+        from deploy.recovery_terminal import journal_published
+        journal_published(self.path)
 
     def services(self, compose, states, identifiers, daemon_manifest_path=None):
         if set(identifiers) != set(states):
@@ -169,6 +171,12 @@ class Journal:
                 errors.append('host_client:' + str(entry.get('id', 'invalid') if isinstance(entry, dict) else 'invalid'))
         for container in self.data['containers']:
             try:
+                if container.get('retired_by_terminal_barrier') is True:
+                    from deploy.recovery_terminal import validate_retirement
+                    validate_retirement(self.data,container['daemon_context'])
+                    continue  # Exact stopped daemon/worker proof; no old backend restart.
+                if self.data.get('terminal_no_restart') is True and container.get('daemon_context'):
+                    raise RuntimeError('Unproved terminal owned container remains fenced')
                 selected = None
                 if container.get('daemon_context'):
                     selected = self.data['daemon_contexts'][container['daemon_context']]['manifest_path']
@@ -195,6 +203,10 @@ class Journal:
             try:
                 selected = None
                 if self.data.get('service_daemon_context'):
+                    if self.data.get('terminal_no_restart') is True:
+                        from deploy.recovery_terminal import validate_retirement
+                        validate_retirement(self.data,self.data['service_daemon_context'])
+                        continue  # Retired disposable services have no live state to restore.
                     selected = self.data['daemon_contexts'][self.data['service_daemon_context']]['manifest_path']
                 def service_command(argv, **kwargs):
                     return self.command(argv, daemon_manifest_path=selected, **kwargs)

@@ -124,13 +124,23 @@ def repair(record, directory, publish):
         if not isinstance(value, list) or any(not isinstance(item, dict) for item in value):
             return [{'step': 'corrupt_' + field, 'required': 'manual_creator_authority_reconciliation'}]
     for mutation in record.get('daemon_mutations', []):
-        if mutation.get('acknowledged') is True or mutation.get('resolved_by_barrier'):
+        resolution=mutation.get('resolved_by_barrier')
+        if isinstance(resolution,dict) and resolution.get('terminal_retirement') is True:
+            try:
+                from deploy.recovery_terminal import validate_retirement
+                validate_retirement(record,mutation['daemon_context'])
+            except BaseException as error:
+                errors.append({'step':'terminal_retirement_invalid','error':type(error).__name__})
+            continue
+        if mutation.get('acknowledged') is True or resolution:
             continue
         key = mutation.get('daemon_context')
         if key is None:
             errors.append({'step': 'shared_maintenance_uncertainty', 'required': 'primary_manual_quiescent_repair'})
         else:
             pending.setdefault(key, []).append(mutation)
+    if record.get('terminal_no_restart') is True:
+        return errors + [{'step': 'terminal_context_unproved', 'context': key} for key in pending]
     for key, mutations in pending.items():
         try:
             context = record['daemon_contexts'][key]
