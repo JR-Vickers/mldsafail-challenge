@@ -1515,8 +1515,14 @@
       "criteria": [
         "Native retries dedup recovery notices freshness expired leases failed jobs and privacy acceptance"
       ],
-      "status": "waiting_dependency",
-      "attempts": [],
+      "status": "running",
+      "attempts": [
+        {
+          "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
+          "protocol": "Native Linux resource floors; synthetic readiness/service/lease/backup/job decisions and strict actual shared backup receipt validator; loopback 503/503/204 delivery retries, deduplication, recovery and privacy. Own delegated unit with verified generic helper; no external receiver or scheduler activation.",
+          "result": "planned"
+        }
+      ],
       "evidence": [],
       "identities": {},
       "next_action": "Execute declared criteria and preserve evidence",
