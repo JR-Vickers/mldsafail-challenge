@@ -52,3 +52,28 @@ def test_base_provenance_requires_original_registry_mapping(monkeypatch,tmp_path
         verify_base_provenance({'base_image':image,'base_provenance':'private'},
             {'image':image,'image_archive_sha256':'b'*64},journal)
     assert called==[]
+
+
+def test_base_provenance_accepts_native_untagged_official_digest(monkeypatch,tmp_path):
+    import json
+    from scripts.native_baseline_acceptance import verify_base_provenance
+    from deploy import owned_daemon
+    from mldsafail.benchmark_v050 import execution
+    from types import SimpleNamespace
+    source=Path(execution.__file__).parent/'Dockerfile'
+    registry=source.read_text().splitlines()[0].removeprefix('FROM ')
+    image='sha256:'+'a'*64
+    proof=dict(schema='mldsafail.native-image-provenance.v1',status='passed',native_executed=True,
+        registry_reference=registry,image=image,architecture='amd64',image_archive_sha256='b'*64,
+        source_dockerfile_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),evidence_refs=['original-private-inspection'],
+        original_image_inspection={'Id':image,'Architecture':'amd64','RepoDigests':['python@'+registry.rsplit('@',1)[1]]})
+    monkeypatch.setattr(owned_daemon,'read_private_json',lambda path:proof)
+    published=[]
+    monkeypatch.setattr(owned_daemon,'publish',lambda *args:published.append(args))
+    journal=SimpleNamespace(path=tmp_path/'driver.json',command=lambda *args,**kwargs:SimpleNamespace(stdout=json.dumps([{'Id':image,'Architecture':'amd64'}]).encode()))
+    setup={'base_image':image,'base_provenance':'private'}
+    config={'image':image,'image_archive_sha256':'b'*64}
+    verify_base_provenance(setup,config,journal)
+    assert len(published)==1
+    proof['original_image_inspection']['RepoDigests']=['attacker/python@'+registry.rsplit('@',1)[1]]
+    with pytest.raises(ValueError,match='registry digest/image mapping'):verify_base_provenance(setup,config,journal)

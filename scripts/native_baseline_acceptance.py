@@ -81,8 +81,10 @@ def verify_base_provenance(setup, config, journal):
             or not isinstance(proof.get('evidence_refs'),list) or not proof['evidence_refs']):
         raise ValueError('Exact original frozen base native provenance required')
     inspection=proof.get('original_image_inspection',{})
+    digest=registry.rsplit('@',1)[1]
+    permitted={'python@'+digest,'docker.io/library/python@'+digest}
     if (inspection.get('Id')!=setup['base_image'] or inspection.get('Architecture')!='amd64'
-            or registry not in inspection.get('RepoDigests',[])):
+            or not permitted.intersection(inspection.get('RepoDigests',[]))):
         raise ValueError('Original native registry digest/image mapping required')
     artifacts=[config]+config.get('additional_images',[])
     matches=[item for item in artifacts if item.get('image')==setup['base_image']]
