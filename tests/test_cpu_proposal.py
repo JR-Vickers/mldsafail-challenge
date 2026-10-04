@@ -64,8 +64,13 @@ def test_experimental_worker_ignores_reported_cpu_and_verification(tmp_path, mon
     monkeypatch.setattr(harness.subprocess, 'Popen', lambda *args, **kw: real_popen(
         [__import__('sys').executable, '-c',
          'import sys; sys.stdin.buffer.read(); sys.stdout.buffer.write(' + repr(output) + '); sys.exit(' + str(exitcode) + ')'], **kw))
+    from research.cpu_measurement import client
+    from deploy import owned_client
+    monkeypatch.setattr(client, 'spawn', lambda argv, owner, parent: (harness.subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE), {'id':'test'}))
+    monkeypatch.setattr(owned_client, 'stop', lambda entry: None)
+    owner = SimpleNamespace(check_identity=lambda:None, record={'generation':'a'*32}, mutation=lambda *args, **kwargs:None, update=lambda *args, **kwargs:None)
     result = harness._run('sha256:' + 'a' * 64, tmp_path, 'dedicated', tmp_path,
-                          generate_mlwe('small', 0, 1).public.to_dict(), lambda *args: True)
+                          generate_mlwe('small', 0, 1).public.to_dict(), lambda *args: True, owner=owner)
     assert result['authoritative_cpu_usec'] == 1000
     assert not result['verified'] and result['status'] == expected
 
@@ -333,3 +338,72 @@ def test_reboot_cleanup_never_signals_reused_host_client_pid(tmp_path, monkeypat
     monkeypatch.setattr(reconcile.os, 'pidfd_open', forbidden, raising=False)
     receipt = reconcile.reconcile(directory, parent)
     assert receipt['cleanup_complete'] and receipt['changed_boot']
+
+
+def test_client_birth_acknowledgement_precedes_exec_and_failed_save_cancels(monkeypatch, tmp_path):
+    import sys
+    from types import SimpleNamespace
+    from research.cpu_measurement import client
+    parent=tmp_path/'operators';parent.mkdir()
+    accounting=tmp_path/'measurements';accounting.mkdir()
+    marker=tmp_path/'executed'
+    monkeypatch.setenv('MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT',str(parent))
+    monkeypatch.setattr(client.owned_client,'domain_identity',lambda path:{'path':str(path)})
+    monkeypatch.setattr(client.owned_client,'identity',lambda pid:dict(pid=pid,start_ticks=1,uid=1,boot_id='boot',cmdline_sha256='a'*64))
+    def prepare(entry,parent):
+        path=parent/entry['id']
+        entry['cgroup_intent']={'name':path.name}
+        return path
+    monkeypatch.setattr(client.owned_client,'prepare_domain',prepare)
+    real_mkdir=__import__('pathlib').Path.mkdir
+    def mkdir(path,*args,**kwargs):
+        real_mkdir(path,*args,**kwargs)
+        for name in ('cgroup.procs','cgroup.events','cgroup.kill'): (path/name).touch()
+    monkeypatch.setattr(__import__('pathlib').Path,'mkdir',mkdir)
+    monkeypatch.setattr(client.owned_client,'stop',lambda entry:None)
+    receipts=[]
+    def save(operation,**entry):
+        assert not marker.exists()
+        receipts.append(entry)
+    owner=SimpleNamespace(mutation=save)
+    argv=[sys.executable,'-c',f'from pathlib import Path;Path({str(marker)!r}).write_text("executed")']
+    process,entry=client.spawn(argv,owner,accounting)
+    process.communicate(timeout=5)
+    assert marker.read_text()=='executed' and receipts[-1]['pid']==process.pid
+    assert {'bootstrap_cmdline_sha256','expected_cmdline_sha256','boot_id','uid','start_ticks','cgroup'} <= receipts[-1].keys()
+    marker.unlink()
+    def fail(operation,**entry):
+        assert not marker.exists()
+        if entry['pid'] is not None: raise OSError('injected durable save failure')
+    with pytest.raises(OSError,match='durable save'): client.spawn(argv,SimpleNamespace(mutation=fail),accounting)
+    assert not marker.exists()
+    monkeypatch.setenv('MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT',str(accounting))
+    with pytest.raises(RuntimeError,match='outside'): client.spawn(argv,owner,accounting)
+
+
+def test_client_domain_cleanup_precedes_worker_inventory_and_retains_failures(tmp_path, monkeypatch):
+    import json
+    from research.cpu_measurement.ownership import Ownership
+    from research.cpu_measurement import reconcile
+    from deploy import owned_client
+    parent=tmp_path/'parent';parent.mkdir()
+    (parent/'cgroup.events').write_text('populated 0\n')
+    (parent/'cpu.stat').write_text('usage_usec 100\n')
+    directory=tmp_path/'private'
+    with pytest.raises(ValueError):
+        with Ownership(directory,parent) as owner:
+            owner.mutation('container_create_intent',name='cpu-proposal-'+'a'*32,counter_before_usec=20)
+            owner.mutation('host_client_domain',id='client',pid=123)
+            raise ValueError('injected birth interruption')
+    order=[]
+    def failed(entry):
+        order.append('client')
+        raise RuntimeError('client cgroup still populated')
+    monkeypatch.setattr(owned_client,'stop',failed)
+    monkeypatch.setattr(reconcile.subprocess,'check_output',lambda *args,**kwargs:order.append('inventory') or b'')
+    assert not reconcile.reconcile(directory,parent)['cleanup_complete']
+    assert order==['client'] and len(list(directory.glob('*-cleanup-*.json')))==1
+    monkeypatch.setattr(owned_client,'stop',lambda entry:order.append('client'))
+    assert reconcile.reconcile(directory,parent)['cleanup_complete']
+    assert order==['client','client','inventory']
+    assert len(list(directory.glob('*-cleanup-*.json')))==2

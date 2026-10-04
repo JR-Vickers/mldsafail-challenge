@@ -44,6 +44,28 @@ def reconcile(directory, parent):
         names = set(intentions)
         authorized_domains = []
         errors = []
+        # Stop every possible Docker creator BEFORE taking container inventory.
+        # A durable domain exists before gated exec, so even a lost PID receipt
+        # cannot hide a command capable of creating a late worker container.
+        clients = {entry['id']: entry for entry in journal['mutations']
+                   if entry['operation'] == 'host_client_domain'}
+        from deploy.owned_client import stop
+        for entry in clients.values():
+            try:
+                stop(entry)
+            except Exception as error:
+                errors.append(dict(step='host_client_domain_cleanup', error=repr(error)))
+        if errors:
+            # A live Docker creator invalidates every subsequent empty-domain
+            # observation. Retain the fence; independently retry cleanup first.
+            import uuid
+            receipt = dict(schema='mldsafail.cpu-cleanup.v1', generation=journal['generation'],
+                           cleanup_complete=False, errors=errors, original_evidence=original.name)
+            name = journal['generation']+'-cleanup-'+uuid.uuid4().hex+'.json'
+            publish(directory / name, receipt)
+            journal.update(state='cleanup_incomplete', latest_cleanup_evidence=name)
+            publish(directory / 'journal.json', journal)
+            return receipt
         for name in names:
             if not name.startswith('cpu-proposal-') or len(name) != len('cpu-proposal-') + 32:
                 raise RuntimeError('Malformed owned container identity')

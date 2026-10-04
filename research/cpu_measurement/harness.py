@@ -72,7 +72,8 @@ def run(image, parent, cgroup_parent, source, public_input, verify, timeout=60, 
                     for path in sorted(snapshot.rglob('*.py'))}, sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
                 image=image, epoch=epoch,
                 supervisor_source_sha256=hashlib.sha256(json.dumps({path.name: hashlib.sha256(path.read_bytes()).hexdigest()
-                    for path in sorted(Path(__file__).parent.glob('*.py'))}, sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
+                    for path in sorted(Path(__file__).parent.glob('*.py'))} |
+                    {'deploy/owned_client.py': hashlib.sha256((Path(__file__).resolve().parents[2] / 'deploy/owned_client.py').read_bytes()).hexdigest()}, sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
                 source_commit=subprocess.check_output(['git', '-C', str(Path(__file__).resolve().parents[2]), 'rev-parse', 'HEAD'], timeout=10).decode().strip(),
                 host=hashlib.sha256(Path('/etc/machine-id').read_bytes()).hexdigest(),
                 kernel=platform.release(), docker={'discovery_pending': True})
@@ -132,11 +133,12 @@ def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60,
     process = None
     original = None
     cleanup_errors = []
+    client_entry = None
     try:
-        process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if owner is not None:
-            owner.mutation('host_client_spawned', pid=process.pid,
-                           start_ticks=process_start_ticks(process.pid), **process_identity(process.pid))
+        if owner is None:
+            raise RuntimeError('Durable ownership required for Docker client execution')
+        from research.cpu_measurement.client import spawn
+        process, client_entry = spawn(argv, owner, parent)
         membership_deadline = time.monotonic() + 10
         while True:
             inspected = subprocess.run(['docker', 'inspect', '--format', '{{json .State}}', name],
@@ -184,6 +186,13 @@ def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60,
                 owner.mutation('cleanup_intent', name=name)
             except BaseException as error:
                 cleanup_errors.append(('cleanup_journal', repr(error)))
+        if client_entry is not None:
+            try:
+                from deploy.owned_client import stop
+                stop(client_entry)
+                owner.mutation('host_client_domain_cleaned', id=client_entry['id'])
+            except BaseException as error:
+                cleanup_errors.append(('client_domain_cleanup', repr(error)))
         try:
             subprocess.run(['docker', 'rm', '-f', name], check=True, capture_output=True, timeout=30)
         except BaseException as error:
@@ -197,7 +206,10 @@ def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60,
                 cleanup_errors.append(('process_cleanup', repr(error)))
             for stream in (process.stdin, process.stdout, process.stderr):
                 if stream is not None:
-                    stream.close()
+                    try:
+                        stream.close()
+                    except BaseException as error:
+                        cleanup_errors.append(('stream_close', repr(error)))
     if owner is not None and (original is not None or cleanup_errors):
         try:
             owner.update('running', failure_diagnostics=dict(

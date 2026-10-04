@@ -137,3 +137,25 @@ keep the generation fenced for independent operator investigation. Cleanup
 attempts and the original interruption remain private retained records. A daemon
 outage, missing identity or altered accounting parent never permits blind removal
 or a replacement measurement.
+
+### Gated Docker client birth and interrupted reconciliation
+
+Native accounting now additionally requires the explicit trusted environment
+`MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT` identifying a separate delegated native
+cgroup-v2 domain. It must have exclusive owner write permissions and be outside
+(and not an ancestor of) the measured worker parent. Each Docker-run CLI gets a
+fresh inode-bound operator child domain. Durable domain intent and identity
+precede spawn; the Python bootstrap waits on an EOF-safe private pipe until its
+PID/start ticks/UID/boot/bootstrap and expected exec identities plus membership
+have been durably acknowledged. Only then can Docker-run execute. Operator
+client CPU is excluded from worker accounting.
+
+Reconciliation kills/proves every durable operator-client domain empty before
+inventorying worker containers. A client cleanup failure keeps the generation
+fenced and retains an immutable failed cleanup receipt; it cannot establish a
+worker-empty proof while a late creator might remain. The supervisor binding
+includes the imported `deploy/owned_client.py` bytes. Native fault acceptance
+includes real owner SIGKILL while stopped after the pre-release durable bootstrap
+acknowledgement, followed by fencing and independently retryable domain cleanup.
+This revised source needs new independent review and native acceptance; earlier
+d9 review/native identities do not establish these gates.

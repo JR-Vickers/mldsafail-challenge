@@ -133,6 +133,8 @@ def execute(args):
     if all(row['passed'] for row in results):
         from research.cpu_measurement.native_lifecycle import lifecycle
         try:
+            from research.cpu_measurement.native_birth import probe
+            results.append(probe(args, args.output / 'birth_gap.json'))
             results.extend(lifecycle(args, args.output / 'lifecycle'))
             results.append(grandchild_probe(args, directory, instance))
             publish(args.output / 'grandchild_membership.json', results[-1])
@@ -141,7 +143,7 @@ def execute(args):
             publish(args.output / 'lifecycle_failure.json', failure)
             results.append(failure)
     summary = dict(schema='mldsafail.cpu-native-fault.v1', native_executed=True,
-                   passed=len(results) == len(cases) + 3 and all(row['passed'] for row in results),
+                   passed=len(results) == len(cases) + 4 and all(row['passed'] for row in results),
                    cases=results, remaining_native_faults=[])
 
     summary['contract_fault_gate_passed'] = summary['passed']
