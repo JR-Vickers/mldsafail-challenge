@@ -70,18 +70,24 @@ def test_assembly_failure_restores_original_service_states(tmp_path, monkeypatch
             return '{"Running":true}'
         if 'exec' in argv:
             raise RuntimeError('interrupted snapshot inspection')
+        if 'psql' in argv: return '0\n'
         if 'exec' in argv: return '{"epoch":"/synthetic","runs":[],"epoch_id":"synthetic"}'
         return ''
     monkeypatch.setattr('deploy.assemble_recovery.subprocess.check_output', output)
     monkeypatch.setattr('deploy.recovery_journal.subprocess.run', lambda argv, **kw: calls.append(argv))
+    from deploy.recovery_journal import Journal
+    from types import SimpleNamespace
+    operation = Journal(tmp_path / 'operation.json', {})
+    operation.command = lambda argv, **kwargs: SimpleNamespace(stdout=output(argv, **kwargs))
+    monkeypatch.setattr('deploy.owned_client.run', _mock_owned_run)
     config = {'env_file': '/private/env', 'compose': '/app/compose.private.yaml'}
     destination = tmp_path / 'set'
     with pytest.raises(RuntimeError):
-        assemble(config, destination)
+        assemble(config, destination, operation=operation)
     assert ['docker', 'container', 'start', 'web'] in calls
     assert ['docker', 'container', 'start', 'coordinator'] in calls
     assert not any('compose' in argv and 'start' in argv for argv in calls)
-    assert json.loads((destination / 'maintenance.json').read_text())['cleanup_complete']
+    assert operation.data['cleanup_complete']
     assert not (destination / 'recovery.json').exists()
 
 
@@ -154,6 +160,7 @@ def test_assembly_inventory_uses_original_stopped_coordinator_without_creating_c
         if 'ps' in argv: return argv[-1]
         if 'inspect' in argv:
             return '{"Running":false}' if argv[-1] == 'coordinator' else '{"Running":true}'
+        if 'psql' in argv: return '0\n'
         if 'exec' in argv:
             assert calls.index(['docker', 'container', 'stop', 'web']) < calls.index(['docker', 'container', 'start', 'coordinator'])
             assert argv[2] == 'coordinator'
@@ -161,8 +168,13 @@ def test_assembly_inventory_uses_original_stopped_coordinator_without_creating_c
         return ''
     monkeypatch.setattr('deploy.assemble_recovery.subprocess.check_output', output)
     monkeypatch.setattr('deploy.recovery_journal.subprocess.run', lambda argv, **kw: calls.append(argv))
+    from deploy.recovery_journal import Journal
+    from types import SimpleNamespace
+    operation = Journal(tmp_path / 'operation.json', {})
+    operation.command = lambda argv, **kwargs: SimpleNamespace(stdout=output(argv, **kwargs))
+    monkeypatch.setattr('deploy.owned_client.run', _mock_owned_run)
     with pytest.raises(RuntimeError, match='Active evaluation'):
-        assemble({'env_file': '/private/env', 'compose': '/app/private.yaml'}, tmp_path / 'set')
+        assemble({'env_file': '/private/env', 'compose': '/app/private.yaml'}, tmp_path / 'set', operation=operation)
     assert ['docker', 'container', 'stop', 'coordinator'] in calls
     assert not any('run' in argv or 'create' in argv or 'backup_postgres.py' in ' '.join(argv) for argv in calls)
-    assert json.loads((tmp_path / 'set/maintenance.json').read_text())['cleanup_complete']
+    assert operation.data['cleanup_complete']

@@ -346,12 +346,18 @@ def test_assembly_maintenance_boundaries(tmp_path, monkeypatch, boundary):
             return '{"Running":true}'
         if ('stop' in argv and argv[-1] == boundary) or ('exec' in argv and boundary == 'exec'):
             raise InterruptedError()
+        if 'psql' in argv: return '0\n'
         if 'exec' in argv: return '{"epoch":"/synthetic","runs":[],"epoch_id":"synthetic"}'
         return ''
     monkeypatch.setattr('deploy.assemble_recovery.subprocess.check_output', output)
     monkeypatch.setattr('deploy.recovery_journal.subprocess.run', lambda argv, **kw: calls.append(argv))
+    from types import SimpleNamespace
+    from tests.test_recovery_tools import _mock_owned_run
+    operation = Journal(tmp_path / 'operation.json', {})
+    operation.command = lambda argv, **kwargs: SimpleNamespace(stdout=output(argv, **kwargs))
+    monkeypatch.setattr('deploy.owned_client.run', _mock_owned_run)
     with pytest.raises(InterruptedError):
-        assemble(dict(env_file='/private/env', compose='/app/compose.private.yaml'), tmp_path / 'set')
+        assemble(dict(env_file='/private/env', compose='/app/compose.private.yaml'), tmp_path / 'set', operation=operation)
     assert any(argv[-2:] == ['start','web'] for argv in calls)
     assert any(argv[-2:] == ['start','coordinator'] for argv in calls)
 
