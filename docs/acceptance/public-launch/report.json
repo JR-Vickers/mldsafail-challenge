@@ -410,12 +410,13 @@
         {
           "run_id": "launch-scenarios-6b332cd-20261004",
           "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
-          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys"
+          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys",
+          "scenario_verification": "passed; final run cleanup/rollback remains pending"
         }
       ],
       "evidence": [],
       "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "next_action": "Preserve per-scenario pass; complete run and final cleanup before parent acceptance",
       "checklist": []
     },
     {
@@ -445,12 +446,13 @@
         {
           "run_id": "launch-scenarios-6b332cd-20261004",
           "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
-          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys"
+          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys",
+          "scenario_verification": "passed; final run cleanup/rollback remains pending"
         }
       ],
       "evidence": [],
       "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "next_action": "Preserve per-scenario pass; complete run and final cleanup before parent acceptance",
       "checklist": []
     },
     {
@@ -915,7 +917,7 @@
       ],
       "environment": "isolated native host sequential",
       "criteria": [
-        "Complete native accounting fault suite including ownership loss descendants stream caps and cleanup failures"
+        "Complete native accounting faults including ownership loss before client exec release and after input delivery, descendants, stream caps, counter/delegation/contamination failures and independently retryable cleanup"
       ],
       "status": "waiting_dependency",
       "attempts": [],
@@ -2313,7 +2315,7 @@
       "dependencies": [],
       "environment": "isolated accounting development; source-bound native fault suite",
       "criteria": [
-        "Client cannot execute Docker mutations before durable identity/domain receipt; native before-release owner-loss fault passes; worker CPU parent remains separate and thresholds unchanged"
+        "Client mutation is gated until durable identity/domain receipt; independent source reviews and focused tests pass; separate native fault suite must cover before-release owner loss; worker CPU parent and thresholds unchanged"
       ],
       "status": "running",
       "attempts": [
