@@ -289,7 +289,7 @@
       "criteria": [
         "Verify running-cancellation transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
       ],
-      "status": "waiting_dependency",
+      "status": "running",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
@@ -298,6 +298,11 @@
           "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
           "environment": "private staging; raw journal and evidence protected on VPS",
           "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys"
         }
       ],
       "evidence": [],
@@ -319,7 +324,7 @@
       "criteria": [
         "Verify real-timeout-cancellation transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
       ],
-      "status": "waiting_dependency",
+      "status": "running",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
@@ -328,6 +333,11 @@
           "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
           "environment": "private staging; raw journal and evidence protected on VPS",
           "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys"
         }
       ],
       "evidence": [],
@@ -349,7 +359,7 @@
       "criteria": [
         "Verify invalid-answer transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
       ],
-      "status": "failed",
+      "status": "running",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
@@ -358,6 +368,11 @@
           "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
           "environment": "private staging; raw journal and evidence protected on VPS",
           "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys"
         }
       ],
       "evidence": [],
@@ -379,7 +394,7 @@
       "criteria": [
         "Verify immediate-crash transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
       ],
-      "status": "waiting_dependency",
+      "status": "running",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
@@ -388,6 +403,11 @@
           "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
           "environment": "private staging; raw journal and evidence protected on VPS",
           "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys"
         }
       ],
       "evidence": [],
@@ -409,7 +429,7 @@
       "criteria": [
         "Verify recoverable-infrastructure-failure transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
       ],
-      "status": "waiting_dependency",
+      "status": "running",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
@@ -418,6 +438,11 @@
           "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
           "environment": "private staging; raw journal and evidence protected on VPS",
           "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys"
         }
       ],
       "evidence": [],
@@ -439,7 +464,7 @@
       "criteria": [
         "Verify three-attempt-exhaustion transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
       ],
-      "status": "waiting_dependency",
+      "status": "running",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
@@ -448,6 +473,11 @@
           "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
           "environment": "private staging; raw journal and evidence protected on VPS",
           "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys"
         }
       ],
       "evidence": [],
@@ -469,7 +499,7 @@
       "criteria": [
         "Verify expired-lease-recovery transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
       ],
-      "status": "waiting_dependency",
+      "status": "running",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
@@ -478,6 +508,11 @@
           "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
           "environment": "private staging; raw journal and evidence protected on VPS",
           "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys"
         }
       ],
       "evidence": [],
@@ -1965,7 +2000,7 @@
       "criteria": [
         "Focused tests and make check pass; compatible immutable source/images retained; native inventory probe passes"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "source": "71f5ff2",
@@ -1974,17 +2009,24 @@
         {
           "source": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
           "protocol": "Native Docker snapshot disappearance probe; then compatible application-only switch with quiescent protected backup and exact rollback installed before stopping services",
-          "result": "inventory probe passed; deployment running",
+          "result": "passed with protected backup/disposable restoration and maintenance cleanup",
           "private_evidence": "/home/mldsafail/inventory-probe-a668b9fa4a9a4f068a6553679350be32",
           "run_id": "launch-prepare-6b332cd-20261004"
         }
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/inventory-repair.json#/passed",
+          "criteria_met": [
+            "Focused tests and make check pass; compatible immutable source/images retained; native inventory probe passes"
+          ]
+        }
+      ],
       "identities": {
         "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
         "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe"
       },
-      "next_action": "Complete builds retention native verification and compatible switch before fresh scenario run",
+      "next_action": "Complete fresh seven scenarios and rollback/forward",
       "checklist": []
     }
   ],
