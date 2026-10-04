@@ -68,12 +68,39 @@ def build_context(root, wheel_directory, wheel_hashes, base_image):
     return files
 
 
+def verify_base_provenance(setup, config, journal):
+    from mldsafail.benchmark_v050 import execution
+    source=Path(execution.__file__).resolve().parent
+    dockerfile=(source/'Dockerfile').read_bytes()
+    registry=dockerfile.decode().splitlines()[0].removeprefix('FROM ')
+    proof=owned_daemon.read_private_json(setup['base_provenance'])
+    if (proof.get('schema')!='mldsafail.native-image-provenance.v1' or proof.get('status')!='passed'
+            or proof.get('native_executed') is not True or proof.get('registry_reference')!=registry
+            or proof.get('image')!=setup['base_image'] or proof.get('architecture')!='amd64'
+            or proof.get('source_dockerfile_sha256')!=hashlib.sha256(dockerfile).hexdigest()
+            or not isinstance(proof.get('evidence_refs'),list) or not proof['evidence_refs']):
+        raise ValueError('Exact original frozen base native provenance required')
+    inspection=proof.get('original_image_inspection',{})
+    if (inspection.get('Id')!=setup['base_image'] or inspection.get('Architecture')!='amd64'
+            or registry not in inspection.get('RepoDigests',[])):
+        raise ValueError('Original native registry digest/image mapping required')
+    artifacts=[config]+config.get('additional_images',[])
+    matches=[item for item in artifacts if item.get('image')==setup['base_image']]
+    if len(matches)!=1 or matches[0].get('image_archive_sha256')!=proof.get('image_archive_sha256'):
+        raise ValueError('Retained base archive differs from original native provenance')
+    current=json.loads(journal.command(['docker','image','inspect',setup['base_image']],timeout=15).stdout)[0]
+    if current['Id']!=setup['base_image'] or current['Architecture']!='amd64':
+        raise ValueError('Loaded base image identity differs from approved artifact')
+    owned_daemon.publish(journal.path.parent/'base-provenance.json',proof)
+
+
 def reproduction_callback(journal, config, data):
     from scripts.reproduction_lifecycle import ReproductionRun
     from scripts.mlwe_reproduce import reproduce
     setup=protocol(journal,'reproduction')
     if {setup['base_image'],setup['frozen_image']}-set(data['loaded_images']):
         raise ValueError('Pinned base and frozen images must be loaded by the driver')
+    verify_base_provenance(setup,config,journal)
     images=[]
     for name in ('build-a','build-b'):
         context=journal.path.parent/name

@@ -31,3 +31,24 @@ def test_callback_rejects_unloaded_image_before_host_operation(monkeypatch,tmp_p
     with pytest.raises(ValueError,match='pinned driver artifacts'):
         native.baseline_callback(SimpleNamespace(path=tmp_path/'driver.json'),{}, {'loaded_images':[]})
     assert called==[]
+
+
+def test_base_provenance_requires_original_registry_mapping(monkeypatch,tmp_path):
+    from scripts.native_baseline_acceptance import verify_base_provenance
+    from deploy import owned_daemon
+    from mldsafail.benchmark_v050 import execution
+    from types import SimpleNamespace
+    source=Path(execution.__file__).parent/'Dockerfile'
+    registry=source.read_text().splitlines()[0].removeprefix('FROM ')
+    image='sha256:'+'a'*64
+    proof=dict(schema='mldsafail.native-image-provenance.v1',status='passed',native_executed=True,
+        registry_reference=registry,image=image,architecture='amd64',image_archive_sha256='b'*64,
+        source_dockerfile_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),evidence_refs=['original-private-inspection'],
+        original_image_inspection={'Id':image,'Architecture':'amd64','RepoDigests':['wrong@sha256:'+'c'*64]})
+    monkeypatch.setattr(owned_daemon,'read_private_json',lambda path:proof)
+    called=[]
+    journal=SimpleNamespace(path=tmp_path/'driver.json',command=lambda *args,**kwargs:called.append('host'))
+    with pytest.raises(ValueError,match='registry digest/image mapping'):
+        verify_base_provenance({'base_image':image,'base_provenance':'private'},
+            {'image':image,'image_archive_sha256':'b'*64},journal)
+    assert called==[]
