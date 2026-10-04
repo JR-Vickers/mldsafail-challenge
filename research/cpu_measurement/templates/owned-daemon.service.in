@@ -1,0 +1,14 @@
+# Internal operator template; substitute reviewed paths and retain rendered hash.
+[Unit]
+Description=Isolated MLDSA.fail evaluation daemon
+
+[Service]
+Type=simple
+Environment=DOCKERD_ROOTLESS_ROOTLESSKIT_STATE_DIR=@ROOTLESS_STATE@
+ExecStart=@DOCKERD_ROOTLESS@ --host=unix://@SOCKET@ --data-root=@DATA_ROOT@ --exec-root=@EXEC_ROOT@ --live-restore=false --cgroup-parent=@WORKER_SLICE@
+Restart=no
+KillMode=control-group
+Delegate=yes
+UMask=0077
+TimeoutStopSec=30
+# Deliberately no Install target: activation is explicit private acceptance.

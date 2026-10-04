@@ -73,7 +73,7 @@ def run(image, parent, cgroup_parent, source, public_input, verify, timeout=60, 
                 image=image, epoch=epoch,
                 supervisor_source_sha256=hashlib.sha256(json.dumps({path.name: hashlib.sha256(path.read_bytes()).hexdigest()
                     for path in sorted(Path(__file__).parent.glob('*.py'))} |
-                    {'deploy/owned_client.py': hashlib.sha256((Path(__file__).resolve().parents[2] / 'deploy/owned_client.py').read_bytes()).hexdigest()}, sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
+                    {'deploy/'+name: hashlib.sha256((Path(__file__).resolve().parents[2] / 'deploy' / name).read_bytes()).hexdigest() for name in ('owned_client.py','owned_daemon.py')}, sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
                 source_commit=subprocess.check_output(['git', '-C', str(Path(__file__).resolve().parents[2]), 'rev-parse', 'HEAD'], timeout=10).decode().strip(),
                 host=hashlib.sha256(Path('/etc/machine-id').read_bytes()).hexdigest(),
                 kernel=platform.release(), docker={'discovery_pending': True})
@@ -101,8 +101,13 @@ def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60,
     public_input = json.loads(json.dumps(public_input))
     if sys.platform != 'linux':
         raise RuntimeError('Native Linux host required')
+    from deploy.owned_daemon import load_manifest, verify_environment
+    manifest = verify_environment(load_manifest(), measurement_parent=parent)
     info = json.loads(subprocess.check_output(['docker', 'info', '--format', '{{json .}}'], timeout=30))
+    verify_environment(manifest, measurement_parent=parent, docker_info=info)
+    info['_mldsafail_owned_daemon'] = manifest
     if owner is not None:
+        owner.mutation('dedicated_daemon_verified', manifest=manifest)
         owner.mutation('docker_discovered', docker=info)
     if str(info.get('CgroupVersion')) != '2' or not any('rootless' in option for option in info.get('SecurityOptions', [])):
         raise RuntimeError('Rootless Docker with cgroup v2 required')
@@ -119,14 +124,14 @@ def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60,
     if owner is not None:
         owner.mutation('container_create_intent', name=name, image=image,
                        cgroup_parent=cgroup_parent, counter_before_usec=before)
-    argv = ['docker', 'run', '--label', 'org.mldsafail.cpu-generation=' + (owner.record['generation'] if owner else 'isolated-unit-probe'),
+    argv = ['docker', 'create', '--label', 'org.mldsafail.cpu-generation=' + (owner.record['generation'] if owner else 'isolated-unit-probe'),
             '--name', name, '--cgroup-parent', cgroup_parent,
             '--cgroupns', 'private', '--network', 'none', '--read-only', '--cap-drop', 'ALL',
             '--security-opt', 'no-new-privileges', '--user', '65534:65534',
             '--cpus', '1', '--memory', '2g', '--memory-swap', '2g', '--pids-limit', '64', '--log-driver', 'none',
             '--tmpfs', '/tmp:rw,noexec,nosuid,nodev,size=64m',
             '--mount', f'type=bind,src={source.resolve()},dst=/solver,readonly',
-            '-i', image]
+            '--restart', 'no', '-i', image]
     status = 'measurement_failed'
     raw = b''
     started = time.monotonic()
@@ -137,8 +142,13 @@ def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60,
     try:
         if owner is None:
             raise RuntimeError('Durable ownership required for Docker client execution')
-        from research.cpu_measurement.client import spawn
-        process, client_entry = spawn(argv, owner, parent)
+        from research.cpu_measurement.client import spawn, mutation
+        container_id = mutation(argv, owner, parent, manifest, 'create')
+        owner.mutation('container_id_acknowledged', name=name, container_id=container_id)
+        started_id = mutation(['docker','start',container_id], owner, parent, manifest, 'start')
+        if started_id != container_id:
+            raise RuntimeError('Daemon acknowledged different container start')
+        process, client_entry = spawn(['docker','attach','--sig-proxy=false',container_id], owner, parent)
         membership_deadline = time.monotonic() + 10
         while True:
             inspected = subprocess.run(['docker', 'inspect', '--format', '{{json .State}}', name],
@@ -186,6 +196,18 @@ def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60,
                 owner.mutation('cleanup_intent', name=name)
             except BaseException as error:
                 cleanup_errors.append(('cleanup_journal', repr(error)))
+        mutation_safe = True
+        if owner is not None and owner.record.get('mutations') is not None:
+            try:
+                from research.cpu_measurement.mutations import resolve
+                resolution = resolve(owner.record, owner.directory, parent)
+                mutation_safe = not resolution['errors']
+                cleanup_errors.extend(('daemon_mutation_repair', repr(error)) for error in resolution['errors'])
+                if resolution.get('new_manifest') is not None:
+                    owner.mutation('daemon_epoch_repaired', manifest=resolution['new_manifest'])
+            except BaseException as error:
+                mutation_safe = False
+                cleanup_errors.append(('daemon_mutation_repair', repr(error)))
         if client_entry is not None:
             try:
                 from deploy.owned_client import stop
@@ -194,6 +216,7 @@ def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60,
             except BaseException as error:
                 cleanup_errors.append(('client_domain_cleanup', repr(error)))
         try:
+            if not mutation_safe: raise RuntimeError('Daemon epoch uncertainty prohibits further mutation')
             subprocess.run(['docker', 'rm', '-f', name], check=True, capture_output=True, timeout=30)
         except BaseException as error:
             cleanup_errors.append(('container_remove', repr(error)))

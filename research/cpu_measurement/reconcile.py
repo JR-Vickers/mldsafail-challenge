@@ -47,10 +47,18 @@ def reconcile(directory, parent):
         # Stop every possible Docker creator BEFORE taking container inventory.
         # A durable domain exists before gated exec, so even a lost PID receipt
         # cannot hide a command capable of creating a late worker container.
+        from research.cpu_measurement.mutations import resolve
+        resolution = resolve(journal, directory, parent)
+        errors.extend(resolution['errors'])
+        if resolution.get('new_manifest') is not None:
+            journal['mutations'].append(dict(operation='daemon_epoch_repaired',manifest=resolution['new_manifest']))
+            publish(directory / 'journal.json',journal)
         clients = {entry['id']: entry for entry in journal['mutations']
                    if entry['operation'] == 'host_client_domain'}
         from deploy.owned_client import stop
         for entry in clients.values():
+            if errors and entry.get('phase') in {'create','start'}:
+                continue
             try:
                 stop(entry)
             except Exception as error:
@@ -68,7 +76,8 @@ def reconcile(directory, parent):
             return receipt
         released = any(entry['operation'] == 'host_client_release_intent' for entry in journal['mutations'])
         acknowledged_worker = any(entry['operation'] == 'input_delivery_intent' for entry in journal['mutations'])
-        if not changed_boot and released and not acknowledged_worker:
+        dedicated = any(entry['operation']=='dedicated_daemon_verified' for entry in journal['mutations'])
+        if not changed_boot and released and not acknowledged_worker and not dedicated:
             errors.append(dict(step='daemon_mutation_uncertainty',
                 error='Released creator has no acknowledged worker; pending daemon create/start is not fenced'))
         for name in names:

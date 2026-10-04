@@ -9,7 +9,7 @@ import uuid
 from deploy import owned_client
 
 
-def spawn(argv, owner, accounting_parent):
+def spawn(argv, owner, accounting_parent, *, phase="attach", receipt_file=None):
     parent = os.environ.get('MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT')
     if parent is None:
         raise RuntimeError('Separate delegated operator client root required')
@@ -20,7 +20,7 @@ def spawn(argv, owner, accounting_parent):
     if executable is None:
         raise FileNotFoundError('Docker client unavailable')
     argv = [executable, *argv[1:]]
-    entry = dict(id=uuid.uuid4().hex,pid=None,finished=False,
+    entry = dict(id=uuid.uuid4().hex,pid=None,finished=False,phase=phase,receipt_file=receipt_file,
                  expected_cmdline_sha256=hashlib.sha256(b'\0'.join(os.fsencode(arg) for arg in argv)+b'\0').hexdigest())
     def save():
         owner.mutation('host_client_domain', **entry)
@@ -28,6 +28,7 @@ def spawn(argv, owner, accounting_parent):
     save()
     read_fd = write_fd = None
     process = None
+    release_uncertain = False
     try:
         domain.mkdir()
         entry['cgroup']=owned_client.domain_identity(domain)
@@ -50,6 +51,7 @@ def spawn(argv, owner, accounting_parent):
             raise RuntimeError('Gated bootstrap membership unproven')
         save()  # All exact kernel/process identities are durable before exec.
         owner.mutation('host_client_release_intent', **entry)
+        release_uncertain = True
         os.write(write_fd,b'1')
         os.close(write_fd);write_fd=None
         return process,entry
@@ -58,15 +60,53 @@ def spawn(argv, owner, accounting_parent):
             if descriptor is not None:
                 try: os.close(descriptor)
                 except OSError as cleanup: error.add_note('Gate close failed: '+repr(cleanup))
-        try: owned_client.stop(entry)
-        except BaseException as cleanup: error.add_note('Client domain cleanup failed: '+repr(cleanup))
+        if not release_uncertain or phase == 'attach':
+            try: owned_client.stop(entry)
+            except BaseException as cleanup: error.add_note('Client domain cleanup failed: '+repr(cleanup))
         if process is not None:
             try:
-                if process.poll() is None: process.kill()
-                process.wait(timeout=15)
+                if not release_uncertain or phase == 'attach':
+                    if process.poll() is None: process.kill()
+                    process.wait(timeout=15)
             except BaseException as cleanup: error.add_note('Bootstrap cleanup failed: '+repr(cleanup))
             for stream in (process.stdin, process.stdout, process.stderr):
                 if stream is not None:
                     try: stream.close()
                     except BaseException as cleanup: error.add_note('Independent bootstrap pipe cleanup failed: '+repr(cleanup))
         raise
+
+
+def mutation(argv, owner, parent, manifest, operation):
+    """Independent guardian receipt precedes every subsequent lifecycle phase."""
+    import json
+    import time
+    receipt_file=owner.record['generation']+'-'+operation+'-'+uuid.uuid4().hex+'.json'
+    owner.mutation('daemon_mutation_intent',operation_name=operation,receipt_file=receipt_file,
+                   daemon_epoch=manifest['epoch'])
+    command=[sys.executable,'-m','research.cpu_measurement.guardian','--receipt',
+             str(owner.directory/receipt_file),'--epoch',manifest['epoch'],
+             '--operation',operation,*argv]
+    process,entry=spawn(command,owner,parent,phase=operation,receipt_file=receipt_file)
+    deadline=time.monotonic()+45
+    path=owner.directory/receipt_file
+    while not path.exists():
+        if process.poll() is not None or time.monotonic()>deadline:
+            # Never kill a potentially submitted creator here. Reconciliation
+            # must stop the dedicated daemon epoch before cancelling guardian.
+            raise RuntimeError('Mutation guardian acknowledgement incomplete')
+        time.sleep(.05)
+    from research.cpu_measurement.mutations import receipt as read_receipt
+    receipt=read_receipt(owner.directory,receipt_file,operation=operation,epoch=manifest['epoch'])
+    errors=[]
+    try: process.wait(timeout=15)
+    except BaseException as error: errors.append(repr(error))
+    try: owned_client.stop(entry)
+    except BaseException as error: errors.append(repr(error))
+    for stream in (process.stdin,process.stdout,process.stderr):
+        if stream is not None:
+            try: stream.close()
+            except BaseException as error: errors.append(repr(error))
+    if errors: raise RuntimeError('Acknowledged mutation client cleanup failed: '+repr(errors))
+    owner.mutation('daemon_mutation_acknowledged',operation_name=operation,
+                   receipt_file=receipt_file,container_id=receipt['container_id'],daemon_epoch=manifest['epoch'])
+    return receipt['container_id']

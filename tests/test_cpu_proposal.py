@@ -44,6 +44,9 @@ def test_experimental_worker_ignores_reported_cpu_and_verification(tmp_path, mon
     import json
     from types import SimpleNamespace
     from research.cpu_measurement import harness
+    from deploy import owned_daemon
+    monkeypatch.setattr(owned_daemon, 'load_manifest', lambda: {'epoch':'a'*32})
+    monkeypatch.setattr(owned_daemon, 'verify_environment', lambda manifest, **kwargs:manifest)
     from mldsafail.benchmark_v050.generator import generate_mlwe
     (tmp_path / 'cpu.stat').write_text('usage_usec 20\n')
     (tmp_path / 'cgroup.events').write_text('populated 0\n')
@@ -66,6 +69,7 @@ def test_experimental_worker_ignores_reported_cpu_and_verification(tmp_path, mon
          'import sys; sys.stdin.buffer.read(); sys.stdout.buffer.write(' + repr(output) + '); sys.exit(' + str(exitcode) + ')'], **kw))
     from research.cpu_measurement import client
     from deploy import owned_client
+    monkeypatch.setattr(client, 'mutation', lambda *args:'a'*64)
     monkeypatch.setattr(client, 'spawn', lambda argv, owner, parent: (harness.subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE), {'id':'test'}))
     monkeypatch.setattr(owned_client, 'stop', lambda entry: None)
     owner = SimpleNamespace(check_identity=lambda:None, record={'generation':'a'*32}, mutation=lambda *args, **kwargs:None, update=lambda *args, **kwargs:None)

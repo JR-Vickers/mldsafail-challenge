@@ -159,3 +159,39 @@ includes real owner SIGKILL while stopped after the pre-release durable bootstra
 acknowledgement, followed by fencing and independently retryable domain cleanup.
 This revised source needs new independent review and native acceptance; earlier
 d9 review/native identities do not establish these gates.
+
+Independent review identified a further unresolved daemon mutation gate: an
+already submitted Docker daemon create/start request may outlive its terminated
+CLI domain. Creator-domain emptiness alone does not prove that a delayed daemon
+request cannot create or start a worker after inventory. The new birth probe
+covers pre-release death; after-input death has an acknowledged worker. Neither
+substitutes for interruption during daemon create/start. Full native fault and
+public-safe accounting acceptance remain incomplete until an explicit daemon
+mutation fence (including terminal container-removal semantics), independent
+review and mid-request native fault evidence establish no late owned work.
+
+### Dedicated daemon and acknowledged mutation protocol (implementation pending native proof)
+
+The successor separates `docker create`, `docker start ID` and read-only
+`docker attach --sig-proxy=false ID`. A separately owned guardian durably
+publishes bounded CLI acknowledgement evidence for both mutating operations
+before the next phase. The worker starts with open stdin; native acceptance must
+prove it remains blocked until the later attachment and public-input delivery.
+An unacknowledged released operation is uncertain even when inventory is empty.
+
+`deploy/owned_daemon.py` requires a private explicit manifest and newly
+provisioned disjoint roots. Registration binds the dedicated unit fragment,
+rootlesskit state, private Unix endpoint, data/exec roots, daemon executable
+SHA256, server version/build, boot/PID/start/UID identities and kernel domains.
+Its default container parent is the exact separately owned systemd worker slice.
+The shared staging `docker.service` is ineligible. No timer enables this service.
+
+For an uncertain RPC, the reconciler first positively stops the exact dedicated
+daemon epoch and kills/proves its entire registered worker parent empty,
+including unacknowledged late workers. Only after that proof may it cancel
+mutation guardians, restart the dedicated service, refresh the epoch manifest
+and reconcile retained container intents. Failed/replaced identities preserve
+fences and immutable failure receipts. These source/configuration tests do not
+establish native daemon shutdown, rootless stdin, mutation-loss or measurement
+acceptance. Installed Docker 29.8.1 source could not be matched to an upstream
+tag during investigation; no older locking behavior waives this barrier.
