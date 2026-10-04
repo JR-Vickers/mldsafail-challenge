@@ -2168,20 +2168,25 @@
       "criteria": [
         "Reconcile historical unresolved gate cpu_contract_review"
       ],
-      "status": "waiting_dependency",
-      "attempts": [],
+      "status": "passed",
+      "attempts": [
+        {
+          "result": "Historical cooperative measurement concern reconciled by separately reviewed proposed host-supervised source; native gates remain independent and pending"
+        }
+      ],
       "evidence": [
         {
-          "reference": "docs/acceptance/public-launch/accounting-auditor-review.json#/source_review_passed",
+          "reference": "docs/acceptance/production-preparation/native-transport-cleanup-source-review.json#/status",
           "criteria_met": [
             "Reconcile historical unresolved gate cpu_contract_review"
           ]
         }
       ],
       "identities": {
-        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
+        "source_commit": "8bfe1b5941d6d86f3a67681466eab6300ce013aa",
+        "supervisor_source_sha256": "f7ad12e9442708824282e28f61954916aeea7a4d908914d55b639b865808323b"
       },
-      "next_action": "Repeat/reconcile against corrected accounting source; retain earlier review evidence",
+      "next_action": "Owner measurement adoption remains separately blocked until native and candidate gates and decision packet pass",
       "checklist": []
     },
     {
