@@ -19,5 +19,19 @@
   ],
   "historical_failures_preserved": [
     "docs/acceptance/inventory-race-20261004/report.json"
-  ]
+  ],
+  "independent_source_compatibility": {
+    "parent_release": "fd4be66575ae6dbef9785321a79a687f418df0b8",
+    "changed_paths": [
+      "docs/acceptance/compatible-v050/README.md",
+      "docs/acceptance/compatible-v050/report.json",
+      "docs/acceptance/compose-switch-remediation-20261003/README.md",
+      "docs/acceptance/compose-switch-remediation-20261003/report.json",
+      "docs/acceptance/inventory-race-20261004/report.json",
+      "scripts/build_retain_compatible_release.py",
+      "scripts/hosted_vps_failure_driver.py",
+      "tests/test_hosted_vps_failure_acceptance.py"
+    ],
+    "all_application_evaluator_worker_schema_lock_config_source_unchanged": true
+  }
 }
