@@ -2856,7 +2856,9 @@
       "sources": [
         "docs/acceptance/public-launch/accounting-native-provisioning-failure.json"
       ],
-      "dependencies": [],
+      "dependencies": [
+        "failed-native-startup-terminal-cleanup"
+      ],
       "environment": "isolated engineering; disposable native dedicated daemon only",
       "criteria": [
         "Explicit fresh isolated pidfile verified in actual daemon argv; protected staging pidfile untouched",
@@ -2869,6 +2871,11 @@
         {
           "source_commit": "cc1f09a61e4fca26b64104ada8b25c7ca47db35a",
           "result": "native startup failed before image load; actual resources independently reconciled, driver journal remains fenced"
+        },
+        {
+          "source_commit": "534b589d8ad16038636ce652705b4acdd534aa71",
+          "evidence": "docs/acceptance/public-launch/native-failed-startup-terminal-cleanup.json",
+          "result": "Native terminal cleanup passed; healthy isolated startup remains pending"
         }
       ],
       "evidence": [],
@@ -2876,6 +2883,38 @@
         "retained_source_commit": "cc1f09a61e4fca26b64104ada8b25c7ca47db35a"
       },
       "next_action": "Accounting author repairs isolated PID-file, daemon root identity and unregistered startup cleanup; independent reviewers verify before exact native repair and new provision",
+      "checklist": []
+    },
+    {
+      "id": "failed-native-startup-terminal-cleanup",
+      "requirement": "Native terminal controller reconciles exact never-admitted failed startup journal with predecessor archive, no registered daemon claim, and independently absent owned resources",
+      "sources": [
+        "docs/acceptance/public-launch/accounting-native-provisioning-failure.json"
+      ],
+      "dependencies": [],
+      "environment": "native dedicated terminal controller; protected staging unchanged",
+      "criteria": [
+        "Native terminal controller reconciles exact never-admitted failed startup journal with predecessor archive, no registered daemon claim, and independently absent owned resources"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "source_commit": "534b589d8ad16038636ce652705b4acdd534aa71",
+          "result": "Native cleanup and independent resource absence passed; earlier failed cleanup attempts retained"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/native-failed-startup-terminal-cleanup.json#/passed",
+          "criteria_met": [
+            "Native terminal controller reconciles exact never-admitted failed startup journal with predecessor archive, no registered daemon claim, and independently absent owned resources"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "534b589d8ad16038636ce652705b4acdd534aa71"
+      },
+      "next_action": "Complete healthy isolated startup and accounting fault prerequisites; this receipt grants no measurement or restart authority",
       "checklist": []
     }
   ],

@@ -1,0 +1,20 @@
+{
+  "schema": "mldsafail.native-failed-startup-cleanup-acceptance.v1",
+  "passed": true,
+  "native_executed": true,
+  "source_commit": "534b589d8ad16038636ce652705b4acdd534aa71",
+  "retired_source_commit": "cc1f09a61e4fca26b64104ada8b25c7ca47db35a",
+  "private_driver_journal_sha256": "1ce695e64bde8d538c35b301e0e57e3a6c02154bd9645abaf7364d761aff84d4",
+  "healthy_daemon_registered": false,
+  "measurement_executed": false,
+  "cleanup_complete": true,
+  "independent_resource_absence_verified": true,
+  "predecessor_state_archived_before_control": true,
+  "proof_scope": "Distinct never-admitted startup terminal authority; no healthy daemon or CPU accounting acceptance claimed",
+  "evidence_refs": [
+    "private failed-startup generation b driver.json",
+    "private cleanup generation d operator.json",
+    "private generation b prior-driver-state UUID archive",
+    "private generation b failed-startup terminal proof"
+  ]
+}
