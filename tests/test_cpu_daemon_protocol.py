@@ -81,3 +81,11 @@ def test_incomplete_guardian_closes_parent_pipes_without_cancelling_mutator(tmp_
     with pytest.raises(RuntimeError,match='incomplete'):
         client.mutation(['docker','create'],owner,tmp_path,{'epoch':'b'*32},'create')
     assert all(stream.closed for stream in streams)
+
+
+def test_fifo_guardian_receipt_rejected_without_waiting_for_writer(tmp_path):
+    import os
+    from research.cpu_measurement.mutations import receipt
+    os.mkfifo(tmp_path/'fifo',0o600)
+    with pytest.raises(RuntimeError,match='Private guardian'):
+        receipt(tmp_path,'fifo',operation='create',epoch='a'*32)

@@ -12,7 +12,7 @@ def receipt(directory, name, *, operation, epoch):
     if not isinstance(name,str) or Path(name).name!=name:
         raise RuntimeError('Invalid guardian receipt reference')
     path=Path(directory)/name
-    descriptor=os.open(path,os.O_RDONLY|os.O_NOFOLLOW)
+    descriptor=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
     with os.fdopen(descriptor,'rb') as stream:
         info=os.fstat(stream.fileno())
         if not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_mode & 0o077: raise RuntimeError('Private guardian receipt required')
