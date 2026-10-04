@@ -70,10 +70,11 @@ def render(source, interpreter, metadata, configuration, user, uid, output):
     checksums = {}
     for name, (module, config_name, timeout) in SERVICES.items():
         text = ('[Unit]\nDescription=Inactive reviewed MLDSAFAIL operator unit\n'
-                '[Service]\nType=oneshot\nUser=' + user + '\nUMask=0077\n'
+                '[Service]\nType=oneshot\nDelegate=yes\nUser=' + user + '\nUMask=0077\n'
                 'WorkingDirectory=' + str(source) + '\n'
                 'Environment=DOCKER_HOST=unix:///run/user/' + str(uid) + '/docker.sock\n'
                 'Environment=XDG_RUNTIME_DIR=/run/user/' + str(uid) + '\n'
+                'Environment=MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT=/sys/fs/cgroup/system.slice/%n\n'
                 'ExecStart=' + str(interpreter) + ' -m ' + module +
                 (' check' if config_name == 'recovery' else '') + ' --config ' + str(configurations[config_name]) + '\n')
         if config_name == 'daily-recovery':
@@ -86,7 +87,8 @@ def render(source, interpreter, metadata, configuration, user, uid, output):
     report = dict(source_commit=metadata['source_commit'], source_directory=str(source),
                   interpreter=str(interpreter), interpreter_version=version, interpreter_sha256=hashlib.sha256(interpreter.read_bytes()).hexdigest(),
                   module_source_verified=True, configuration=config_status, unit_sha256=checksums,
-                  installed=False, activated=False, native_systemd_verification_pending=True)
+                  installed=False, activated=False, native_systemd_verification_pending=True,
+                  operator_client_cgroup='per-unit delegated system.slice unit; separate from benchmark accounting parent')
     path = output / 'render-report.json'
     path.write_text(json.dumps(report, indent=2) + '\n')
     path.chmod(0o600)

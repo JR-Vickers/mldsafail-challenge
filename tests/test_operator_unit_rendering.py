@@ -33,6 +33,8 @@ def test_inactive_unit_render_binds_source_interpreter_and_rootless_environment(
     assert 'WorkingDirectory=' + str(source) in backup
     assert 'Environment=DOCKER_HOST=unix:///run/user/1001/docker.sock' in backup
     assert 'Environment=XDG_RUNTIME_DIR=/run/user/1001' in backup
+    assert 'Delegate=yes' in backup
+    assert 'Environment=MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT=/sys/fs/cgroup/system.slice/%n' in backup
     assert 'ExecStopPost=' + sys.executable + ' -m deploy.daily_recovery --cleanup' in backup
     assert '/srv/mldsafail/current' not in backup
     assert output.stat().st_mode & 0o077 == 0

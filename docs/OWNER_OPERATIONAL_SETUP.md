@@ -157,3 +157,22 @@ verify` plus manual exact-interpreter/module/container/readiness acceptance unde
 the intended account and rootless environment. Confirm runtime socket availability,
 user/UID ownership and lingering policy. Install/enable timers only after these
 checks, required owner inputs and manual recovery/monitoring acceptance pass.
+
+The rendered system service units delegate their own cgroup with `Delegate=yes`
+and set `MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT` to
+`/sys/fs/cgroup/system.slice/%n` (systemd expands `%n` to the current unit name).
+Each native command is born behind a durable gate and moved to a new owned child
+there before exec; cleanup kills that child's complete kernel membership, including
+Compose plugin descendants. No CPU controller changes or benchmark accounting
+parent reuse are permitted. Keep system units in their rendered default slice;
+a custom slice requires separately rendered/reviewed cgroup-root settings.
+
+Manual native acceptance requires a separately delegated operator unit/cgroup and
+an explicit writable `MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT`. It must be disjoint
+from the benchmark measurement parent and staging evaluator ownership. Native
+preflight checks child `cgroup.procs`, `cgroup.events` and `cgroup.kill`, delegation,
+ownership and cleanup; a configuration string alone does not prove those gates.
+Render only, then have the primary operator verify source/module/executable paths,
+`systemd-analyze verify`, delegated child lifecycle, rootless socket access and
+manual recovery before installation or activation. Missing storage/webhook inputs
+still prevent external acceptance and scheduled activation.
