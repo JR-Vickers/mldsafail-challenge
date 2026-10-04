@@ -65,10 +65,15 @@
         "Reconcile cancelled queued rows idempotently"
       ],
       "status": "passed",
-      "attempts": [],
+      "attempts": [
+        {
+          "result": "Historical positive prerequisite explicitly normalized; original human-readable outcome retained",
+          "historical_evidence_reference": "docs/acceptance/compatible-v050/report.json#/gates/queue_reconciliation"
+        }
+      ],
       "evidence": [
         {
-          "reference": "docs/acceptance/compatible-v050/report.json#/gates/queue_reconciliation",
+          "reference": "docs/acceptance/public-launch/prerequisite-evidence-reconciliation.json#/queue_repair/passed",
           "criteria_met": [
             "Reconcile cancelled queued rows idempotently"
           ]
@@ -92,10 +97,15 @@
         "Provision frozen Python 3.12.10 operator environment"
       ],
       "status": "passed",
-      "attempts": [],
+      "attempts": [
+        {
+          "result": "Historical positive prerequisite explicitly normalized; original human-readable outcome retained",
+          "historical_evidence_reference": "docs/acceptance/compatible-v050/report.json#/gates/operator_environment"
+        }
+      ],
       "evidence": [
         {
-          "reference": "docs/acceptance/compatible-v050/report.json#/gates/operator_environment",
+          "reference": "docs/acceptance/public-launch/prerequisite-evidence-reconciliation.json#/host_environment/passed",
           "criteria_met": [
             "Provision frozen Python 3.12.10 operator environment"
           ]
@@ -1838,10 +1848,15 @@
         "Reconcile historical unresolved gate host_environment"
       ],
       "status": "passed",
-      "attempts": [],
+      "attempts": [
+        {
+          "result": "Historical positive prerequisite explicitly normalized; original human-readable outcome retained",
+          "historical_evidence_reference": "docs/acceptance/compatible-v050/report.json#/gates/operator_environment"
+        }
+      ],
       "evidence": [
         {
-          "reference": "docs/acceptance/compatible-v050/report.json#/gates/operator_environment",
+          "reference": "docs/acceptance/public-launch/prerequisite-evidence-reconciliation.json#/host_environment/passed",
           "criteria_met": [
             "Reconcile historical unresolved gate host_environment"
           ]
@@ -1867,10 +1882,15 @@
         "Reconcile historical unresolved gate native_queue_reconciliation"
       ],
       "status": "passed",
-      "attempts": [],
+      "attempts": [
+        {
+          "result": "Historical positive prerequisite explicitly normalized; original human-readable outcome retained",
+          "historical_evidence_reference": "docs/acceptance/compatible-v050/report.json#/gates/queue_reconciliation"
+        }
+      ],
       "evidence": [
         {
-          "reference": "docs/acceptance/compatible-v050/report.json#/gates/queue_reconciliation",
+          "reference": "docs/acceptance/public-launch/prerequisite-evidence-reconciliation.json#/queue_repair/passed",
           "criteria_met": [
             "Reconcile historical unresolved gate native_queue_reconciliation"
           ]

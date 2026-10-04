@@ -16,7 +16,10 @@ def positive_evidence(value):
     if type(value) is bool:
         return value
     if isinstance(value, str):
-        return bool(re.match(r'^(?:pass(?:ed)?|source_review_passed)(?:$|[ ;:_])', value.strip()))
+        return value in {'pass', 'passed', 'source_review_passed', 'passed_source_review',
+                         'source_review_passed_native_gates_pending',
+                         'passed_source_review_with_native_gates_pending',
+                         'passed_isolated_source_and_local_verification_native_pending'}
     if isinstance(value, dict):
         outcomes = [value[key] for key in ('passed', 'source_review_passed', 'complete',
                     'status', 'result', 'disposition') if key in value]

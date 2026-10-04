@@ -87,7 +87,8 @@ def test_pass_rejects_missing_or_failed_json_pointer(tmp_path):
 
 @pytest.mark.parametrize('outcome', [None, 0, {}, 'unknown', {'status': 'running'},
                                    {'passed': True, 'status': 'failed'},
-                                   {'passed': True, 'complete': False}])
+                                   {'passed': True, 'complete': False}, 'passed; failed',
+                                   'passed; cleanup incomplete', 'pass arbitrary'])
 def test_absence_of_failure_is_not_a_positive_outcome(tmp_path, outcome):
     import json
     (tmp_path / 'docs').mkdir()

@@ -14,5 +14,15 @@
     "passed": true,
     "source": "docs/acceptance/production-preparation/report.json#/review",
     "scope": "Independent source review and corrected templates only; deployment rehearsal and production activation separately gated."
+  },
+  "queue_repair": {
+    "passed": true,
+    "source": "docs/acceptance/compatible-v050/report.json#/gates/queue_reconciliation",
+    "scope": "Historical prerequisite independently reconciled; human-readable outcome preserved in original report."
+  },
+  "host_environment": {
+    "passed": true,
+    "source": "docs/acceptance/compatible-v050/report.json#/gates/operator_environment",
+    "scope": "Historical prerequisite independently reconciled; human-readable outcome preserved in original report."
   }
 }
