@@ -114,10 +114,19 @@ def cleanup(output, receipt):
     receipt.update(cleanup_complete=not errors, cleanup_errors=errors,
                    phase='complete' if not errors else 'cleanup_incomplete')
     attempt = uuid.uuid4().hex + '-cleanup.json'
-    atomic_json(output / attempt, {'run_id': receipt['run_id'], 'cleanup_complete': not errors,
-                                 'errors': errors})
-    receipt.setdefault('cleanup_attempts', []).append(attempt)
-    atomic_json(output / 'ownership.json', receipt)
+    try:
+        atomic_json(output / attempt, {'run_id': receipt['run_id'], 'cleanup_complete': not errors,
+                                     'errors': list(errors)})
+        receipt.setdefault('cleanup_attempts', []).append(attempt)
+    except BaseException as error:
+        errors.append({'step': 'cleanup_receipt_publication', 'error_type': type(error).__name__})
+    receipt.update(cleanup_complete=not errors, cleanup_errors=errors,
+                   phase='complete' if not errors else 'cleanup_incomplete')
+    try:
+        atomic_json(output / 'ownership.json', receipt)
+    except BaseException as error:
+        errors.append({'step': 'ownership_publication', 'error_type': type(error).__name__})
+        receipt.update(cleanup_complete=False, cleanup_errors=errors, phase='cleanup_incomplete')
     return not errors
 
 
@@ -185,6 +194,7 @@ def execute(image, output, cleanup_only):
     atomic_json(output / 'report.json', report)
     def call(argv, **kwargs):
         return command(argv, output, receipt, **kwargs)
+    original = None
     try:
         info = json.loads(call(['docker', 'info', '--format', '{{json .}}']))
         if not any('rootless' in value for value in info.get('SecurityOptions', [])):
@@ -230,15 +240,27 @@ def execute(image, output, cleanup_only):
         report['tests_passed'] = True
         atomic_json(output / 'report.json', report)
     except BaseException as error:
+        original = error
         report['error_type'] = type(error).__name__
-        atomic_json(output / 'report.json', report)
-        raise
+        try: atomic_json(output / 'report.json', report)
+        except BaseException as publication:
+            error.add_note('Failed command report publication: '+type(publication).__name__)
     finally:
-        report['cleanup_complete'] = cleanup(output, receipt)
-        report['passed'] = report['tests_passed'] and report['cleanup_complete']
-        atomic_json(output / 'report.json', report)
-        if not report['cleanup_complete']:
-            raise RuntimeError('Owned disposable database cleanup incomplete; retry --cleanup')
+        try:
+            report['cleanup_complete'] = cleanup(output, receipt)
+        except BaseException as error:
+            report['cleanup_complete'] = False
+            report['cleanup_error_type'] = type(error).__name__
+            if original is None: original = error
+            else: original.add_note('Independent database cleanup failed: '+type(error).__name__)
+        report['passed'] = original is None and report['tests_passed'] and report['cleanup_complete']
+        try: atomic_json(output / 'report.json', report)
+        except BaseException as error:
+            if original is None: original = error
+            else: original.add_note('Final database report publication failed: '+type(error).__name__)
+    if original is not None: raise original
+    if not report['cleanup_complete']:
+        raise RuntimeError('Owned disposable database cleanup incomplete; retry --cleanup')
     return report
 
 

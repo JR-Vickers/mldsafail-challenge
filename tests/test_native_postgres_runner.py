@@ -106,3 +106,49 @@ def test_lost_daemon_run_request_empty_inventory_never_clears_fence(tmp_path, mo
     for _ in range(2):
         assert not runner.cleanup(tmp_path, receipt)
         assert any(e['step'] == 'daemon_mutation_uncertainty' for e in receipt['cleanup_errors'])
+
+
+def test_cleanup_receipt_failure_still_publishes_fenced_ownership(tmp_path, monkeypatch):
+    value=receipt()
+    monkeypatch.setattr(runner,'command',lambda *args,**kwargs:'')
+    monkeypatch.setattr(runner.time,'sleep',lambda _:None)
+    original=runner.atomic_json
+    published=[]
+    def fail_receipt(path,data):
+        published.append(path.name)
+        if path.name.endswith('-cleanup.json'): raise OSError('private disk fault')
+        original(path,data)
+    monkeypatch.setattr(runner,'atomic_json',fail_receipt)
+    assert runner.cleanup(tmp_path,value) is False
+    retained=json.loads((tmp_path/'ownership.json').read_text())
+    assert retained['cleanup_complete'] is False
+    assert any(e['step']=='cleanup_receipt_publication' for e in retained['cleanup_errors'])
+    assert published[-1]=='ownership.json'
+
+
+def test_execution_preserves_original_failure_and_independently_attempts_cleanup_and_final_report(tmp_path,monkeypatch):
+    import subprocess
+    output=tmp_path/'run'
+    primary=ValueError('original native admission failure')
+    calls=[]
+    monkeypatch.setenv('MLDSAFAIL_OPERATOR_DAEMON_MANIFEST','/private/manifest.json')
+    monkeypatch.setattr('deploy.recovery_daemon.bind',lambda *args:None)
+    monkeypatch.setattr(runner.subprocess,'check_output',lambda argv,**kwargs:'a'*40 if argv[-1]=='HEAD' else '')
+    def command(*args,**kwargs): raise primary
+    monkeypatch.setattr(runner,'command',command)
+    def cleanup(*args): calls.append('cleanup');raise RuntimeError('secondary cleanup failure')
+    monkeypatch.setattr(runner,'cleanup',cleanup)
+    real=runner.atomic_json
+    reports=[0]
+    def publish(path,value):
+        if path.name=='report.json':
+            reports[0]+=1
+            calls.append('report:'+str(reports[0]))
+            if reports[0]>1:raise OSError('report disk failure')
+        real(path,value)
+    monkeypatch.setattr(runner,'atomic_json',publish)
+    with pytest.raises(ValueError) as caught:
+        runner.execute('sha256:'+'b'*64,output,False)
+    assert caught.value is primary
+    assert calls==['report:1','report:2','cleanup','report:3']
+    assert len(primary.__notes__)==3
