@@ -9,7 +9,7 @@ import shutil
 import signal
 import uuid
 from deploy.assemble_recovery import assemble
-from deploy.recovery import execute, private_file, validate_set
+from deploy.recovery import execute, private_file, validate_set, validate_verified_receipt
 from deploy.recovery_journal import Journal, atomic_json, safe_path, sync_directory
 from deploy.restore_recovery import verify
 
@@ -38,7 +38,14 @@ def prune(root, repository, keep):
             raise ValueError('Run ownership mismatch')
         if (record.get('repository') == repository and record.get('verified_at') and
                 record.get('cleanup_complete') and record.get('restore_verified')):
-            records.append((record['verified_at'], path, record))
+            try:
+                verified = validate_verified_receipt(record.get('verified_state'), {'repository': repository},
+                                                     expected_snapshot=record.get('snapshot'))
+                if record.get('snapshot') != verified['snapshot']:
+                    raise ValueError('Local run snapshot mismatch')
+            except (ValueError, TypeError, KeyError):
+                continue  # Historical/partial evidence cannot authorize deletion.
+            records.append((datetime.fromisoformat(verified['verified_at']), path, record))
     for _, path, record in sorted(records, reverse=True):
         if not record.get('pruned'):
             remove_owned(root, record['restore_directory'])
@@ -115,7 +122,8 @@ def run(config, cleanup_only=False):
                     verified.get('repository') != backup['repository'] or
                     verified.get('snapshot') != backup['restore_snapshot']):
                 raise ValueError('Verification identity mismatch')
-            record.update(restore_verified=True, cleanup_complete=True,
+            validate_verified_receipt(verified, backup, expected_snapshot=backup['restore_snapshot'])
+            record.update(restore_verified=True, cleanup_complete=True, verified_state=verified,
                           verified_at=datetime.now(timezone.utc).isoformat())
             atomic_json(record_path, record)
             atomic_json(safe_path(backup['backup_state']), verified)

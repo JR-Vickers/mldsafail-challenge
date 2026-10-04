@@ -59,6 +59,10 @@ def validate_verified_state(config, *, now=None, expected_snapshot=None):
                 info.st_mode & 0o077 or info.st_nlink != 1):
             raise ValueError('Recovery state requires owned private regular file')
         state = json.load(stream)
+    return validate_verified_receipt(state, config, now=now, expected_snapshot=expected_snapshot)
+
+
+def validate_verified_receipt(state, config, *, now=None, expected_snapshot=None):
     if not isinstance(state, dict): raise ValueError('Recovery state must be an object')
     now = now or datetime.now(timezone.utc)
     if (state.get('schema') != STATE_SCHEMA or state.get('repository') != config['repository'] or

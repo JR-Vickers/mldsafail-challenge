@@ -82,7 +82,12 @@ def test_retention_preserves_failures_and_repository(tmp_path, monkeypatch):
         record = dict(repository='repo' if index != 6 else 'other',
                       set_directory='set-' + run, restore_directory='restore-' + run,
                       cleanup_complete=index != 4, restore_verified=index != 5,
-                      verified_at=f'2026-10-0{index+1}')
+                      verified_at=f'2026-09-0{index+1}')
+        record['snapshot'] = 'a' * 64
+        record['verified_state'] = dict(schema='mldsafail.recovery-state.v1', repository=record['repository'],
+            snapshot=record['snapshot'], epoch_id='synthetic', result_count=0, restored_manifest_sha256='b' * 64,
+            restore_verified=record['restore_verified'], cleanup_complete=record['cleanup_complete'],
+            uploaded_at=record['verified_at']+'T00:00:00+00:00', verified_at=record['verified_at']+'T00:00:01+00:00')
         for key in ('set_directory', 'restore_directory'):
             (tmp_path / record[key]).mkdir()
         atomic_json(tmp_path / 'journals' / ('run-' + run + '.json'), record)
@@ -297,10 +302,14 @@ def test_verification_published_only_after_cleanup(tmp_path, monkeypatch, cleanu
         operation.data['cleanup_complete'] = False
         operation.save('maintenance intent')
     def upload(config, *args, **kwargs):
-        atomic_json(state, dict(repository='repo', snapshot='snapshot', restore_verified=False))
+        atomic_json(state, dict(repository='repo', snapshot='a'*64, restore_verified=False))
     def verify(config, destination, operation):
         destination.mkdir()
-        return dict(repository='repo', snapshot='snapshot', restore_verified=True, cleanup_complete=True)
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).isoformat()
+        return dict(schema='mldsafail.recovery-state.v1', repository='repo', snapshot='a'*64,
+            epoch_id='synthetic', result_count=0, restored_manifest_sha256='b'*64, uploaded_at=now,
+            verified_at=now, restore_verified=True, cleanup_complete=True)
     def cleanup(operation):
         operation.data.update(cleanup_complete=not cleanup_failure,
                               cleanup_errors=['service:web'] if cleanup_failure else [])
@@ -413,3 +422,17 @@ def test_standalone_operator_serializes_manual_actions(tmp_path):
         return {'accepted': True}
     assert standalone_operation({}, tmp_path, 'fixture', action) == {'accepted': True}
     assert standalone_operation({}, tmp_path, 'fixture', lambda _: pytest.fail('cleanup only'), True)['cleanup_complete']
+
+
+def test_local_pruning_never_uses_unversioned_or_future_receipts(tmp_path, monkeypatch):
+    (tmp_path / 'journals').mkdir()
+    run_id = 'a' * 32
+    record = dict(repository='repo', set_directory='set-' + run_id,
+                  restore_directory='restore-' + run_id, snapshot='b'*64,
+                  restore_verified=True, cleanup_complete=True, verified_at='2099-01-01T00:00:00+00:00')
+    for key in ('set_directory', 'restore_directory'):
+        (tmp_path / record[key]).mkdir()
+    atomic_json(tmp_path / 'journals' / ('run-' + run_id + '.json'), record)
+    prune(tmp_path, 'repo', 1)
+    assert (tmp_path / record['restore_directory']).exists()
+    assert (tmp_path / record['set_directory']).exists()
