@@ -39,7 +39,7 @@ def install(path,text):
 def render(values):
     template=Path(__file__).parent/'templates/owned-daemon.service.in'
     text=template.read_text()
-    if set(values)!={'ROOTLESS_STATE','DOCKERD_ROOTLESS','SOCKET','DATA_ROOT','EXEC_ROOT','WORKER_SLICE','DAEMON_CONFIG'}:
+    if set(values)!={'ROOTLESS_STATE','DOCKERD_ROOTLESS','SOCKET','DATA_ROOT','EXEC_ROOT','WORKER_SLICE','DAEMON_CONFIG','PIDFILE'}:
         raise ValueError('Complete fixed dedicated daemon substitutions required')
     for name,value in values.items():
         if not isinstance(value,str) or not re.fullmatch(r'[A-Za-z0-9_/.-]+',value):
@@ -161,7 +161,16 @@ def cleanup(journal,*,terminal=False):
             if state['unit_fragment_sha256']!=fragment['sha256']: raise RuntimeError('Fresh unit config changed; control prohibited')
             journal.command(['systemctl','--user','stop',data['daemon_unit']],kind='service_stop')
         except BaseException as error: errors.append(dict(step='fresh_daemon_best_effort_stop',error=repr(error)))
-        errors.append(dict(step='setup_authority',error='Unproved daemon startup remains fenced; no positive barrier'))
+        startup=owned_daemon.failed_startup_barrier(data,evidence_directory=journal.path.parent,attempt_id=data['id'])
+        data['failed_startup_barrier']=startup
+        if startup['startup_shutdown_proven']:
+            # Distinct terminal setup proof; never an accepted daemon epoch.
+            data.setdefault('startup_registration_failures',[]).extend(row for row in errors if row['step']=='cleanup_registration')
+            errors[:]=[row for row in errors if row['step']!='cleanup_registration']
+            barrier=dict(shutdown_proven=True,errors=[],failed_startup_receipt=startup)
+        else:
+            errors.extend(startup['errors'])
+            errors.append(dict(step='setup_authority',error='Unproved daemon startup remains fenced; no positive barrier'))
     # Guardian/client domain cleanup follows positive daemon quiescence whenever
     # there may have been Docker mutations. Never cancel unknown daemon creators
     # and then use an empty inventory as proof of completed cleanup.
@@ -264,7 +273,7 @@ def execute(config,repository,*,acceptance=None,daemon_kind='cpu'):
         provision=owned_daemon.bind_worker(provision,worker_parent=parent,worker_cgroup_parent=worker,
                 operator_parent=config['operator_parent'],protected_domains=config['protected_cgroups'])
         data['provisioning']=provision;journal.save()
-        substitutions=dict(DAEMON_CONFIG=provision['daemon_config']['path'],ROOTLESS_STATE=provision['roots']['rootless_state']['path'],DOCKERD_ROOTLESS=config['rootless_script'],SOCKET=data['socket'],DATA_ROOT=provision['roots']['root_dir']['path'],EXEC_ROOT=provision['roots']['exec_root']['path'],WORKER_SLICE=worker)
+        substitutions=dict(PIDFILE=provision['daemon_pidfile'],DAEMON_CONFIG=provision['daemon_config']['path'],ROOTLESS_STATE=provision['roots']['rootless_state']['path'],DOCKERD_ROOTLESS=config['rootless_script'],SOCKET=data['socket'],DATA_ROOT=provision['roots']['root_dir']['path'],EXEC_ROOT=provision['roots']['exec_root']['path'],WORKER_SLICE=worker)
         data['units'].append(install(units/unit,render(substitutions)));journal.save()
         journal.command(['systemctl','--user','daemon-reload'],kind='unit_reload')
         data['start_intent']=True;journal.save()

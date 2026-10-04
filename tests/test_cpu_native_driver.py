@@ -4,7 +4,7 @@ from research.cpu_measurement import native_driver
 
 
 def test_unit_rendering_requires_literal_complete_fresh_paths():
-    fields=dict(DAEMON_CONFIG='/private/daemon.json',ROOTLESS_STATE='/private/state',DOCKERD_ROOTLESS='/usr/bin/dockerd-rootless.sh',SOCKET='/private/docker.sock',DATA_ROOT='/private/data',EXEC_ROOT='/private/exec',WORKER_SLICE='mldsafail-cpu-workers-nonce.slice')
+    fields=dict(PIDFILE='/private/dockerd.pid',DAEMON_CONFIG='/private/daemon.json',ROOTLESS_STATE='/private/state',DOCKERD_ROOTLESS='/usr/bin/dockerd-rootless.sh',SOCKET='/private/docker.sock',DATA_ROOT='/private/data',EXEC_ROOT='/private/exec',WORKER_SLICE='mldsafail-cpu-workers-nonce.slice')
     text=native_driver.render(fields)
     assert '--live-restore=false' in text and 'Restart=no' in text and 'Delegate=yes' in text
     assert '@' not in text

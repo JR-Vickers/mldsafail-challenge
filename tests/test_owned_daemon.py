@@ -186,3 +186,37 @@ def test_private_manifest_roundtrip_retains_terminal_authority(tmp_path,terminal
     value['terminal_only']='false'
     owned_daemon.publish(path,value)
     with pytest.raises(RuntimeError,match='versioned'): owned_daemon.load_manifest(path)
+
+
+def test_docker_data_710_preserves_birth_identity_and_private_parent(tmp_path,monkeypatch):
+    monkeypatch.setattr(owned_daemon.owned_client,'boot_id',lambda:'synthetic-boot')
+    base=tmp_path/'owned';base.parent.chmod(0o700)
+    provision=owned_daemon.provision(base,unit='mldsafail-cpu-daemon-permission.service',protected_roots=[tmp_path/'protected'])
+    data=base/'root_dir';data.chmod(0o710)
+    roots={name:owned_daemon._private_directory(row['path'],docker_data=name=='root_dir') for name,row in provision['roots'].items()}
+    owned_daemon._provisioning(provision,provision['unit'],roots)
+    assert provision['daemon_pidfile']==str(base/'dockerd.pid')
+    with pytest.raises(RuntimeError):owned_daemon._private_directory(data)
+    data.chmod(0o750)
+    with pytest.raises(RuntimeError):owned_daemon._private_directory(data,docker_data=True)
+    data.chmod(0o710);data.rename(base/'old-data');data.mkdir(mode=0o700)
+    roots['root_dir']=owned_daemon._private_directory(data,docker_data=True)
+    with pytest.raises(RuntimeError,match='roots differ'):owned_daemon._provisioning(provision,provision['unit'],roots)
+
+
+def test_failed_startup_proof_is_distinct_and_rejects_uncertain_manager_request(tmp_path,monkeypatch):
+    from deploy import owned_client
+    monkeypatch.setattr(owned_client,'boot_id',lambda:'synthetic-boot')
+    base=tmp_path/'owned';provision=owned_daemon.provision(base,unit='mldsafail-cpu-daemon-retire.service',protected_roots=[tmp_path/'protected'])
+    worker=tmp_path/('mldsafail-cpu-workers-'+provision['id']+'.slice');worker.mkdir();(worker/'cgroup.procs').write_text('')
+    provision.update(worker_birth={'path':str(worker)},operator_domain={'path':str(tmp_path/'operator')},protected_domains=[])
+    state=dict(id='attempt',worker_slice=worker.name,commands=[dict(kind='daemon_start',state='passed',argv=['systemctl'])],provisioning=provision,daemon_unit=provision['unit'],manifest_path=str(base/'absent-manifest'),socket=str(base/'docker.sock'),units=[dict(path=provision['unit'],sha256='a'*64)])
+    monkeypatch.setattr(owned_daemon,'_unit',lambda unit:dict(unit_fragment_sha256='a'*64,ActiveState='failed',MainPID='0',ControlGroup=''))
+    monkeypatch.setattr(owned_daemon.subprocess,'check_output',lambda *a,**kw:b'[]')
+    monkeypatch.setattr(owned_client,'verify_domain',lambda entry:worker)
+    monkeypatch.setattr(owned_client,'populated',lambda domain:False)
+    receipt=owned_daemon.failed_startup_barrier(state,evidence_directory=tmp_path,attempt_id='attempt')
+    assert receipt['startup_shutdown_proven'] is True and receipt['healthy_daemon_registered'] is False
+    state['commands'][0]['state']='uncertain'
+    receipt=owned_daemon.failed_startup_barrier(state,evidence_directory=tmp_path,attempt_id='attempt')
+    assert receipt['startup_shutdown_proven'] is False
