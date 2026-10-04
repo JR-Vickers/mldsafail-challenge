@@ -364,6 +364,7 @@ def restart_and_refresh(manifest, shutdown_receipt, *, manifest_path, client_ent
     if manifest.get('terminal_only') is True: raise RuntimeError('Terminal-only daemon authority cannot restart')
     if not isinstance(shutdown_receipt,dict) or shutdown_receipt.get('schema')!='mldsafail.owned-daemon-barrier.v1' or shutdown_receipt.get('attempt_id')!=attempt_id or shutdown_receipt.get('errors')!=[] or shutdown_receipt.get('shutdown_proven') is not True or shutdown_receipt.get('daemon_manifest_sha256')!=fingerprint(manifest) or shutdown_receipt.get('daemon_epoch')!=manifest['epoch']:
         raise RuntimeError('Positive exact daemon shutdown receipt required')
+    _worker_binding(manifest['provisioning'],manifest['worker_domain'],manifest['worker_cgroup_parent'])
     for entry in client_entries:
         path=owned_client.verify_domain(entry)
         if path is not None and owned_client.populated(path): raise RuntimeError('Owned client survives barrier')

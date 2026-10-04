@@ -68,3 +68,10 @@ def test_corrupt_cleanup_state_still_attempts_positive_barrier(tmp_path,monkeypa
     receipt=native_driver.cleanup(journal,terminal=True)
     assert order==['barrier'] and not receipt['cleanup_complete']
     assert {'measurement_directory','command_receipts','client_receipts'} <= {row['step'] for row in receipt['errors']}
+
+
+def test_api_version_rejects_prefixed_value_before_native_actions(tmp_path,monkeypatch):
+    names=('source_commit supervisor_source_sha256 state_root operator_unit operator_parent protected_roots protected_cgroups image image_archive image_archive_sha256 dockerd_sha256 rootless_script rootless_script_sha256 server_version server_git_commit api_version review_packet').split()
+    config={name:'unused' for name in names};config.update(schema='mldsafail.cpu-native-driver.v1',api_version='v1.56')
+    monkeypatch.setattr(native_driver.subprocess,'check_output',lambda *a,**kw:(_ for _ in ()).throw(AssertionError('No host action')))
+    with pytest.raises(ValueError,match='numeric Docker API'):native_driver.validate(config,tmp_path)

@@ -56,6 +56,8 @@ def validate(config,repository):
             'api_version','review_packet'}
     if set(config)-{'acceptance_source_sha256','additional_images'}!=fields or config['schema'] not in {'mldsafail.cpu-native-driver.v1','mldsafail.owned-native-driver.v1'}:
         raise ValueError('Exact private native driver configuration required')
+    if not isinstance(config['api_version'],str) or not re.fullmatch(r'[0-9]+\.[0-9]+',config['api_version']):
+        raise ValueError('Exact numeric Docker API version required before native mutation')
     if sys.platform!='linux': raise RuntimeError('Native Linux driver required')
     if subprocess.check_output(['git','-C',str(repository),'status','--porcelain'],timeout=15):
         raise RuntimeError('Clean retained source required before native maintenance')

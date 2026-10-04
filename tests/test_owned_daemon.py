@@ -124,6 +124,7 @@ def test_fifo_manifest_rejected_without_waiting_for_writer(tmp_path):
 def test_restart_recovers_new_manifest_published_before_journal_ack(tmp_path,monkeypatch):
     manifest=fixture_manifest(tmp_path,monkeypatch)
     manifest.update(socket=str(tmp_path/'socket'),worker_cgroup_parent='owned.slice',provisioning={},server_version='native',server_git_commit='commit',daemon_executable_sha256='d'*64)
+    monkeypatch.setattr(owned_daemon,'_worker_binding',lambda *args,**kwargs:None)
     refreshed=dict(manifest,epoch='c'*32,leader={'pid':456})
     monkeypatch.setattr(owned_daemon,'load_manifest',lambda *args:refreshed)
     verified=[]
@@ -220,3 +221,14 @@ def test_failed_startup_proof_is_distinct_and_rejects_uncertain_manager_request(
     state['commands'][0]['state']='uncertain'
     receipt=owned_daemon.failed_startup_barrier(state,evidence_directory=tmp_path,attempt_id='attempt')
     assert receipt['startup_shutdown_proven'] is False
+
+
+def test_restart_rejects_lost_original_controller_before_unit_control(tmp_path,monkeypatch):
+    calls=[]
+    monkeypatch.setattr(owned_daemon,'_worker_binding',lambda *a,**kw:(_ for _ in ()).throw(RuntimeError('old controller missing')))
+    monkeypatch.setattr(owned_daemon,'_unit',lambda unit:calls.append('unit'))
+    manifest=dict(provisioning={},worker_domain={},worker_cgroup_parent='fresh',epoch='a'*32)
+    barrier=dict(schema='mldsafail.owned-daemon-barrier.v1',attempt_id='attempt',errors=[],shutdown_proven=True,daemon_manifest_sha256=owned_daemon.fingerprint(manifest),daemon_epoch=manifest['epoch'])
+    with pytest.raises(RuntimeError,match='old controller'):
+        owned_daemon.restart_and_refresh(manifest,barrier,manifest_path=tmp_path/'manifest',evidence_directory=tmp_path,attempt_id='attempt')
+    assert calls==[]
