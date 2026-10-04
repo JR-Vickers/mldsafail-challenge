@@ -7,6 +7,7 @@ from pathlib import Path
 import shutil
 import subprocess
 from deploy.recovery import private_file, validate_set
+from deploy.recovery_journal import atomic_json, restore_service
 
 
 def assemble(config, destination, operation=None):
@@ -17,20 +18,24 @@ def assemble(config, destination, operation=None):
     def command(argv, timeout=30):
         return subprocess.check_output(argv, stderr=subprocess.DEVNULL, text=True, timeout=timeout)
     states = {}
+    identifiers = {}
     for role in ['web', 'coordinator']:
         identifier = command(compose + ['ps', '-aq', role]).strip()
+        if not identifier or len(identifier.split()) != 1:
+            raise ValueError('Expected exactly one existing service container')
+        identifiers[role] = identifier
         states[role] = json.loads(command(['docker', 'inspect', '--format', '{{json .State}}', identifier]))['Running']
     if operation:
-        operation.services(compose, states)
+        operation.services(compose, states, identifiers)
     journal = destination / 'maintenance.json'
-    journal.write_text(json.dumps({'compose': compose, 'service_states': states, 'cleanup_complete': False}))
-    journal.chmod(0o600)
+    atomic_json(journal, {'compose': compose, 'service_states': states,
+                          'service_identifiers': identifiers, 'cleanup_complete': False})
     categories = {key: [] for key in ['database', 'epoch', 'evidence', 'configuration', 'secrets', 'release', 'images']}
     try:
         for role in ['coordinator', 'web']:
             if operation:
                 operation.save('stop ' + role + ' intent')
-            command(compose + ['stop', role], 60)
+            command(['docker', 'container', 'stop', identifiers[role]], 60)
         code = '''import json,os
 from pathlib import Path
 from sqlalchemy import create_engine,select,text
@@ -109,11 +114,12 @@ print(json.dumps({'epoch':str(epoch),'runs':paths,'epoch_id':manifest['id']}))
             errors = []
             for role, running in states.items():
                 try:
-                    command(compose + ['start' if running else 'stop', role], 60)
+                    restore_service(identifiers[role], running)
                 except Exception:
                     errors.append(role)
-            journal.write_text(json.dumps({'compose': compose, 'service_states': states,
-                                          'cleanup_complete': not errors, 'cleanup_errors': errors}))
+            atomic_json(journal, {'compose': compose, 'service_states': states,
+                                  'service_identifiers': identifiers,
+                                  'cleanup_complete': not errors, 'cleanup_errors': errors})
             if errors:
                 raise RuntimeError('Recovery assembly cleanup incomplete; restore states from private journal')
     journal.unlink()

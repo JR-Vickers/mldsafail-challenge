@@ -72,11 +72,61 @@ def test_assembly_failure_restores_original_service_states(tmp_path, monkeypatch
             raise RuntimeError('interrupted snapshot inspection')
         return ''
     monkeypatch.setattr('deploy.assemble_recovery.subprocess.check_output', output)
+    monkeypatch.setattr('deploy.recovery_journal.subprocess.run', lambda argv, **kw: calls.append(argv))
     config = {'env_file': '/private/env', 'compose': '/app/compose.private.yaml'}
     destination = tmp_path / 'set'
     with pytest.raises(RuntimeError):
         assemble(config, destination)
-    assert any(argv[-2:] == ['start', 'web'] for argv in calls)
-    assert any(argv[-2:] == ['start', 'coordinator'] for argv in calls)
+    assert ['docker', 'container', 'start', 'web'] in calls
+    assert ['docker', 'container', 'start', 'coordinator'] in calls
+    assert not any('compose' in argv and 'start' in argv for argv in calls)
     assert json.loads((destination / 'maintenance.json').read_text())['cleanup_complete']
     assert not (destination / 'recovery.json').exists()
+
+
+def test_restoration_uses_pinned_container_and_retains_stopped_state(tmp_path, monkeypatch):
+    from deploy.recovery_journal import Journal
+    journal = Journal(tmp_path / 'operation.json', {})
+    journal.services(['docker', 'compose'], {'web': False}, {'web': 'original-container'})
+    calls = []
+    monkeypatch.setattr('deploy.recovery_journal.subprocess.run', lambda argv, **kw: calls.append(argv))
+    def inspect(argv, **kwargs):
+        assert argv[-1] == 'original-container'
+        return '{"Running":false}'
+    monkeypatch.setattr('deploy.recovery_journal.subprocess.check_output', inspect)
+    journal.cleanup()
+    assert calls == [['docker', 'container', 'stop', 'original-container']]
+    assert journal.data['cleanup_complete']
+
+
+def test_missing_pinned_container_never_recreates_service(tmp_path, monkeypatch):
+    from deploy.recovery_journal import Journal
+    journal = Journal(tmp_path / 'operation.json', {})
+    journal.services(['docker', 'compose'], {'web': True}, {'web': 'missing-container'})
+    calls = []
+    def missing(argv, **kwargs):
+        calls.append(argv)
+        raise RuntimeError('container disappeared')
+    monkeypatch.setattr('deploy.recovery_journal.subprocess.run', missing)
+    with pytest.raises(RuntimeError, match='cleanup incomplete'):
+        journal.cleanup()
+    assert not journal.data['cleanup_complete']
+    assert calls == [['docker', 'container', 'start', 'missing-container']]
+
+
+def test_old_journal_reconciles_identity_before_restoration(tmp_path, monkeypatch):
+    from deploy.recovery_journal import Journal
+    journal = Journal(tmp_path / 'operation.json', {})
+    journal.data.update(compose=['docker', 'compose'], services={'web': True}, cleanup_complete=False)
+    journal.save('legacy maintenance')
+    def output(argv, **kwargs):
+        if 'ps' in argv:
+            return 'existing-container'
+        return '{"Running":true}'
+    def command(argv, **kwargs):
+        assert json.loads(journal.path.read_text())['service_identifiers']['web'] == 'existing-container'
+        assert argv == ['docker', 'container', 'start', 'existing-container']
+    monkeypatch.setattr('deploy.recovery_journal.subprocess.check_output', output)
+    monkeypatch.setattr('deploy.recovery_journal.subprocess.run', command)
+    journal.cleanup()
+    assert journal.data['cleanup_complete']

@@ -34,6 +34,23 @@ def atomic_json(path, value):
     sync_directory(path.parent)
 
 
+def restore_service(identifier, running):
+    """Restore an existing container without Compose dependency activation."""
+    if not identifier or len(identifier.split()) != 1:
+        raise ValueError('Expected exactly one existing service container')
+    subprocess.run(['docker', 'container', 'start' if running else 'stop', identifier],
+                   check=True, capture_output=True, timeout=60)
+    deadline = time.monotonic() + 60
+    while True:
+        state = json.loads(subprocess.check_output(
+            ['docker', 'inspect', '--format', '{{json .State}}', identifier], text=True, timeout=30))
+        if state['Running'] == running and (not running or state.get('Health', {}).get('Status', 'healthy') == 'healthy'):
+            return
+        if time.monotonic() >= deadline:
+            raise RuntimeError('Service health/state mismatch')
+        time.sleep(1)
+
+
 class Journal:
     def __init__(self, path, config):
         self.path = safe_path(path)
@@ -71,8 +88,11 @@ class Journal:
         self.data['phase'] = phase
         atomic_json(self.path, self.data)
 
-    def services(self, compose, states):
-        self.data.update(compose=compose, services=states, cleanup_complete=False)
+    def services(self, compose, states, identifiers):
+        if set(identifiers) != set(states):
+            raise ValueError('Service identity inventory mismatch')
+        self.data.update(compose=compose, services=states, service_identifiers=identifiers,
+                         cleanup_complete=False)
         self.save('service maintenance intent')
 
     def container(self, name, image):
@@ -99,18 +119,16 @@ class Journal:
                 errors.append('container:' + container['name'])
         for role, running in self.data['services'].items():
             try:
-                compose = self.data['compose']
-                subprocess.run(compose + ['start' if running else 'stop', role], check=True,
-                               capture_output=True, timeout=60)
-                identifier = subprocess.check_output(compose + ['ps', '-aq', role], text=True, timeout=30).strip()
-                deadline = time.monotonic() + 60
-                while True:
-                    state = json.loads(subprocess.check_output(['docker', 'inspect', '--format', '{{json .State}}', identifier], text=True, timeout=30))
-                    if state['Running'] == running and (not running or state.get('Health', {}).get('Status', 'healthy') == 'healthy'):
-                        break
-                    if time.monotonic() >= deadline:
-                        raise RuntimeError('Service health/state mismatch')
-                    time.sleep(1)
+                identifiers = self.data.setdefault('service_identifiers', {})
+                if role not in identifiers:
+                    # Persist identities for interrupted pre-upgrade journals first.
+                    identifier = subprocess.check_output(self.data['compose'] + ['ps', '-aq', role],
+                                                         text=True, timeout=30).strip()
+                    if not identifier or len(identifier.split()) != 1:
+                        raise ValueError('Expected exactly one existing service container')
+                    identifiers[role] = identifier
+                    self.save('service identity reconciliation')
+                restore_service(identifiers[role], running)
             except Exception:
                 errors.append('service:' + role)
         self.data.update(cleanup_errors=errors, cleanup_complete=not errors)

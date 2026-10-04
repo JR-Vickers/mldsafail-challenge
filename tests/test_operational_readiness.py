@@ -126,7 +126,7 @@ def boundary(stage):
         time.sleep(30)
 def assembly(config, destination, operation):
     destination.mkdir()
-    operation.services(['docker','compose'], {'web': True, 'coordinator':True})
+    operation.services(['docker','compose'], {'web': True, 'coordinator':True}, {'web':'web','coordinator':'coordinator'})
     operation.container('recovery-test', 'sha256:'+'a'*64)
     boundary('assembly')
 def execute(config, *args):
@@ -198,7 +198,7 @@ def test_concurrent_and_restart_reconciliation(tmp_path):
 
 def test_cleanup_independent_failure_and_retry(tmp_path, monkeypatch):
     journal = Journal(tmp_path / 'operation.json', {})
-    journal.services(['docker','compose'], {'web':True,'coordinator':True})
+    journal.services(['docker','compose'], {'web':True,'coordinator':True}, {'web':'web','coordinator':'coordinator'})
     calls = []
     def command(argv, **kwargs):
         calls.append(argv)
@@ -323,6 +323,7 @@ def test_assembly_maintenance_boundaries(tmp_path, monkeypatch, boundary):
             raise InterruptedError()
         return ''
     monkeypatch.setattr('deploy.assemble_recovery.subprocess.check_output', output)
+    monkeypatch.setattr('deploy.recovery_journal.subprocess.run', lambda argv, **kw: calls.append(argv))
     with pytest.raises(InterruptedError):
         assemble(dict(env_file='/private/env', compose='/app/compose.private.yaml'), tmp_path / 'set')
     assert any(argv[-2:] == ['start','web'] for argv in calls)
