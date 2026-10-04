@@ -55,22 +55,17 @@ def test_cleanup_never_removes_mismatched_resource(tmp_path, monkeypatch):
     assert not any(argv[:3] == ['docker', 'rm', '-f'] for argv in calls)
 
 
-def test_interrupted_owned_client_is_killed_and_receipt_retained(tmp_path, monkeypatch):
+def test_command_delegates_durable_client_receipt(tmp_path, monkeypatch):
     value = receipt()
-    calls = []
-    class Process:
-        pid = 123
-        returncode = None
-        def poll(self): return self.returncode
-        def communicate(self, timeout): raise InterruptedError('injected interruption')
-        def kill(self): calls.append('kill'); self.returncode = -9
-        def wait(self, timeout): calls.append('wait'); return self.returncode
-    monkeypatch.setattr(runner.subprocess, 'Popen', lambda *a, **kw: Process())
-    monkeypatch.setattr(runner, 'process_identity', lambda _: dict(pid=123, start_ticks=10, uid=os.getuid(), cmdline_sha256='d' * 64, boot_id='test'))
+    def interrupted(argv, entries, save, directory, **kwargs):
+        entries.append({'id': 'owned', 'finished': False})
+        save()
+        raise InterruptedError('injected interruption')
+    from deploy import owned_client
+    monkeypatch.setattr(owned_client, 'run', interrupted)
     with pytest.raises(InterruptedError):
         runner.command(['docker', 'run'], tmp_path, value)
-    assert calls == ['kill', 'wait']
-    assert json.loads((tmp_path / 'ownership.json').read_text())['clients'][0]['finished']
+    assert json.loads((tmp_path / 'ownership.json').read_text())['clients'] == [{'id': 'owned', 'finished': False}]
 
 
 def test_execute_and_cleanup_share_exclusive_lock(tmp_path, monkeypatch):

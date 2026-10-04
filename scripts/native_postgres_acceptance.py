@@ -18,60 +18,18 @@ from deploy.recovery_journal import atomic_json, safe_path
 LABEL = 'org.mldsafail.native-postgres'
 
 
-def process_identity(pid):
-    root = Path('/proc') / str(pid)
-    stat = (root / 'stat').read_text()
-    return dict(pid=pid, start_ticks=int(stat[stat.rindex(')') + 2:].split()[19]),
-                uid=root.stat().st_uid,
-                cmdline_sha256=hashlib.sha256((root / 'cmdline').read_bytes()).hexdigest(),
-                boot_id=Path('/proc/sys/kernel/random/boot_id').read_text().strip())
-
-
 def command(argv, output, receipt, timeout=90, env=None, log=None):
-    """Record owned clients so interrupted cleanup never signals a reused PID."""
-    process = subprocess.Popen(argv, stdout=log or subprocess.PIPE,
-                               stderr=subprocess.STDOUT if log else subprocess.PIPE, env=env)
-    entry = None
-    try:
-        try:
-            entry = process_identity(process.pid)
-            entry['finished'] = False
-            receipt.setdefault('clients', []).append(entry)
-            atomic_json(output / 'ownership.json', receipt)
-        except FileNotFoundError:
-            if process.poll() is None:
-                raise
-        stdout, stderr = process.communicate(timeout=timeout)
-        if process.returncode:
-            raise RuntimeError('Owned native command failed; private evidence retained')
-        return stdout.decode().strip() if stdout is not None else ''
-    finally:
-        if process.poll() is None:
-            process.kill()
-            process.wait(timeout=15)
-        if entry is not None:
-            entry['finished'] = True
-            atomic_json(output / 'ownership.json', receipt)
+    from deploy.owned_client import run
+    result = run(argv, receipt.setdefault('clients', []),
+                 lambda: atomic_json(output / 'ownership.json', receipt), output,
+                 timeout=timeout, env=env, stdout=log,
+                 stderr=subprocess.STDOUT if log else None, text=True)
+    return result.stdout.strip() if result.stdout is not None else ''
 
 
 def stop_client(entry):
-    if entry.get('finished') or entry['boot_id'] != Path('/proc/sys/kernel/random/boot_id').read_text().strip():
-        return
-    descriptor = None
-    try:
-        descriptor = os.pidfd_open(entry['pid'])
-        if process_identity(entry['pid']) != {key: entry[key] for key in
-                ('pid', 'start_ticks', 'uid', 'cmdline_sha256', 'boot_id')}:
-            raise RuntimeError('Owned native client identity mismatch')
-        signal.pidfd_send_signal(descriptor, signal.SIGKILL)
-        import select
-        if not select.select([descriptor], [], [], 15)[0]:
-            raise RuntimeError('Owned native client survived cleanup')
-    except (ProcessLookupError, FileNotFoundError):
-        pass
-    finally:
-        if descriptor is not None:
-            os.close(descriptor)
+    from deploy.owned_client import stop
+    stop(entry)
 
 
 def cleanup(output, receipt):
