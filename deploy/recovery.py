@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import stat
 import subprocess
@@ -44,6 +45,16 @@ def validate_set(root):
     return manifest
 
 
+def validate_prune_state(config):
+    state = json.loads(private_file(config['backup_state']).read_text())
+    expected = config.get('restore_verified_snapshot')
+    if (not isinstance(expected, str) or not re.fullmatch(r'[a-f0-9]{64}', expected) or
+            state.get('repository') != config['repository'] or state.get('snapshot') != expected or
+            state.get('restore_verified') is not True or state.get('cleanup_complete') is not True):
+        raise ValueError('Pruning requires exact repository/snapshot verified restoration and complete cleanup')
+    return state
+
+
 def execute(config, operation, recovery_set=None, destination=None, journal=None):
     binary = Path(config['restic_binary'])
     if hashlib.sha256(binary.read_bytes()).hexdigest() != config['restic_sha256']:
@@ -69,11 +80,12 @@ def execute(config, operation, recovery_set=None, destination=None, journal=None
     elif operation == 'check':
         argv += ['check', '--read-data']
     elif operation == 'prune':
-        if not config.get('restore_verified_snapshot'):
-            raise ValueError('Pruning requires an isolated verified restore')
+        validate_prune_state(config)
         argv += ['forget', '--tag', config['environment'], '--keep-daily', '7',
                  '--keep-weekly', '4', '--keep-monthly', '6', '--prune']
     elif operation == 'restore':
+        if not re.fullmatch(r'[a-f0-9]{64}', str(config.get('restore_snapshot', ''))):
+            raise ValueError('Immutable full restore snapshot identity required')
         if destination is None or destination.exists():
             raise ValueError('Restore destination must be new and isolated')
         argv += ['restore', config['restore_snapshot'], '--target', str(destination)]
