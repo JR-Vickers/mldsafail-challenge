@@ -69,3 +69,19 @@ backup and relevant affected gate checks. Record exact repaired source/artifacts
 verification protocol, failure evidence, operator and UTC time. Public reactivation
 or changed contract/default still needs its owner decision. Report unresolved
 owner inputs explicitly; do not equate repaired private staging with public launch.
+
+## Interrupted disposable rehearsal or public reproduction
+
+Use the run's protected durable journal and the same current-user rootless Docker
+socket. Acquire its existing exclusive run lock before cleanup; do not start a
+replacement run against the same root. Source or release manifest corruption is
+evidence to retain and does not grant authority to change run ownership. Cleanup
+must cancel exact owned native client sessions before stopping dispatch controllers
+and workers, then verify final owned container/network/volume inventories.
+A missing client identity, surviving client or failed final inventory prevents
+cleanup completion. Retained failed database volumes must be individually
+accounted in the baseline journal; do not delete them merely to make inventory
+empty. Public reproduction retains public input, partial output and failed
+comparison evidence. A normalized match with incomplete cleanup is incomplete
+acceptance. Reconcile interrupted clients and late Docker creation before running
+another shared-host gate.
