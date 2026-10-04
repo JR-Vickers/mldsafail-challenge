@@ -1515,17 +1515,26 @@
       "criteria": [
         "Native retries dedup recovery notices freshness expired leases failed jobs and privacy acceptance"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
           "protocol": "Native Linux resource floors; synthetic readiness/service/lease/backup/job decisions and strict actual shared backup receipt validator; loopback 503/503/204 delivery retries, deduplication, recovery and privacy. Own delegated unit with verified generic helper; no external receiver or scheduler activation.",
-          "result": "planned"
+          "result": "passed 20 checks; final owned process/domain absence verified"
         }
       ],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/monitoring-native-report.json#/passed",
+          "criteria_met": [
+            "Native retries dedup recovery notices freshness expired leases failed jobs and privacy acceptance"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7"
+      },
+      "next_action": "Complete separate live read-only wiring and external receiver gates",
       "checklist": []
     },
     {
@@ -1580,7 +1589,8 @@
       ],
       "dependencies": [
         "recovery-offhost",
-        "webhook-acceptance"
+        "webhook-acceptance",
+        "monitor-live-readonly-wiring"
       ],
       "environment": "private staging",
       "criteria": [
@@ -2592,6 +2602,33 @@
       "evidence": [],
       "identities": {},
       "next_action": "Implement and independently review shared daemon barrier, integrate applicable operator paths, exercise native interruption faults before measurements or successful cleanup claims",
+      "checklist": []
+    },
+    {
+      "id": "monitor-live-readonly-wiring",
+      "requirement": "Verify installed native monitoring read-only health and lease inspection against exact private staging services",
+      "sources": [
+        "user-plan",
+        "deploy/host_checks.py"
+      ],
+      "dependencies": [
+        "monitor-native"
+      ],
+      "environment": "private staging read-only, sequential",
+      "criteria": [
+        "Native host checks reach readiness, service and lease inspection; absent approved backup is reported as backup failure; alerts remain disabled and cleanup proven"
+      ],
+      "status": "running",
+      "attempts": [
+        {
+          "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
+          "protocol": "Protected disposable config references live services and missing approved backup state, alert_enabled false, no scheduled jobs; expect exactly backup failure. Own delegated unit, final controller/domain absence.",
+          "result": "planned"
+        }
+      ],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute read-only monitoring and independently reconcile service/client state",
       "checklist": []
     }
   ],
