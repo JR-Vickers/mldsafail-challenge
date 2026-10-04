@@ -1239,7 +1239,10 @@
           ]
         }
       ],
-      "identities": {},
+      "identities": {
+        "source_commit": "60ce7e8f2be8f94d3b2b7647d4cf6a6af8c7f2da",
+        "supervisor_source_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
+      },
       "next_action": "Complete separately tracked full fault suite and paired measurement gates",
       "checklist": []
     },
