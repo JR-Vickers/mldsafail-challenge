@@ -12,7 +12,7 @@ STATUSES = {'verified', 'invalid', 'no_answer', 'malformed', 'crash', 'timeout',
 
 
 def audit(record):
-    required = {'schema', 'generation', 'parent_device', 'parent_inode', 'status', 'verified',
+    required = {'schema', 'generation', 'boot_id', 'parent_device', 'parent_inode', 'status', 'execution_status', 'verified',
                 'cleanup_complete', 'measurement_method', 'counter_before_usec', 'counter_after_usec',
                 'authoritative_cpu_usec', 'wall_seconds', 'binding', 'membership', 'input_delivery',
                 'termination', 'output_sha256', 'public_input', 'raw_stdout_base64', 'worker_returncode', 'source_artifact', 'accounting_parent', 'observations', 'capture', 'declared_timeout_seconds', 'started_monotonic', 'deadline_monotonic'}
@@ -22,6 +22,14 @@ def audit(record):
         raise ValueError('Invalid ownership generation identity')
     if any(type(record[key]) is not int or record[key] < 0 for key in ('parent_device', 'parent_inode')):
         raise ValueError('Invalid accounting parent identity')
+    if not isinstance(record['boot_id'], str) or not re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', record['boot_id']):
+        raise ValueError('Missing host boot identity')
+    if record['execution_status'] not in {'exited', 'crash', 'timeout', 'output_limit'}:
+        raise ValueError('Invalid execution disposition')
+    if record['status'] in {'verified', 'no_answer', 'malformed'} and record['execution_status'] != 'exited':
+        raise ValueError('Successful output disposition requires ordinary exit')
+    if record['status'] in {'crash', 'timeout', 'output_limit'} and record['execution_status'] != record['status']:
+        raise ValueError('Failure execution/status disagreement')
     if record['status'] not in STATUSES or type(record['verified']) is not bool:
         raise ValueError('Invalid verifier disposition')
     if record['verified'] != (record['status'] == 'verified'):
@@ -95,9 +103,9 @@ def audit(record):
             raise ValueError('Invalid termination clock evidence')
     if record['declared_timeout_seconds'] <= 0 or record['deadline_monotonic'] != record['started_monotonic'] + record['declared_timeout_seconds'] or capture['stopped_monotonic'] < record['started_monotonic']:
         raise ValueError('Inconsistent declared termination deadline')
-    if record['status'] == 'timeout' and capture['stopped_monotonic'] < record['deadline_monotonic']:
+    if record['execution_status'] == 'timeout' and capture['stopped_monotonic'] < record['deadline_monotonic']:
         raise ValueError('Timeout preceded declared deadline')
-    if record['status'] == 'output_limit':
+    if record['execution_status'] == 'output_limit':
         overflow = capture['overflow']
         if not isinstance(overflow, dict) or set(overflow) != {'stream', 'observed_bytes'} or overflow['stream'] not in {'stdout', 'stderr'} or type(overflow['observed_bytes']) is not int or overflow['observed_bytes'] <= capture['cap_bytes']:
             raise ValueError('Output limit lacks overflow proof')
@@ -106,8 +114,16 @@ def audit(record):
     from mldsafail.benchmark_v050.models import instance_from_dict
     from mldsafail.benchmark_v050.verify import verify_candidate
     instance = instance_from_dict(json.loads(json.dumps(record['public_input'])))
+    try:
+        emitted = json.loads(raw)
+        candidate = emitted.get('candidate')
+        invalid_candidate = candidate is not None and not verify_candidate(instance, candidate)['verified']
+    except (ValueError, TypeError, AttributeError):
+        invalid_candidate = False
+    if invalid_candidate and record['status'] != 'invalid':
+        raise ValueError('Invalid emitted candidate cannot become an ordinary penalty')
     if record['status'] in {'verified', 'invalid', 'no_answer', 'malformed'}:
-        if record['worker_returncode'] != 0:
+        if record['status'] != 'invalid' and record['worker_returncode'] != 0:
             raise ValueError('Successful output disposition requires zero exit')
         try:
             output = json.loads(raw)
@@ -129,6 +145,8 @@ def audit_journal(directory, generation=None):
     if Path(name).name != name:
         raise ValueError('Ownership manifest path escapes private directory')
     journal = json.loads((directory / name).read_text())
+    if journal.get('measurement_aborted') or (directory / (journal['generation'] + '-interrupted.json')).exists():
+        raise ValueError('Interrupted/aborted generation is never a score')
     if journal.get('state') != 'complete':
         raise ValueError('Ownership generation is unfinished')
     name = journal['evidence_file']
@@ -141,10 +159,10 @@ def audit_journal(directory, generation=None):
     if hashlib.sha256(payload).hexdigest() != journal['evidence_sha256']:
         raise ValueError('Durable evidence digest mismatch')
     record = json.loads(payload)
-    for key in ('generation', 'parent_device', 'parent_inode'):
+    for key in ('generation', 'boot_id', 'parent_device', 'parent_inode'):
         if record[key] != journal[key]:
             raise ValueError('Ownership generation mismatch')
-    if record['status'] in {'verified', 'invalid', 'no_answer', 'malformed'}:
+    if record['status'] in {'verified', 'no_answer', 'malformed'} or (record['status'] == 'invalid' and record['execution_status'] == 'exited'):
         expected_input = json.dumps({'instance': record['public_input'], 'solver': 'contestant'},
                                     sort_keys=True, separators=(',', ':')).encode()
         deliveries = [entry for entry in journal['mutations'] if entry['operation'] == 'input_delivered']
@@ -180,7 +198,7 @@ def case_cost(records):
     binding_keys = ('source_sha256', 'supervisor_source_sha256', 'source_commit', 'image', 'epoch', 'host', 'kernel', 'docker')
     binding = records[0]['binding']
     if any(any(record['binding'][key] != binding[key] for key in binding_keys) or
-           record['public_input'] != records[0]['public_input'] for record in records[1:]):
+           (record['public_input'] != records[0]['public_input'] or record['boot_id'] != records[0]['boot_id']) for record in records[1:]):
         raise ValueError('Case measurements have inconsistent provenance/input')
     if any(result['status'] == 'invalid' for result in decisions):
         return {'eligible': False, 'cost_usec': None}

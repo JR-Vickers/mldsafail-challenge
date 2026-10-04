@@ -38,6 +38,7 @@ def test_host_membership_proof(tmp_path):
     (b'malformed', 0, 'malformed'),
     (b'', 0, 'malformed'),
     (b'', 1, 'crash'),
+    (b'{"candidate":{"tag":"forged"}}', 1, 'invalid'),
 ])
 def test_experimental_worker_ignores_reported_cpu_and_verification(tmp_path, monkeypatch, output, exitcode, expected):
     import json
@@ -76,7 +77,7 @@ def test_predeclared_cpu_adoption_gates():
     for index, row in enumerate(rows):
         row.update(schema='mldsafail.cpu-evidence.v1', status='no_answer', cleanup_complete=True,
                    suite_id='suite', source_sha256='source', image='image', host_identity='host',
-                   parent_inode=1, parent_device=2, generation=str(index),
+                   parent_inode=1, parent_device=2, generation=str(index), boot_id='00000000-0000-0000-0000-000000000000',
                    started_monotonic=index * 2., finished_monotonic=index * 2. + 1.,
                    counter_before_usec=0, counter_after_usec=row['authoritative_cpu_usec'])
     assert measurement_gates(rows, audit_records=False)['passed']
@@ -177,8 +178,8 @@ def test_private_supervisor_request_restricts_paths():
 
 def test_independent_audit_rejects_cleanup_and_counter_fabrication():
     from research.cpu_measurement.audit import audit
-    record = dict(schema='mldsafail.cpu-evidence.v1', generation='a'*32, parent_device=1,
-                  parent_inode=2, status='no_answer', verified=False, cleanup_complete=True,
+    record = dict(schema='mldsafail.cpu-evidence.v1', generation='a'*32, boot_id='00000000-0000-0000-0000-000000000000', parent_device=1,
+                  parent_inode=2, status='no_answer', execution_status='exited', verified=False, cleanup_complete=True,
                   measurement_method='cgroup-v2-usage-usec', counter_before_usec=20,
                   counter_after_usec=120, authoritative_cpu_usec=100, wall_seconds=1.,
                   binding=dict(source_sha256='a'*64, supervisor_source_sha256='e'*64, source_commit='f'*40, image='sha256:'+'b'*64, epoch='isolated',
@@ -284,21 +285,51 @@ def test_failed_invocation_retains_preexecution_source_and_public_input(tmp_path
     source = tmp_path / 'contestant'
     source.mkdir()
     (source / 'solver.py').write_text('def solve(instance): return None\n')
+    (source / 'nested').mkdir()
+    (source / 'nested/helper.py').write_text('VALUE = 1\n')
     monkeypatch.setattr(harness, 'canonical_directory', lambda _: private)
     original_read = Path.read_bytes
     monkeypatch.setattr(Path, 'read_bytes', lambda path: b'host-identity' if str(path) == '/etc/machine-id' else original_read(path))
     monkeypatch.setattr(harness.subprocess, 'check_output', lambda *args, **kwargs: b'a'*40)
     def interrupted(*args, owner, **kwargs):
+        snapshot = args[3]
+        assert snapshot.stat().st_mode & 0o777 == 0o755
+        assert (snapshot / 'nested').stat().st_mode & 0o777 == 0o755
         intent = owner.record['mutations'][0]
+        assert (private / intent['source_artifact']).stat().st_mode & 0o777 == 0o700
         assert intent['operation'] == 'invocation_intent'
         assert (private / intent['source_artifact'] / 'solver.py').read_text() == (source / 'solver.py').read_text()
         raise RuntimeError('Injected failure after durable provenance')
     monkeypatch.setattr(harness, '_run', interrupted)
     public = generate_mlwe('small', 0, 1).public.to_dict()
-    with pytest.raises(RuntimeError, match='durable provenance'):
-        harness.run('sha256:'+'b'*64, parent, 'native-slice', source, public, lambda *args: False,
-                    ownership_directory=private)
+    import os
+    previous_umask = os.umask(0o077)
+    try:
+        with pytest.raises(RuntimeError, match='durable provenance'):
+            harness.run('sha256:'+'b'*64, parent, 'native-slice', source, public, lambda *args: False,
+                        ownership_directory=private)
+    finally:
+        os.umask(previous_umask)
     journal = json.loads((private / 'journal.json').read_text())
     assert journal['state'] == 'interrupted'
     assert journal['mutations'][0]['public_input'] == json.loads(json.dumps(public))
     assert len(list(private.glob('*-interrupted.json'))) == 1
+
+
+def test_reboot_cleanup_never_signals_reused_host_client_pid(tmp_path, monkeypatch):
+    from research.cpu_measurement.ownership import Ownership
+    from research.cpu_measurement import reconcile
+    parent = tmp_path / 'parent'
+    parent.mkdir()
+    (parent / 'cgroup.events').write_text('populated 0\n')
+    (parent / 'cpu.stat').write_text('usage_usec 1\n')
+    directory = tmp_path / 'private'
+    with pytest.raises(ValueError):
+        with Ownership(directory, parent) as owner:
+            owner.mutation('host_client_spawned', pid=123, start_ticks=1, uid=1, cmdline_sha256='a'*64)
+            raise ValueError('interrupted')
+    monkeypatch.setattr(reconcile, 'boot_id', lambda: 'different-boot')
+    def forbidden(*args): raise AssertionError('Rebooted host client PID must never be signaled')
+    monkeypatch.setattr(reconcile.os, 'pidfd_open', forbidden, raising=False)
+    receipt = reconcile.reconcile(directory, parent)
+    assert receipt['cleanup_complete'] and receipt['changed_boot']

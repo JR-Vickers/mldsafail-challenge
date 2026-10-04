@@ -41,8 +41,10 @@ def lifecycle(args, output):
                               stderr=subprocess.DEVNULL)
     results = []
     connection = None
+    socket_identity = None
     try:
         wait_for(lambda: socket_path.exists() and server.poll() is None)
+        socket_identity = socket_path.stat().st_ino
         connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         connection.settimeout(30)
         connection.connect(str(socket_path))
@@ -80,20 +82,38 @@ def lifecycle(args, output):
         results.append(dict(fault='SIGKILL', passed=fenced and cleanup['cleanup_complete'],
                             generation=interrupted['generation'], cleanup=cleanup))
     finally:
-        if connection is not None:
-            connection.close()
-        if server.poll() is None:
-            server.terminate()
-            try:
-                server.wait(timeout=40)
-            except subprocess.TimeoutExpired:
-                server.kill()
-                server.wait(timeout=10)
-        # Always reconcile before a later host operation, even after probe errors.
-        cleanup = reconcile(state, args.parent)
-        if socket_path.exists():
-            # This directory is freshly created and owns this exact server socket.
-            socket_path.unlink()
+        errors = []
+        try:
+            if connection is not None:
+                connection.close()
+        except Exception as error:
+            errors.append(dict(step='socket_connection_close', error=repr(error)))
+        try:
+            if server.poll() is None:
+                server.terminate()
+                try:
+                    server.wait(timeout=40)
+                except subprocess.TimeoutExpired:
+                    server.kill()
+                    server.wait(timeout=10)
+        except Exception as error:
+            errors.append(dict(step='supervisor_termination', error=repr(error)))
+        cleanup = {'cleanup_complete': False}
+        try:
+            cleanup = reconcile(state, args.parent)
+            if not cleanup['cleanup_complete']:
+                errors.append(dict(step='generation_reconciliation', error='Cleanup remains incomplete'))
+        except Exception as error:
+            errors.append(dict(step='generation_reconciliation', error=repr(error)))
+        try:
+            if socket_path.exists():
+                if socket_identity is None or socket_path.stat().st_ino != socket_identity:
+                    raise RuntimeError('Owned socket identity changed; removal prohibited')
+                socket_path.unlink()
+        except Exception as error:
+            errors.append(dict(step='owned_socket_removal', error=repr(error)))
+        cleanup['independent_cleanup_errors'] = errors
+        cleanup['cleanup_complete'] = cleanup['cleanup_complete'] and not errors
         publish(output / 'cleanup.json', cleanup)
         if not cleanup['cleanup_complete']:
             raise RuntimeError('Lifecycle cleanup remains incomplete; new work prohibited')

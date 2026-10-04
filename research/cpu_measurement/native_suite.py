@@ -45,7 +45,7 @@ def measurement_gates(rows, evidence_directory=None, *, audit_records=True):
                 raise ValueError('Pair row does not match immutable generation evidence')
         if row.get('schema') != 'mldsafail.cpu-evidence.v1' or row.get('status') != 'no_answer' or row.get('cleanup_complete') is not True:
             raise ValueError('Complete audited measurement status required')
-        identity = tuple(row.get(key) for key in ('suite_id', 'source_sha256', 'image', 'host_identity', 'parent_inode', 'parent_device'))
+        identity = tuple(row.get(key) for key in ('suite_id', 'source_sha256', 'image', 'host_identity', 'parent_inode', 'parent_device', 'boot_id'))
         if any(value is None for value in identity) or (provenance is not None and identity != provenance):
             raise ValueError('Consistent provenance required')
         provenance = identity

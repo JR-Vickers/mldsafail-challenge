@@ -55,8 +55,16 @@ def run(image, parent, cgroup_parent, source, public_input, verify, timeout=60, 
         with tempfile.TemporaryDirectory() as directory:
             snapshot = Path(directory) / 'solver'
             solver_snapshot(source, snapshot)
+            # The worker UID must traverse its readonly bind root even when the
+            # supervisor unit uses UMask=0077. Only this disposable mount tree
+            # is readable; private archives remain behind owner-only paths.
+            for path in [snapshot, *(path for path in snapshot.rglob('*') if path.is_dir())]:
+                path.chmod(0o755)
             artifact_name = owner.record['generation'] + '-source'
             shutil.copytree(snapshot, owner.directory / artifact_name)
+            archive = owner.directory / artifact_name
+            for path in [archive, *(path for path in archive.rglob('*') if path.is_dir())]:
+                path.chmod(0o700)
             sync_tree(owner.directory / artifact_name)
             binding = dict(
                 source_sha256=hashlib.sha256(json.dumps({path.relative_to(snapshot).as_posix():
@@ -128,7 +136,7 @@ def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60,
         process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if owner is not None:
             owner.mutation('host_client_spawned', pid=process.pid,
-                           start_ticks=process_start_ticks(process.pid))
+                           start_ticks=process_start_ticks(process.pid), **process_identity(process.pid))
         membership_deadline = time.monotonic() + 10
         while True:
             inspected = subprocess.run(['docker', 'inspect', '--format', '{{json .State}}', name],
@@ -217,7 +225,18 @@ def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60,
             raise RuntimeError('Descendants survived cleanup; measurement unavailable')
         time.sleep(.05)
     cpu = collect(parent, before)  # Missing measurements raise; never accept reported timing.
+    execution_status = status
     verified = False
+    if status != 'exited' and raw:
+        try:
+            output = json.loads(raw)
+            candidate = output.get('candidate')
+            from mldsafail.benchmark_v050.models import instance_from_dict
+            from mldsafail.benchmark_v050.verify import verify_candidate
+            if candidate is not None and not verify_candidate(instance_from_dict(public_input), candidate)['verified']:
+                status = 'invalid'
+        except (ValueError, TypeError, AttributeError):
+            pass
     if status == 'exited':
         try:
             output = json.loads(raw)
@@ -233,7 +252,7 @@ def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60,
         except (ValueError, TypeError, AttributeError):
             status = 'malformed'
     finished = time.monotonic()
-    return {'status': status, 'verified': verified, 'authoritative_cpu_usec': cpu,
+    return {'status': status, 'execution_status': execution_status, 'verified': verified, 'authoritative_cpu_usec': cpu,
             'wall_seconds': finished - started, 'experimental': True,
             'measurement_method': 'cgroup-v2-usage-usec',
             'counter_before_usec': before, 'counter_after_usec': before + cpu,
@@ -247,6 +266,18 @@ def _run(image, parent, cgroup_parent, source, public_input, verify, timeout=60,
             'docker_identity': dict(cgroup_version=info['CgroupVersion'],
                                     cgroup_driver=info.get('CgroupDriver', 'unknown'),
                                     server_version=info.get('ServerVersion', 'unknown'))}
+
+
+def process_identity(pid):
+    status = (Path('/proc') / str(pid) / 'status').read_text().splitlines()
+    uids = [line.split()[1] for line in status if line.startswith('Uid:')]
+    if len(uids) != 1:
+        raise RuntimeError('Missing host client UID identity')
+    with (Path('/proc') / str(pid) / 'cmdline').open('rb') as stream:
+        command = stream.read(128 * 1024 + 1)
+    if not command or len(command) > 128 * 1024:
+        raise RuntimeError('Missing or oversized host client command identity')
+    return dict(uid=int(uids[0]), cmdline_sha256=hashlib.sha256(command).hexdigest())
 
 
 def process_start_ticks(pid):
@@ -283,7 +314,13 @@ def prove_exclusive(parent, authorized):
         raise RuntimeError('Invalid authorized descendant domain')
     for path in [parent / 'cgroup.procs', *parent.rglob('cgroup.procs')]:
         domain = path.parent.resolve()
-        if not domain.is_relative_to(authorized) and path.read_text().strip():
+        try:
+            members = path.read_text().strip()
+        except FileNotFoundError:
+            if domain != parent and not path.parent.exists():
+                continue  # A removed empty descendant cannot contain processes.
+            raise
+        if not domain.is_relative_to(authorized) and members:
             raise RuntimeError('Unauthorized accounting domain member')
 
 

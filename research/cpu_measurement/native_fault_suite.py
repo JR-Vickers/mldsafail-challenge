@@ -57,6 +57,7 @@ def execute(args):
             return original_run(argv, **kwargs)
         holder = None
         intruder = None
+        cleanup_errors = []
         foreign = args.parent / "cpu-native-contamination"
         try:
             if fault == 'competing_owner':
@@ -104,18 +105,30 @@ def execute(args):
                           expected_failure=expected, error_type=type(error).__name__, error=str(error))
         finally:
             if intruder is not None:
-                if intruder.poll() is None:
-                    intruder.kill()
-                intruder.wait(timeout=10)
-                foreign.rmdir()
+                for step, action in [('intruder_kill', lambda: intruder.kill() if intruder.poll() is None else None),
+                                     ('intruder_wait', lambda: intruder.wait(timeout=10)),
+                                     ('foreign_cgroup_remove', foreign.rmdir)]:
+                    try:
+                        action()
+                    except Exception as error:
+                        cleanup_errors.append(dict(step=step, error=repr(error)))
             if holder is not None:
-                holder.__exit__(RuntimeError, RuntimeError('Competing-owner probe complete'), None)
-        cleanup = reconcile(directory, args.parent)
+                try:
+                    holder.__exit__(RuntimeError, RuntimeError('Competing-owner probe complete'), None)
+                except Exception as error:
+                    cleanup_errors.append(dict(step='competing_owner_release', error=repr(error)))
+        # Preserve the probe receipt even if independent reconciliation fails.
+        result['independent_cleanup_errors'] = cleanup_errors
+        publish(args.output / (fault + '.json'), result)
+        try:
+            cleanup = reconcile(directory, args.parent)
+        except Exception as error:
+            cleanup = dict(cleanup_complete=False, error_type=type(error).__name__, error=str(error))
         result['cleanup'] = cleanup
-        result['passed'] = result['passed'] and cleanup['cleanup_complete']
+        result['passed'] = result['passed'] and cleanup['cleanup_complete'] and not cleanup_errors
         publish(args.output / (fault + '.json'), result)
         results.append(result)
-        if not cleanup['cleanup_complete']:
+        if cleanup_errors or not cleanup['cleanup_complete']:
             break  # Conflicting work is prohibited until explicit repair.
     if all(row['passed'] for row in results):
         from research.cpu_measurement.native_lifecycle import lifecycle
@@ -141,8 +154,14 @@ def grandchild_probe(args, directory, instance):
     witnesses = {}
     def observe(parent, authorized):
         original(parent, authorized)
-        for path in authorized.rglob('cgroup.procs'):
-            for text in path.read_text().split():
+        for path in [authorized / 'cgroup.procs', *authorized.rglob('cgroup.procs')]:
+            try:
+                members = path.read_text().split()
+            except FileNotFoundError:
+                if not path.parent.exists():
+                    continue
+                raise
+            for text in members:
                 pid = int(text)
                 try:
                     harness.prove_membership(pid, parent)
@@ -153,20 +172,7 @@ def grandchild_probe(args, directory, instance):
                     if key not in witnesses or witness['cpu_ticks'] > witnesses[key]['cpu_ticks']:
                         witnesses[key] = witness
                 except FileNotFoundError:
-                    pass  # A process that exited before observation is not proof.
-        # Include the worker domain itself (rglob only returns descendants).
-        for text in (authorized / 'cgroup.procs').read_text().split() if authorized.exists() else []:
-            pid = int(text)
-            try:
-                harness.prove_membership(pid, parent)
-                fields = (Path('/proc') / text / 'stat').read_text().rpartition(')')[2].split()
-                witness = dict(pid=pid, parent_pid=int(fields[1]), start_ticks=int(fields[19]),
-                               cpu_ticks=int(fields[11]) + int(fields[12]))
-                key = (pid, witness['start_ticks'])
-                if key not in witnesses or witness['cpu_ticks'] > witnesses[key]['cpu_ticks']:
-                    witnesses[key] = witness
-            except FileNotFoundError:
-                pass
+                    pass  # An exited process is not descendant accounting proof.
     with patch.object(harness, 'prove_exclusive', side_effect=observe):
         result = harness.run(args.image, args.parent, args.cgroup_parent,
                              Path(__file__).parent / 'fixtures' / 'grandchild', instance.to_dict(),

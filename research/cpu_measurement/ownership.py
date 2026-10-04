@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import uuid
+import sys
 
 SCHEMA = 'mldsafail.cpu-evidence.v1'
 
@@ -60,7 +61,7 @@ class Ownership:
                 raise RuntimeError('Interrupted ownership requires explicit cleanup reconciliation')
             identity = os.fstat(self.parent_fd)
             self.record = dict(schema=SCHEMA, generation=uuid.uuid4().hex,
-                               state='owned', parent_device=identity.st_dev,
+                               state='owned', boot_id=boot_id(), parent_device=identity.st_dev,
                                parent_inode=identity.st_ino, mutations=[])
             self.update('owned')
             return self
@@ -94,7 +95,7 @@ class Ownership:
             raise RuntimeError('Ownership generation already completed')
         if evidence.get('cleanup_complete') is not True:
             raise RuntimeError('Incomplete cleanup cannot release ownership')
-        evidence.update(schema=SCHEMA, generation=self.record['generation'],
+        evidence.update(schema=SCHEMA, generation=self.record['generation'], boot_id=self.record['boot_id'],
                         parent_device=self.record['parent_device'], parent_inode=self.record['parent_inode'], ownership_mutations=self.record['mutations'])
         path = self.directory / (self.record['generation'] + '.json')
         publish(path, evidence)
@@ -150,3 +151,9 @@ def canonical_directory(parent):
     """One immutable user-state mapping for each canonical host accounting parent."""
     key = hashlib.sha256(str(Path(parent).resolve()).encode()).hexdigest()
     return Path.home() / '.local' / 'state' / 'mldsafail' / 'cpu-ownership' / key
+
+
+def boot_id():
+    if sys.platform != 'linux':
+        return 'non-native-local-test'
+    return Path('/proc/sys/kernel/random/boot_id').read_text().strip()

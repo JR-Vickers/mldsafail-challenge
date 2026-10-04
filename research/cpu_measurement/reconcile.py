@@ -14,8 +14,8 @@ import subprocess
 import time
 import signal
 import select
-from research.cpu_measurement.ownership import publish, canonical_directory
-from research.cpu_measurement.harness import fields, prove_membership, worker_cgroup, prove_exclusive, process_start_ticks
+from research.cpu_measurement.ownership import publish, canonical_directory, boot_id
+from research.cpu_measurement.harness import fields, prove_membership, worker_cgroup, prove_exclusive, process_start_ticks, process_identity
 
 
 def reconcile(directory, parent):
@@ -30,8 +30,11 @@ def reconcile(directory, parent):
         journal = json.loads((directory / 'journal.json').read_text())
         if journal['state'] == 'complete':
             return {'cleanup_complete': True, 'already_complete': True}
+        changed_boot = journal.get('boot_id') != boot_id()
+        if changed_boot and fields(parent / 'cgroup.events')['populated']:
+            raise RuntimeError('Host reboot changed ownership; unexplained live members cannot be touched')
         identity = os.fstat(parent_descriptor)
-        if (identity.st_dev, identity.st_ino) != (journal['parent_device'], journal['parent_inode']):
+        if not changed_boot and (identity.st_dev, identity.st_ino) != (journal['parent_device'], journal['parent_inode']):
             raise RuntimeError('Accounting parent identity changed; cannot reconcile')
         original = directory / (journal['generation'] + '-interrupted.json')
         if not original.exists():
@@ -54,6 +57,8 @@ def reconcile(directory, parent):
                     if inspected['Config'].get('Labels', {}).get('org.mldsafail.cpu-generation') != journal['generation'] or inspected['Image'] != expected['image'] or inspected['HostConfig']['CgroupParent'] != expected['cgroup_parent']:
                         raise RuntimeError('Owned container generation/image/accounting identity mismatch')
                     pid = inspected['State'].get('Pid', 0)
+                    if changed_boot and pid:
+                        raise RuntimeError('Host reboot has unexplained live owned container; manual review required')
                     if pid:
                         prove_membership(pid, parent)
                         authorized_domains.append(worker_cgroup(pid))
@@ -61,12 +66,12 @@ def reconcile(directory, parent):
             except Exception as error:
                 errors.append(dict(step='container_remove', error=repr(error)))
         for entry in journal['mutations']:
-            if entry['operation'] != 'host_client_spawned':
+            if changed_boot or entry['operation'] != 'host_client_spawned':
                 continue
             handle = None
             try:
                 handle = os.pidfd_open(entry['pid'])
-                if process_start_ticks(entry['pid']) != entry['start_ticks']:
+                if process_start_ticks(entry['pid']) != entry['start_ticks'] or process_identity(entry['pid']) != {key: entry[key] for key in ('uid', 'cmdline_sha256')}:
                     raise RuntimeError('Host client PID identity mismatch')
                 signal.pidfd_send_signal(handle, signal.SIGKILL)
                 if not select.select([handle], [], [], 10)[0]:
@@ -96,12 +101,13 @@ def reconcile(directory, parent):
                 time.sleep(.05)
             counter = fields(parent / 'cpu.stat')['usage_usec']
             before = [entry['counter_before_usec'] for entry in journal['mutations'] if 'counter_before_usec' in entry]
-            if before and counter < max(before):
+            if before and not changed_boot and counter < max(before):
                 raise RuntimeError('Accounting counter regressed')
         except Exception as error:
             errors.append(dict(step='domain_proof', error=repr(error)))
         attempt = dict(schema='mldsafail.cpu-cleanup.v1', generation=journal['generation'],
-                       cleanup_complete=not errors, errors=errors, original_evidence=original.name)
+                       cleanup_complete=not errors, errors=errors, original_evidence=original.name,
+                       changed_boot=changed_boot, current_boot_id=boot_id())
         import uuid
         name = journal['generation'] + '-cleanup-' + uuid.uuid4().hex + '.json'
         publish(directory / name, attempt)
