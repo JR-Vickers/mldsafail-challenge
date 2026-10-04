@@ -1,0 +1,21 @@
+{
+  "schema": "mldsafail.participant-archive-independent-review.v1",
+  "archive_source_commit": "a4f1f273b1294c94b73e3d2c789f41d0e953300f",
+  "archive_sha256": "b3ff543af250bb96b6dc098c9f0bad900fdc6d3edb097a1ab2e94ddf9a7d3dd8",
+  "wheel_sha256": "47b1bc54fcee977665dad922df4b633d9e81762a36802b6e279d5dcb062b0bbb",
+  "source_review": "passed",
+  "checked": [
+    "Eight regular allowlisted archive files; no links/traversal/private environments",
+    "All SHA256SUMS entries bind all other archive members",
+    "All included local Markdown links resolve",
+    "Approved starter matches frozen hash",
+    "Six public fixed-profile fixtures contain only public input fields",
+    "Fixture/specification/starter/installer unchanged from reviewed16e archive",
+    "Wheel inventory identical to original4a9; only cli.py and RECORD differ",
+    "README describes synthetic initial Git identity and preserves frozen0.5 scoring/cooperative clock scope"
+  ],
+  "limits": [
+    "Native Linux wheel installation rerun remains separately required",
+    "No public publication or launch approval claimed"
+  ]
+}
