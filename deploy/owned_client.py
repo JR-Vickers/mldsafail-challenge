@@ -34,7 +34,7 @@ def domain_identity(path):
         raise RuntimeError('Owned cgroup path must be canonical')
     info = path.stat()
     return {'path': str(path), 'device': info.st_dev, 'inode': info.st_ino,
-            'boot_id': boot_id()}
+            'boot_id': boot_id(), 'uid': info.st_uid, 'mode': info.st_mode & 0o777}
 
 
 def verify_domain(entry):
@@ -140,6 +140,7 @@ def capture(process, payload, timeout, buffers, observe, cap=8 * 1024 * 1024):
                         remaining = remaining[os.write(stream.fileno(), remaining):]
                     except BrokenPipeError:
                         remaining = remaining[:0]
+                        source = None
                     if not remaining and source is not None:
                         remaining = memoryview(source.read(65536))
                     if not remaining:

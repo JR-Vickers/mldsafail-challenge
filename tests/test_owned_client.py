@@ -175,3 +175,18 @@ def test_delegated_parent_writer_and_domain_guards(tmp_path, monkeypatch, mode, 
     (tmp_path / 'cgroup.type').write_text(kind)
     with pytest.raises(RuntimeError, match=error):
         client.prepare_domain({'id': 'owned'}, tmp_path)
+
+
+def test_closed_child_stdin_stops_file_reads(emulated_domain):
+    class Source:
+        reads = 0
+        def read(self, size):
+            self.reads += 1
+            if self.reads > 5:
+                raise AssertionError('Input drained after closed child pipe')
+            return b'x' * size
+    source = Source()
+    result = client.run([client.sys.executable, '-c', 'import sys;sys.stdin.close()'], [],
+                        lambda: None, emulated_domain, timeout=5, stdin=source)
+    assert result.returncode == 0
+    assert source.reads <= 5
