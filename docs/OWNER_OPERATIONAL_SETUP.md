@@ -120,3 +120,40 @@ explicit serialized staging protocol. Only after manual acceptance and authorize
 external delivery should `alert_enabled` become true and installed monitoring/
 recovery timers be activated. Record exact unit/interpreter/source identities and
 current health, not merely successful JSON parsing.
+
+## Render source-bound inactive system units
+
+The generic checked-in system units point at `/srv/mldsafail/current/.venv`.
+That path is not installed in current staging. Never create an unreviewed current
+symlink or change frozen application source merely to make a generic unit work.
+Choose the retained **operator source** containing accepted recovery/monitoring
+fixes, its source manifest (`source_commit`, `source_files_sha256`), and the exact
+installed Python 3.12.10 environment separately. Existing native frozen interpreter
+is in the retained fd4be66 source environment; operator modules should resolve
+from the explicitly supplied retained working directory, with hashes checked.
+
+Prepare JSON mapping `daily-recovery`, `recovery`, `monitor` to literal absolute
+private configuration paths. The standalone `recovery` JSON is the daily wrapper's
+`backup` object. Then render into a new protected directory:
+
+```sh
+python -m deploy.render_operator_units --source "$RETAINED_OPERATOR_SOURCE" \
+  --interpreter "$INSTALLED_OPERATOR_PYTHON" --metadata "$OPERATOR_SOURCE_MANIFEST" \
+  --configs "$PRIVATE_CONFIG_PATH_MAPPING" --user mldsafail --uid "$DEPLOYMENT_UID" \
+  --output "$NEW_INACTIVE_UNIT_DIRECTORY"
+```
+
+The renderer verifies every `deploy/*.py` against source metadata and actual
+module resolution through the chosen interpreter. It records interpreter hash
+and unit hashes. System `User=` units receive explicit
+`DOCKER_HOST=unix:///run/user/UID/docker.sock` and `XDG_RUNTIME_DIR=/run/user/UID`;
+otherwise systemd may address the wrong daemon or lack the user's runtime path.
+Missing private configs are explicitly activation-blocking in the render report.
+Present configs must be private regular files; content acceptance remains separate.
+No unit is installed or activated by this command.
+
+Primary operator must native-verify the rendered units using `systemd-analyze
+verify` plus manual exact-interpreter/module/container/readiness acceptance under
+the intended account and rootless environment. Confirm runtime socket availability,
+user/UID ownership and lingering policy. Install/enable timers only after these
+checks, required owner inputs and manual recovery/monitoring acceptance pass.

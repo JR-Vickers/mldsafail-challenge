@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-04",
+  "reviewer": "independent launch-preparation agent",
+  "scope": "supervisor/ownership/streaming/cleanup/native-protocol source review; root owns separate independent auditor review",
+  "source_files_sha256": {
+    "research/cpu_measurement/supervisor.py": "80fe92400d40663785aff4b11624f47a2b3e9e7a5735baaee6ccb4f404f03445",
+    "research/cpu_measurement/ownership.py": "68452f1a4e95a48697721770d849c9c864b96533d19fa71996089d682b4275ea",
+    "research/cpu_measurement/harness.py": "625a21c80dba0071a89b49669d169b84a1cf2f6a86d5821241809c4c1efc012f",
+    "research/cpu_measurement/reconcile.py": "c375b4b509d7a857811f39a6a213ec7655e98ed63cfe5431a5d25c29fabc197c",
+    "research/cpu_measurement/native_suite.py": "a367b74d0fce661f49fd7cad9979d92163a324f02944f7de3e11e8118246ef62",
+    "research/cpu_measurement/native_fault_suite.py": "06435e2c9e53f17e843595906eb893d46e7e4995aab4ebdc3132183bd2ab8d31"
+  },
+  "result": "source_review_passed_native_gates_pending",
+  "focused_verification": {
+    "command": "uv run pytest tests/test_cpu_proposal.py -q",
+    "passed": 18
+  },
+  "findings": [
+    {
+      "id": "SUPERVISOR-REVIEW-1",
+      "requirement": "absolute request deadline bounds a dribbling trusted client",
+      "original_issue": "socket timeout applied per recv only",
+      "correction": "monotonic absolute deadline with remaining timeout before every recv; dribble-clock regression test",
+      "status": "passed"
+    },
+    {
+      "id": "SUPERVISOR-REVIEW-2",
+      "requirement": "native expected fault acceptance requires actual injection/preconditions",
+      "original_issue": "any unrelated exception counted as expected native fault",
+      "correction": "native no-answer/positive-counter/cleanup baseline; injection-reached and designated failure cause checks; competing owner requires BlockingIOError",
+      "status": "passed"
+    }
+  ],
+  "verified_design": [
+    "canonical parent-scoped durable interruption fencing plus held parent/directory flock",
+    "source artifact synchronization and evidence receipt publication before ownership release",
+    "bounded selector output capture, EOF-with-live-process timeout and cleanup independent steps",
+    "private same-UID fixture-only socket requests; response excludes raw evidence/source/filesystem details",
+    "SIGTERM/KeyboardInterrupt exits after cleanup with durable interruption state"
+  ],
+  "not_established": [
+    "native delegation and actual supervisor socket acceptance",
+    "complete accounting fault suite: contamination, delegation, SIGKILL, connection loss, grandchild membership remain listed",
+    "30 sequential audited empty-worker/deterministic-fixture pairs on exact retained source/images",
+    "adopted 0.6.0 evidence/API/CLI/cohort integration or public/production activation"
+  ],
+  "production_adoption_approved": false
+}
