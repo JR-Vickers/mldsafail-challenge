@@ -129,7 +129,7 @@ def assembly(config, destination, operation):
     operation.services(['docker','compose'], {'web': True, 'coordinator':True}, {'web':'web','coordinator':'coordinator'})
     operation.container('recovery-test', 'sha256:'+'a'*64)
     boundary('assembly')
-def execute(config, *args):
+def execute(config, *args, **kwargs):
     boundary('upload')
     Path(config['backup_state']).write_text(json.dumps({'repository':'repo','snapshot':'snapshot'}))
 def verify(config, destination, operation):
@@ -280,7 +280,7 @@ def test_verification_published_only_after_cleanup(tmp_path, monkeypatch, cleanu
         destination.mkdir()
         operation.data['cleanup_complete'] = False
         operation.save('maintenance intent')
-    def upload(config, *args):
+    def upload(config, *args, **kwargs):
         atomic_json(state, dict(repository='repo', snapshot='snapshot', restore_verified=False))
     def verify(config, destination, operation):
         destination.mkdir()
@@ -364,3 +364,36 @@ def test_retained_release_exact_inventory_and_cli(tmp_path):
     destination.chmod(0o500)
     with pytest.raises(ValueError, match='list'):
         verify(root, data['source_commit'])
+
+
+def test_standalone_operator_cleanup_preserves_original_and_journal(tmp_path, monkeypatch):
+    from deploy.recovery_journal import standalone_operation
+    calls = []
+    def cleanup(self):
+        calls.append('cleanup')
+        self.data.update(cleanup_complete=False, cleanup_errors=['injected'])
+        self.save('failed cleanup')
+        raise RuntimeError('cleanup failure')
+    monkeypatch.setattr(Journal, 'cleanup', cleanup)
+    def action(operation):
+        operation.data['cleanup_complete'] = False
+        operation.save('failure intent')
+        raise ValueError('original failure')
+    with pytest.raises(ValueError, match='original failure') as raised:
+        standalone_operation({}, tmp_path, 'fixture', action)
+    assert calls == ['cleanup']
+    assert 'cleanup failed' in raised.value.__notes__[0]
+    path = tmp_path / '.mldsafail-fixture-operation' / 'operation.json'
+    assert not json.loads(path.read_text())['cleanup_complete']
+    with pytest.raises(RuntimeError, match='cleanup failure'):
+        standalone_operation({}, tmp_path, 'fixture', lambda _: pytest.fail('must reconcile first'))
+
+
+def test_standalone_operator_serializes_manual_actions(tmp_path):
+    from deploy.recovery_journal import standalone_operation
+    def action(operation):
+        with pytest.raises(BlockingIOError):
+            standalone_operation({}, tmp_path, 'fixture', lambda _: None)
+        return {'accepted': True}
+    assert standalone_operation({}, tmp_path, 'fixture', action) == {'accepted': True}
+    assert standalone_operation({}, tmp_path, 'fixture', lambda _: pytest.fail('cleanup only'), True)['cleanup_complete']

@@ -16,6 +16,9 @@ def assemble(config, destination, operation=None):
     destination.mkdir(mode=0o700, parents=True)
     compose = ['docker', 'compose', '--env-file', config['env_file'], '-f', config['compose']]
     def command(argv, timeout=30):
+        if operation:
+            return operation.command(argv, stderr=subprocess.DEVNULL, capture_output=True,
+                                     text=True, check=True, timeout=timeout).stdout
         return subprocess.check_output(argv, stderr=subprocess.DEVNULL, text=True, timeout=timeout)
     states = {}
     identifiers = {}
@@ -132,13 +135,17 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument("--cleanup", action="store_true")
     args = parser.parse_args()
     os.umask(0o077)
     import signal
     for sig in [signal.SIGTERM, signal.SIGHUP]:
         signal.signal(sig, lambda *_: (_ for _ in ()).throw(InterruptedError()))
     try:
-        print(json.dumps(assemble(json.loads(private_file(args.config).read_text()), args.output)))
+        from deploy.recovery_journal import standalone_operation
+        config = json.loads(private_file(args.config).read_text())
+        print(json.dumps(standalone_operation(config, args.output.parent, 'assembly',
+            lambda operation: assemble(config, args.output, operation=operation), args.cleanup)))
     except Exception:
         print(json.dumps({'assembly_failed': True, 'private_evidence_retained': True}))
         raise SystemExit(1)

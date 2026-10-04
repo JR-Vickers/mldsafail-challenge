@@ -100,8 +100,22 @@ class Journal:
         self.data['cleanup_complete'] = False
         self.save('container creation intent')
 
+    def command(self, argv, **kwargs):
+        from deploy.owned_client import run
+        self.data['cleanup_complete'] = False
+        return run(argv, self.data.setdefault('clients', []),
+                   lambda: self.save('owned host client'), self.path.parent,
+                   **kwargs)
+
     def cleanup(self):
         errors = []
+        from deploy.owned_client import stop
+        for entry in self.data.get('clients', []):
+            try:
+                stop(entry)
+                entry['finished'] = True
+            except Exception:
+                errors.append('host_client:' + entry['id'])
         for container in self.data['containers']:
             try:
                 result = subprocess.run(['docker', 'container', 'ls', '-aq', '--no-trunc',
@@ -135,3 +149,39 @@ class Journal:
         self.save('cleanup')
         if errors:
             raise RuntimeError('Recovery cleanup incomplete')
+
+
+def standalone_operation(config, parent, role, action, cleanup_only=False):
+    """Durable serial ownership for manual operator entry points."""
+    import fcntl
+    import stat
+    parent = safe_path(parent)
+    directory = safe_path(parent / ('.mldsafail-' + role + '-operation'))
+    directory.mkdir(mode=0o700, exist_ok=True)
+    info = directory.stat()
+    if info.st_uid != os.getuid() or info.st_mode & 0o077:
+        raise ValueError('Private owned operator journal directory required')
+    sync_directory(parent)
+    descriptor = os.open(directory / 'lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    try:
+        info = os.fstat(descriptor)
+        if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
+            raise ValueError('Private owned operator lock required')
+        fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        operation = Journal(directory / 'operation.json', config)
+        if not operation.data['cleanup_complete']:
+            operation.cleanup()
+        if cleanup_only:
+            return {'cleanup_complete': True}
+        try:
+            result = action(operation)
+        except BaseException as original:
+            try:
+                operation.cleanup()
+            except BaseException as error:
+                original.add_note('Independent operator cleanup failed: ' + type(error).__name__)
+            raise
+        operation.cleanup()
+        return result
+    finally:
+        os.close(descriptor)

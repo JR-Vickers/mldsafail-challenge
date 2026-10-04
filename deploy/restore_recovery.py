@@ -10,7 +10,7 @@ from deploy.recovery import execute, private_file, validate_set
 
 
 def verify(config, destination, operation=None):
-    execute(config, 'restore', destination=destination)
+    execute(config, 'restore', destination=destination, journal=operation)
     roots = list(destination.rglob('recovery.json'))
     if len(roots) != 1:
         raise ValueError('Restore must contain exactly one recovery set')
@@ -25,7 +25,12 @@ def verify(config, destination, operation=None):
     name = 'restore-' + uuid.uuid4().hex
     identifier = None
     def command(argv, **kwargs):
-        return subprocess.check_output(argv, stderr=subprocess.DEVNULL, timeout=kwargs.pop('timeout', 60), **kwargs)
+        timeout = kwargs.pop('timeout', 60)
+        if operation:
+            return operation.command(argv, stderr=subprocess.DEVNULL, capture_output=True,
+                                     check=True, timeout=timeout, **kwargs).stdout
+        return subprocess.check_output(argv, stderr=subprocess.DEVNULL, timeout=timeout, **kwargs)
+    run_command = operation.command if operation else subprocess.run
     if operation:
         operation.container(name, config['postgres_image'])
     try:
@@ -35,13 +40,13 @@ def verify(config, destination, operation=None):
                     '-e', 'POSTGRES_DB=restore', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust',
                     config['postgres_image']]).decode().strip()
         deadline = time.monotonic() + 60
-        while subprocess.run(['docker', 'exec', identifier, 'pg_isready', '-U', 'postgres', '-d', 'restore'],
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10).returncode:
+        while run_command(['docker', 'exec', identifier, 'pg_isready', '-U', 'postgres', '-d', 'restore'],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10, check=False).returncode:
             if time.monotonic() >= deadline:
                 raise RuntimeError('Isolated restore database not ready')
             time.sleep(1)
         with dumps[0].open('rb') as stream:
-            subprocess.run(['docker', 'exec', '-i', identifier, 'pg_restore', '-U', 'postgres',
+            run_command(['docker', 'exec', '-i', identifier, 'pg_restore', '-U', 'postgres',
                             '-d', 'restore', '--no-owner', '--no-privileges', '--exit-on-error'], stdin=stream,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=600)
         source = Path(__file__).with_name('verify_recovery_evidence.py').read_text()
@@ -71,19 +76,25 @@ def verify(config, destination, operation=None):
               'epoch_id': result['epoch_id'], 'result_count': result['result_count']}
     if operation:
         return record
-    temporary = state.with_suffix('.tmp')
-    temporary.write_text(json.dumps(record))
-    temporary.chmod(0o600)
-    temporary.replace(state)
+    from deploy.recovery_journal import atomic_json, safe_path
+    atomic_json(safe_path(state), record)
     return {'restore_verified': True, 'result_count': result['result_count']}
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', type=Path, required=True)
     parser.add_argument('--destination', type=Path, required=True)
+    parser.add_argument("--cleanup", action="store_true")
     args = parser.parse_args()
     try:
-        print(json.dumps(verify(json.loads(private_file(args.config).read_text()), args.destination)))
+        from deploy.recovery_journal import standalone_operation
+        config = json.loads(private_file(args.config).read_text())
+        record = standalone_operation(config, args.destination.parent, 'restore',
+            lambda operation: verify(config, args.destination, operation=operation), args.cleanup)
+        if not args.cleanup:
+            from deploy.recovery_journal import atomic_json, safe_path
+            atomic_json(safe_path(config['backup_state']), record)
+        print(json.dumps(record))
     except Exception:
         print(json.dumps({'restore_verification_failed': True}))
         raise SystemExit(1)

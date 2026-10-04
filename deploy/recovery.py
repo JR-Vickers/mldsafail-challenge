@@ -44,7 +44,7 @@ def validate_set(root):
     return manifest
 
 
-def execute(config, operation, recovery_set=None, destination=None):
+def execute(config, operation, recovery_set=None, destination=None, journal=None):
     binary = Path(config['restic_binary'])
     if hashlib.sha256(binary.read_bytes()).hexdigest() != config['restic_sha256']:
         raise ValueError('Pinned restic binary checksum mismatch')
@@ -79,9 +79,10 @@ def execute(config, operation, recovery_set=None, destination=None):
         argv += ['restore', config['restore_snapshot'], '--target', str(destination)]
     else:
         raise ValueError('Unsupported operation')
+    runner = journal.command if journal is not None else subprocess.run
     if operation == 'backup':
         argv.insert(1, '--json')
-        response = subprocess.run(argv, env=env, check=True, capture_output=True,
+        response = runner(argv, env=env, check=True, capture_output=True,
                                   text=True, timeout=4 * 3600)
         records = [json.loads(line) for line in response.stdout.splitlines()]
         summary = next(row for row in records if row.get('message_type') == 'summary')
@@ -92,12 +93,10 @@ def execute(config, operation, recovery_set=None, destination=None):
         private = {'repository': config['repository'], 'snapshot': snapshot,
                    'uploaded_at': datetime.now(timezone.utc).isoformat(),
                    'restore_verified': False}
-        temporary = state.with_suffix('.tmp')
-        temporary.write_text(json.dumps(private))
-        temporary.chmod(0o600)
-        temporary.replace(state)
+        from deploy.recovery_journal import atomic_json, safe_path
+        atomic_json(safe_path(state), private)
     else:
-        subprocess.run(argv, env=env, check=True, stdout=subprocess.DEVNULL,
+        runner(argv, env=env, check=True, stdout=subprocess.DEVNULL,
                        stderr=subprocess.DEVNULL, timeout=4 * 3600)
     return {'operation': operation, 'completed': True, 'restore_identity_verification_pending': operation == 'restore'}
 
@@ -108,10 +107,14 @@ def main():
     parser.add_argument('--config', type=Path, required=True)
     parser.add_argument('--set', type=Path)
     parser.add_argument('--destination', type=Path)
+    parser.add_argument("--cleanup", action="store_true")
     args = parser.parse_args()
     try:
-        print(json.dumps(execute(json.loads(private_file(args.config).read_text()), args.operation,
-                                 args.set.resolve() if args.set else None, args.destination)))
+        from deploy.recovery_journal import standalone_operation
+        config = json.loads(private_file(args.config).read_text())
+        print(json.dumps(standalone_operation(config, Path(config['backup_state']).parent, 'restic',
+            lambda operation: execute(config, args.operation,
+                args.set.resolve() if args.set else None, args.destination, journal=operation), args.cleanup)))
     except Exception:
         print(json.dumps({'recovery_operation_failed': True}))
         raise SystemExit(1)

@@ -89,7 +89,7 @@ def run(config, cleanup_only=False):
         if shutil.disk_usage(root).free < 5 * 1024**3:
             raise RuntimeError('disk: recovery floor below 5 GiB; failed evidence preserved')
         run_id = uuid.uuid4().hex
-        operation.data.update(services={}, containers=[], run_id=run_id)
+        operation.data.update(services={}, containers=[], clients=[], run_id=run_id)
         operation.save('preflight complete')
         record_path = journals / ('run-' + run_id + '.json')
         backup = dict(config['backup'])
@@ -101,7 +101,7 @@ def run(config, cleanup_only=False):
             operation.save('assembly intent')
             assemble(config['assembly'], root / record['set_directory'], operation=operation)
             operation.save('upload intent')
-            execute(backup, 'backup', root / record['set_directory'])
+            execute(backup, 'backup', root / record['set_directory'], journal=operation)
             state = json.loads(Path(backup['backup_state']).read_text())
             if state['repository'] != backup['repository']:
                 raise ValueError('Backup repository mismatch')
