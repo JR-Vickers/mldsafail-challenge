@@ -17,7 +17,7 @@ def prepare_context(output):
              'artifacts.py':frozen/'artifacts.py',
              'mldsafail/benchmark_v060/worker.py':root/'worker.py',
              'mldsafail/benchmark_v060/__init__.py':root/'__init__.py'}
-    files.update({f'mldsafail/benchmark_v050/{name}':frozen/name for name in WORKER_FILES})
+    files.update({f'mldsafail/benchmark_v050/{name}':frozen/name for name in WORKER_FILES if name != "worker.py"})
     output.mkdir(mode=0o700, parents=True)
     (output/'wheels').mkdir()
     for relative, source in files.items():

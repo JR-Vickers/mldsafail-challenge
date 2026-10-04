@@ -40,3 +40,26 @@ The executable native callback remains
 Run only after exact-source accounting fault and 30-pair gates pass, in the
 reviewed actual operator unit with matching private image/protocol/review
 configuration. Local checks do not establish those native gates.
+
+## Prospective worker artifact after the preserved generation-G failure
+
+Generation G used the retained frozen 0.5.0 worker and completed all thirty
+pairs, but failed both empty-worker CPU overhead and deterministic-fixture CV.
+Retain that failed experiment; it cannot authorize adoption. The proposed
+0.6.0 gate must next use a separately built, source-reviewed 0.6.0 artifact.
+Preparing that artifact before the gate does not adopt its contract.
+
+The proposed adapter applies the same address-space and CPU-affinity limits
+locally. It no longer imports the frozen timing adapter merely to obtain its
+limits function, so an empty contestant does not import the historical solver,
+embedding and in-worker verifier. Solver modules remain available for approved
+contestants; independent host correctness verification remains mandatory.
+The proposed context excludes the historical worker executable. All interpreter,
+imports, runtime and descendant CPU charged to the worker parent still count.
+No subtraction, timing-boundary, fixture, threshold or scoring change is made.
+
+Review/build/retain the new source-bound context and immutable image first;
+then run the full native faults and thirty-pair protocol on that exact image.
+A failure requires diagnosis and preserved evidence, not another unchanged
+measurement attempt. The lean dependency path is a legitimate implementation
+correction, not evidence that native overhead or CV will pass.

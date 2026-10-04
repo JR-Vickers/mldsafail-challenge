@@ -1,10 +1,19 @@
 """Untrusted contestant adapter; emits no authoritative accounting claims."""
 import importlib.util
 import json
+import os
+import resource
 import sys
-from mldsafail.benchmark_v050.constants import MAX_SERIALIZED_BYTES
+from mldsafail.benchmark_v050.constants import MAX_SERIALIZED_BYTES, MEMORY_LIMIT_BYTES
 from mldsafail.benchmark_v050.models import instance_from_dict
-from mldsafail.benchmark_v050.worker import limits
+
+def limits():
+    """Apply the unchanged worker limits without loading a timing adapter."""
+    resource.setrlimit(resource.RLIMIT_AS, (MEMORY_LIMIT_BYTES, MEMORY_LIMIT_BYTES))
+    cpu = min(os.sched_getaffinity(0))
+    os.sched_setaffinity(0, {cpu})
+    return {"rlimits_applied": ["RLIMIT_AS"], "cpu_affinity": cpu}
+
 
 
 def main():

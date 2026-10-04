@@ -171,6 +171,7 @@ def test_separate_worker_context_excludes_private_evaluator_and_generator(tmp_pa
     record = prepare_context(tmp_path/'context')
     assert record['native_verified'] is False and record['image'] is None
     assert 'mldsafail/benchmark_v060/worker.py' in record['files']
+    assert 'mldsafail/benchmark_v050/worker.py' not in record['files']
     assert not any(any(word in path for word in ('generator','epoch','coordinator','backend','envelope')) for path in record['files'])
     assert 'mldsafail.benchmark_v060.worker' in (tmp_path/'context/Dockerfile').read_text()
     with pytest.raises(ValueError): prepare_context(tmp_path/'context')
@@ -199,3 +200,25 @@ def test_fresh_reference_protocol_never_seals_and_rejects_viability_failure(monk
     monkeypatch.setattr(references,'independently_audited_case',lambda *args,**kwargs:
                         {'decision':{'eligible':True,'cost_usec':60_000_000,'penalized':True}})
     with pytest.raises(ValueError,match='viability floor'): references.prepare_references(**kwargs)
+
+
+def test_proposed_adapter_imports_no_frozen_timing_solver_or_verifier():
+    import subprocess,sys
+    code='''
+import sys
+from mldsafail.benchmark_v060 import worker
+assert not any(name in sys.modules for name in (
+ 'mldsafail.benchmark_v050.worker','mldsafail.benchmark_v050.solvers',
+ 'mldsafail.benchmark_v050.verify','mldsafail.benchmark_v050.embedding'))
+'''
+    subprocess.run([sys.executable,'-c',code],check=True,timeout=15)
+
+
+def test_proposed_adapter_preserves_memory_and_cpu_affinity_limits(monkeypatch):
+    from mldsafail.benchmark_v060 import worker
+    calls=[]
+    monkeypatch.setattr(worker.resource,'setrlimit',lambda kind,bounds:calls.append(('memory',kind,bounds)))
+    monkeypatch.setattr(worker.os,'sched_getaffinity',lambda pid:{4,2},raising=False)
+    monkeypatch.setattr(worker.os,'sched_setaffinity',lambda pid,cores:calls.append(('cpu',pid,cores)),raising=False)
+    assert worker.limits()=={'rlimits_applied':['RLIMIT_AS'],'cpu_affinity':2}
+    assert calls==[('memory',worker.resource.RLIMIT_AS,(2*1024**3,2*1024**3)),('cpu',0,{2})]
