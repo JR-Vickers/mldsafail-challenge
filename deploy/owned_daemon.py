@@ -267,7 +267,9 @@ def load_manifest(path=None):
     required={'schema','epoch','unit','socket','roots','domain','leader','daemon_process',
               'server_version','server_git_commit','daemon_executable_sha256','unit_fragment_sha256',
               'worker_domain','worker_cgroup_parent','provisioning'}
-    if set(manifest)!=required or manifest['schema']!=SCHEMA or not re.fullmatch('[0-9a-f]{32}',manifest['epoch']):
+    if (not isinstance(manifest,dict) or set(manifest) not in (required,required|{'terminal_only'})
+            or ('terminal_only' in manifest and type(manifest['terminal_only']) is not bool)
+            or manifest['schema']!=SCHEMA or not re.fullmatch('[0-9a-f]{32}',manifest['epoch'])):
         raise RuntimeError('Exact versioned daemon epoch manifest required')
     return manifest
 

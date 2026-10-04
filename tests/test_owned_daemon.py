@@ -174,3 +174,15 @@ def test_terminal_authority_cannot_evaluate_or_restart_even_with_valid_operator(
         owned_daemon.verify_environment(manifest)
     with pytest.raises(RuntimeError,match='Terminal-only'):
         owned_daemon.restart_and_refresh(manifest,{},manifest_path=tmp_path/'manifest',evidence_directory=tmp_path,attempt_id='terminal')
+
+
+@pytest.mark.parametrize('terminal',[False,True])
+def test_private_manifest_roundtrip_retains_terminal_authority(tmp_path,terminal):
+    value={key:{} for key in ('roots','domain','leader','daemon_process','worker_domain','provisioning')}
+    value.update(schema=owned_daemon.SCHEMA,epoch='a'*32,unit='fresh',socket='private',server_version='pinned',server_git_commit='pinned',daemon_executable_sha256='b'*64,unit_fragment_sha256='c'*64,worker_cgroup_parent='fresh.slice',terminal_only=terminal)
+    path=tmp_path/'manifest.json'
+    owned_daemon.publish(path,value)
+    assert owned_daemon.load_manifest(path)==value
+    value['terminal_only']='false'
+    owned_daemon.publish(path,value)
+    with pytest.raises(RuntimeError,match='versioned'): owned_daemon.load_manifest(path)
