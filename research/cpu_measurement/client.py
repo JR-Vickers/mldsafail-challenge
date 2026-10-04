@@ -64,4 +64,8 @@ def spawn(argv, owner, accounting_parent):
                 if process.poll() is None: process.kill()
                 process.wait(timeout=15)
             except BaseException as cleanup: error.add_note('Bootstrap cleanup failed: '+repr(cleanup))
+            for stream in (process.stdin, process.stdout, process.stderr):
+                if stream is not None:
+                    try: stream.close()
+                    except BaseException as cleanup: error.add_note('Independent bootstrap pipe cleanup failed: '+repr(cleanup))
         raise
