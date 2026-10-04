@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "reviewer": "primary operator independent review",
+  "archive_documentation_source_commit": "768c5dfb22323fbdd4096dea12d3297c4e8c3583",
+  "wheel_source_commit": "4a9d82d666dea328286631a5ffe62f19a1c985b3",
+  "archive_sha256": "aeb3aa5c6e2ac8604904080c9eb2a994cc087ae86b8b7d1bb5c71872a9377d77",
+  "wheel_sha256": "3c2490de73a99d31f57e9cadcd6fd9eb5a30540511d485b475a9330b76c008b5",
+  "approved_public_files": 8,
+  "all_checksums_verified": true,
+  "all_local_document_links_resolve": true,
+  "unsafe_archive_members_absent": true,
+  "separate_wheel_and_documentation_source_verified": true,
+  "installation_evidence": "retained same-wheel actual isolated installation smoke in docs/acceptance/production-preparation/report.json",
+  "native_reproduction_passed": false,
+  "publication_approved": false,
+  "previous_failed_archive_preserved": true
+}
