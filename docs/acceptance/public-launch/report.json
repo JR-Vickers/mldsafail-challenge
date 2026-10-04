@@ -799,7 +799,7 @@
       "criteria": [
         "Implement and independently review source resolution of CPU review finding 2: durable ownership and fencing; focused tests and make check pass; separate native gates remain required"
       ],
-      "status": "failed",
+      "status": "passed",
       "attempts": [
         {
           "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
@@ -811,20 +811,33 @@
         },
         {
           "result": "Separate source-only correction review from required native client and daemon fault execution; earlier source and runtime tasks retained"
+        },
+        {
+          "source_commit": "b0a2cdd",
+          "result": "Current corrected component identities reconciled to independent supervisor/auditor and followup reviews; full root checks passed",
+          "prior_evidence": [
+            {
+              "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+              "criteria_met": [
+                "Implement and independently review source resolution of CPU review finding 2: durable ownership and fencing; focused tests and make check pass; separate native gates remain required"
+              ]
+            }
+          ]
         }
       ],
       "evidence": [
         {
-          "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+          "reference": "docs/acceptance/public-launch/accounting-current-source-review.json#/source_review_passed",
           "criteria_met": [
             "Implement and independently review source resolution of CPU review finding 2: durable ownership and fencing; focused tests and make check pass; separate native gates remain required"
           ]
         }
       ],
       "identities": {
-        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
+        "source_aggregate_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
       },
-      "next_action": "Repair birth-window and repeat source/native gate reviews",
+      "next_action": "Execute separately declared native gates; source review grants no native acceptance",
       "checklist": []
     },
     {
@@ -843,20 +856,33 @@
         {
           "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
           "result": "passed"
+        },
+        {
+          "source_commit": "b0a2cdd",
+          "result": "Current corrected component identities reconciled to independent supervisor/auditor and followup reviews; full root checks passed",
+          "prior_evidence": [
+            {
+              "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+              "criteria_met": [
+                "Implement and independently review source resolution of CPU review finding 3: ownership through synchronized evidence publication; focused tests and make check pass; separate native gates remain required"
+              ]
+            }
+          ]
         }
       ],
       "evidence": [
         {
-          "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+          "reference": "docs/acceptance/public-launch/accounting-current-source-review.json#/source_review_passed",
           "criteria_met": [
             "Implement and independently review source resolution of CPU review finding 3: ownership through synchronized evidence publication; focused tests and make check pass; separate native gates remain required"
           ]
         }
       ],
       "identities": {
-        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
+        "source_aggregate_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
       },
-      "next_action": "Execute distinct native delegation/fault/pair prerequisites before versioned contract integration",
+      "next_action": "Execute separately declared native gates; source review grants no native acceptance",
       "checklist": []
     },
     {
@@ -875,20 +901,33 @@
         {
           "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
           "result": "passed"
+        },
+        {
+          "source_commit": "b0a2cdd",
+          "result": "Current corrected component identities reconciled to independent supervisor/auditor and followup reviews; full root checks passed",
+          "prior_evidence": [
+            {
+              "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+              "criteria_met": [
+                "Implement and independently review source resolution of CPU review finding 4: bounded streaming; focused tests and make check pass; separate native gates remain required"
+              ]
+            }
+          ]
         }
       ],
       "evidence": [
         {
-          "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+          "reference": "docs/acceptance/public-launch/accounting-current-source-review.json#/source_review_passed",
           "criteria_met": [
             "Implement and independently review source resolution of CPU review finding 4: bounded streaming; focused tests and make check pass; separate native gates remain required"
           ]
         }
       ],
       "identities": {
-        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
+        "source_aggregate_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
       },
-      "next_action": "Execute distinct native delegation/fault/pair prerequisites before versioned contract integration",
+      "next_action": "Execute separately declared native gates; source review grants no native acceptance",
       "checklist": []
     },
     {
@@ -907,20 +946,33 @@
         {
           "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
           "result": "passed"
+        },
+        {
+          "source_commit": "b0a2cdd",
+          "result": "Current corrected component identities reconciled to independent supervisor/auditor and followup reviews; full root checks passed",
+          "prior_evidence": [
+            {
+              "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+              "criteria_met": [
+                "Implement and independently review source resolution of CPU review finding 5: continuous accounting exclusivity; focused tests and make check pass; separate native gates remain required"
+              ]
+            }
+          ]
         }
       ],
       "evidence": [
         {
-          "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+          "reference": "docs/acceptance/public-launch/accounting-current-source-review.json#/source_review_passed",
           "criteria_met": [
             "Implement and independently review source resolution of CPU review finding 5: continuous accounting exclusivity; focused tests and make check pass; separate native gates remain required"
           ]
         }
       ],
       "identities": {
-        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
+        "source_aggregate_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
       },
-      "next_action": "Execute distinct native delegation/fault/pair prerequisites before versioned contract integration",
+      "next_action": "Execute separately declared native gates; source review grants no native acceptance",
       "checklist": []
     },
     {
@@ -939,20 +991,33 @@
         {
           "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
           "result": "passed"
+        },
+        {
+          "source_commit": "b0a2cdd",
+          "result": "Current corrected component identities reconciled to independent supervisor/auditor and followup reviews; full root checks passed",
+          "prior_evidence": [
+            {
+              "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+              "criteria_met": [
+                "Implement and independently review source resolution of CPU review finding 6: independently retryable cleanup; focused tests and make check pass; separate native gates remain required"
+              ]
+            }
+          ]
         }
       ],
       "evidence": [
         {
-          "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+          "reference": "docs/acceptance/public-launch/accounting-current-source-review.json#/source_review_passed",
           "criteria_met": [
             "Implement and independently review source resolution of CPU review finding 6: independently retryable cleanup; focused tests and make check pass; separate native gates remain required"
           ]
         }
       ],
       "identities": {
-        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
+        "source_aggregate_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
       },
-      "next_action": "Execute distinct native delegation/fault/pair prerequisites before versioned contract integration",
+      "next_action": "Execute separately declared native gates; source review grants no native acceptance",
       "checklist": []
     },
     {
@@ -971,20 +1036,33 @@
         {
           "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
           "result": "passed"
+        },
+        {
+          "source_commit": "b0a2cdd",
+          "result": "Current corrected component identities reconciled to independent supervisor/auditor and followup reviews; full root checks passed",
+          "prior_evidence": [
+            {
+              "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+              "criteria_met": [
+                "Implement and independently review source resolution of CPU review finding 7: strict paired-measurement validation; focused tests and make check pass; separate native gates remain required"
+              ]
+            }
+          ]
         }
       ],
       "evidence": [
         {
-          "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+          "reference": "docs/acceptance/public-launch/accounting-current-source-review.json#/source_review_passed",
           "criteria_met": [
             "Implement and independently review source resolution of CPU review finding 7: strict paired-measurement validation; focused tests and make check pass; separate native gates remain required"
           ]
         }
       ],
       "identities": {
-        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
+        "source_aggregate_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
       },
-      "next_action": "Execute distinct native delegation/fault/pair prerequisites before versioned contract integration",
+      "next_action": "Execute separately declared native gates; source review grants no native acceptance",
       "checklist": []
     },
     {
@@ -1003,20 +1081,33 @@
         {
           "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
           "result": "passed"
+        },
+        {
+          "source_commit": "b0a2cdd",
+          "result": "Current corrected component identities reconciled to independent supervisor/auditor and followup reviews; full root checks passed",
+          "prior_evidence": [
+            {
+              "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+              "criteria_met": [
+                "Implement and independently review source resolution of CPU review finding 8: versioned independently audited evidence; focused tests and make check pass; separate native gates remain required"
+              ]
+            }
+          ]
         }
       ],
       "evidence": [
         {
-          "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+          "reference": "docs/acceptance/public-launch/accounting-current-source-review.json#/source_review_passed",
           "criteria_met": [
             "Implement and independently review source resolution of CPU review finding 8: versioned independently audited evidence; focused tests and make check pass; separate native gates remain required"
           ]
         }
       ],
       "identities": {
-        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
+        "source_aggregate_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
       },
-      "next_action": "Execute distinct native delegation/fault/pair prerequisites before versioned contract integration",
+      "next_action": "Execute separately declared native gates; source review grants no native acceptance",
       "checklist": []
     },
     {
@@ -1038,25 +1129,38 @@
       "criteria": [
         "Independent supervisor review with every finding resolved"
       ],
-      "status": "waiting_dependency",
+      "status": "passed",
       "attempts": [
         {
           "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
           "result": "passed"
+        },
+        {
+          "source_commit": "b0a2cdd",
+          "result": "Current corrected component identities reconciled to independent supervisor/auditor and followup reviews; full root checks passed",
+          "prior_evidence": [
+            {
+              "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+              "criteria_met": [
+                "Independent supervisor review with every finding resolved"
+              ]
+            }
+          ]
         }
       ],
       "evidence": [
         {
-          "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+          "reference": "docs/acceptance/public-launch/accounting-current-source-review.json#/source_review_passed",
           "criteria_met": [
             "Independent supervisor review with every finding resolved"
           ]
         }
       ],
       "identities": {
-        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
+        "source_aggregate_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
       },
-      "next_action": "Repeat/reconcile against corrected accounting source; retain earlier review evidence",
+      "next_action": "Execute separately declared native gates; source review grants no native acceptance",
       "checklist": []
     },
     {
@@ -1072,25 +1176,38 @@
       "criteria": [
         "Independent evidence auditor review with every finding resolved"
       ],
-      "status": "waiting_dependency",
+      "status": "passed",
       "attempts": [
         {
           "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
           "result": "passed"
+        },
+        {
+          "source_commit": "b0a2cdd",
+          "result": "Current corrected component identities reconciled to independent supervisor/auditor and followup reviews; full root checks passed",
+          "prior_evidence": [
+            {
+              "reference": "docs/acceptance/public-launch/accounting-auditor-review.json#/source_review_passed",
+              "criteria_met": [
+                "Independent evidence auditor review with every finding resolved"
+              ]
+            }
+          ]
         }
       ],
       "evidence": [
         {
-          "reference": "docs/acceptance/public-launch/accounting-auditor-review.json#/source_review_passed",
+          "reference": "docs/acceptance/public-launch/accounting-current-source-review.json#/source_review_passed",
           "criteria_met": [
             "Independent evidence auditor review with every finding resolved"
           ]
         }
       ],
       "identities": {
-        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f"
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
+        "source_aggregate_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
       },
-      "next_action": "Repeat/reconcile against corrected accounting source; retain earlier review evidence",
+      "next_action": "Execute separately declared native gates; source review grants no native acceptance",
       "checklist": []
     },
     {
@@ -1106,11 +1223,17 @@
       "criteria": [
         "Establish exclusive host-supervised native delegation"
       ],
-      "status": "waiting_dependency",
-      "attempts": [],
+      "status": "running",
+      "attempts": [
+        {
+          "source_commit": "e24b1c3db88d3307a1a2f1f78185c3fb8d1cc136",
+          "result": "Fresh exact daemon and whole cleanup passed; native fault baseline rejected missing CPU controller before worker creation. Source b290 adds neutral CPUWeight and admission proof.",
+          "evidence": "docs/acceptance/public-launch/native-isolated-startup-report.json"
+        }
+      ],
       "evidence": [],
       "identities": {},
-      "next_action": "Repeat/reconcile against corrected accounting source; retain earlier review evidence",
+      "next_action": "Run fresh source-bound isolated driver with actual CPU delegation proven before daemon/image admission; retain earlier failure",
       "checklist": []
     },
     {
@@ -2790,16 +2913,30 @@
       "criteria": [
         "Exact corrected source has independent reviews, focused tests and full source-bound checks; native fault outcomes remain separately gated"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "protocol": "Independently review corrected source for durable client admission and daemon mutation fencing",
           "result": "corrective source preparation and independent review in progress"
+        },
+        {
+          "source_commit": "b0a2cdd",
+          "result": "Current corrected component identities reconciled to independent supervisor/auditor and followup reviews; full root checks passed",
+          "prior_evidence": []
         }
       ],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Complete exact source verification; preserve earlier findings and failures",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/accounting-current-source-review.json#/source_review_passed",
+          "criteria_met": [
+            "Exact corrected source has independent reviews, focused tests and full source-bound checks; native fault outcomes remain separately gated"
+          ]
+        }
+      ],
+      "identities": {
+        "source_aggregate_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
+      },
+      "next_action": "Execute separately declared native gates; source review grants no native acceptance",
       "checklist": []
     },
     {
@@ -2866,7 +3003,7 @@
         "Failed startup before registration has exact unit/worker authority and positive terminal cleanup; no invented daemon barrier or old-authority reuse",
         "Independent source review and disposable native startup failure cleanup verification pass"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "source_commit": "cc1f09a61e4fca26b64104ada8b25c7ca47db35a",
@@ -2878,11 +3015,21 @@
           "result": "Native terminal cleanup passed; healthy isolated startup remains pending"
         }
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/native-isolated-startup-report.json#/passed",
+          "criteria_met": [
+            "Explicit fresh isolated pidfile verified in actual daemon argv; protected staging pidfile untouched",
+            "Daemon-managed data root permissions and restart lifecycle remain bound to original private parent and inode identities",
+            "Failed startup before registration has exact unit/worker authority and positive terminal cleanup; no invented daemon barrier or old-authority reuse",
+            "Independent source review and disposable native startup failure cleanup verification pass"
+          ]
+        }
+      ],
       "identities": {
         "retained_source_commit": "cc1f09a61e4fca26b64104ada8b25c7ca47db35a"
       },
-      "next_action": "Accounting author repairs isolated PID-file, daemon root identity and unregistered startup cleanup; independent reviewers verify before exact native repair and new provision",
+      "next_action": "Startup and terminal cleanup complete; repair CPU-controller admission and execute separate native accounting gates",
       "checklist": []
     },
     {
