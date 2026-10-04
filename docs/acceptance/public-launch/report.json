@@ -282,20 +282,22 @@
         "user-plan"
       ],
       "dependencies": [
-        "compatible-deployment"
+        "compatible-deployment",
+        "inventory-race-repair"
       ],
       "environment": "private staging sequential",
       "criteria": [
         "Verify running-cancellation transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
       ],
-      "status": "running",
+      "status": "waiting_dependency",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
           "source": "fd4be66575ae6dbef9785321a79a687f418df0b8",
           "fixture": "e547caffb06ced2e82f28cf1c130c8131613384d",
           "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
-          "environment": "private staging; raw journal and evidence protected on VPS"
+          "environment": "private staging; raw journal and evidence protected on VPS",
+          "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
         }
       ],
       "evidence": [],
@@ -310,20 +312,22 @@
         "user-plan"
       ],
       "dependencies": [
-        "compatible-deployment"
+        "compatible-deployment",
+        "inventory-race-repair"
       ],
       "environment": "private staging sequential",
       "criteria": [
         "Verify real-timeout-cancellation transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
       ],
-      "status": "running",
+      "status": "waiting_dependency",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
           "source": "fd4be66575ae6dbef9785321a79a687f418df0b8",
           "fixture": "e547caffb06ced2e82f28cf1c130c8131613384d",
           "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
-          "environment": "private staging; raw journal and evidence protected on VPS"
+          "environment": "private staging; raw journal and evidence protected on VPS",
+          "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
         }
       ],
       "evidence": [],
@@ -338,20 +342,22 @@
         "user-plan"
       ],
       "dependencies": [
-        "compatible-deployment"
+        "compatible-deployment",
+        "inventory-race-repair"
       ],
       "environment": "private staging sequential",
       "criteria": [
         "Verify invalid-answer transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
       ],
-      "status": "running",
+      "status": "failed",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
           "source": "fd4be66575ae6dbef9785321a79a687f418df0b8",
           "fixture": "e547caffb06ced2e82f28cf1c130c8131613384d",
           "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
-          "environment": "private staging; raw journal and evidence protected on VPS"
+          "environment": "private staging; raw journal and evidence protected on VPS",
+          "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
         }
       ],
       "evidence": [],
@@ -366,20 +372,22 @@
         "user-plan"
       ],
       "dependencies": [
-        "compatible-deployment"
+        "compatible-deployment",
+        "inventory-race-repair"
       ],
       "environment": "private staging sequential",
       "criteria": [
         "Verify immediate-crash transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
       ],
-      "status": "running",
+      "status": "waiting_dependency",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
           "source": "fd4be66575ae6dbef9785321a79a687f418df0b8",
           "fixture": "e547caffb06ced2e82f28cf1c130c8131613384d",
           "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
-          "environment": "private staging; raw journal and evidence protected on VPS"
+          "environment": "private staging; raw journal and evidence protected on VPS",
+          "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
         }
       ],
       "evidence": [],
@@ -394,20 +402,22 @@
         "user-plan"
       ],
       "dependencies": [
-        "compatible-deployment"
+        "compatible-deployment",
+        "inventory-race-repair"
       ],
       "environment": "private staging sequential",
       "criteria": [
         "Verify recoverable-infrastructure-failure transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
       ],
-      "status": "running",
+      "status": "waiting_dependency",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
           "source": "fd4be66575ae6dbef9785321a79a687f418df0b8",
           "fixture": "e547caffb06ced2e82f28cf1c130c8131613384d",
           "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
-          "environment": "private staging; raw journal and evidence protected on VPS"
+          "environment": "private staging; raw journal and evidence protected on VPS",
+          "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
         }
       ],
       "evidence": [],
@@ -422,20 +432,22 @@
         "user-plan"
       ],
       "dependencies": [
-        "compatible-deployment"
+        "compatible-deployment",
+        "inventory-race-repair"
       ],
       "environment": "private staging sequential",
       "criteria": [
         "Verify three-attempt-exhaustion transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
       ],
-      "status": "running",
+      "status": "waiting_dependency",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
           "source": "fd4be66575ae6dbef9785321a79a687f418df0b8",
           "fixture": "e547caffb06ced2e82f28cf1c130c8131613384d",
           "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
-          "environment": "private staging; raw journal and evidence protected on VPS"
+          "environment": "private staging; raw journal and evidence protected on VPS",
+          "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
         }
       ],
       "evidence": [],
@@ -450,20 +462,22 @@
         "user-plan"
       ],
       "dependencies": [
-        "compatible-deployment"
+        "compatible-deployment",
+        "inventory-race-repair"
       ],
       "environment": "private staging sequential",
       "criteria": [
         "Verify expired-lease-recovery transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
       ],
-      "status": "running",
+      "status": "waiting_dependency",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
           "source": "fd4be66575ae6dbef9785321a79a687f418df0b8",
           "fixture": "e547caffb06ced2e82f28cf1c130c8131613384d",
           "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
-          "environment": "private staging; raw journal and evidence protected on VPS"
+          "environment": "private staging; raw journal and evidence protected on VPS",
+          "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
         }
       ],
       "evidence": [],
@@ -484,20 +498,22 @@
         "scenario-immediate-crash",
         "scenario-recoverable-infrastructure-failure",
         "scenario-three-attempt-exhaustion",
-        "scenario-expired-lease-recovery"
+        "scenario-expired-lease-recovery",
+        "inventory-race-repair"
       ],
       "environment": "private staging",
       "criteria": [
         "Quiescent disposable restore and actual exact b4d212d application rollback/forward preserving immutable state without migration"
       ],
-      "status": "running",
+      "status": "waiting_dependency",
       "attempts": [
         {
           "id": "public-launch-scenarios-20261004",
           "source": "fd4be66575ae6dbef9785321a79a687f418df0b8",
           "fixture": "e547caffb06ced2e82f28cf1c130c8131613384d",
           "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
-          "environment": "private staging; raw journal and evidence protected on VPS"
+          "environment": "private staging; raw journal and evidence protected on VPS",
+          "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
         }
       ],
       "evidence": [],
@@ -1028,11 +1044,20 @@
       "criteria": [
         "Complete recovery templates local retention safe pruning and runbooks"
       ],
-      "status": "ready",
+      "status": "passed",
       "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "evidence": [
+        {
+          "reference": "docs/OWNER_OPERATIONAL_SETUP.md",
+          "criteria_met": [
+            "Complete recovery templates local retention safe pruning and runbooks"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "899c5ee"
+      },
+      "next_action": "Retain; consume at native/owner acceptance",
       "checklist": []
     },
     {
@@ -1210,11 +1235,20 @@
       "criteria": [
         "Separate production volumes roots repositories secrets OAuth cookies TLS headers private endpoints and explicit migrations"
       ],
-      "status": "ready",
+      "status": "passed",
       "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/production-preparation/report.json#/review",
+          "criteria_met": [
+            "Separate production volumes roots repositories secrets OAuth cookies TLS headers private endpoints and explicit migrations"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "caf040f"
+      },
+      "next_action": "Retain; consume at native/owner acceptance",
       "checklist": []
     },
     {
@@ -1244,12 +1278,14 @@
       "sources": [
         "user-plan"
       ],
-      "dependencies": [],
+      "dependencies": [
+        "participant-archive-review"
+      ],
       "environment": "isolated engineering",
       "criteria": [
         "Version-correct participant artifacts installation smoke checksums reproducibility downloads and documentation"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -1267,11 +1303,20 @@
       "criteria": [
         "Complete incident response rollback recovery and sanitized acceptance packet"
       ],
-      "status": "ready",
+      "status": "passed",
       "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "evidence": [
+        {
+          "reference": "docs/INCIDENT_RUNBOOK.md",
+          "criteria_met": [
+            "Complete incident response rollback recovery and sanitized acceptance packet"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "899c5ee"
+      },
+      "next_action": "Retain; consume at native/owner acceptance",
       "checklist": []
     },
     {
@@ -1285,11 +1330,20 @@
       "criteria": [
         "Prepare publication activation pilot observation forms success criteria and go/no-go packet"
       ],
-      "status": "ready",
+      "status": "passed",
       "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "evidence": [
+        {
+          "reference": "docs/PUBLIC_LAUNCH_PACKET.md",
+          "criteria_met": [
+            "Prepare publication activation pilot observation forms success criteria and go/no-go packet"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "899c5ee"
+      },
+      "next_action": "Retain; consume at native/owner acceptance",
       "checklist": []
     },
     {
@@ -1379,11 +1433,20 @@
       "criteria": [
         "Reconcile historical unresolved gate host_environment"
       ],
-      "status": "ready",
+      "status": "passed",
       "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/compatible-v050/report.json#/gates/operator_environment",
+          "criteria_met": [
+            "Reconcile historical unresolved gate host_environment"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "fd4be66575ae6dbef9785321a79a687f418df0b8"
+      },
+      "next_action": "Historical report preserved; superseded by cited acceptance",
       "checklist": []
     },
     {
@@ -1399,11 +1462,20 @@
       "criteria": [
         "Reconcile historical unresolved gate native_queue_reconciliation"
       ],
-      "status": "ready",
+      "status": "passed",
       "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/compatible-v050/report.json#/gates/queue_reconciliation",
+          "criteria_met": [
+            "Reconcile historical unresolved gate native_queue_reconciliation"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "fd4be66575ae6dbef9785321a79a687f418df0b8"
+      },
+      "next_action": "Historical report preserved; superseded by cited acceptance",
       "checklist": []
     },
     {
@@ -1419,11 +1491,20 @@
       "criteria": [
         "Reconcile historical unresolved gate staging_deployment"
       ],
-      "status": "ready",
+      "status": "passed",
       "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-deployment.json",
+          "criteria_met": [
+            "Reconcile historical unresolved gate staging_deployment"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "fd4be66575ae6dbef9785321a79a687f418df0b8"
+      },
+      "next_action": "Historical report preserved; superseded by cited acceptance",
       "checklist": []
     },
     {
@@ -1819,11 +1900,20 @@
       "criteria": [
         "Reconcile historical unresolved gate staging_deployment"
       ],
-      "status": "ready",
+      "status": "passed",
       "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-deployment.json",
+          "criteria_met": [
+            "Reconcile historical unresolved gate staging_deployment"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "fd4be66575ae6dbef9785321a79a687f418df0b8"
+      },
+      "next_action": "Historical report preserved; superseded by cited acceptance",
       "checklist": []
     },
     {
@@ -1844,6 +1934,47 @@
       "evidence": [],
       "identities": {},
       "next_action": "Execute isolated image UI test after serialized staging scenarios",
+      "checklist": []
+    },
+    {
+      "id": "participant-archive-review",
+      "requirement": "Independent allowlist checksum privacy and usable install review of retained public participant archive",
+      "sources": [
+        "docs/acceptance/production-preparation/report.json#/participant_artifacts"
+      ],
+      "dependencies": [],
+      "environment": "isolated local unpublished artifacts",
+      "criteria": [
+        "Archive contains only approved public material; checksums and installation work"
+      ],
+      "status": "ready",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Independently inspect retained manifest archive and smoke evidence",
+      "checklist": []
+    },
+    {
+      "id": "inventory-race-repair",
+      "requirement": "Correct proven snapshot disappearance race and retain source-bound compatible release before acceptance resumes",
+      "sources": [
+        "docs/acceptance/inventory-race-20261004/report.json"
+      ],
+      "dependencies": [],
+      "environment": "compatible acceptance worktree and private staging",
+      "criteria": [
+        "Focused tests and make check pass; compatible immutable source/images retained; native inventory probe passes"
+      ],
+      "status": "running",
+      "attempts": [
+        {
+          "source": "71f5ff2",
+          "protocol": "Reject unknown missing IDs/daemon errors; tolerate only exact disappeared IDs with complete retained JSON inventory"
+        }
+      ],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Complete builds retention native verification and compatible switch before fresh scenario run",
       "checklist": []
     }
   ],

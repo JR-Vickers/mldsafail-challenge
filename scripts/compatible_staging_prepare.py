@@ -62,8 +62,9 @@ def run(c):
     rollback = c['rollback_manifest']
     for k in ('configuration_sha256', 'dependency_lock_sha256', 'worker_lock_sha256', 'historical_trusted_fingerprint', 'mlwe_trusted_fingerprint'):
         d.require(release[k] == rollback[k], k)
-    d.require(template['Image'] == rollback['images']['coordinator']['id'])
-    d.require(web_info['Image'] == rollback['images']['web']['id'])
+    current = c.get('current_manifest', rollback)
+    d.require(template['Image'] == current['images']['coordinator']['id'])
+    d.require(web_info['Image'] == current['images']['web']['id'])
     for manifest in (release, rollback):
         for role in ('web', 'coordinator', 'worker'):
             info = json.loads(d.command(['docker', 'image', 'inspect', manifest['images'][role]['id']]))[0]
