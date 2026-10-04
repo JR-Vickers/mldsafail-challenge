@@ -34,6 +34,19 @@ def publish(path, value):
         if temporary.exists(): temporary.unlink()
 
 
+def read_private_json(path, *, cap=65536):
+    descriptor=os.open(_canonical(path),os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+    with os.fdopen(descriptor,'rb') as stream:
+        info=os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_mode & 0o077:
+            raise RuntimeError('Private regular owned receipt required')
+        raw=stream.read(cap+1)
+    if len(raw)>cap: raise RuntimeError('Owned receipt exceeds cap')
+    value=json.loads(raw)
+    if not isinstance(value,dict): raise RuntimeError('Owned receipt must be an object')
+    return value
+
+
 def fingerprint(value):
     return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
 
@@ -180,7 +193,7 @@ def _endpoint(socket):
 
 def register(*, unit, socket, root_dir, exec_root, rootless_state, manifest_path,
              expected_server_version, expected_server_git_commit, expected_executable_sha256,
-             worker_parent, worker_cgroup_parent, provisioning):
+             worker_parent, worker_cgroup_parent, provisioning, epoch=None):
     """Register already provisioned/started dedicated native services explicitly."""
     if not re.fullmatch('[0-9a-f]{64}',expected_executable_sha256):
         raise RuntimeError('Expected native dockerd executable SHA256 required')
@@ -219,7 +232,8 @@ def register(*, unit, socket, root_dir, exec_root, rootless_state, manifest_path
         raise RuntimeError('Dedicated daemon root/version/build mismatch')
     if info.get('LiveRestoreEnabled') is not False or str(info.get('CgroupVersion'))!='2' or info.get('CgroupDriver')!='systemd' or not any('rootless' in option for option in info.get('SecurityOptions',[])):
         raise RuntimeError('Rootless cgroup-v2 daemon with live restore disabled required')
-    manifest=dict(schema=SCHEMA,epoch=uuid.uuid4().hex,unit=unit,socket=str(socket),
+    if epoch is not None and not re.fullmatch('[0-9a-f]{32}',epoch): raise RuntimeError('Exact restart epoch required')
+    manifest=dict(schema=SCHEMA,epoch=epoch or uuid.uuid4().hex,unit=unit,socket=str(socket),
                   roots=roots,domain=domain,leader=leader,daemon_process=daemon_process,
                   worker_domain=worker_domain,worker_cgroup_parent=worker_cgroup_parent,provisioning=provisioning,
                   server_version=expected_server_version,server_git_commit=expected_server_git_commit,
@@ -339,21 +353,30 @@ def restart_and_refresh(manifest, shutdown_receipt, *, manifest_path, client_ent
     for entry in client_entries:
         path=owned_client.verify_domain(entry)
         if path is not None and owned_client.populated(path): raise RuntimeError('Owned client survives barrier')
+    intent_path=Path(evidence_directory)/(attempt_id+'-daemon-restart-intent.json')
+    previous_intent=read_private_json(intent_path) if intent_path.exists() else None
+    expected=dict(schema='mldsafail.owned-daemon-restart-intent.v1',attempt_id=attempt_id,
+                  previous_epoch=manifest['epoch'],manifest_sha256=fingerprint(manifest),unit=manifest['unit'])
+    if previous_intent is not None:
+        if set(previous_intent)!=set(expected)|{'next_epoch'} or any(previous_intent[key]!=value for key,value in expected.items()) or not re.fullmatch('[0-9a-f]{32}',previous_intent['next_epoch']):
+            raise RuntimeError('Restart intent identity mismatch')
+        intent=previous_intent
+    else:
+        intent=dict(expected,next_epoch=uuid.uuid4().hex)
+    current=load_manifest(manifest_path)
+    if current['epoch']!=manifest['epoch']:
+        if previous_intent is None or current['epoch']!=intent['next_epoch']:
+            raise RuntimeError('Different daemon epoch has no exact retained restart authority')
+        for key in ('unit','socket','worker_domain','worker_cgroup_parent','provisioning','server_version','server_git_commit','daemon_executable_sha256','unit_fragment_sha256'):
+            if current[key]!=manifest[key]: raise RuntimeError('Refreshed epoch changed bound daemon contract')
+        verify_environment(current)
+        return current
     state=_unit(manifest['unit'])
-    intent_path=Path(evidence_directory)/(attempt_id+'-daemon-restart-intent.json')
-    prior_intent=json.loads(intent_path.read_bytes()) if intent_path.exists() and not intent_path.is_symlink() and intent_path.stat().st_size<=65536 else None
-    if state['unit_fragment_sha256']!=manifest['unit_fragment_sha256'] or (state['ActiveState'] not in {'inactive','failed'} and not (state['ActiveState']=='active' and prior_intent is not None and prior_intent.get('previous_epoch')==manifest['epoch'] and prior_intent.get('manifest_sha256')==fingerprint(manifest))):
+    if state['unit_fragment_sha256']!=manifest['unit_fragment_sha256'] or (state['ActiveState'] not in {'inactive','failed'} and not (state['ActiveState']=='active' and previous_intent is not None)):
         raise RuntimeError('Dedicated unit changed before restart')
-    intent_path=Path(evidence_directory)/(attempt_id+'-daemon-restart-intent.json')
-    previous_intent=None
-    if intent_path.exists():
-        if intent_path.is_symlink() or intent_path.stat().st_size>65536: raise RuntimeError('Invalid restart intent')
-        previous_intent=json.loads(intent_path.read_bytes())
-    intent=dict(schema='mldsafail.owned-daemon-restart-intent.v1',attempt_id=attempt_id,
-                previous_epoch=manifest['epoch'],manifest_sha256=fingerprint(manifest),unit=manifest['unit'])
-    if previous_intent is not None and previous_intent!=intent: raise RuntimeError('Restart intent identity mismatch')
     if previous_intent is None: publish(intent_path,intent)
-    subprocess.run(['systemctl','--user','start',manifest['unit']],check=True,timeout=45,capture_output=True)
+    if state['ActiveState']!='active':
+        subprocess.run(['systemctl','--user','start',manifest['unit']],check=True,timeout=45,capture_output=True)
     deadline=time.monotonic()+45
     while True:
         try:
@@ -362,7 +385,7 @@ def restart_and_refresh(manifest, shutdown_receipt, *, manifest_path, client_ent
                 expected_server_version=manifest['server_version'],expected_server_git_commit=manifest['server_git_commit'],
                 expected_executable_sha256=manifest['daemon_executable_sha256'],
                 worker_parent=manifest['worker_domain']['path'],worker_cgroup_parent=manifest['worker_cgroup_parent'],
-                provisioning=manifest['provisioning'])
+                provisioning=manifest['provisioning'],epoch=intent['next_epoch'])
             break
         except (RuntimeError,subprocess.SubprocessError,FileNotFoundError):
             if time.monotonic()>deadline: raise

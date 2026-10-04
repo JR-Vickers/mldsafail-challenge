@@ -119,3 +119,20 @@ def test_fifo_manifest_rejected_without_waiting_for_writer(tmp_path):
     os.mkfifo(tmp_path/'fifo',0o600)
     with pytest.raises(RuntimeError,match='Private owner'):
         owned_daemon.load_manifest(tmp_path/'fifo')
+
+
+def test_restart_recovers_new_manifest_published_before_journal_ack(tmp_path,monkeypatch):
+    manifest=fixture_manifest(tmp_path,monkeypatch)
+    manifest.update(socket=str(tmp_path/'socket'),worker_cgroup_parent='owned.slice',provisioning={},server_version='native',server_git_commit='commit',daemon_executable_sha256='d'*64)
+    refreshed=dict(manifest,epoch='c'*32,leader={'pid':456})
+    monkeypatch.setattr(owned_daemon,'load_manifest',lambda *args:refreshed)
+    verified=[]
+    monkeypatch.setattr(owned_daemon,'verify_environment',lambda value:verified.append(value))
+    intent=dict(schema='mldsafail.owned-daemon-restart-intent.v1',attempt_id='attempt',previous_epoch=manifest['epoch'],manifest_sha256=owned_daemon.fingerprint(manifest),unit=manifest['unit'],next_epoch=refreshed['epoch'])
+    owned_daemon.publish(tmp_path/'attempt-daemon-restart-intent.json',intent)
+    barrier=dict(shutdown_proven=True,daemon_manifest_sha256=owned_daemon.fingerprint(manifest),daemon_epoch=manifest['epoch'])
+    result=owned_daemon.restart_and_refresh(manifest,barrier,manifest_path=tmp_path/'manifest',evidence_directory=tmp_path,attempt_id='attempt')
+    assert result==refreshed and verified==[refreshed]
+    monkeypatch.setattr(owned_daemon,'load_manifest',lambda *args:dict(refreshed,epoch='e'*32))
+    with pytest.raises(RuntimeError,match='exact retained'):
+        owned_daemon.restart_and_refresh(manifest,barrier,manifest_path=tmp_path/'manifest',evidence_directory=tmp_path,attempt_id='attempt')
