@@ -25,6 +25,10 @@ def check(environment, staging):
     for key in IMAGES:
         if not re.fullmatch(r'[^\s@]+@sha256:[a-f0-9]{64}', environment.get(key, '')):
             errors.append('immutable_image_required:' + key)
+    # Compose embeds the password directly in a PostgreSQL URL. Require
+    # unreserved ASCII rather than allowing delimiter/interpolation ambiguity.
+    if not re.fullmatch(r'[A-Za-z0-9._~-]+', environment.get('POSTGRES_PASSWORD', '')):
+        errors.append('url_safe_database_password_required')
     for key in SECRETS + IDENTITIES:
         if environment.get(key) and environment.get(key) == staging.get(key):
             errors.append('staging_reuse:' + key)
@@ -67,7 +71,7 @@ def read_private_env(path):
         if not separator or not re.fullmatch(r'[A-Z][A-Z0-9_]*', key) or key in result:
             raise ValueError('invalid_private_env_format')
         # Plain values only: do not execute, interpolate, or silently reinterpret.
-        if any(character in value for character in ('$', '`', '"', "'")):
+        if value != value.strip() or any(character in value for character in ('$', '`', '"', "'")):
             raise ValueError('literal_private_env_values_required')
         result[key] = value
     return result

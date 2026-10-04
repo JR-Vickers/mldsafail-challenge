@@ -39,7 +39,10 @@ python -m deploy.production_preflight --production-env "$PRODUCTION_ENV_FILE" \
   --staging-env "$STAGING_ENV_FILE"
 ```
 
-The files use literal `KEY=value` entries, no shell interpolation or quoting.
+The files use literal `KEY=value` entries, no shell interpolation, quoting or
+surrounding value whitespace. Generate the database password using URL-unreserved
+ASCII (`A-Z`, `a-z`, digits, `.`, `_`, `~`, `-`) because Compose embeds it in the
+connection URL.
 This gate checks placeholders, immutable image digests, selected staging reuse,
 rootless socket shape and path isolation. It does not prove credential scope,
 DNS ownership, image provenance, epoch audit, host resources or approval. Keep

@@ -46,7 +46,7 @@ def test_private_env_rejects_interpolation_permissions_and_duplicates(tmp_path):
     path.write_text('SECRET=literal\n')
     path.chmod(0o600)
     assert read_private_env(path) == {'SECRET': 'literal'}
-    for value in ('SECRET=$(touch /tmp/unwanted)\n', 'SECRET=a\nSECRET=b\n'):
+    for value in ('SECRET=$(touch /tmp/unwanted)\n', 'SECRET=a\nSECRET=b\n', 'SECRET= leading\n', 'SECRET=trailing \n'):
         path.write_text(value)
         with pytest.raises(ValueError):
             read_private_env(path)
@@ -70,3 +70,10 @@ def test_switch_overlay_removes_migration_dependency(tmp_path):
         assert not services[name].get('depends_on')
         assert services[name]['environment']['MLDSAFAIL_SKIP_MIGRATIONS'] == '1'
     assert 'migrate' in services  # Still available for separately approved fresh setup.
+
+
+@pytest.mark.parametrize('password', ['colon:password', 'user@host', 'hash#value', 'slash/value', 'query?value', 'encoded%20value'])
+def test_password_url_delimiters_rejected(tmp_path, password):
+    production, staging = environments(tmp_path)
+    production['POSTGRES_PASSWORD'] = password
+    assert 'url_safe_database_password_required' in check(production, staging)

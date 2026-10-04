@@ -10,9 +10,36 @@
     "historical handoff clarification without replacing its dated outcomes"
   ],
   "verification": [
-    {"command": "uv run pytest tests/test_production_preflight.py -q", "outcome": "passed", "passed": 9, "native_scope": "Docker Compose configuration merge only; no services launched"},
-    {"command": "make check", "outcome": "failed", "passed": 356, "skipped": 24, "reason": "isolated environment lacked frozen fpylll binary artifacts; existing dependency tampering test raised StopIteration", "evidence_reference": "operator-local preparation check log; preserved"},
-    {"command": "make check", "outcome": "passed", "passed": 373, "skipped": 8, "environment_correction": "installed frozen research fpylll 0.6.4 and cysignals 1.12.5 without source or lock changes", "historical_small_score": 3901, "evidence_reference": "operator-local preparation check native-dependencies log"}
+    {
+      "command": "uv run pytest tests/test_production_preflight.py -q",
+      "outcome": "passed",
+      "passed": 9,
+      "native_scope": "Docker Compose configuration merge only; no services launched"
+    },
+    {
+      "command": "make check",
+      "outcome": "failed",
+      "passed": 356,
+      "skipped": 24,
+      "reason": "isolated environment lacked frozen fpylll binary artifacts; existing dependency tampering test raised StopIteration",
+      "evidence_reference": "operator-local preparation check log; preserved"
+    },
+    {
+      "command": "make check",
+      "outcome": "passed",
+      "passed": 373,
+      "skipped": 8,
+      "environment_correction": "installed frozen research fpylll 0.6.4 and cysignals 1.12.5 without source or lock changes",
+      "historical_small_score": 3901,
+      "evidence_reference": "operator-local preparation check native-dependencies log"
+    },
+    {
+      "command": "make check after independent review corrections",
+      "outcome": "passed",
+      "passed": 379,
+      "skipped": 8,
+      "historical_small_score": 3901
+    }
   ],
   "not_established": [
     "independent source review",
@@ -23,5 +50,13 @@
     "artifact publication, public exposure, recruitment or participant pilot observations"
   ],
   "next_action": "independently review source; integrate approved measurement/version design before native production rehearsal; obtain precise owner inputs and decisions described in PUBLIC_LAUNCH_PACKET.md",
-  "public_launch_approved": false
+  "public_launch_approved": false,
+  "review": {
+    "reviewer": "independent recovery agent",
+    "findings": [
+      "URL-delimiter passwords",
+      "surrounding dotenv value whitespace"
+    ],
+    "disposition": "corrected with regression tests; confirmation pending"
+  }
 }
