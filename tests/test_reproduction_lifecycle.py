@@ -64,3 +64,50 @@ def test_cleanup_retains_client_failure_even_when_container_inventory_empty(tmp_
     assert run.cleanup() is False
     assert run.journal['cleanup_errors'] == ['RuntimeError']
     assert run.journal['remaining_owned_containers'] == []
+
+
+def test_reproduction_cleanup_publication_failure_does_not_skip_removal_or_final_inventory(tmp_path, monkeypatch):
+    run = ReproductionRun(tmp_path, [])
+    run.journal = {'run_id': 'a' * 32, 'clients': [], 'attempts': []}
+    calls = []
+    def command(_self, argv, **_kwargs):
+        calls.append(argv)
+        if argv[:3] == ['docker', 'ps', '-aq']:
+            return SimpleNamespace(stdout=b'owned-container\n' if len(calls) == 1 else b'')
+        if argv[:3] == ['docker', 'container', 'inspect']:
+            return SimpleNamespace(returncode=0, stdout=json.dumps([{'Config': {'Labels': {LABEL: 'a' * 32}}}]).encode())
+        return SimpleNamespace(returncode=0, stdout=b'')
+    monkeypatch.setattr('scripts.reproduction_lifecycle.ReproductionRun.command', command)
+    monkeypatch.setattr(run, 'save', lambda: (_ for _ in ()).throw(OSError('publication failure')))
+    assert run.cleanup() is False
+    assert ['docker', 'rm', '-f', 'owned-container'] in calls
+    assert calls[-1][:3] == ['docker', 'ps', '-aq']
+    assert run.journal['remaining_owned_containers'] == []
+    assert len(run.journal['cleanup_errors']) == 2
+
+
+def test_reproduction_empty_inventory_does_not_clear_unknown_daemon_mutation(tmp_path, monkeypatch):
+    run = ReproductionRun(tmp_path, [])
+    run.journal = {'run_id': 'a' * 32, 'clients': [], 'daemon_mutations': [{'acknowledged': False}]}
+    monkeypatch.setattr('scripts.reproduction_lifecycle.ReproductionRun.command', lambda *_args, **_kwargs: SimpleNamespace(stdout=b''))
+    assert run.cleanup() is False
+    assert run.journal['remaining_owned_containers'] == []
+    assert 'DaemonMutationUncertainty' in run.journal['cleanup_errors'][0]
+
+
+def test_original_invocation_failure_survives_publication_and_removal_failure(tmp_path, monkeypatch):
+    run = ReproductionRun(tmp_path, ['sha256:' + 'a' * 64])
+    run.journal = {'run_id': 'a' * 32, 'attempts': []}
+    saves = 0
+    def save():
+        nonlocal saves
+        saves += 1
+        if saves > 1:
+            raise OSError('publication failure')
+    monkeypatch.setattr(run, 'save', save)
+    monkeypatch.setattr(run, 'command', lambda *_args, **_kwargs: (_ for _ in ()).throw(ValueError('original create failure')))
+    monkeypatch.setattr(run, 'remove', lambda *_args: (_ for _ in ()).throw(RuntimeError('removal failure')))
+    with pytest.raises(ValueError, match='original create failure') as caught:
+        run.invoke(run.images[0], ['-m', 'worker'], b'public')
+    assert len(caught.value.__notes__) == 2
+    assert run.journal['attempts'][0]['error_type'] == 'ValueError'

@@ -2,6 +2,7 @@ import json
 import hashlib
 import fcntl
 import os
+from pathlib import Path
 
 import pytest
 
@@ -136,3 +137,62 @@ def test_cleanup_does_not_require_source_or_release_manifests(tmp_path):
     assert cleanup_authority({'run_directory': str(root), 'docker_socket': socket}) == root
     with pytest.raises(ValueError, match='binding'):
         cleanup_authority({'run_directory': str(root), 'docker_socket': '/run/user/999999/docker.sock'})
+
+
+def test_cleanup_continues_after_corrupt_clients_and_journal_publication_failure(tmp_path, monkeypatch):
+    (tmp_path / 'journal.json').write_text(json.dumps({'run_id': 'owned', 'cleanup_complete': False}))
+    (tmp_path / 'clients.json').write_text('{truncated')
+    calls = []
+    def command(argv, **kwargs):
+        calls.append(argv)
+        assert kwargs['env']['MLDSAFAIL_OWNED_CLIENT_RECEIPT'].startswith('cleanup-clients-')
+        return b''
+    monkeypatch.setattr('scripts.baseline_production_rehearsal.command', command)
+    def refuse(path, _):
+        if path.name == 'journal.json':
+            raise OSError('publication failed')
+    monkeypatch.setattr('scripts.baseline_production_rehearsal.atomic_json', refuse)
+    errors = []
+    assert cleanup(tmp_path, {}, errors_out=errors) is False
+    assert len(calls) == 7  # all four phases and all three final inventories
+    assert any(error['step'] == 'receipt_load' for error in errors)
+    assert sum(error.get('kind') == 'journal' for error in errors) == 5
+
+
+def test_failed_preservation_publication_still_calls_cleanup_and_preserves_original(tmp_path, monkeypatch):
+    from scripts.baseline_production_rehearsal import _execute_locked
+    from deploy.recovery_journal import atomic_json as real_publish
+    value = config(tmp_path)
+    root = Path(value['run_directory'])
+    calls = []
+    def command(*_args, **_kwargs):
+        raise ValueError('original preflight failure')
+    monkeypatch.setattr('scripts.baseline_production_rehearsal.command', command)
+    writes = 0
+    def publish(path, data):
+        nonlocal writes
+        if path.name == 'journal.json':
+            writes += 1
+            if writes > 1:
+                raise OSError('publication failure')
+        real_publish(path, data)
+    monkeypatch.setattr('scripts.baseline_production_rehearsal.atomic_json', publish)
+    def repair(destination, _env, journal, errors):
+        calls.append(destination)
+        assert journal['preserve_failed_volumes'] is True
+        return False
+    monkeypatch.setattr('scripts.baseline_production_rehearsal.cleanup', repair)
+    with pytest.raises(ValueError, match='original preflight failure'):
+        _execute_locked(value)
+    assert calls == [root]
+    assert json.loads((root / 'report.json').read_text())['complete'] is False
+
+
+def test_empty_inventory_cannot_clear_unacknowledged_daemon_mutation(tmp_path, monkeypatch):
+    (tmp_path / 'journal.json').write_text(json.dumps({'run_id': 'owned', 'cleanup_complete': False}))
+    (tmp_path / 'daemon-mutations.json').write_text(json.dumps([{'id': 'create', 'acknowledged': False}]))
+    monkeypatch.setattr('scripts.baseline_production_rehearsal.command', lambda *_args, **_kwargs: b'')
+    assert cleanup(tmp_path, {}) is False
+    receipt = json.loads((tmp_path / 'journal.json').read_text())
+    assert receipt['final_inventory'] == {'container': [], 'volume': [], 'network': []}
+    assert receipt['cleanup_errors'][0]['kind'] == 'daemon_mutation_uncertainty'

@@ -163,3 +163,13 @@ container inventory/removal. A client identity or cancellation failure prevents
 cleanup completion even when an inventory is empty. Native interruption testing
 must exercise the create/start boundary and verify zero late-created resources;
 source inspection does not establish this native gate.
+
+Independent cleanup retains malformed earlier client receipts and publication
+errors as failed evidence. It uses a new, separately durable gated-client receipt
+for known-safe resource operations, attempts every resource phase and final
+inventory, and cannot pass merely because a damaged run journal was unwritable.
+A released Docker create/start/up/run request without an acknowledged completion
+is **daemon mutation uncertainty**: killing its CLI cgroup and observing an empty
+container list do not clear the fence. Known-owned resource cleanup continues,
+but completion waits for the separately implemented isolated-daemon positive
+barrier. Never restart the shared staging daemon to clear this condition.

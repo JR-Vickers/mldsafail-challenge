@@ -81,8 +81,18 @@ class ReproductionRun:
         atomic_json(self.root / 'journal.json', self.journal)
 
     def command(self, argv, **kwargs):
-        return owned_client.run(argv, self.journal.setdefault('clients', []), self.save,
-                                self.root, **kwargs)
+        clients = self.cleanup_clients if hasattr(self, 'cleanup_clients') else self.journal.setdefault('clients', [])
+        save = self.cleanup_save if hasattr(self, 'cleanup_clients') else self.save
+        mutation = None
+        if argv[:2] in (['docker', 'create'], ['docker', 'start']):
+            mutation = {'id': uuid.uuid4().hex, 'acknowledged': False}
+            self.journal.setdefault('daemon_mutations', []).append(mutation)
+            self.save()
+        result = owned_client.run(argv, clients, save, self.root, **kwargs)
+        if mutation is not None:
+            mutation['acknowledged'] = True
+            self.save()
+        return result
 
     def invoke(self, image, arguments, request=None):
         if image not in self.images:
@@ -97,6 +107,7 @@ class ReproductionRun:
             source_input.write(request or b'')
             source_input.flush()
             os.fsync(source_input.fileno())
+        original_error = None
         try:
             self.command(['docker', 'create', '--name', name, '--label', LABEL + '=' + self.journal['run_id'],
                             '--network=none', '--read-only', '--cpus=1', '--memory=2g',
@@ -117,11 +128,20 @@ class ReproductionRun:
                 raise RuntimeError('Public worker output exceeded 32MiB; raw evidence retained')
             return output_path.read_bytes()
         except BaseException as error:
+            original_error = error
             attempt.update(phase='failed', error_type=type(error).__name__)
-            self.save()
+            try:
+                self.save()
+            except Exception as publication_error:
+                error.add_note('Failure publication failed: ' + type(publication_error).__name__)
             raise
         finally:
-            self.remove(name)
+            try:
+                self.remove(name)
+            except Exception as cleanup_error:
+                if original_error is None:
+                    raise
+                original_error.add_note('Independent removal failed: ' + type(cleanup_error).__name__)
 
     def remove(self, name):
         item = self.command(['docker', 'container', 'inspect', name], capture_output=True, check=False, timeout=10)
@@ -134,14 +154,35 @@ class ReproductionRun:
         self.command(['docker', 'rm', '-f', name], check=True, capture_output=True, timeout=10)
 
     def cleanup(self):
-        self.journal['cleanup_phase'] = 'running'
-        self.save()
         errors = []
-        for entry in list(self.journal.get('clients', [])):
+        def publish():
+            try:
+                self.save()
+            except Exception as error:
+                errors.append('JournalPublication:' + type(error).__name__)
+        self.journal['cleanup_phase'] = 'running'
+        self.journal['cleanup_complete'] = False
+        publish()
+        clients = list(self.journal.get('clients', []))
+        for path in self.root.glob('cleanup-clients-*.json'):
+            try:
+                receipt = json.loads(safe_path(path).read_text())
+                if not isinstance(receipt, list):
+                    raise ValueError('Client receipt must be a list')
+                clients.extend(receipt)
+            except Exception as error:
+                errors.append('ClientReceipt:' + type(error).__name__)
+        for entry in clients:
             try:
                 owned_client.stop(entry)
             except Exception as error:
                 errors.append(type(error).__name__)
+        if any(not item.get('acknowledged') for item in self.journal.get('daemon_mutations', [])):
+            errors.append('DaemonMutationUncertainty:positive_daemon_barrier_required')
+        # Independent gated cleanup does not publish through the damaged run journal.
+        self.cleanup_clients = []
+        receipt_path = self.root / ('cleanup-clients-' + uuid.uuid4().hex + '.json')
+        self.cleanup_save = lambda: atomic_json(receipt_path, self.cleanup_clients)
         try:
             names = self.command(['docker', 'ps', '-aq', '--filter',
                         'label=' + LABEL + '=' + self.journal['run_id']], timeout=10).stdout.decode().splitlines()
@@ -160,12 +201,28 @@ class ReproductionRun:
             remaining = ['inventory_unavailable']
         self.journal.update(cleanup_complete=not errors and not remaining, cleanup_errors=errors,
                             remaining_owned_containers=remaining, cleanup_phase='complete' if not errors and not remaining else 'incomplete')
-        self.save()
+        publish()
+        self.journal['cleanup_complete'] = not errors and not remaining
+        self.journal['cleanup_errors'] = errors
+        if errors:
+            try:
+                atomic_json(self.root / ('cleanup-failure-' + uuid.uuid4().hex + '.json'), self.journal)
+            except Exception:
+                pass
         return self.journal['cleanup_complete']
 
     def __exit__(self, error_type, error, traceback):
         try:
-            if not self.cleanup() and error_type is None:
-                raise RuntimeError('Reproduction cleanup incomplete')
+            try:
+                complete = self.cleanup()
+            except Exception as cleanup_error:
+                if error is None:
+                    raise
+                error.add_note('Independent cleanup failed: ' + type(cleanup_error).__name__)
+                complete = False
+            if not complete:
+                if error_type is None:
+                    raise RuntimeError('Reproduction cleanup incomplete')
+                error.add_note('Reproduction cleanup remains incomplete')
         finally:
             os.close(self.descriptor)

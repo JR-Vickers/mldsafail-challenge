@@ -98,9 +98,25 @@ def validate(config):
 
 def client_run(argv, *, env=None, **kwargs):
     root = Path(env['MLDSAFAIL_OWNED_CLIENT_ROOT'])
-    path = root / 'clients.json'
+    receipt = env.get('MLDSAFAIL_OWNED_CLIENT_RECEIPT', 'clients.json')
+    if not re.fullmatch(r'(clients|cleanup-clients-[a-f0-9]{32})\.json', receipt):
+        raise ValueError('Invalid client receipt name')
+    path = root / receipt
     clients = json.loads(path.read_text()) if path.exists() else []
-    return owned_client.run(argv, clients, lambda: atomic_json(path, clients), root, env=env, **kwargs)
+    mutating = argv[0] == 'docker' and any(value in ('run', 'create', 'start', 'up', 'restart') for value in argv[1:])
+    mutations_path = root / 'daemon-mutations.json'
+    mutations = json.loads(mutations_path.read_text()) if mutating and mutations_path.exists() else []
+    mutation = None
+    if mutating:
+        mutation = {'id': uuid.uuid4().hex, 'acknowledged': False,
+                    'command_sha256': hashlib.sha256(json.dumps(argv).encode()).hexdigest()}
+        mutations.append(mutation)
+        atomic_json(mutations_path, mutations)  # intent precedes every possible daemon mutation
+    result = owned_client.run(argv, clients, lambda: atomic_json(path, clients), root, env=env, **kwargs)
+    if mutation is not None:
+        mutation['acknowledged'] = True
+        atomic_json(mutations_path, mutations)
+    return result
 
 
 def command(argv, *, cwd=None, env=None, timeout=120, input=None):
@@ -108,24 +124,44 @@ def command(argv, *, cwd=None, env=None, timeout=120, input=None):
                       stderr=subprocess.DEVNULL, timeout=timeout).stdout
 
 
-def cleanup(root, env):
+def cleanup(root, env, journal=None, errors_out=None):
     """Remove only resources with this durable run's exact ownership label."""
-    journal = json.loads((root / 'journal.json').read_text())
+    journal = journal if journal is not None else json.loads((root / 'journal.json').read_text())
     run_id = journal['run_id']
-    errors = []
-    client_path = root / 'clients.json'
-    clients = json.loads(client_path.read_text()) if client_path.exists() else []
-    for entry in clients:
+    errors = list(errors_out or [])
+    def publish(phase):
         try:
-            owned_client.stop(entry)
+            atomic_json(root / 'journal.json', journal)
         except Exception as error:
-            errors.append({'kind': 'owned_client', 'error_type': type(error).__name__})
+            errors.append({'kind': 'journal', 'step': phase, 'error_type': type(error).__name__})
+    for client_path in [root / 'clients.json', *root.glob('cleanup-clients-*.json')]:
+        try:
+            clients = json.loads(safe_path(client_path).read_text()) if client_path.exists() else []
+            if not isinstance(clients, list):
+                raise ValueError('Client receipt must be a list')
+        except Exception as error:
+            errors.append({'kind': 'owned_client', 'step': 'receipt_load', 'error_type': type(error).__name__})
+            continue
+        for entry in clients:
+            try:
+                owned_client.stop(entry)
+            except Exception as error:
+                errors.append({'kind': 'owned_client', 'error_type': type(error).__name__})
+    # A damaged earlier client receipt cannot block independent gated cleanup.
+    env = {**env, 'MLDSAFAIL_OWNED_CLIENT_RECEIPT': 'cleanup-clients-' + uuid.uuid4().hex + '.json'}
+    mutations_path = root / 'daemon-mutations.json'
+    try:
+        mutations = json.loads(mutations_path.read_text()) if mutations_path.exists() else []
+        if not isinstance(mutations, list) or any(not item.get('acknowledged') for item in mutations):
+            errors.append({'kind': 'daemon_mutation_uncertainty', 'step': 'positive_daemon_barrier_required'})
+    except Exception as error:
+        errors.append({'kind': 'daemon_mutation_uncertainty', 'error_type': type(error).__name__})
     retained_failure_volumes = []
     # Stop dispatch controllers before workers, then rescan once for a worker
     # whose create request raced the first inventory. Every resource is labeled.
     for kind in ('container', 'container', 'volume', 'network'):
         journal.update(cleanup_phase='inventory_' + kind, cleanup_complete=False)
-        atomic_json(root / 'journal.json', journal)
+        publish('phase_' + kind)
         listing = ['docker', 'ps', '-aq'] if kind == 'container' else ['docker', kind, 'ls', '-q']
         try:
             identifiers = command(listing + ['--filter', 'label=' + LABEL + '=' + run_id], env=env).decode().splitlines()
@@ -165,7 +201,16 @@ def cleanup(root, env):
     journal.update(cleanup_complete=not errors, cleanup_errors=errors,
                    retained_failure_volumes=retained_failure_volumes,
                    cleanup_phase='complete' if not errors else 'incomplete', final_inventory=final_inventory)
-    atomic_json(root / 'journal.json', journal)
+    publish('final_cleanup_receipt')
+    journal['cleanup_complete'] = not errors
+    journal['cleanup_errors'] = errors
+    if errors_out is not None:
+        errors_out[:] = errors
+    if errors:
+        try:
+            atomic_json(root / ('cleanup-failure-' + uuid.uuid4().hex + '.json'), journal)
+        except Exception:
+            pass  # The caller still receives failure; publication cannot create success.
     return not errors
 
 
@@ -235,6 +280,7 @@ def _execute_locked(config, cleanup_only=False):
                           operator_source_manifest_sha256=hashlib.sha256(Path(config['source_manifest']).read_bytes()).hexdigest(),
                           release_manifest_sha256=hashlib.sha256(Path(config['release_manifest']).read_bytes()).hexdigest(),
                           rollback_manifest_sha256=hashlib.sha256(Path(config['rollback_manifest']).read_bytes()).hexdigest()))
+    original_error = None
     try:
         info = json.loads(command(['docker', 'info', '--format', '{{json .}}'], env=env))
         if not any('rootless' in value for value in info.get('SecurityOptions', [])):
@@ -440,17 +486,40 @@ with Session(create_engine(os.environ['MLDSAFAIL_DATABASE_URL'])) as session:
         report['behavior_gates_passed'] = True
         stage('baseline_behavior_gates_passed_cleanup_pending')
     except BaseException as error:
+        original_error = error
         report['error_type'] = type(error).__name__
-        stage('failed_partial_evidence_retained')
+        try:
+            stage('failed_partial_evidence_retained')
+        except Exception as publication_error:
+            error.add_note('Failure evidence publication failed: ' + type(publication_error).__name__)
         raise
     finally:
-        journal = json.loads((root / 'journal.json').read_text())
-        journal['preserve_failed_volumes'] = not report.get('behavior_gates_passed', False)
-        atomic_json(root / 'journal.json', journal)
-        report['cleanup_complete'] = cleanup(root, env)
-        report['complete'] = report.get('behavior_gates_passed', False) and report['cleanup_complete']
-        report['retained_failure_volumes'] = json.loads((root / 'journal.json').read_text()).get('retained_failure_volumes', [])
-        atomic_json(root / 'report.json', report)
+        cleanup_errors = []
+        try:
+            current = json.loads((root / 'journal.json').read_text())
+        except Exception as error:
+            current = dict(journal)  # original durable run ownership, held in memory
+            cleanup_errors.append({'kind': 'journal', 'step': 'pre_cleanup_load', 'error_type': type(error).__name__})
+        current['preserve_failed_volumes'] = bool(cleanup_errors) or not report.get('behavior_gates_passed', False)
+        try:
+            atomic_json(root / 'journal.json', current)
+        except Exception as error:
+            cleanup_errors.append({'kind': 'journal', 'step': 'preservation_publish', 'error_type': type(error).__name__})
+        try:
+            report['cleanup_complete'] = cleanup(root, env, current, cleanup_errors)
+        except Exception as error:
+            report['cleanup_complete'] = False
+            cleanup_errors.append({'kind': 'cleanup', 'error_type': type(error).__name__})
+        report['cleanup_errors'] = cleanup_errors
+        report['complete'] = report.get('behavior_gates_passed', False) and report['cleanup_complete'] and not cleanup_errors
+        report['retained_failure_volumes'] = current.get('retained_failure_volumes', [])
+        try:
+            atomic_json(root / 'report.json', report)
+        except Exception as publication_error:
+            report['complete'] = False
+            if original_error is None:
+                raise
+            original_error.add_note('Final report publication failed: ' + type(publication_error).__name__)
     return report
 
 
