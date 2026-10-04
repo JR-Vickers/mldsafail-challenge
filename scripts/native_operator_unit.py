@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import traceback
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -74,6 +75,15 @@ def execute(unit, journal, argv, timeout):
     except BaseException as error:
         failure = error
         state['failure_class'] = type(error).__name__
+        try:
+            with (journal.parent / 'operator.failure.log').open('xb') as stream:
+                os.fchmod(stream.fileno(), 0o600)
+                stream.write(traceback.format_exc().encode()[:1024 * 1024])
+                stream.flush()
+                os.fsync(stream.fileno())
+            state['failure_log'] = 'operator.failure.log'
+        except BaseException as log_error:
+            error.add_note('Private failure log publication failed: ' + type(log_error).__name__)
     finally:
         for entry in state['clients']:
             try:

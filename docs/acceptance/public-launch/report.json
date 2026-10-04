@@ -2458,16 +2458,21 @@
       "criteria": [
         "Independent review focused interruption tests and native owned-client fault acceptance pass; original failed/partial evidence retained"
       ],
-      "status": "running",
+      "status": "failed",
       "attempts": [
         {
           "protocol": "Pre-exec release gate with durable PID/start/UID/boot/cmdline identities; independent cleanup and bounded failure logs",
           "result": "implementation and review in progress"
+        },
+        {
+          "source_commit": "9703f2eeacc5efb7387332c8090863dbe44d0283",
+          "result": "failed before command spawn; cleanup verified",
+          "evidence_reference": "docs/acceptance/public-launch/native-client-permission-failure.json"
         }
       ],
       "evidence": [],
       "identities": {},
-      "next_action": "Merge reviewed shared helper then native fault acceptance before resource-creating operational gates",
+      "next_action": "Restrict newly created owned child permissions before admission; review and rerun on corrected retained source.",
       "checklist": []
     },
     {
