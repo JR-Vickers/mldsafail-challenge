@@ -66,7 +66,7 @@ def probe(args,output,*,operation,api_version):
             self.record['mutations'].append(dict(operation=operation,**fields))
             publish(directory/'native-owner.json',self.record)
     tool_owner=ToolOwner()
-    owner=owner_entry=None;cleanup_errors=[]
+    owner=owner_entry=None;cleanup_errors=[];original_error=None
     result=dict(fault='SIGKILL_lost_'+operation+'_ack',passed=False,injection_reached=False)
     try:
         # Gated bootstrap and operator cgroup identities are durable before
@@ -99,6 +99,10 @@ def probe(args,output,*,operation,api_version):
         try:
             with Ownership(state,args.parent): pass
         except RuntimeError as error: result['fenced']='reconciliation' in str(error)
+    except BaseException as error:
+        original_error=error
+        result['orchestration_error']=dict(type=type(error).__name__,message=str(error))
+        raise
     finally:
         release.set()
         try:
@@ -113,8 +117,10 @@ def probe(args,output,*,operation,api_version):
                 except BaseException as error: cleanup_errors.append(dict(step='native_owner_pipe',error=repr(error)))
         try: listener.close()
         except BaseException as error: cleanup_errors.append(dict(step='native_listener',error=repr(error)))
-        thread.join(timeout=10)
-        if thread.is_alive(): cleanup_errors.append(dict(step='native_transport',error='Thread remains alive'))
+        try:
+            thread.join(timeout=10)
+            if thread.is_alive(): cleanup_errors.append(dict(step='native_transport',error='Thread remains alive'))
+        except BaseException as error: cleanup_errors.append(dict(step='native_transport_join',error=repr(error)))
         try: cleanup=reconcile(state,args.parent)
         except BaseException as error: cleanup=dict(cleanup_complete=False,error=repr(error))
         try:
@@ -126,7 +132,10 @@ def probe(args,output,*,operation,api_version):
             repaired=json.loads((state/'journal.json').read_text())
             result['daemon_epoch_repaired']=any(entry['operation']=='daemon_epoch_repaired' for entry in repaired['mutations'])
         except BaseException as error: cleanup_errors.append(dict(step='repair_journal',error=repr(error)))
-        result['passed']=result['injection_reached'] and result.get('fenced',False) and cleanup['cleanup_complete'] and result['daemon_epoch_repaired'] and not cleanup_errors and not transport_errors
-        publish(Path(output),result)
+        result['passed']=original_error is None and result['injection_reached'] and result.get('fenced',False) and cleanup['cleanup_complete'] and result['daemon_epoch_repaired'] and not cleanup_errors and not transport_errors
+        try: publish(Path(output),result)
+        except BaseException as error:
+            if original_error is not None: original_error.add_note('Native failure receipt publication failed: '+repr(error))
+            else: raise
     if not result['passed']: raise RuntimeError('Native real lost-mutation acknowledgement gate failed')
     return result
