@@ -1,10 +1,14 @@
 {
   "schema": "mldsafail.source-check.v1",
-  "source_commit": "473ea64",
+  "source_commit": "473ea640cdc54fa21cc76a437d0af29f1a0760ac",
   "scope": "Strict backup receipt monitoring fault protocol",
   "status": "passed_local_verification",
   "focused_tests_passed": 16,
-  "make_check": {"passed": 438, "skipped": 11, "historical_score": 3901},
+  "make_check": {
+    "passed": 438,
+    "skipped": 11,
+    "historical_score": 3901
+  },
   "protocol": "Actual shared receipt validator checks identity, strict booleans, timestamps and manifest checksum. An old upload remains stale after recent restore verification.",
   "native_acceptance": "pending_primary_operator",
   "external_webhook_acceptance": "blocked_owner_configuration"

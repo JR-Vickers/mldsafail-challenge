@@ -1,10 +1,16 @@
 {
   "schema": "mldsafail.source-review.v1",
-  "reviewed_source": "83e4543",
+  "reviewed_source": "83e4543e87a885d2f4d5466c6b142d290897ad55",
   "scope": "Inactive proposed v060 backend, worker, context builder, reference preparation, envelope auditing and queue coordinator",
   "status": "changes_required",
   "native_execution": false,
-  "focused_tests": {"suites": ["tests/test_v060_backend.py", "tests/test_v060_preparation.py"], "passed": 15},
+  "focused_tests": {
+    "suites": [
+      "tests/test_v060_backend.py",
+      "tests/test_v060_preparation.py"
+    ],
+    "passed": 15
+  },
   "findings": [
     {
       "id": "sealed-reference-authority",

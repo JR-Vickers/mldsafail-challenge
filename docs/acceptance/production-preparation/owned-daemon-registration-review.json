@@ -1,10 +1,13 @@
 {
   "schema": "mldsafail.source-review.v1",
-  "reviewed_source": "39c4131",
+  "reviewed_source": "39c4131b5376bc7d57287016df31333fd21aea6e",
   "scope": "deploy/owned_daemon.py registration and whole-parent shutdown authority",
   "status": "changes_required",
   "native_execution": false,
-  "focused_tests": {"suite": "tests/test_owned_daemon.py", "passed": 5},
+  "focused_tests": {
+    "suite": "tests/test_owned_daemon.py",
+    "passed": 5
+  },
   "findings": [
     {
       "id": "dedicated-worker-parent-authority",
