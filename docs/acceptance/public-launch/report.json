@@ -582,14 +582,14 @@
     },
     {
       "id": "cpu-finding-2",
-      "requirement": "Resolve CPU review finding 2: durable ownership and fencing",
+      "requirement": "Implement and independently review source resolution of CPU review finding 2: durable ownership and fencing",
       "sources": [
         "docs/acceptance/operational-followup/CPU_REVIEW.md"
       ],
       "dependencies": [],
       "environment": "isolated engineering",
       "criteria": [
-        "Resolve CPU review finding 2: durable ownership and fencing"
+        "Implement and independently review source resolution of CPU review finding 2: durable ownership and fencing; focused tests and make check pass; separate native gates remain required"
       ],
       "status": "passed",
       "attempts": [
@@ -602,7 +602,7 @@
         {
           "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
           "criteria_met": [
-            "Resolve CPU review finding 2: durable ownership and fencing"
+            "Implement and independently review source resolution of CPU review finding 2: durable ownership and fencing; focused tests and make check pass; separate native gates remain required"
           ]
         }
       ],
@@ -614,14 +614,14 @@
     },
     {
       "id": "cpu-finding-3",
-      "requirement": "Resolve CPU review finding 3: ownership through synchronized evidence publication",
+      "requirement": "Implement and independently review source resolution of CPU review finding 3: ownership through synchronized evidence publication",
       "sources": [
         "docs/acceptance/operational-followup/CPU_REVIEW.md"
       ],
       "dependencies": [],
       "environment": "isolated engineering",
       "criteria": [
-        "Resolve CPU review finding 3: ownership through synchronized evidence publication"
+        "Implement and independently review source resolution of CPU review finding 3: ownership through synchronized evidence publication; focused tests and make check pass; separate native gates remain required"
       ],
       "status": "passed",
       "attempts": [
@@ -634,7 +634,7 @@
         {
           "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
           "criteria_met": [
-            "Resolve CPU review finding 3: ownership through synchronized evidence publication"
+            "Implement and independently review source resolution of CPU review finding 3: ownership through synchronized evidence publication; focused tests and make check pass; separate native gates remain required"
           ]
         }
       ],
@@ -646,14 +646,14 @@
     },
     {
       "id": "cpu-finding-4",
-      "requirement": "Resolve CPU review finding 4: bounded streaming",
+      "requirement": "Implement and independently review source resolution of CPU review finding 4: bounded streaming",
       "sources": [
         "docs/acceptance/operational-followup/CPU_REVIEW.md"
       ],
       "dependencies": [],
       "environment": "isolated engineering",
       "criteria": [
-        "Resolve CPU review finding 4: bounded streaming"
+        "Implement and independently review source resolution of CPU review finding 4: bounded streaming; focused tests and make check pass; separate native gates remain required"
       ],
       "status": "passed",
       "attempts": [
@@ -666,7 +666,7 @@
         {
           "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
           "criteria_met": [
-            "Resolve CPU review finding 4: bounded streaming"
+            "Implement and independently review source resolution of CPU review finding 4: bounded streaming; focused tests and make check pass; separate native gates remain required"
           ]
         }
       ],
@@ -678,14 +678,14 @@
     },
     {
       "id": "cpu-finding-5",
-      "requirement": "Resolve CPU review finding 5: continuous accounting exclusivity",
+      "requirement": "Implement and independently review source resolution of CPU review finding 5: continuous accounting exclusivity",
       "sources": [
         "docs/acceptance/operational-followup/CPU_REVIEW.md"
       ],
       "dependencies": [],
       "environment": "isolated engineering",
       "criteria": [
-        "Resolve CPU review finding 5: continuous accounting exclusivity"
+        "Implement and independently review source resolution of CPU review finding 5: continuous accounting exclusivity; focused tests and make check pass; separate native gates remain required"
       ],
       "status": "passed",
       "attempts": [
@@ -698,7 +698,7 @@
         {
           "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
           "criteria_met": [
-            "Resolve CPU review finding 5: continuous accounting exclusivity"
+            "Implement and independently review source resolution of CPU review finding 5: continuous accounting exclusivity; focused tests and make check pass; separate native gates remain required"
           ]
         }
       ],
@@ -710,14 +710,14 @@
     },
     {
       "id": "cpu-finding-6",
-      "requirement": "Resolve CPU review finding 6: independently retryable cleanup",
+      "requirement": "Implement and independently review source resolution of CPU review finding 6: independently retryable cleanup",
       "sources": [
         "docs/acceptance/operational-followup/CPU_REVIEW.md"
       ],
       "dependencies": [],
       "environment": "isolated engineering",
       "criteria": [
-        "Resolve CPU review finding 6: independently retryable cleanup"
+        "Implement and independently review source resolution of CPU review finding 6: independently retryable cleanup; focused tests and make check pass; separate native gates remain required"
       ],
       "status": "passed",
       "attempts": [
@@ -730,7 +730,7 @@
         {
           "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
           "criteria_met": [
-            "Resolve CPU review finding 6: independently retryable cleanup"
+            "Implement and independently review source resolution of CPU review finding 6: independently retryable cleanup; focused tests and make check pass; separate native gates remain required"
           ]
         }
       ],
@@ -742,14 +742,14 @@
     },
     {
       "id": "cpu-finding-7",
-      "requirement": "Resolve CPU review finding 7: strict paired-measurement validation",
+      "requirement": "Implement and independently review source resolution of CPU review finding 7: strict paired-measurement validation",
       "sources": [
         "docs/acceptance/operational-followup/CPU_REVIEW.md"
       ],
       "dependencies": [],
       "environment": "isolated engineering",
       "criteria": [
-        "Resolve CPU review finding 7: strict paired-measurement validation"
+        "Implement and independently review source resolution of CPU review finding 7: strict paired-measurement validation; focused tests and make check pass; separate native gates remain required"
       ],
       "status": "passed",
       "attempts": [
@@ -762,7 +762,7 @@
         {
           "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
           "criteria_met": [
-            "Resolve CPU review finding 7: strict paired-measurement validation"
+            "Implement and independently review source resolution of CPU review finding 7: strict paired-measurement validation; focused tests and make check pass; separate native gates remain required"
           ]
         }
       ],
@@ -774,14 +774,14 @@
     },
     {
       "id": "cpu-finding-8",
-      "requirement": "Resolve CPU review finding 8: versioned independently audited evidence",
+      "requirement": "Implement and independently review source resolution of CPU review finding 8: versioned independently audited evidence",
       "sources": [
         "docs/acceptance/operational-followup/CPU_REVIEW.md"
       ],
       "dependencies": [],
       "environment": "isolated engineering",
       "criteria": [
-        "Resolve CPU review finding 8: versioned independently audited evidence"
+        "Implement and independently review source resolution of CPU review finding 8: versioned independently audited evidence; focused tests and make check pass; separate native gates remain required"
       ],
       "status": "passed",
       "attempts": [
@@ -794,7 +794,7 @@
         {
           "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
           "criteria_met": [
-            "Resolve CPU review finding 8: versioned independently audited evidence"
+            "Implement and independently review source resolution of CPU review finding 8: versioned independently audited evidence; focused tests and make check pass; separate native gates remain required"
           ]
         }
       ],
@@ -1005,7 +1005,8 @@
         "user-plan"
       ],
       "dependencies": [
-        "cpu-30-pairs"
+        "cpu-30-pairs",
+        "v060-reference-identity-repair"
       ],
       "environment": "isolated engineering",
       "criteria": [
@@ -2270,6 +2271,30 @@
       "evidence": [],
       "identities": {},
       "next_action": "Merge reviewed shared helper then native fault acceptance before resource-creating operational gates",
+      "checklist": []
+    },
+    {
+      "id": "v060-reference-identity-repair",
+      "requirement": "Bind proposed0.6 reference table to trusted exact worker image reference source measurement contract and cohort, rejecting substituted identities",
+      "sources": [
+        "docs/acceptance/production-preparation/v060-adapter-review.json"
+      ],
+      "dependencies": [],
+      "environment": "isolated inactive0.6 development worktree",
+      "criteria": [
+        "Tampered worker/source/reference identities rejected; independent re-review and focused tests pass"
+      ],
+      "status": "running",
+      "attempts": [
+        {
+          "source_commit": "6f24d40e10a11d3af6f0e98b6990199e5df02077",
+          "protocol": "Independent source review and identity substitution regression",
+          "result": "Reference image/source equality finding requires repair"
+        }
+      ],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Repair trusted expected-identity validation; repeat independent review",
       "checklist": []
     }
   ],
