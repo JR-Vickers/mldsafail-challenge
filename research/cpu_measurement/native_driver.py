@@ -362,6 +362,27 @@ def main():
 
 
 def cleanup_state(path,*,controller_config,repository):
+    """Retire terminal ownership without leaking its endpoint into callers."""
+    names=('DOCKER_HOST','DOCKER_CONTEXT','MLDSAFAIL_OPERATOR_DAEMON_MANIFEST','MLDSAFAIL_CPU_DAEMON_MANIFEST')
+    previous={name:os.environ.get(name) for name in names}
+    original=None
+    try:
+        return _cleanup_state(path,controller_config=controller_config,repository=repository)
+    except BaseException as error:
+        original=error;raise
+    finally:
+        errors=[]
+        for name,value in previous.items():
+            try:
+                if value is None:os.environ.pop(name,None)
+                else:os.environ[name]=value
+            except BaseException as error:errors.append(repr(error))
+        if errors:
+            if original is None:raise RuntimeError('Terminal environment restoration failed: '+repr(errors))
+            original.add_note('Terminal environment restoration failed: '+repr(errors))
+
+
+def _cleanup_state(path,*,controller_config,repository):
     """New source-bound controller terminally retires the old owned epoch.
 
     The original manifest/provisioning/measurement contract stays immutable.

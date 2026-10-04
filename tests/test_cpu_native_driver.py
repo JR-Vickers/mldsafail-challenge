@@ -117,3 +117,21 @@ def test_terminal_prior_state_archive_precedes_mutation_and_failure_prohibits_cl
     with pytest.raises(OSError,match='archive failure'):
         native_driver.cleanup_state(path,controller_config=controller,repository=tmp_path)
     assert calls==['cleanup']
+
+
+@pytest.mark.parametrize('fails',[False,True])
+def test_terminal_environment_restores_prior_aliases_on_success_and_failure(tmp_path,monkeypatch,fails):
+    import os
+    names=('DOCKER_HOST','DOCKER_CONTEXT','MLDSAFAIL_OPERATOR_DAEMON_MANIFEST','MLDSAFAIL_CPU_DAEMON_MANIFEST')
+    for name in names:monkeypatch.setenv(name,'prior-'+name)
+    def retire(*a,**kw):
+        for name in names:os.environ.pop(name,None)
+        os.environ['DOCKER_HOST']='old-retired-socket'
+        if fails:raise RuntimeError('original terminal failure')
+        return {'cleanup_complete':True}
+    monkeypatch.setattr(native_driver,'_cleanup_state',retire)
+    if fails:
+        with pytest.raises(RuntimeError,match='original terminal failure'):
+            native_driver.cleanup_state(tmp_path/'state',controller_config={},repository=tmp_path)
+    else:assert native_driver.cleanup_state(tmp_path/'state',controller_config={},repository=tmp_path)['cleanup_complete']
+    assert all(os.environ[name]=='prior-'+name for name in names)
