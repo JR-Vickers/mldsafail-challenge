@@ -49,11 +49,12 @@ def test_unknown_guardian_request_barriers_before_client_cancel_and_restart(monk
         (tmp_path/'missing.json').write_text('[]');(tmp_path/'missing.json').chmod(0o600)
     order=[]
     monkeypatch.setenv('MLDSAFAIL_OPERATOR_DAEMON_MANIFEST',str(tmp_path/'manifest.json'))
-    monkeypatch.setattr(owned_daemon,'shutdown_barrier',lambda *args,**kwargs:order.append('barrier') or {'shutdown_proven':True,'errors':[]})
+    monkeypatch.setattr(owned_daemon,'shutdown_barrier',lambda *args,**kwargs:order.append('barrier') or {'shutdown_proven':True,'errors':[],'daemon_epoch':manifest['epoch'],'daemon_manifest_sha256':owned_daemon.fingerprint(manifest)})
     monkeypatch.setattr(owned_client,'stop',lambda entry:order.append('client_stop'))
     monkeypatch.setattr(owned_daemon,'restart_and_refresh',lambda *args,**kwargs:order.append('restart') or {'epoch':'new'})
     assert mutations.resolve(journal,tmp_path,parent)['errors']==[]
     assert order==['barrier','client_stop','restart']
+    (tmp_path/(journal['generation']+'-mutation-repair.json')).unlink()
     order.clear()
     monkeypatch.setattr(owned_daemon,'shutdown_barrier',lambda *args,**kwargs:order.append('barrier') or {'shutdown_proven':False,'errors':[{'step':'daemon_shutdown_failed'}]})
     assert mutations.resolve(journal,tmp_path,parent)['errors']

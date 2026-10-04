@@ -60,8 +60,19 @@ def resolve(journal, directory, parent):
     worker=owned_client.domain_identity(parent)
     if (worker['device'],worker['inode'])!=(journal['parent_device'],journal['parent_inode']):
         raise RuntimeError('Worker parent identity changed before daemon barrier')
-    barrier=owned_daemon.shutdown_barrier(manifest,worker_domains=[worker],
-            evidence_directory=directory,attempt_id=journal['generation'])
+    repair_path=Path(directory)/(journal['generation']+'-mutation-repair.json')
+    if repair_path.exists():
+        repair=owned_daemon.read_private_json(repair_path)
+        if repair.get('schema')!='mldsafail.cpu-mutation-repair.v1' or repair.get('generation')!=journal['generation'] or repair.get('manifest_sha256')!=owned_daemon.fingerprint(manifest):
+            raise RuntimeError('Retained mutation repair identity changed')
+        barrier=repair['barrier']
+        if barrier.get('shutdown_proven') is not True or barrier.get('daemon_manifest_sha256')!=owned_daemon.fingerprint(manifest) or barrier.get('daemon_epoch')!=manifest['epoch']:
+            raise RuntimeError('Retained positive barrier differs from owned daemon')
+    else:
+        barrier=owned_daemon.shutdown_barrier(manifest,worker_domains=[worker],
+                evidence_directory=directory,attempt_id=journal['generation'])
+        if barrier['shutdown_proven']:
+            owned_daemon.publish(repair_path,dict(schema='mldsafail.cpu-mutation-repair.v1',generation=journal['generation'],manifest_sha256=owned_daemon.fingerprint(manifest),barrier=barrier))
     errors=[]
     if not barrier['shutdown_proven']: errors.extend(barrier['errors'])
     # Never cancel a possibly submitted guardian BEFORE kernel-proven shutdown.
