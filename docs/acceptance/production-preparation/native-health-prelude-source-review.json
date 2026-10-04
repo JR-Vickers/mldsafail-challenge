@@ -1,0 +1,31 @@
+{
+  "schema": "mldsafail.cpu-native-review.v1",
+  "status": "source_review_passed",
+  "reviewer": "preparation agent; independent supervisor and native protocol followup",
+  "source_commit": "4c964e0ea4f834b08f30ddde2ecd5b0f37bda37d",
+  "supervisor_source_sha256": "f5c9849df155ca45f453de7cb735331130bc7833c60b25c07082cf6d534c5ad1",
+  "driver_sha256": "e2e9fc916b00b8adc2eeb4c3c254f57e4293c0991872596f8fbb1310c0798aeb",
+  "owned_daemon_sha256": "a994ee75e543880d9defdd59c83ab54385e36106200effeedf766490c5dbe591",
+  "supervisor_review_passed": true,
+  "native_protocol_review_passed": true,
+  "auditor_review": "Separate actual independent auditor receipt required in combined private packet.",
+  "scope": [
+    "Successful bounded systemctl zero-job query may return whitespace-only output; unsuccessful queries and malformed nonempty JSON still fence startup cleanup.",
+    "Terminal cleanup rereads the exact retained predecessor under the provision lease and rejects changed state.",
+    "An immutable UUID-named predecessor archive is published before changing controller metadata or controlling any owned resource; failed archive publication blocks mutation.",
+    "Every terminal cleanup exit independently restores the exact previous Docker host/context and operator/CPU manifest environment values; restoration errors preserve the original exception.",
+    "Fresh worker slice requests default CPUWeight100 and requires actual delegated CPU controls plus nonnegative usage_usec before any daemon unit or image admission.",
+    "Actual Docker health preludes relay and retain daemon status/body hashes; only declared mutating POST acknowledgement is withheld, with explicit connection/prelude limits and close/reconnect handling."
+  ],
+  "verification": {
+    "focused_tests_passed": 7
+  },
+  "native_executed_by_reviewer": false,
+  "native_accounting_gate": "pending",
+  "prior_native_failures": "Preserved; this source repair supplies no successful measurement outcome.",
+  "activation_approved": false,
+  "contract_adoption_approved": false,
+  "evidence_refs": [
+    "docs/acceptance/production-preparation/native-health-prelude-source-review.json"
+  ]
+}
