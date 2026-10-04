@@ -1,0 +1,20 @@
+{
+  "schema": "mldsafail.independent-source-review.v1",
+  "reviewer": "recovery",
+  "source_commit": "c8025e48359ba31b62d2e0edc2151f2c221b801a",
+  "test_followup": "f574711783db1fd391581535ade12ac3ed803717",
+  "source_review_passed": true,
+  "native_executed": false,
+  "source_sha256": "b020d3181b8746666b578bb3c414f13884c28bbd25ca6366abebbff0452e5690",
+  "focused_tests": {
+    "passed": 9,
+    "command": "uv run --extra dev python -m pytest tests/test_native_reproduction_artifacts.py -q -o addopts="
+  },
+  "checks": [
+    "same-process owned native driver and bounded gated command clients",
+    "clean reviewed frozen source hashes and full pinned official registry mapping",
+    "actual native amd64/Python metadata and immutable export checks",
+    "approved offline lock substitutions explicit; scientific source unchanged",
+    "outer cleanup explicitly required; no benchmark acceptance claim"
+  ]
+}
