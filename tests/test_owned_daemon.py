@@ -113,3 +113,9 @@ def test_stale_inactive_manifest_cannot_control_new_epoch(tmp_path,monkeypatch):
     receipt=owned_daemon.shutdown_barrier(manifest,evidence_directory=tmp_path,attempt_id='attempt')
     assert not receipt['shutdown_proven'] and not killed
     assert (tmp_path/'worker/cgroup.kill').read_text()==''
+
+
+def test_fifo_manifest_rejected_without_waiting_for_writer(tmp_path):
+    os.mkfifo(tmp_path/'fifo',0o600)
+    with pytest.raises(RuntimeError,match='Private owner'):
+        owned_daemon.load_manifest(tmp_path/'fifo')

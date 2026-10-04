@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import stat
 import time
 import uuid
 from deploy import owned_client
@@ -235,10 +236,10 @@ def load_manifest(path=None):
             raise RuntimeError('One explicit dedicated-daemon manifest required')
         path=aliases[0]
     path=_canonical(path)
-    descriptor=os.open(path,os.O_RDONLY|os.O_NOFOLLOW)
+    descriptor=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
     with os.fdopen(descriptor,'rb') as stream:
         info=os.fstat(stream.fileno())
-        if info.st_uid!=os.getuid() or info.st_mode & 0o077:
+        if not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_mode & 0o077:
             raise RuntimeError('Private owner daemon manifest required')
         raw=stream.read(65537)
     if len(raw)>65536: raise RuntimeError('Daemon manifest exceeds cap')
