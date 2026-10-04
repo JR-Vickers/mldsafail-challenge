@@ -1,0 +1,17 @@
+{
+  "schema": "mldsafail.source-review.v1",
+  "reviewed_sources": ["18461a5", "888dc3c75e08cfdebfde9f22cf7bb0fbc54e725b", "d587e1b"],
+  "status": "passed_source_review",
+  "supersedes_finding": "dedicated-worker-parent-authority",
+  "historical_review": "owned-daemon-registration-review.json",
+  "corrections": [
+    "Fresh empty worker parent must use the provisioning nonce-derived slice name; its exact kernel birth identity is durably bound before daemon mutation.",
+    "Registration validates exact operator domain and mutually disjoint daemon/operator/worker/protected domains before publishing shutdown authority.",
+    "Current private manifest fingerprint must match the old epoch before shutdown; stale epoch authority prohibits both daemon and worker control.",
+    "Nonblocking manifest open and regular-file validation reject FIFO inputs without hanging."
+  ],
+  "preparatory_consumer_source": "ccc8844",
+  "local_verification": {"focused": 12, "make_check_passed": 453, "make_check_skipped": 11, "historical_score": 3901},
+  "remaining": ["baseline_and_reproduction_consumer_integration", "independent_consumer_review", "native_positive_daemon_barrier_faults"],
+  "native_acceptance": false
+}
