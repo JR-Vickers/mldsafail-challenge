@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import re
+import stat
 from deploy import owned_client, owned_daemon
 
 
@@ -14,10 +15,11 @@ def receipt(directory, name, *, operation, epoch):
     descriptor=os.open(path,os.O_RDONLY|os.O_NOFOLLOW)
     with os.fdopen(descriptor,'rb') as stream:
         info=os.fstat(stream.fileno())
-        if info.st_uid!=os.getuid() or info.st_mode & 0o077: raise RuntimeError('Private guardian receipt required')
+        if not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_mode & 0o077: raise RuntimeError('Private guardian receipt required')
         data=stream.read(3*1024*1024+1)
     if len(data)>3*1024*1024: raise RuntimeError('Guardian receipt exceeds cap')
     value=json.loads(data)
+    if not isinstance(value,dict): raise RuntimeError('Guardian receipt must be an object')
     if value.get('schema')!='mldsafail.cpu-mutation-receipt.v1' or value.get('operation')!=operation or value.get('daemon_epoch')!=epoch or value.get('acknowledged') is not True or value.get('returncode')!=0 or value.get('cleanup_errors')!=[]:
         raise RuntimeError('Mutation acknowledgement is incomplete')
     encoded=value.get('raw_stdout_base64')
@@ -44,9 +46,12 @@ def resolve(journal, directory, parent):
     uncertain=[]
     acknowledged_ids=[]
     for entry in clients.values():
-        if entry['id'] not in released or entry.get('phase') not in {'create','start'}: continue
+        if entry['id'] not in released or entry.get('phase')=='attach': continue
+        if entry.get('phase') not in {'create','start'}:
+            uncertain.append(entry['id'])
+            continue
         try:
-            value=receipt(directory,entry['receipt_file'],operation=entry['phase'],epoch=manifest['epoch'])
+            value=receipt(directory,entry.get('receipt_file'),operation=entry['phase'],epoch=manifest['epoch'])
             if entry['phase']=='create': acknowledged_ids.append(value['container_id'])
             elif value['container_id'] not in acknowledged_ids:
                 raise RuntimeError('Start acknowledgement has no retained create identity')

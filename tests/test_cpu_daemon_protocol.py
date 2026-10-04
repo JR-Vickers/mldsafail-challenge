@@ -33,7 +33,8 @@ def test_guardian_receipt_requires_raw_immutable_acknowledgement(monkeypatch,tmp
         mutations.receipt(tmp_path,path.name,operation='create',epoch='a'*32)
 
 
-def test_unknown_guardian_request_barriers_before_client_cancel_and_restart(monkeypatch,tmp_path):
+@pytest.mark.parametrize('malformation',['missing_file','missing_reference','missing_phase','array'])
+def test_unknown_guardian_request_barriers_before_client_cancel_and_restart(monkeypatch,tmp_path,malformation):
     from research.cpu_measurement import mutations
     manifest=fixture_manifest(tmp_path,monkeypatch)
     parent=Path(manifest['worker_domain']['path'])
@@ -42,6 +43,10 @@ def test_unknown_guardian_request_barriers_before_client_cancel_and_restart(monk
         dict(operation='dedicated_daemon_verified',manifest=manifest),
         dict(operation='host_client_domain',id='client',phase='create',receipt_file='missing.json'),
         dict(operation='host_client_release_intent',id='client')])
+    if malformation=='missing_reference': journal['mutations'][1].pop('receipt_file')
+    if malformation=='missing_phase': journal['mutations'][1].pop('phase')
+    if malformation=='array':
+        (tmp_path/'missing.json').write_text('[]');(tmp_path/'missing.json').chmod(0o600)
     order=[]
     monkeypatch.setenv('MLDSAFAIL_OPERATOR_DAEMON_MANIFEST',str(tmp_path/'manifest.json'))
     monkeypatch.setattr(owned_daemon,'shutdown_barrier',lambda *args,**kwargs:order.append('barrier') or {'shutdown_proven':True,'errors':[]})
@@ -53,3 +58,26 @@ def test_unknown_guardian_request_barriers_before_client_cancel_and_restart(monk
     monkeypatch.setattr(owned_daemon,'shutdown_barrier',lambda *args,**kwargs:order.append('barrier') or {'shutdown_proven':False,'errors':[{'step':'daemon_shutdown_failed'}]})
     assert mutations.resolve(journal,tmp_path,parent)['errors']
     assert order==['barrier']
+
+
+def test_malformed_receipt_shape_is_uncertain_not_unhandled(tmp_path):
+    from research.cpu_measurement.mutations import receipt
+    import pytest
+    path=tmp_path/'bad.json'
+    path.write_text('[]');path.chmod(0o600)
+    with pytest.raises(RuntimeError,match='object'):
+        receipt(tmp_path,'bad.json',operation='create',epoch='a'*32)
+
+
+def test_incomplete_guardian_closes_parent_pipes_without_cancelling_mutator(tmp_path,monkeypatch):
+    import io
+    from types import SimpleNamespace
+    from research.cpu_measurement import client
+    streams=[io.BytesIO() for _ in range(3)]
+    process=SimpleNamespace(stdin=streams[0],stdout=streams[1],stderr=streams[2],poll=lambda:0)
+    monkeypatch.setattr(client,'spawn',lambda *args,**kwargs:(process,{'id':'client'}))
+    monkeypatch.setattr(owned_client,'stop',lambda entry: (_ for _ in ()).throw(AssertionError('Uncertain guardian must survive until barrier')))
+    owner=SimpleNamespace(record={'generation':'a'*32},directory=tmp_path,mutation=lambda *args,**kwargs:None)
+    with pytest.raises(RuntimeError,match='incomplete'):
+        client.mutation(['docker','create'],owner,tmp_path,{'epoch':'b'*32},'create')
+    assert all(stream.closed for stream in streams)

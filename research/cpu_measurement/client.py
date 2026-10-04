@@ -87,26 +87,33 @@ def mutation(argv, owner, parent, manifest, operation):
              str(owner.directory/receipt_file),'--epoch',manifest['epoch'],
              '--operation',operation,*argv]
     process,entry=spawn(command,owner,parent,phase=operation,receipt_file=receipt_file)
-    deadline=time.monotonic()+45
-    path=owner.directory/receipt_file
-    while not path.exists():
-        if process.poll() is not None or time.monotonic()>deadline:
-            # Never kill a potentially submitted creator here. Reconciliation
-            # must stop the dedicated daemon epoch before cancelling guardian.
-            raise RuntimeError('Mutation guardian acknowledgement incomplete')
-        time.sleep(.05)
-    from research.cpu_measurement.mutations import receipt as read_receipt
-    receipt=read_receipt(owner.directory,receipt_file,operation=operation,epoch=manifest['epoch'])
-    errors=[]
-    try: process.wait(timeout=15)
-    except BaseException as error: errors.append(repr(error))
-    try: owned_client.stop(entry)
-    except BaseException as error: errors.append(repr(error))
-    for stream in (process.stdin,process.stdout,process.stderr):
-        if stream is not None:
-            try: stream.close()
-            except BaseException as error: errors.append(repr(error))
-    if errors: raise RuntimeError('Acknowledged mutation client cleanup failed: '+repr(errors))
-    owner.mutation('daemon_mutation_acknowledged',operation_name=operation,
-                   receipt_file=receipt_file,container_id=receipt['container_id'],daemon_epoch=manifest['epoch'])
-    return receipt['container_id']
+    try:
+        deadline=time.monotonic()+45
+        path=owner.directory/receipt_file
+        while not path.exists():
+            if process.poll() is not None or time.monotonic()>deadline:
+                # Never kill a potentially submitted creator here. Reconciliation
+                # must stop the dedicated daemon epoch before cancelling guardian.
+                raise RuntimeError('Mutation guardian acknowledgement incomplete')
+            time.sleep(.05)
+        from research.cpu_measurement.mutations import receipt as read_receipt
+        receipt=read_receipt(owner.directory,receipt_file,operation=operation,epoch=manifest['epoch'])
+        errors=[]
+        try: process.wait(timeout=15)
+        except BaseException as error: errors.append(repr(error))
+        try: owned_client.stop(entry)
+        except BaseException as error: errors.append(repr(error))
+        if errors: raise RuntimeError('Acknowledged mutation client cleanup failed: '+repr(errors))
+        owner.mutation('daemon_mutation_acknowledged',operation_name=operation,
+                       receipt_file=receipt_file,container_id=receipt['container_id'],daemon_epoch=manifest['epoch'])
+        return receipt['container_id']
+    finally:
+        cleanup_errors=[]
+        for stream in (process.stdin,process.stdout,process.stderr):
+            if stream is not None:
+                try: stream.close()
+                except BaseException as error: cleanup_errors.append(repr(error))
+        if cleanup_errors:
+            current=sys.exception()
+            if current is not None: current.add_note('Guardian parent stream cleanup failed: '+repr(cleanup_errors))
+            else: raise RuntimeError('Guardian parent stream cleanup failed: '+repr(cleanup_errors))
