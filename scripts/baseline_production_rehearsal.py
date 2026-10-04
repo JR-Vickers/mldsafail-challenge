@@ -146,7 +146,8 @@ def cleanup(root, env, journal=None, errors_out=None):
             continue
         all_clients.extend(clients)
     errors.extend(operator_daemon_lifecycle.settle(journal, all_clients, root,
-                  lambda: atomic_json(root / 'journal.json', journal)))
+                  lambda: atomic_json(root / 'journal.json', journal),
+                  permit_restart=not any(error.get('kind') == 'owned_client' for error in errors)))
     # A damaged earlier client receipt cannot block independent gated cleanup.
     env = {**env, 'MLDSAFAIL_OWNED_CLIENT_RECEIPT': 'cleanup-clients-' + uuid.uuid4().hex + '.json'}
     mutations_path = root / 'daemon-mutations.json'

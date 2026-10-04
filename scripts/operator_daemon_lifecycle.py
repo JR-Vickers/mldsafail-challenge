@@ -2,6 +2,7 @@
 from pathlib import Path
 import fcntl
 import os
+import stat
 import uuid
 
 from deploy import owned_client, owned_daemon
@@ -15,7 +16,7 @@ def lock_daemon(manifest):
     descriptor = os.open(base/'operator.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
     try:
         info = os.fstat(descriptor)
-        if info.st_uid != os.getuid() or info.st_mode & 0o077 or info.st_nlink != 1:
+        if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077 or info.st_nlink != 1:
             raise RuntimeError('Private exclusive daemon operator lock required')
         fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BaseException:
@@ -35,7 +36,7 @@ def bind(journal, publish):
     return manifest
 
 
-def settle(journal, clients, root, publish):
+def settle(journal, clients, root, publish, *, permit_restart=True):
     """Fail closed; independent creator stops still run after barrier failure."""
     errors = []
     manifest = journal.get('dedicated_daemon')
@@ -58,6 +59,8 @@ def settle(journal, clients, root, publish):
             owned_client.stop(entry)
         except Exception as error:
             errors.append({'step': 'creator_stop', 'error_type': type(error).__name__})
+    if not permit_restart:
+        errors.append({'step': 'daemon_restart_prohibited', 'error_type': 'UnaccountedCreatorAuthority'})
     if not errors:
         try:
             import os

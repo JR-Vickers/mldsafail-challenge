@@ -120,3 +120,15 @@ def test_original_invocation_failure_survives_publication_and_removal_failure(tm
         run.invoke(run.images[0], ['-m', 'worker'], b'public')
     assert len(caught.value.__notes__) == 2
     assert run.journal['attempts'][0]['error_type'] == 'ValueError'
+
+
+def test_malformed_embedded_clients_still_barriers_but_never_restarts(tmp_path, monkeypatch):
+    run = ReproductionRun(tmp_path, [])
+    run.journal = {'dedicated_daemon': {}, 'run_id': 'a'*32, 'clients': None, 'attempts': []}
+    reached = []
+    monkeypatch.setattr('scripts.operator_daemon_lifecycle.owned_daemon.shutdown_barrier', lambda *a, **kw: reached.append('barrier') or {'shutdown_proven': True})
+    monkeypatch.setattr('scripts.operator_daemon_lifecycle.owned_daemon.restart_and_refresh', lambda *a, **kw: reached.append('unsafe_restart'))
+    monkeypatch.setattr(run, 'command', lambda *a, **kw: SimpleNamespace(stdout=b''))
+    assert run.cleanup() is False
+    assert reached == ['barrier']
+    assert run.journal['remaining_owned_containers'] == []

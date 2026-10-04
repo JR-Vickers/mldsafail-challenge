@@ -60,3 +60,13 @@ def test_distinct_run_roots_cannot_share_daemon_concurrently(tmp_path):
             module.lock_daemon(manifest)
     finally:
         os.close(descriptor)
+
+
+def test_damaged_creator_authority_prohibits_restart_after_positive_barrier(monkeypatch, tmp_path):
+    events = []
+    monkeypatch.setattr(module.owned_daemon, 'shutdown_barrier', lambda *a, **kw: events.append('barrier') or {'shutdown_proven': True})
+    monkeypatch.setattr(module.owned_client, 'stop', lambda entry: events.append('stop'))
+    monkeypatch.setattr(module.owned_daemon, 'restart_and_refresh', lambda *a, **kw: events.append('unsafe_restart'))
+    errors = module.settle({'dedicated_daemon': {}}, [{}], tmp_path, lambda: None, permit_restart=False)
+    assert events == ['barrier', 'stop']
+    assert errors[-1]['step'] == 'daemon_restart_prohibited'

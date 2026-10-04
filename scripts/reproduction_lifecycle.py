@@ -176,7 +176,14 @@ class ReproductionRun:
         self.journal['cleanup_phase'] = 'running'
         self.journal['cleanup_complete'] = False
         publish()
-        clients = list(self.journal.get('clients', []))
+        try:
+            retained_clients = self.journal.get('clients', [])
+            if not isinstance(retained_clients, list):
+                raise ValueError('Client receipt must be a list')
+            clients = list(retained_clients)
+        except Exception as error:
+            errors.append('ClientReceipt:' + type(error).__name__)
+            clients = []
         for path in self.root.glob('cleanup-clients-*.json'):
             try:
                 receipt = json.loads(safe_path(path).read_text())
@@ -185,7 +192,8 @@ class ReproductionRun:
                 clients.extend(receipt)
             except Exception as error:
                 errors.append('ClientReceipt:' + type(error).__name__)
-        errors.extend(operator_daemon_lifecycle.settle(self.journal, clients, self.root, self.save))
+        errors.extend(operator_daemon_lifecycle.settle(self.journal, clients, self.root, self.save,
+                      permit_restart=not any(isinstance(error, str) and error.startswith('ClientReceipt:') for error in errors)))
         # Independent gated cleanup does not publish through the damaged run journal.
         self.cleanup_clients = []
         receipt_path = self.root / ('cleanup-clients-' + uuid.uuid4().hex + '.json')
