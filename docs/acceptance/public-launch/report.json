@@ -119,10 +119,15 @@
         "Prove migration-free disposable forward rollback and restoration"
       ],
       "status": "passed",
-      "attempts": [],
+      "attempts": [
+        {
+          "result": "historical prerequisite evidence explicitly reconciled; source outcome preserved",
+          "historical_evidence_reference": "docs/acceptance/compose-switch-remediation-20261003/report.json#/native"
+        }
+      ],
       "evidence": [
         {
-          "reference": "docs/acceptance/compose-switch-remediation-20261003/report.json#/native",
+          "reference": "docs/acceptance/public-launch/prerequisite-evidence-reconciliation.json#/switch_remediation/passed",
           "criteria_met": [
             "Prove migration-free disposable forward rollback and restoration"
           ]
@@ -146,10 +151,15 @@
         "Retain and independently verify compatible fd4be66 images and source"
       ],
       "status": "passed",
-      "attempts": [],
+      "attempts": [
+        {
+          "result": "historical prerequisite evidence explicitly reconciled; source outcome preserved",
+          "historical_evidence_reference": "docs/acceptance/compose-switch-remediation-20261003/report.json#/verification"
+        }
+      ],
       "evidence": [
         {
-          "reference": "docs/acceptance/compose-switch-remediation-20261003/report.json#/verification",
+          "reference": "docs/acceptance/public-launch/prerequisite-evidence-reconciliation.json#/retained_compatible_release/passed",
           "criteria_met": [
             "Retain and independently verify compatible fd4be66 images and source"
           ]
@@ -1292,17 +1302,22 @@
         "Correct migration-sensitive service restoration in assembly journal and operator paths"
       ],
       "status": "passed",
-      "attempts": [],
+      "attempts": [
+        {
+          "result": "Initial restoration implementation preserved; later exact-source independent review covers corrected isolated daemon integration and independent cleanup. Native acceptance remains separately required.",
+          "historical_evidence_reference": "docs/acceptance/recovery-service-restoration/report.json"
+        }
+      ],
       "evidence": [
         {
-          "reference": "docs/acceptance/recovery-service-restoration/report.json",
+          "reference": "docs/acceptance/public-launch/recovery-isolated-daemon-integration-review.json#/status",
           "criteria_met": [
             "Correct migration-sensitive service restoration in assembly journal and operator paths"
           ]
         }
       ],
       "identities": {
-        "source": "7388dd8"
+        "source_commit": "6819132b6e2b2d3b91f3c9764ab33dbecc69c59e"
       },
       "next_action": "Retain evidence; revalidate when consumed",
       "checklist": []
@@ -1617,10 +1632,15 @@
         "Separate production volumes roots repositories secrets OAuth cookies TLS headers private endpoints and explicit migrations"
       ],
       "status": "passed",
-      "attempts": [],
+      "attempts": [
+        {
+          "result": "historical prerequisite evidence explicitly reconciled; source outcome preserved",
+          "historical_evidence_reference": "docs/acceptance/production-preparation/report.json#/review"
+        }
+      ],
       "evidence": [
         {
-          "reference": "docs/acceptance/production-preparation/report.json#/review",
+          "reference": "docs/acceptance/public-launch/prerequisite-evidence-reconciliation.json#/production_templates/passed",
           "criteria_met": [
             "Separate production volumes roots repositories secrets OAuth cookies TLS headers private endpoints and explicit migrations"
           ]

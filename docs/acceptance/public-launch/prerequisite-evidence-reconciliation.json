@@ -1,0 +1,18 @@
+{
+  "switch_remediation": {
+    "passed": true,
+    "source": "docs/acceptance/compose-switch-remediation-20261003/report.json#/native",
+    "scope": "Historical disposable initialized-database migration-free application switches; live rollback separately verified."
+  },
+  "retained_compatible_release": {
+    "passed": true,
+    "source": "docs/acceptance/compose-switch-remediation-20261003/report.json#/verification",
+    "release_commit": "fd4be66575ae6dbef9785321a79a687f418df0b8",
+    "scope": "Retained compatible historical release; current staging release remains separately identified."
+  },
+  "production_templates": {
+    "passed": true,
+    "source": "docs/acceptance/production-preparation/report.json#/review",
+    "scope": "Independent source review and corrected templates only; deployment rehearsal and production activation separately gated."
+  }
+}

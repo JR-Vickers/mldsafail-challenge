@@ -1,5 +1,6 @@
 import copy
 import importlib.util
+import pytest
 from pathlib import Path
 
 spec = importlib.util.spec_from_file_location('launch_ledger', Path(__file__).parents[1] / 'scripts/launch_ledger.py')
@@ -82,3 +83,27 @@ def test_pass_rejects_missing_or_failed_json_pointer(tmp_path):
     assert any('does not pass' in error for error in ledger.validate(data, tmp_path))
     evidence['reference'] = 'docs/evidence.json#/missing'
     assert any('JSON pointer' in error for error in ledger.validate(data, tmp_path))
+
+
+@pytest.mark.parametrize('outcome', [None, 0, {}, 'unknown', {'status': 'running'},
+                                   {'passed': True, 'status': 'failed'},
+                                   {'passed': True, 'complete': False}])
+def test_absence_of_failure_is_not_a_positive_outcome(tmp_path, outcome):
+    import json
+    (tmp_path / 'docs').mkdir()
+    (tmp_path / 'docs/evidence.json').write_text(json.dumps({'gate': outcome}))
+    data = report()
+    data['tasks'][0]['evidence'][0]['reference'] = 'docs/evidence.json#/gate'
+    assert any('does not pass' in error for error in ledger.validate(data, tmp_path))
+
+
+def test_whole_json_report_requires_explicit_positive_outcome(tmp_path):
+    import json
+    (tmp_path / 'docs').mkdir()
+    evidence = tmp_path / 'docs/evidence.json'
+    data = report()
+    data['tasks'][0]['evidence'][0]['reference'] = 'docs/evidence.json'
+    evidence.write_text(json.dumps({'status': 'pending'}))
+    assert any('does not pass' in error for error in ledger.validate(data, tmp_path))
+    evidence.write_text(json.dumps({'passed': True}))
+    assert ledger.validate(data, tmp_path) == []
