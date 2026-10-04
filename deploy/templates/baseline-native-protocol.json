@@ -23,6 +23,7 @@
       "/srv/mldsafail",
       "/srv/mldsafail-evaluator",
       "/etc/mldsafail"
-    ]
+    ],
+    "python": "/PRIVATE/RETAINED_V050_SOURCE/.venv/bin/python"
   }
 }
