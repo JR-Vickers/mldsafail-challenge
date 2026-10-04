@@ -60,6 +60,15 @@
       "sealed_artifacts": 19,
       "installed_environment_excluded": true,
       "shared_interpreter_executable_after_sealing": true
+    },
+    {
+      "command": "make check final baseline rehearsal/provenance preparation",
+      "source_commit": "768c5dfb22323fbdd4096dea12d3297c4e8c3583",
+      "outcome": "passed",
+      "passed": 390,
+      "skipped": 11,
+      "historical_small_score": 3901,
+      "native_scope": "local tests only; PostgreSQL, rootless Docker baseline rehearsal and native monitoring remain separate"
     }
   ],
   "not_established": [
@@ -70,7 +79,7 @@
     "encrypted off-host production recovery or external webhook acceptance",
     "artifact publication, public exposure, recruitment or participant pilot observations"
   ],
-  "next_action": "independently review source; integrate approved measurement/version design before native production rehearsal; obtain precise owner inputs and decisions described in PUBLIC_LAUNCH_PACKET.md",
+  "next_action": "Root-owned exact-source native baseline/admission/monitor/unit verification; separately complete adopted-design integration and fresh cohort production rehearsal; owner input/approval gates remain documented in PUBLIC_LAUNCH_PACKET.md and OWNER_OPERATIONAL_SETUP.md",
   "public_launch_approved": false,
   "review": {
     "reviewer": "independent recovery agent",
@@ -96,5 +105,30 @@
     "repair": "exact interpreter target restored0755 and execution verified; retained installation executables restored0700",
     "corrective_tool": "scripts/seal_participant_artifacts.py; checksum-bound descriptor-relative O_NOFOLLOW, excludes install trees and rejects hardlinks; regression checks protect external interpreter permissions",
     "failure_evidence_preserved": true
+  },
+  "participant_artifact_successors": [
+    {
+      "source_commit": "54929dfacfc2b78bd40f172273b6bfa4a868bf55",
+      "archive_sha256": "ee9324c1085c14254d48cbb6dbaab944ebecf5ba825bef38e18c5a0be27fb486",
+      "independent_review": "root and recovery privacy/inventory/checksum/local-links/starter/public-fixture review passed",
+      "provenance_clarity_correction_required": true
+    },
+    {
+      "archive_documentation_source_commit": "768c5dfb22323fbdd4096dea12d3297c4e8c3583",
+      "wheel_source_commit": "4a9d82d666dea328286631a5ffe62f19a1c985b3",
+      "wheel_sha256": "3c2490de73a99d31f57e9cadcd6fd9eb5a30540511d485b475a9330b76c008b5",
+      "archive_sha256": "aeb3aa5c6e2ac8604904080c9eb2a994cc087ae86b8b7d1bb5c71872a9377d77",
+      "independent_review_pending": true,
+      "native_reproduction_gate_pending": true,
+      "publication_approved": false
+    }
+  ],
+  "baseline_rehearsal_preparation": {
+    "source_commit": "768c5dfb22323fbdd4096dea12d3297c4e8c3583",
+    "focused_tests_passed": 4,
+    "source_review": "independent recovery reviewer confirmed corrections by inspection; exact frozen review pending",
+    "native_execution_pending": true,
+    "approved_design_production_rehearsal_satisfied": false,
+    "protocol": "docs/NATIVE_PREPARATION_GATES.md"
   }
 }
