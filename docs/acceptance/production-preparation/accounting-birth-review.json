@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "reviewer": "independent preparation agent",
+  "source_commit": "9eea248b186af22d776d53b912dfda74030a9a85",
+  "source_files_sha256": {
+    "research/cpu_measurement/client.py": "54cf835bab75ea0f04362d9edc1d4358a9f6944f1c785aaf2eaea39a063aa0f1",
+    "research/cpu_measurement/harness.py": "07e4b3068697392bc5b6ac92fcc55665a9fd603f3c6bd7a39d022e08d486f6ea",
+    "research/cpu_measurement/reconcile.py": "ab42c59c56dbe10c0fadb951fcad53bc37f3b7a0ebb651f1580466a2a5120360",
+    "research/cpu_measurement/native_birth.py": "112dc66495fa27c3046c7ccdf8c77a82f94ac304baf3f5f31f725726054b74bf",
+    "deploy/owned_client.py": "7d63f7fae08f2c17bb382c7a6ab70e0e78415f9398ea515b96db097b6967d4e0"
+  },
+  "focused_tests_passed": 40,
+  "review_scope": "creator birth gate, private operator kernel domain separate from CPU accounting parent, spawn-failure independent pipe cleanup and fail-closed interrupted-release guard",
+  "source_review_passed_with_native_dependencies": true,
+  "verified_source_properties": [
+    "durable birth/domain/PID identity before release token",
+    "separate kernel client domain contains all creator descendants",
+    "every failed-spawn pipe cleanup independently attempted",
+    "same-boot released creator without acknowledged worker remains fenced",
+    "known owned cleanup attempted with uncertain daemon mutation recorded"
+  ],
+  "not_established": [
+    "positive isolated daemon epoch barrier",
+    "native before-release and mid-daemon-request interruption proof",
+    "no-late-worker public acceptance",
+    "native accounting fault and paired measurement gates"
+  ],
+  "next_action": "review isolated daemon barrier and guardian source, then root-owned exact-source native faults; do not treat current fence as successful reconciliation",
+  "public_launch_approved": false
+}
