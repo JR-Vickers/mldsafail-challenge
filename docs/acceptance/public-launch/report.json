@@ -1259,17 +1259,32 @@
       "criteria": [
         "Complete native accounting faults including ownership loss before client exec release and after input delivery, descendants, stream caps, counter/delegation/contamination failures and independently retryable cleanup"
       ],
-      "status": "failed",
+      "status": "passed",
       "attempts": [
         {
           "source_commit": "60ce7e8f2be8f94d3b2b7647d4cf6a6af8c7f2da",
           "evidence": "docs/acceptance/public-launch/native-cpu-generation-f.json",
           "result": "Partial native faults passed; declared mutation injection not reached; no performance pairs ran; cleanup verified"
+        },
+        {
+          "source_commit": "8bfe1b5941d6d86f3a67681466eab6300ce013aa",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-g.json",
+          "result": "Native declared interruption faults and canonical whole cleanup passed; paired gate remains separately failed"
         }
       ],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Run reviewed bounded real-health-prelude repair on fresh retained source; preserve partial failure",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/native-cpu-generation-g.json#/fault_suite_passed",
+          "criteria_met": [
+            "Complete native accounting faults including ownership loss before client exec release and after input delivery, descendants, stream caps, counter/delegation/contamination failures and independently retryable cleanup"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "8bfe1b5941d6d86f3a67681466eab6300ce013aa",
+        "supervisor_source_sha256": "f7ad12e9442708824282e28f61954916aeea7a4d908914d55b639b865808323b"
+      },
+      "next_action": "Retain scoped native fault pass; performance/adoption remain separately gated",
       "checklist": []
     },
     {
@@ -1285,11 +1300,17 @@
       "criteria": [
         "Predeclare and run 30 sequential empty/deterministic pairs with unchanged CV CPU overhead and wall thresholds"
       ],
-      "status": "waiting_dependency",
-      "attempts": [],
+      "status": "failed",
+      "attempts": [
+        {
+          "source_commit": "8bfe1b5941d6d86f3a67681466eab6300ce013aa",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-g.json",
+          "result": "All30pairs completed; CPUoverhead andCV thresholds failed; allownedcleanup independently verified"
+        }
+      ],
       "evidence": [],
       "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "next_action": "Complete corrective engineering and independent review before a justified changed-artifact native protocol; thresholds unchanged",
       "checklist": []
     },
     {
@@ -2788,17 +2809,32 @@
       "criteria": [
         "Client mutation is gated until durable identity/domain receipt; independent source reviews and focused tests pass; separate native fault suite must cover before-release owner loss; worker CPU parent and thresholds unchanged"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
           "protocol": "Broader interruption-path source audit",
           "result": "Popen-before-receipt window requires birth gate correction; existing post-input SIGKILL acceptance does not cover it"
+        },
+        {
+          "source_commit": "8bfe1b5941d6d86f3a67681466eab6300ce013aa",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-g.json",
+          "result": "Native declared interruption faults and canonical whole cleanup passed; paired gate remains separately failed"
         }
       ],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Implement gated accounting client; repeat independent reviews and native interruption tests before performance collection",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/native-cpu-generation-g.json#/before_exec_owner_loss_passed",
+          "criteria_met": [
+            "Client mutation is gated until durable identity/domain receipt; independent source reviews and focused tests pass; separate native fault suite must cover before-release owner loss; worker CPU parent and thresholds unchanged"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "8bfe1b5941d6d86f3a67681466eab6300ce013aa",
+        "supervisor_source_sha256": "f7ad12e9442708824282e28f61954916aeea7a4d908914d55b639b865808323b"
+      },
+      "next_action": "Retain scoped native fault pass; performance/adoption remain separately gated",
       "checklist": []
     },
     {
@@ -2815,7 +2851,7 @@
       "criteria": [
         "Independent review and native mid-create/mid-start owner-loss/transport-loss faults prove daemon quiescence and owned cleanup; preserved failed evidence; healthy measurement protocol and frozen thresholds unchanged"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "protocol": "Dedicated rootless daemon with exact socket/data-root/unit/boot/PID/start/cgroup/binary identity, fsynced guardian mutation receipts, split create/start then read-only attach; ambiguous mutation requires verified owned daemon/worker shutdown before restart and reconciliation",
@@ -2830,11 +2866,26 @@
           "source_commit": "60ce7e8f2be8f94d3b2b7647d4cf6a6af8c7f2da",
           "evidence": "docs/acceptance/public-launch/native-cpu-generation-f.json",
           "result": "Actual lost-create probe failed before mutation; whole owned cleanup verified"
+        },
+        {
+          "source_commit": "8bfe1b5941d6d86f3a67681466eab6300ce013aa",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-g.json",
+          "result": "Native declared interruption faults and canonical whole cleanup passed; paired gate remains separately failed"
         }
       ],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute exact reviewed health-prelude repair in new isolated native generation",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/native-cpu-generation-g.json#/lost_create_ack_passed",
+          "criteria_met": [
+            "Independent review and native mid-create/mid-start owner-loss/transport-loss faults prove daemon quiescence and owned cleanup; preserved failed evidence; healthy measurement protocol and frozen thresholds unchanged"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "8bfe1b5941d6d86f3a67681466eab6300ce013aa",
+        "supervisor_source_sha256": "f7ad12e9442708824282e28f61954916aeea7a4d908914d55b639b865808323b"
+      },
+      "next_action": "Retain scoped native fault pass; performance/adoption remain separately gated",
       "checklist": []
     },
     {
