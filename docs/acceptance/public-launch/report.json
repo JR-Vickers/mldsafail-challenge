@@ -2350,19 +2350,31 @@
         "Archive contains only approved public material; checksums and installation work"
       ],
       "status": "passed",
-      "attempts": [],
+      "attempts": [
+        {
+          "source_commit": "a4f1f273b1294c94b73e3d2c789f41d0e953300f",
+          "result": "corrected CLI candidate independently reviewed; earlier artifacts/reviews preserved"
+        }
+      ],
       "evidence": [
         {
           "reference": "docs/acceptance/public-launch/participant-archive-review.json#/passed",
           "criteria_met": [
             "Archive contains only approved public material; checksums and installation work"
           ]
+        },
+        {
+          "reference": "docs/acceptance/public-launch/participant-archive-corrective-review.json#/passed",
+          "criteria_met": [
+            "Archive contains only approved public material; checksums and installation work"
+          ]
         }
       ],
       "identities": {
-        "archive_documentation_source_commit": "768c5dfb22323fbdd4096dea12d3297c4e8c3583",
-        "wheel_source_commit": "4a9d82d666dea328286631a5ffe62f19a1c985b3",
-        "archive_sha256": "aeb3aa5c6e2ac8604904080c9eb2a994cc087ae86b8b7d1bb5c71872a9377d77"
+        "archive_documentation_source_commit": "a4f1f273b1294c94b73e3d2c789f41d0e953300f",
+        "wheel_source_commit": "a4f1f273b1294c94b73e3d2c789f41d0e953300f",
+        "archive_sha256": "b3ff543af250bb96b6dc098c9f0bad900fdc6d3edb097a1ab2e94ddf9a7d3dd8",
+        "wheel_sha256": "47b1bc54fcee977665dad922df4b633d9e81762a36802b6e279d5dcb062b0bbb"
       },
       "next_action": "Retain unpublished; complete separate native install/reproduction gates",
       "checklist": []
@@ -2445,7 +2457,7 @@
       "criteria": [
         "Run retained participant wheel installation smoke on isolated native Linux installation; preserve failures and prove owned cleanup"
       ],
-      "status": "failed",
+      "status": "running",
       "attempts": [
         {
           "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
@@ -2454,6 +2466,13 @@
           "protocol": "New native Linux install under own delegated service with verified helper; sanitize import environment; prove installed package path and prefix; exercise CLI and approved tiny starter; retain failure logs and prove final controller/cgroup absence.",
           "result": "mlwe-clone failed on fresh account; installation/import/help passed, exact cleanup verified",
           "evidence_reference": "docs/acceptance/public-launch/participant-native-install-failure.json"
+        },
+        {
+          "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
+          "artifact_commit": "a4f1f273b1294c94b73e3d2c789f41d0e953300f",
+          "artifact_sha256": "47b1bc54fcee977665dad922df4b633d9e81762a36802b6e279d5dcb062b0bbb",
+          "protocol": "Preserve failed generation1; new native fresh-account installation using independently reviewed synthetic initial commit identity; same verified helper and installed-import identity protocol. No Git account configuration changes.",
+          "result": "planned"
         }
       ],
       "evidence": [],
