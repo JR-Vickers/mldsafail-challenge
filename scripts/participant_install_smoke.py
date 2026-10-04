@@ -5,9 +5,25 @@ No login, submission, publication or mutable existing installation is used.
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
+
+
+def isolated_environment():
+    environment = dict(os.environ)
+    for name in ('PYTHONPATH', 'PYTHONHOME', 'VIRTUAL_ENV'):
+        environment.pop(name, None)
+    environment['PYTHONNOUSERSITE'] = '1'
+    return environment
+
+
+def validate_installed_identity(identity, install):
+    install = Path(install).resolve()
+    package = Path(identity['package_path']).resolve()
+    if Path(identity['prefix']).resolve() != install or install not in package.parents:
+        raise RuntimeError('Imported participant package is outside the fresh installation')
 
 
 def smoke(wheel, expected, destination, starter):
@@ -28,7 +44,8 @@ def smoke(wheel, expected, destination, starter):
         # Logs remain local/protected; no network account operation is performed.
         with (destination / (name + '.log')).open('x') as output:
             result = subprocess.run(arguments, cwd=destination, stdout=output,
-                                    stderr=subprocess.STDOUT, timeout=180)
+                                    stderr=subprocess.STDOUT, timeout=180,
+                                    env=isolated_environment())
         (destination / (name + '.log')).chmod(0o600)
         record['checks'].append({'check': name, 'returncode': result.returncode})
         save()
@@ -38,8 +55,9 @@ def smoke(wheel, expected, destination, starter):
     install = destination / 'installed'
     run('install', ['sh', str(installer), str(wheel), expected, str(install)])
     run('installed-identity', [str(install / 'bin/python'), '-c',
-        'import importlib.metadata,json,platform; print(json.dumps({"python":platform.python_version(),"platform":platform.platform(),"package":importlib.metadata.version("mldsafail-challenge")}))'])
+        'import importlib.metadata,json,platform,sys,mldsafail; from pathlib import Path; print(json.dumps({"python":platform.python_version(),"platform":platform.platform(),"package":importlib.metadata.version("mldsafail-challenge"),"package_path":str(Path(mldsafail.__file__).resolve()),"prefix":sys.prefix}))'])
     record['installed_identity'] = json.loads((destination / 'installed-identity.log').read_text())
+    validate_installed_identity(record['installed_identity'], install)
     if record['installed_identity']['package'] != record['package_version']:
         raise RuntimeError('This smoke protocol requires participant package 0.5.1')
     save()
