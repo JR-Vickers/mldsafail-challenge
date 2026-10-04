@@ -1,0 +1,78 @@
+{
+  "schema": "mldsafail.native-operational-acceptance.v1",
+  "gate": "actual-ssh-transport-loss-modern-owned-recovery",
+  "passed": true,
+  "native_executed": true,
+  "synthetic_only": true,
+  "source_commit": "805d9c886529e41056202184dc3f96500a2c1d8a",
+  "callback_sha256": "3b8ef90c9fd0200a936c9c77070e33422d873c20677ad68eb7942bd741260333",
+  "supervisor_source_sha256": "0c8202903ca6e2162e0f43e1fb47ebd145eadd83faad38fe1718365efaf667d1",
+  "source_bundle_sha256": "fe8f9be9ed35daa82a9427a8ec50b615cebab63194819b74b68a7ed66fb5a4ae",
+  "runtime": {
+    "guest_uid": 1000,
+    "architecture": "aarch64",
+    "kernel": "6.8.0-142-generic",
+    "python": "3.12.3",
+    "docker": "29.8.2",
+    "docker_git_commit": "8af9fe3",
+    "docker_api": "1.56",
+    "dockerd_sha256": "d4316ae30c2e0d672cad96b4dc52442251d819b35f7079299412cd81704aba0b",
+    "rootless_script_sha256": "200203633806081a401e60aefdf68a8fa73fc7dc80aa854c52a69d47710a3488"
+  },
+  "image": "sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea",
+  "image_archive_sha256": "22bfc021c19389a8bf741291dbbb8ee144df2ab2ca978449c0cc790ca406d7f3",
+  "protocol": {
+    "actual_host_ssh_sigkill": true,
+    "ssh_exit_code": -9,
+    "guest_boot_unchanged": true,
+    "owner_unit_pid_start_uid_boot_cmdline_unchanged": true,
+    "resubmitted": false,
+    "tiny_public_fixture_preserved": true,
+    "repeated_independent_cleanup_passed": true
+  },
+  "cleanup": {
+    "callback": true,
+    "operation": true,
+    "outer_driver": true,
+    "whole_daemon_worker_barrier": true,
+    "owned_transport_stopped": true,
+    "owned_vm_stopped": true,
+    "no_owned_qemu_process": true,
+    "errors": []
+  },
+  "protected_originals": {
+    "disk_unchanged": true,
+    "vars_unchanged": true,
+    "disk_sha256": "aa09be55f088787be73253c63a8bbebc167fddbeebd28e75495ced8e4ab5941d",
+    "vars_sha256": "0fb3ae9d7edc7f72620e53bd49df7a9f7e3e6d28fcd16914cd84627a585f04f6"
+  },
+  "evidence": {
+    "private_directory": "mldsafail-modern-ssh-20261004-1",
+    "archive_sha256": "aa310a8bff041cbbe185d4ce981b60701a2046795bd38fa45a5dacdc9b41452f",
+    "archive_bytes": 114841600,
+    "refs": [
+      "ownership.json",
+      "guest-evidence.tar:powerloss-evidence/transport-driver/driver.json",
+      "guest-evidence.tar:powerloss-evidence/transport-driver/transport-boundary.json",
+      "guest-evidence.tar:powerloss-evidence/transport-driver/transport-reconnected.json",
+      "guest-evidence.tar:powerloss-evidence/transport-driver/transport-result.json",
+      "guest-evidence.tar:powerloss-evidence/transport-driver/transport-operation.json",
+      "dropped-ssh.log",
+      "source.bundle"
+    ]
+  },
+  "independent_native_audit": {
+    "passed": true,
+    "review_commit": "a4f84ad",
+    "reviewer": "preparation independent agent",
+    "scope": "actual raw archive/source/transport/boot/owner/fixture/cleanup/protected originals; excludes CPU/offhost/privateepoch"
+  },
+  "excluded_claims": [
+    "CPU benchmark acceptance",
+    "shared VPS operation",
+    "offhost storage/custody",
+    "private epoch restoration",
+    "production approval",
+    "hard power loss (separate VM4gate)"
+  ]
+}

@@ -220,7 +220,7 @@ def run(args):
     from deploy import owned_daemon
     root = safe_path(args.output)
     cleanup_only = getattr(args, 'cleanup', False)
-    if not cleanup_only and not re.fullmatch(r'[^\s@]+@sha256:[a-f0-9]{64}', args.image or ''):
+    if not cleanup_only and not re.fullmatch(r'(?:sha256:[a-f0-9]{64}|[A-Za-z0-9][A-Za-z0-9._:/-]*@sha256:[a-f0-9]{64})', args.image or ''):
         raise ValueError('Preloaded immutable Alpine-compatible fixture image required')
     if sys.platform != 'linux':
         raise ValueError('Native Linux required')
@@ -295,6 +295,8 @@ volumes:
     original = None
     try:
         image_info = json.loads(command(['docker','image','inspect',args.image]))[0]
+        if args.image.startswith('sha256:') and image_info.get('Id') != args.image:
+            raise ValueError('Exact preloaded fixture image ID required')
         if image_info.get('Config',{}).get('Volumes'):
             raise ValueError('Fixture image must not create anonymous volumes')
         command(argv+['up','-d','web','coordinator'])

@@ -64,7 +64,7 @@ def require_base_quiescent(base):
     if result.returncode not in (0,1) or result.stdout.strip() or result.stderr.strip():raise RuntimeError('Protected base VM files are open or quiescence unproved')
 
 
-def run(base,output,source,review_packet,cleanup_only=False,bootstrap_artifact=None):
+def run(base,output,source,review_packet,cleanup_only=False,bootstrap_artifact=None,transport_loss=False):
     base,output,source=map(safe_path,(base,output,source))
     descriptor=os.open(output.parent/('.'+output.name+'.lock'),os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW|os.O_NONBLOCK,0o600)
     try:
@@ -80,14 +80,18 @@ def run(base,output,source,review_packet,cleanup_only=False,bootstrap_artifact=N
                 try:
                     if not entry.get('exit_proven'):owned_vm.stop(entry)
                 except BaseException as error:errors.append(type(error).__name__)
-            atomic_json(output/(uuid.uuid4().hex+'-cleanup.json'),{'owned_vm_stopped':not errors,'errors':errors})
+            transport=record.get('transport_client')
+            if transport is not None and not transport.get('exit_proven'):
+                try:owned_vm.stop(transport)
+                except BaseException as error:errors.append('transport:'+type(error).__name__)
+            atomic_json(output/(uuid.uuid4().hex+'-cleanup.json'),{'owned_vm_stopped':not errors,'owned_transport_stopped':not errors,'errors':errors})
             if errors:raise RuntimeError('Owned VM cleanup incomplete')
             return {'owned_vm_stopped':True}
-        return execute(base,output,source,review_packet,bootstrap_artifact)
+        return execute(base,output,source,review_packet,bootstrap_artifact,transport_loss)
     finally:os.close(descriptor)
 
 
-def execute(base,output,source,review_packet,bootstrap_artifact=None):
+def execute(base,output,source,review_packet,bootstrap_artifact=None,transport_loss=False):
     os.umask(0o077)
     output.mkdir(mode=0o700,exist_ok=False)
     def command(argv,timeout=120):return subprocess.check_output(argv,stderr=subprocess.STDOUT,timeout=timeout)
@@ -96,7 +100,8 @@ def execute(base,output,source,review_packet,bootstrap_artifact=None):
     from deploy import owned_daemon
     from research.cpu_measurement.native_driver import source_digest
     packet=owned_daemon.read_private_json(review_packet)
-    callback_sha=sha(source/'deploy/native_recovery_powerloss.py')
+    callback_file='native_recovery_transport_loss.py' if transport_loss else 'native_recovery_powerloss.py'
+    callback_sha=sha(source/'deploy'/callback_file)
     if (packet.get('schema')!='mldsafail.cpu-native-review.v1' or packet.get('supervisor_source_sha256')!=source_digest(source) or
         packet.get('acceptance_source_sha256')!=callback_sha or
         any(packet.get(name) is not True for name in ('supervisor_review_passed','auditor_review_passed','native_protocol_review_passed')) or
@@ -113,12 +118,15 @@ def execute(base,output,source,review_packet,bootstrap_artifact=None):
     with socket.socket() as reservation:
         reservation.bind(('127.0.0.1',0));port=reservation.getsockname()[1]
     argv=isolated_argv(base,output,previous,port)
-    record=dict(schema='mldsafail.isolated-powerloss-vm.v1',source_commit=commit,callback_sha256=callback_sha,
+    record=dict(schema=('mldsafail.isolated-transport-vm.v1' if transport_loss else 'mldsafail.isolated-powerloss-vm.v1'),source_commit=commit,callback_sha256=callback_sha,
         bundle_sha256=sha(output/'source.bundle'),qemu_argv=argv,port=port,originals=originals,
         bootstrap_cache=cache,vm_attempts=[],passed=False,owned_vm_stopped=False,synthetic_only=True)
     atomic_json(output/'ownership.json',record)
-    process=None;log=None;original=None
+    process=None;log=None;original=None;transport_process=None;transport_log=None;transport_entry=None
     ssh=ssh_argv(output,port)
+    if transport_loss:
+        # Each probe/reconnection has a new transport; never inherit an SSH master.
+        ssh[1:1]=['-F','/dev/null','-o','ControlMaster=no','-o','ControlPath=none','-o','ControlPersist=no']
     def guest(text,timeout=120):return command(ssh+[text],timeout)
     def upload(path,value):
         subprocess.run(ssh+['umask 077; cat > '+path],input=value,stdout=subprocess.DEVNULL,check=True,timeout=120)
@@ -145,10 +153,17 @@ def execute(base,output,source,review_packet,bootstrap_artifact=None):
         config='/home/ubuntu/powerloss-evidence/'+phase+'-config.json'
         upload(config,json.dumps(settings).encode())
         record[phase+'_operator_unit']=unit;atomic_json(output/'ownership.json',record)
-        guest('systemd-run --user --unit='+unit+' --property=Delegate=yes --property=UMask=0077 --property=Restart=no '+
-              '--property=WorkingDirectory=/home/ubuntu/powerloss-source '+
-              '--setenv=PYTHONPATH=/home/ubuntu/powerloss-source:/home/ubuntu/powerloss-source/src '+
-              '/usr/bin/python3 -m deploy.native_recovery_powerloss --phase '+phase+' --config '+config)
+        invocation='systemd-run --user '+('--wait ' if transport_loss else '')+'--unit='+unit+' --property=Delegate=yes --property=UMask=0077 --property=Restart=no '+\
+              '--property=WorkingDirectory=/home/ubuntu/powerloss-source '+\
+              '--setenv=PYTHONPATH=/home/ubuntu/powerloss-source:/home/ubuntu/powerloss-source/src '+\
+              '/usr/bin/python3 -m deploy.'+callback_file[:-3]+('' if transport_loss else ' --phase '+phase)+' --config '+config
+        if transport_loss:
+            nonlocal transport_process,transport_log,transport_entry
+            transport_log=(output/'dropped-ssh.log').open('wb')
+            def publish_transport(entry):
+                record['transport_client']=entry;atomic_json(output/'ownership.json',record)
+            transport_process,transport_entry=owned_vm.spawn(ssh+[invocation],publish_transport,transport_log)
+        else:guest(invocation)
         return unit
     try:
         boot()
@@ -193,35 +208,71 @@ print(json.dumps(dict(image=image,image_archive=str(archive),image_archive_sha25
         record['artifacts']=json.loads(guest('python3 /home/ubuntu/powerloss-bootstrap.py',600))
         record['guest_identity']=guest('id; uname -a; python3 --version; cat /proc/sys/kernel/random/boot_id').decode()
         atomic_json(output/'ownership.json',record)
-        invoke('prepare')
-        deadline=time.monotonic()+180
-        while True:
-            try:
-                boundary=json.loads(guest('cat /home/ubuntu/powerloss-evidence/powerloss-boundary.json',10));break
-            except subprocess.SubprocessError:
-                if time.monotonic()>deadline:raise TimeoutError('New recovery powerloss boundary absent')
+        if transport_loss:
+            unit=invoke('transport')
+            deadline=time.monotonic()+180
+            while True:
+                try:
+                    boundary=json.loads(guest('cat /home/ubuntu/powerloss-evidence/transport-driver/transport-boundary.json',10));break
+                except subprocess.SubprocessError:
+                    if transport_process.poll() is not None or time.monotonic()>deadline:raise RuntimeError('Live SSH transport boundary absent')
+                    time.sleep(1)
+            record['boundary']=boundary
+            record['transport_drop_intent']=True;atomic_json(output/'ownership.json',record)
+            if transport_process.poll() is not None:raise RuntimeError('SSH already exited before deliberate transport drop')
+            owned_vm.stop(transport_entry);transport_process.wait(timeout=30)
+            transport_entry['exit_proven']={'returncode':transport_process.returncode}
+            if transport_process.returncode!=-9:raise RuntimeError('Actual owned SSH SIGKILL not proven')
+            new_boot=guest('cat /proc/sys/kernel/random/boot_id').decode().strip()
+            owner_pid=int(guest('systemctl --user show '+unit+' --property=MainPID --value').decode().strip())
+            if new_boot!=boundary['boot_id'] or owner_pid!=boundary['owner_pid']:raise RuntimeError('Transport changed boot or owner unit')
+            current_identity=json.loads(guest("PYTHONPATH=/home/ubuntu/powerloss-source python3 -c 'import json;from deploy.owned_client import identity; print(json.dumps(identity("+str(owner_pid)+")))'"))
+            if current_identity!=boundary['owner_identity']:raise RuntimeError('Transport owner start/UID/boot/command identity changed')
+            record['actual_ssh_drop']=True;record['same_boot_id']=new_boot;record['same_owner_pid']=owner_pid
+            atomic_json(output/'ownership.json',record)
+            upload('/home/ubuntu/powerloss-evidence/transport-driver/reconnected.tmp',json.dumps(dict(actual_ssh_drop=True,same_boot_id=new_boot,same_owner_pid=owner_pid,owner_identity=current_identity)).encode())
+            guest("python3 -c \"import os; p='/home/ubuntu/powerloss-evidence/transport-driver/'; f=os.open(p+'reconnected.tmp',os.O_RDONLY); os.fsync(f); os.close(f); os.rename(p+'reconnected.tmp',p+'transport-reconnected.json'); f=os.open(p,os.O_RDONLY); os.fsync(f); os.close(f)\"")
+            deadline=time.monotonic()+240
+            while True:
+                state=guest('systemctl --user show '+unit+' --property=ActiveState --property=Result').decode()
+                if 'ActiveState=inactive' in state and 'Result=success' in state:break
+                if 'ActiveState=failed' in state or time.monotonic()>deadline:raise RuntimeError('Transport owner recovery failed: '+state)
                 time.sleep(1)
-        record['boundary']=boundary;atomic_json(output/'ownership.json',record)
-        # Abrupt exact-owned QEMU kill: no guest shutdown and no shared machine.
-        process.kill();process.wait(timeout=30)
-        record['vm_attempts'][-1]['exit_proven']={'returncode':process.returncode}
-        log.close();process=None;log=None
-        record['hard_power_loss_injected']=True;atomic_json(output/'ownership.json',record)
-        boot()
-        new_boot=guest('cat /proc/sys/kernel/random/boot_id').decode().strip()
-        if new_boot==boundary['boot_id']:raise RuntimeError('Actual guest reboot not proven')
-        record['postboot_id']=new_boot;atomic_json(output/'ownership.json',record)
-        unit=invoke('restore')
-        deadline=time.monotonic()+240
-        while True:
-            state=guest('systemctl --user show '+unit+' --property=ActiveState --property=Result').decode()
-            if 'ActiveState=inactive' in state and 'Result=success' in state:break
-            if 'ActiveState=failed' in state or time.monotonic()>deadline:raise RuntimeError('Postboot fresh recovery unit failed: '+state)
-            time.sleep(1)
-        result=json.loads(guest('cat /home/ubuntu/powerloss-evidence/restore-driver/driver.json'))
-        if result.get('native_acceptance_passed') is not True or result.get('cleanup',{}).get('cleanup_complete') is not True:
-            raise RuntimeError('Postboot source-bound restoration or cleanup incomplete')
-        record['native_result']=result;record['passed']=True
+            result=json.loads(guest('cat /home/ubuntu/powerloss-evidence/transport-driver/driver.json'))
+            child=json.loads(guest('cat /home/ubuntu/powerloss-evidence/transport-driver/transport-result.json'))
+            if (result.get('native_acceptance_passed') is not True or result.get('cleanup',{}).get('cleanup_complete') is not True
+                or child.get('passed') is not True or child.get('repeated_cleanup_passed') is not True):raise RuntimeError('Actual transport recovery acceptance incomplete')
+            record['native_result']=result;record['transport_result']=child;record['passed']=True
+        else:
+            invoke('prepare')
+            deadline=time.monotonic()+180
+            while True:
+                try:
+                    boundary=json.loads(guest('cat /home/ubuntu/powerloss-evidence/powerloss-boundary.json',10));break
+                except subprocess.SubprocessError:
+                    if time.monotonic()>deadline:raise TimeoutError('New recovery powerloss boundary absent')
+                    time.sleep(1)
+            record['boundary']=boundary;atomic_json(output/'ownership.json',record)
+            # Abrupt exact-owned QEMU kill: no guest shutdown and no shared machine.
+            process.kill();process.wait(timeout=30)
+            record['vm_attempts'][-1]['exit_proven']={'returncode':process.returncode}
+            log.close();process=None;log=None
+            record['hard_power_loss_injected']=True;atomic_json(output/'ownership.json',record)
+            boot()
+            new_boot=guest('cat /proc/sys/kernel/random/boot_id').decode().strip()
+            if new_boot==boundary['boot_id']:raise RuntimeError('Actual guest reboot not proven')
+            record['postboot_id']=new_boot;atomic_json(output/'ownership.json',record)
+            unit=invoke('restore')
+            deadline=time.monotonic()+240
+            while True:
+                state=guest('systemctl --user show '+unit+' --property=ActiveState --property=Result').decode()
+                if 'ActiveState=inactive' in state and 'Result=success' in state:break
+                if 'ActiveState=failed' in state or time.monotonic()>deadline:raise RuntimeError('Postboot fresh recovery unit failed: '+state)
+                time.sleep(1)
+            result=json.loads(guest('cat /home/ubuntu/powerloss-evidence/restore-driver/driver.json'))
+            if result.get('native_acceptance_passed') is not True or result.get('cleanup',{}).get('cleanup_complete') is not True:
+                raise RuntimeError('Postboot source-bound restoration or cleanup incomplete')
+            record['native_result']=result;record['passed']=True
     except BaseException as error:
         original=error;record['error_type']=type(error).__name__
         if isinstance(error,subprocess.CalledProcessError):
@@ -238,11 +289,17 @@ print(json.dumps(dict(image=image,image_archive=str(archive),image_archive_sha25
                 with (output/'guest-evidence.tar').open('wb') as stream:
                     subprocess.run(ssh+[evidence_tar_command()],stdout=stream,check=True,timeout=180)
             attempt('private_evidence_collection',collect)
+        if transport_entry is not None and not transport_entry.get('exit_proven'):
+            attempt('owned_transport_stop',lambda:owned_vm.stop(transport_entry))
+        if transport_process is not None:attempt('owned_transport_wait',lambda:transport_process.wait(timeout=30))
+        if transport_log is not None:attempt('transport_log_close',transport_log.close)
         for entry in record['vm_attempts']:
             if not entry.get('exit_proven'):attempt('owned_vm_stop',lambda entry=entry:owned_vm.stop(entry))
         if process is not None:attempt('owned_vm_wait',lambda:process.wait(timeout=30))
         if log is not None:attempt('boot_log_close',log.close)
         record['owned_vm_stopped']=not any(item['step'] in {'owned_vm_stop','owned_vm_wait'} for item in errors)
+        if transport_loss:
+            record['owned_transport_stopped']=not any(item['step'] in {'owned_transport_stop','owned_transport_wait'} for item in errors)
         def verify_originals():
             record['original_disk_unchanged']=sha(base/'disk.qcow2')==originals['disk']
             record['original_vars_unchanged']=sha(base/'vars.fd')==originals['vars']

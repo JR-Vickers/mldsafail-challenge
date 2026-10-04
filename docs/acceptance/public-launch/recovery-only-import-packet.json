@@ -1,0 +1,62 @@
+{
+  "schema": "mldsafail.recovery-only-import.v1",
+  "primary_base": "0e0bc13b1f17bb7da7e85609c302ef22bca7ec1c",
+  "original_own_commits": [
+    "2100be0",
+    "7c50295",
+    "00ba8b2",
+    "a1c89d8",
+    "a1f1267",
+    "1370cb3",
+    "c331ee0",
+    "01f38e1",
+    "9943ae9",
+    "fc77539",
+    "805d9c8",
+    "07e6fc9"
+  ],
+  "excluded": [
+    "all deploy/owned_client.py commits",
+    "all deploy/owned_daemon.py commits",
+    "all deploy/recovery_daemon.py commits",
+    "already imported modernVM db706/be9/3a/f1 code",
+    "other workstream source and canonical report.json"
+  ],
+  "source_review": "docs/acceptance/launch-preparation/recovery-native-adapters-source-review.json",
+  "native_evidence": [
+    "docs/acceptance/public-launch/isolated-recovery-powerloss-native-pass.json",
+    "docs/acceptance/public-launch/isolated-ssh-transport-native-pass.json"
+  ],
+  "verification": {
+    "focused_passed": 29,
+    "make_check_passed": 744,
+    "make_check_skipped": 27,
+    "exact_python": "3.12.10",
+    "package_import": "isolated recovery-import-0e0bc worktree/src/mldsafail"
+  },
+  "native_callbacks_pending": [
+    "scripts.native_recovery_service_verification:callback",
+    "scripts.native_synthetic_database_restoration:callback"
+  ],
+  "private_native_ssh_evidence": "mldsafail-modern-ssh-20261004-1; SHAaa310a8bff041cbbe185d4ce981b60701a2046795bd38fa45a5dacdc9b41452f",
+  "helper_imported": false,
+  "pushed": false,
+  "code_and_evidence_files": [
+    "deploy/native_recovery_acceptance.py",
+    "deploy/native_recovery_transport_loss.py",
+    "deploy/qemu_isolated_recovery_powerloss.py",
+    "deploy/qemu_isolated_recovery_transport.py",
+    "docs/acceptance/public-launch/ISOLATED_SSH_TRANSPORT_PROTOCOL.md",
+    "docs/acceptance/public-launch/OWNED_RECOVERY_CALLBACK_PROTOCOL.md",
+    "docs/acceptance/public-launch/isolated-ssh-callback-source-review.json",
+    "docs/acceptance/public-launch/isolated-ssh-final-source-review.json",
+    "docs/acceptance/public-launch/isolated-ssh-transport-native-pass.json",
+    "scripts/native_recovery_service_verification.py",
+    "scripts/native_synthetic_database_restoration.py",
+    "tests/test_native_recovery_service_verification.py",
+    "tests/test_native_recovery_transport_loss.py",
+    "tests/test_native_synthetic_database_restoration.py"
+  ],
+  "canonical_ledger_changed": false,
+  "audit": "docs/acceptance/public-launch/RECOVERY_NATIVE_SCOPE_AUDIT.md"
+}

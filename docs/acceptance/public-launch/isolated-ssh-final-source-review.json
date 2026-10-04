@@ -1,0 +1,34 @@
+{
+  "schema": "mldsafail.independent-source-review.v1",
+  "review_passed": true,
+  "native_executed": false,
+  "reviewed_executable_source_commit": "9943ae9",
+  "source_reviewers": {
+    "host": "preparation independent agent",
+    "callback": "accounting independent agent"
+  },
+  "file_sha256": {
+    "deploy/qemu_isolated_recovery_powerloss.py": "47db6bb0d325fcbee94caf514aecd4b0a5c659fae196e8de09cf790df2ef9df3",
+    "deploy/qemu_isolated_recovery_transport.py": "bbd172aea6430e36d4efd9db590f0e7c03dda5b94ea13294e2621c9caddccc66",
+    "deploy/native_recovery_transport_loss.py": "3b8ef90c9fd0200a936c9c77070e33422d873c20677ad68eb7942bd741260333",
+    "docs/acceptance/public-launch/ISOLATED_SSH_TRANSPORT_PROTOCOL.md": "3fcaf4f4cad156a709c5807bff00f7747461c3158b2b7d7b6ce766344bf24996"
+  },
+  "focused_tests_passed": 13,
+  "host_controller_review_passed": true,
+  "callback_review_passed": true,
+  "actual_ssh_native_gate_passed": false,
+  "scope": [
+    "fresh owned overlay with protected originals and offline approved image",
+    "durable identity-bound host SSH birth/dropintent and actual exit-9",
+    "no SSH multiplexing; new connection and unchanged boot/exact owner identity proof",
+    "actual tinyfixture preservation and repeatedcleanup; outerdriverbarrier required",
+    "independent transport/VM cleanup retries and negativefailedreceipt"
+  ],
+  "excluded_claims": [
+    "shared VPS operation",
+    "benchmark CPU measurements",
+    "actual offhost storage",
+    "ownerkey custody",
+    "production launch"
+  ]
+}
