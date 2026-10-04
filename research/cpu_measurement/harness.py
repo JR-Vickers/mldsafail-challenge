@@ -73,7 +73,7 @@ def run(image, parent, cgroup_parent, source, public_input, verify, timeout=60, 
                 image=image, epoch=epoch,
                 supervisor_source_sha256=hashlib.sha256(json.dumps({path.name: hashlib.sha256(path.read_bytes()).hexdigest()
                     for path in sorted(Path(__file__).parent.glob('*.py'))} |
-                    {'deploy/'+name: hashlib.sha256((Path(__file__).resolve().parents[2] / 'deploy' / name).read_bytes()).hexdigest() for name in ('owned_client.py','owned_daemon.py')}, sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
+                    {'deploy/'+name: hashlib.sha256((Path(__file__).resolve().parents[2] / 'deploy' / name).read_bytes()).hexdigest() for name in ('owned_client.py','owned_daemon.py','recovery_daemon.py')}, sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
                 source_commit=subprocess.check_output(['git', '-C', str(Path(__file__).resolve().parents[2]), 'rev-parse', 'HEAD'], timeout=10).decode().strip(),
                 host=hashlib.sha256(Path('/etc/machine-id').read_bytes()).hexdigest(),
                 kernel=platform.release(), docker={'discovery_pending': True})
