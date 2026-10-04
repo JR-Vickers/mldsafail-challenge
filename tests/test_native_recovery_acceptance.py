@@ -115,3 +115,57 @@ def test_child_cli_reports_exact_lock_contention_marker(tmp_path):
                            '--output',str(tmp_path)],capture_output=True,timeout=10)
     assert result.returncode==73
     assert json.loads(result.stdout)=={'ownership_rejected':'run_lock_contended'}
+
+
+def test_fault_owner_exit_before_injection_cannot_pass_signal_gate(tmp_path, monkeypatch):
+    from deploy.native_recovery_acceptance import signal_owned_fork
+    import os
+    import select
+    import signal
+    identity={'pid':123,'start_ticks':1}
+    monkeypatch.setattr('deploy.native_recovery_acceptance.process_identity',lambda _:identity)
+    monkeypatch.setattr(os,'pidfd_open',lambda _:99,raising=False)
+    closed=[]
+    monkeypatch.setattr(os,'close',lambda fd:closed.append(fd))
+    class Poller:
+        def register(self,*args):pass
+        def poll(self,*args):return [(99,select.POLLIN)]
+    monkeypatch.setattr(select,'poll',Poller,raising=False)
+    monkeypatch.setattr(signal,'pidfd_send_signal',lambda *args:pytest.fail('dead fault owner cannot be signaled'),raising=False)
+    with pytest.raises(RuntimeError,match='exited before'):
+        signal_owned_fork(123,identity,signal.SIGKILL)
+    assert closed==[99]
+
+
+def test_complete_fault_cases_cannot_override_retained_execution_failure(tmp_path, monkeypatch):
+    from deploy.native_recovery_acceptance import cleanup_fixture
+    class Journal:
+        def __init__(self,*args):pass
+        def cleanup(self):pass
+    monkeypatch.setattr('deploy.native_recovery_acceptance.Journal',Journal)
+    monkeypatch.setattr('deploy.native_recovery_acceptance.command',lambda argv:'')
+    ownership=dict(project='recovery-test-'+'a'*32,source='source',source_script_sha256='script',
+                   daemon_fingerprint='daemon',image='immutable')
+    cases=[{'fault':name,'passed':True} for name in ('SIGTERM','SIGKILL','connection_loss','cleanup_failure')]
+    report=cleanup_fixture(tmp_path,ownership,cases,execution_error='OSError')
+    assert report['cleanup_complete'] is True
+    assert report['native_service_suite_passed'] is False
+    assert report['execution_error']=='OSError'
+
+
+def test_owned_fork_cleanup_failure_cannot_publish_successful_native_receipt(tmp_path, monkeypatch):
+    from deploy.native_recovery_acceptance import cleanup_fixture
+    import json
+    class Journal:
+        def __init__(self,*args):pass
+        def cleanup(self):pass
+    monkeypatch.setattr('deploy.native_recovery_acceptance.Journal',Journal)
+    monkeypatch.setattr('deploy.native_recovery_acceptance.command',lambda argv:'')
+    ownership=dict(project='recovery-test-'+'a'*32,source='source',source_script_sha256='script',
+                   daemon_fingerprint='daemon',image='immutable')
+    cases=[{'fault':name,'passed':True} for name in ('SIGTERM','SIGKILL','connection_loss','cleanup_failure')]
+    with pytest.raises(RuntimeError,match='cleanup incomplete'):
+        cleanup_fixture(tmp_path,ownership,cases,owned_child_errors=['TimeoutError'])
+    report=json.loads((tmp_path/'results.json').read_text())
+    assert report['cleanup_complete'] is False and report['native_service_suite_passed'] is False
+    assert report['cleanup_errors']==[{'step':'owned_fork_quiescence','error_type':'TimeoutError'}]

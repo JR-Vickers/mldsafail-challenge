@@ -20,6 +20,11 @@ from deploy.recovery_journal import Journal, atomic_json, restore_service, safe_
 _OPERATION = None
 
 
+class OwnershipContended(BlockingIOError):
+    """Only the fixture ownership flock emits the CLI contention marker."""
+
+
+
 def command(argv):
     if _OPERATION is None:
         raise ValueError('Durable fixture ownership required')
@@ -90,7 +95,10 @@ def quiesce_owned_child(root):
 
 def child(root, boundary, fail_cleanup):
     lock = (root / 'lock').open('a')
-    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError as error:
+        raise OwnershipContended('Fixture ownership lock contended') from error
     operation = Journal(root / 'operation.json', {})
     if not operation.data['cleanup_complete']:
         operation.cleanup()
@@ -101,8 +109,11 @@ def child(root, boundary, fail_cleanup):
     operation.services([], {'web': True, 'coordinator': True}, identities, daemon_manifest_path=selected)
     for identifier in identities.values():
         command(['docker', 'container', 'stop', identifier])
+    def interrupted(number, frame):
+        atomic_json(root/'fault-signal.json', {'signal':number})
+        raise InterruptedError('Native fault signal observed')
     for sig in (signal.SIGTERM, signal.SIGHUP):
-        signal.signal(sig, lambda *_: (_ for _ in ()).throw(InterruptedError()))
+        signal.signal(sig, interrupted)
     try:
         atomic_json(root / 'owner-process.json', process_identity(os.getpid()))
         atomic_json(root / 'boundary.json', {'boundary': boundary})
@@ -127,6 +138,22 @@ def wait_boundary(process, root):
         time.sleep(0.1)
 
 
+def signal_owned_fork(pid, identity, number):
+    """Reject a dead owner before injection and bind the signal to its pidfd."""
+    import select
+    descriptor = os.pidfd_open(pid)
+    try:
+        if process_identity(pid) != identity:
+            raise RuntimeError('Fault owner identity changed before injection')
+        poller = select.poll()
+        poller.register(descriptor, select.POLLIN)
+        if poller.poll(0):
+            raise RuntimeError('Fault owner exited before signal injection')
+        signal.pidfd_send_signal(descriptor, number)
+    finally:
+        os.close(descriptor)
+
+
 def wait_child(pid, timeout):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -137,7 +164,7 @@ def wait_child(pid, timeout):
     raise TimeoutError('Owned fixture child did not exit')
 
 
-def cleanup_fixture(root, ownership, results):
+def cleanup_fixture(root, ownership, results, execution_error=None, owned_child_errors=()):
     """Independent creator, journal, project, inventory, and receipt cleanup."""
     global _OPERATION
     errors = []
@@ -169,14 +196,19 @@ def cleanup_fixture(root, ownership, results):
             if command(argv):
                 raise RuntimeError('Owned fixture resource remains')
         attempt('final_'+kind, inventory)
+    errors.extend({'step':'owned_fork_quiescence','error_type':error} for error in owned_child_errors)
+    case_passed = (isinstance(results,list) and len(results)==4 and
+        {row.get('fault') for row in results if isinstance(row,dict) and row.get('passed') is True} ==
+        {'SIGTERM','SIGKILL','connection_loss','cleanup_failure'})
     report = dict(schema='mldsafail.native-recovery-faults.v2', source=ownership['source'],
         source_script_sha256=ownership['source_script_sha256'], daemon_fingerprint=ownership['daemon_fingerprint'],
         image=ownership['image'], python=sys.version, kernel=platform.release(), cases=results,
         cleanup_complete=not errors, cleanup_errors=errors,
-        native_service_suite_passed=len(results)==4 and not errors,
+        native_service_suite_passed=case_passed and execution_error is None and not errors,
+        execution_error=execution_error,
         actual_power_loss_passed=False, actual_connection_loss_passed=False)
     attempt('cleanup_receipt', lambda: atomic_json(root/(uuid.uuid4().hex+'-cleanup.json'), report))
-    report.update(cleanup_complete=not errors, native_service_suite_passed=len(results)==4 and not errors)
+    report.update(cleanup_complete=not errors, native_service_suite_passed=case_passed and execution_error is None and not errors)
     atomic_json(root/'results.json', report)
     if errors:
         raise RuntimeError('Disposable fixture cleanup incomplete')
@@ -213,8 +245,8 @@ def run(args):
                 if not re.fullmatch(r'recovery-test-[a-f0-9]{32}', ownership['project']):
                     raise ValueError('Disposable project ownership mismatch')
                 results_path = root/'results.json'
-                results = owned_daemon.read_private_json(results_path).get('cases',[]) if results_path.exists() else []
-                return cleanup_fixture(root, ownership, results)
+                previous = owned_daemon.read_private_json(results_path) if results_path.exists() else {}
+                return cleanup_fixture(root, ownership, previous.get('cases',[]), previous.get('execution_error'))
             return execute_fixture(args, root, selected)
     finally:
         os.close(descriptor)
@@ -277,6 +309,7 @@ volumes:
         baseline = json.loads(command(['docker','inspect',migrate]))[0]['State']
         for fault in ('SIGTERM','SIGKILL','connection_loss','cleanup_failure'):
             (root/'boundary.json').unlink(missing_ok=True)
+            (root/'fault-signal.json').unlink(missing_ok=True)
             read_gate, write_gate = os.pipe()
             pid = os.fork()
             if pid == 0:
@@ -308,9 +341,23 @@ volumes:
             if (rival.returncode != 73 or json.loads(rival.stdout) !=
                     {'ownership_rejected':'run_lock_contended'}):
                 raise RuntimeError('Concurrent recovery rejection did not prove lock contention')
-            os.kill(pid, signal.SIGTERM if fault in ('SIGTERM','cleanup_failure') else signal.SIGKILL)
-            wait_child(pid,90)
-            children.remove(pid)
+            injected = signal.SIGTERM if fault in ('SIGTERM','cleanup_failure') else signal.SIGKILL
+            signal_owned_fork(pid, json.loads((root/'owner-process.json').read_text()), injected)
+            status = wait_child(pid,90)
+            children.remove(pid)  # Reaped PIDs lose the kernel anti-reuse guarantee immediately.
+            injection = {'injected_signal':int(injected),'kernel_wait_status':status,
+                'owner_receipt_sha256':hashlib.sha256((root/'owner-process.json').read_bytes()).hexdigest()}
+            if (root/'fault-signal.json').exists():
+                handler = json.loads((root/'fault-signal.json').read_text())
+                injection['handler_observation'] = handler
+                atomic_json(root/(fault+'-signal.json'),handler)
+            atomic_json(root/(fault+'-injection.json'),injection)  # Failed statuses remain evidence.
+            if injected == signal.SIGKILL:
+                if not os.WIFSIGNALED(status) or os.WTERMSIG(status) != signal.SIGKILL:
+                    raise RuntimeError('Exact injected SIGKILL exit status was not observed')
+            elif (not os.WIFEXITED(status) or os.WEXITSTATUS(status) != 1 or
+                  json.loads((root/'fault-signal.json').read_text()) != {'signal':int(signal.SIGTERM)}):
+                raise RuntimeError('Exact injected SIGTERM handler/exit was not observed')
             atomic_json(root/(fault+'-owner-process.json'), json.loads((root/'owner-process.json').read_text()))
             (root/'owner-process.json').unlink()
             from deploy.recovery_journal import sync_directory
@@ -330,7 +377,7 @@ volumes:
                 raise RuntimeError('Migration container activated during restoration')
             if command(['docker','exec',identities['web'],'cat','/state/migrations'])!='invocation':
                 raise RuntimeError('Migration invocation count changed')
-            results.append({'fault':fault,'passed':True})
+            results.append({'fault':fault,'passed':True,'injection_receipt':fault+'-injection.json'})
             atomic_json(root/'results.json',{'cases':results,'cleanup_complete':False})
     except BaseException as error:
         original = error
@@ -345,7 +392,8 @@ volumes:
             try: wait_child(pid,30)
             except BaseException as error: child_errors.append(type(error).__name__)
         try:
-            report = cleanup_fixture(root,ownership,results)
+            report = cleanup_fixture(root,ownership,results,type(original).__name__ if original is not None else
+                                     ('OwnedForkCleanupIncomplete' if child_errors else None),child_errors)
             if child_errors: raise RuntimeError('Owned fork children not proven reaped: '+repr(child_errors))
         except BaseException as error:
             if original is None: original=error
@@ -367,7 +415,7 @@ if __name__ == '__main__':
     if options.child:
         try:
             child(options.output, options.boundary, options.fail_cleanup)
-        except BlockingIOError:
+        except OwnershipContended:
             print(json.dumps({'ownership_rejected':'run_lock_contended'}))
             raise SystemExit(73)
     else:
