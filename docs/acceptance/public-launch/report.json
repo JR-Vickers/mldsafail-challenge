@@ -1545,17 +1545,39 @@
         "user-plan"
       ],
       "dependencies": [
-        "recovery-native-faults"
+        "recovery-restoration-code"
       ],
       "environment": "disposable environment",
       "criteria": [
         "Power-loss drill isolated from staging"
       ],
-      "status": "waiting_dependency",
-      "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "status": "passed",
+      "attempts": [
+        {
+          "source_commit": "5af49e9",
+          "result": "Separate disposable native hard power-loss drill executed after own fresh context admission; earlier VM startup/network/evidence-export failures retained; service-fault suite remains independently required",
+          "evidence": "docs/acceptance/public-launch/isolated-recovery-powerloss-native-pass.json"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/isolated-recovery-powerloss-native-pass.json#/passed",
+          "criteria_met": [
+            "Power-loss drill isolated from staging"
+          ]
+        },
+        {
+          "reference": "docs/acceptance/production-preparation/modern-powerloss-native-independent-audit.json#/status",
+          "criteria_met": [
+            "Power-loss drill isolated from staging"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "5af49e9b94a460d4de86584fc31ef4b8049dd210",
+        "evidence": "private VM4 archive/dump/native controller retained; explicit synthetic tiny logical scope"
+      },
+      "next_action": "Keep actual staging untouched; independently complete service recovery fault and off-host gates",
       "checklist": []
     },
     {
