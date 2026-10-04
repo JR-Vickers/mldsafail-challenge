@@ -1,0 +1,30 @@
+{
+  "schema": "mldsafail.cpu-native-review.v1",
+  "status": "source_review_passed",
+  "reviewer": "preparation agent; independent supervisor and native protocol followup",
+  "source_commit": "7b35533df8568e298b9307da01d5c933e1d81b62",
+  "supervisor_source_sha256": "8d92826d324bf599bdc02f21e19cefba057c2f379dceacd58a01f257165fbaf5",
+  "driver_sha256": "c2ab450dc8e1142b71fbf3571fe26c57c51b374b9d31fb37ceffd1bd7684c68b",
+  "owned_daemon_sha256": "a994ee75e543880d9defdd59c83ab54385e36106200effeedf766490c5dbe591",
+  "supervisor_review_passed": true,
+  "native_protocol_review_passed": true,
+  "auditor_review": "Separate actual independent auditor receipt required in combined private packet.",
+  "scope": [
+    "Successful bounded systemctl zero-job query may return whitespace-only output; unsuccessful queries and malformed nonempty JSON still fence startup cleanup.",
+    "Terminal cleanup rereads the exact retained predecessor under the provision lease and rejects changed state.",
+    "An immutable UUID-named predecessor archive is published before changing controller metadata or controlling any owned resource; failed archive publication blocks mutation.",
+    "Every terminal cleanup exit independently restores the exact previous Docker host/context and operator/CPU manifest environment values; restoration errors preserve the original exception."
+  ],
+  "verification": {
+    "focused_tests_passed": 34,
+    "interpreter": "exact accounting worktree Python and package imports"
+  },
+  "native_executed_by_reviewer": false,
+  "native_accounting_gate": "pending",
+  "prior_native_failures": "Preserved; this source repair supplies no successful measurement outcome.",
+  "activation_approved": false,
+  "contract_adoption_approved": false,
+  "evidence_refs": [
+    "docs/acceptance/production-preparation/native-environment-followup-source-review.json"
+  ]
+}
