@@ -13,13 +13,14 @@ def percentile(values, quantile):
     return sorted(values)[max(0, math.ceil(len(values) * quantile) - 1)]
 
 
-def run(server, token, health, duration=300):
+def run(server, token, health, duration=300, progress=None):
     if not 0 < duration <= 300:
         raise ValueError('Maximum load duration is five minutes')
     latencies, failures, floors = [], [], []
     lock = threading.Lock()
     def read(path, authenticated=False):
         started = time.monotonic()
+        failed = False
         request = urllib.request.Request(server.rstrip('/') + path,
             headers={'Authorization': 'Bearer ' + token} if authenticated else {})
         try:
@@ -28,11 +29,15 @@ def run(server, token, health, duration=300):
                 if response.status != 200:
                     raise RuntimeError()
         except Exception:
+            failed = True
             with lock:
                 failures.append('read_failed')
         finally:
             with lock:
-                latencies.append(time.monotonic() - started)
+                elapsed = time.monotonic() - started
+                latencies.append(elapsed)
+            if progress is not None:
+                progress(dict(route=path, seconds=elapsed, failed=failed))
     started = time.monotonic()
     futures = []
     with ThreadPoolExecutor(max_workers=10) as pool:
