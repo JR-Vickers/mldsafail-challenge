@@ -52,3 +52,16 @@ def test_archive_sealing_refuses_symlink_and_preserves_target(tmp_path):
     alias=tmp_path/'alias';alias.symlink_to(target)
     with pytest.raises(OSError):preparation.retain_archive(alias)
     assert target.stat().st_mode&0o777==0o600
+
+
+def test_archive_mode_metadata_is_synced_after_sealing(tmp_path,monkeypatch):
+    import os,stat
+    archive=tmp_path/'image.tar';archive.write_bytes(b'exported image')
+    actual=os.fsync;file_modes=[]
+    def fsync(descriptor):
+        info=os.fstat(descriptor)
+        if stat.S_ISREG(info.st_mode):file_modes.append(info.st_mode&0o777)
+        actual(descriptor)
+    monkeypatch.setattr(preparation.os,'fsync',fsync)
+    preparation.retain_archive(archive)
+    assert file_modes[-1]==0o400
