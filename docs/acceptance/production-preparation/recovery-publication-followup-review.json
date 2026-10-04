@@ -1,0 +1,23 @@
+{
+  "schema": "mldsafail.independent-source-review.v1",
+  "status": "source_review_passed",
+  "reviewer": "preparation agent; no recovery source ownership",
+  "sources": {
+    "provision_lock": "457ff70f9d6ef6398e62df11c9ce6ca943daacdd",
+    "postgres_publication": "7f955e1fd3a161438490b9d8615a0681e1512fbb",
+    "service_endpoint_reset": "5ea720a036c2ae5bb77dafe8dc5d9321c0ed4e7b"
+  },
+  "scope": [
+    "Provision lock extracts the existing private inode-bound, PID-scoped nested full-operation flock without weakening manifest operation locking.",
+    "Original PostgreSQL admission failure survives independent failed-report publication, cleanup failure and final publication attempts; successful outcome requires no original error.",
+    "A fresh shared service inventory clears previous disposable service endpoint context before an optional explicit dedicated binding."
+  ],
+  "verification": {
+    "provision_lock_focused_passed": 16,
+    "final_daemon_and_postgres_focused_passed": 25,
+    "interpreter": "exact recovery worktree Python with local package imports"
+  },
+  "native_executed_by_reviewer": false,
+  "native_acceptance": "pending; this review covers source and focused regression tests only",
+  "activation_approved": false
+}
