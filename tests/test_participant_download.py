@@ -29,8 +29,8 @@ def source_fixture(tmp_path, monkeypatch):
 def test_participant_archive_deterministic_allowlist_and_links(tmp_path, monkeypatch):
     source, wheel = source_fixture(tmp_path, monkeypatch)
     checksum = hashlib.sha256(wheel.read_bytes()).hexdigest()
-    first = build(source, wheel, tmp_path / 'first', checksum)
-    second = build(source, wheel, tmp_path / 'second', checksum)
+    first = build(source, wheel, tmp_path / 'first', checksum, {'source_commit':'b'*40,'wheel_sha256':checksum})
+    second = build(source, wheel, tmp_path / 'second', checksum, {'source_commit':'b'*40,'wheel_sha256':checksum})
     assert first == second
     data = (tmp_path / 'first/participant-download-candidate.tar.gz').read_bytes()
     assert data == (tmp_path / 'second/participant-download-candidate.tar.gz').read_bytes()
@@ -42,13 +42,15 @@ def test_participant_archive_deterministic_allowlist_and_links(tmp_path, monkeyp
         fixtures = json.load(archive.extractfile('mldsafail-participant-0.5.1/public-fixtures.json'))
         assert len(fixtures) == 6
     assert first['publication_approved'] is False
+    assert first['wheel_source_commit'] == 'b' * 40
+    assert first['archive_documentation_source_commit'] == 'a' * 40
 
 
 def test_participant_archive_rejects_broken_links_and_wrong_wheel(tmp_path, monkeypatch):
     source, wheel = source_fixture(tmp_path, monkeypatch)
     checksum = hashlib.sha256(wheel.read_bytes()).hexdigest()
     with pytest.raises(ValueError, match='checksum'):
-        build(source, wheel, tmp_path / 'wrong', '0' * 64)
+        build(source, wheel, tmp_path / 'wrong', '0' * 64, {'source_commit':'b'*40,'wheel_sha256':checksum})
     (source / 'docs/PARTICIPANT_DOWNLOAD_README.md').write_text('[missing](missing.md)\n')
     with pytest.raises(ValueError, match='Broken'):
-        build(source, wheel, tmp_path / 'broken', checksum)
+        build(source, wheel, tmp_path / 'broken', checksum, {'source_commit':'b'*40,'wheel_sha256':checksum})

@@ -16,7 +16,7 @@ def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def build(source, wheel, destination, expected_wheel_sha256):
+def build(source, wheel, destination, expected_wheel_sha256, wheel_manifest):
     source, wheel, destination = map(Path, (source, wheel, destination))
     if destination.exists():
         raise ValueError('Download candidate destination must be new')
@@ -26,9 +26,15 @@ def build(source, wheel, destination, expected_wheel_sha256):
         raise ValueError('Verified participant 0.5.1 regular wheel required')
     if digest(wheel.read_bytes()) != expected_wheel_sha256:
         raise ValueError('Participant wheel checksum mismatch')
+    if (not re.fullmatch(r'[a-f0-9]{40}', wheel_manifest.get('source_commit', ''))
+            or wheel_manifest.get('wheel_sha256') != expected_wheel_sha256):
+        raise ValueError('Separately verified wheel-source manifest required')
     identity = {'source_commit': subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD']).decode().strip(),
                 'source_tree': subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD^{tree}']).decode().strip(),
+                'wheel_source_commit': wheel_manifest['source_commit'],
                 'package_version': '0.5.1', 'benchmark_version': '0.5.0', 'wheel_sha256': digest(wheel.read_bytes())}
+    identity['archive_documentation_source_commit'] = identity['source_commit']
+    identity['archive_documentation_source_tree'] = identity['source_tree']
     files = {wheel.name: wheel.read_bytes(), 'README.md': (source / 'docs/PARTICIPANT_DOWNLOAD_README.md').read_bytes()}
     for relative in ('examples/mlwe/primal-lll/solver.py', 'scripts/install.sh'):
         path = source / relative
@@ -81,6 +87,7 @@ if __name__ == '__main__':
     parser.add_argument('--wheel', type=Path, required=True)
     parser.add_argument('--destination', type=Path, required=True)
     parser.add_argument('--wheel-sha256', required=True)
+    parser.add_argument('--wheel-manifest', type=Path, required=True)
     args = parser.parse_args()
-    result = build(args.source, args.wheel, args.destination, args.wheel_sha256)
+    result = build(args.source, args.wheel, args.destination, args.wheel_sha256, json.loads(args.wheel_manifest.read_text()))
     print(json.dumps({'source_commit': result['source_commit'], 'archive_sha256': result['archive_sha256'], 'publication_approved': False}))

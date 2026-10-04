@@ -5,7 +5,11 @@ instances. It does not attack external keys/signatures or establish production
 ML-DSA hardness. Hosted public participation remains subject to owner launch
 approval; use only an explicitly authorized server/epoch.
 
-The source commit/tree, wheel/starter/contract hashes are recorded in `SOURCE.json`.
+The archive/documentation source commit/tree, separately verified wheel-build
+source commit, and wheel/starter/contract hashes are recorded in `SOURCE.json`.
+The included specification is a presentation copy: repository-context links to
+omitted historical/operator documents are removed, with original and included
+file hashes recorded separately. The scientific contract source is unchanged.
 `SHA256SUMS` binds every included file; the separately retained release manifest
 binds the whole archive. Verify checksums before installation. Included fixture
 JSON contains six public seed-zero fixed-profile cases, never private epoch data.

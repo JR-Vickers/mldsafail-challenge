@@ -53,6 +53,9 @@ def render(source, interpreter, metadata, configuration, user, uid, output):
             config_status[name] = 'private_file_present_contents_not_audited'
         else:
             config_status[name] = 'missing_activation_blocked'
+    version = subprocess.check_output([str(interpreter), '-c', 'import platform; print(platform.python_version())'], timeout=30).decode().strip()
+    if version != '3.12.10':
+        raise ValueError('Frozen operator Python 3.12.10 required')
     # Verify module resolution in the supplied source directory, not whichever
     # checkout an editable interpreter installation happens to point to.
     code = ('import importlib,json,sys; print(json.dumps({name:importlib.import_module(name).__file__ '
@@ -81,7 +84,7 @@ def render(source, interpreter, metadata, configuration, user, uid, output):
         path.chmod(0o600)
         checksums[name] = hashlib.sha256(path.read_bytes()).hexdigest()
     report = dict(source_commit=metadata['source_commit'], source_directory=str(source),
-                  interpreter=str(interpreter), interpreter_sha256=hashlib.sha256(interpreter.read_bytes()).hexdigest(),
+                  interpreter=str(interpreter), interpreter_version=version, interpreter_sha256=hashlib.sha256(interpreter.read_bytes()).hexdigest(),
                   module_source_verified=True, configuration=config_status, unit_sha256=checksums,
                   installed=False, activated=False, native_systemd_verification_pending=True)
     path = output / 'render-report.json'

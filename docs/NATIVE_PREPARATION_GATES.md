@@ -32,7 +32,10 @@ separate native gates.
 
 The current `compose.production.yaml` can rehearse existing **frozen 0.5.0
 application baseline** behavior in a disposable environment before 0.6.0 adoption.
-It is not proposed 0.6.0 acceptance and does not authorize public timing use.
+It is not approved-design production acceptance and does not authorize public
+timing use. The approved-design rehearsal remains a distinct task, depending on
+contract adoption, completed native accounting and separately versioned integration/
+fresh epoch/artifacts; baseline results cannot satisfy it.
 Use the protocol in [PUBLIC_LAUNCH_PACKET.md](PUBLIC_LAUNCH_PACKET.md) with retained
 baseline application/worker images, fresh disposable 0.5.0 epoch/costs and
 separate loopback-only proxy override. Real production credentials are unnecessary
@@ -77,3 +80,51 @@ payload privacy. It changes no services/leases and sends no external alerts.
 This establishes native tooling behavior only; installed-unit wiring, actual
 scheduled-job collection, off-host backup freshness and approved external receiver
 delivery remain separate acceptance gates.
+
+## Executable frozen 0.5.0 disposable orchestrator
+
+`python -m scripts.baseline_production_rehearsal --config PRIVATE_CONFIG.json`
+is reserved for the primary native operator. Required JSON keys are:
+`run_directory` (new private root disjoint from staging), `operator_source`
+(retained compatible source), `source_manifest` (full commit and source-file hashes), `release_manifest` and
+`rollback_manifest` (retained source/image/worker-lock/fingerprint inventory), `python` (installed 3.12.10), `docker_socket`
+(explicit rootless `/run/user/UID/docker.sock`), `fixture_repository`,
+`fixture_commit`, `fixture_solver_path`, and `images`. The latter maps `web`,
+`coordinator`, `worker`, `postgres`, `caddy`, `rollback_web`,
+`rollback_coordinator` to exact locally retained `sha256:` image IDs. Optional
+`staging_root` defaults to the frozen staging evaluator root. Use the existing
+reviewed public tiny-instance fixture commit; never arbitrary cryptographic targets.
+
+The orchestrator records protocol/source/images before execution, generates a
+fresh private synthetic 0.5.0 epoch without changing the frozen generator/scoring,
+uses unique owned database volumes and synthetic credentials, exposes web only
+on an ephemeral loopback port, explicitly migrates the fresh DB, creates a local
+expiring test token, evaluates the approved fixture under the 20-minute ceiling,
+independently audits result/evidence and leaderboard, restores the quiescent
+snapshot in a disposable DB, then rolls only application images back/forward
+without migrate dependencies. It verifies preserved schema/stable DB contents,
+sealed epoch receipt, worker ID, leaderboard and credential usability. Mutable
+rate-limit/token-last-use/audit rows are omitted from the switch DB hash; the same
+token must still authenticate, and those tables' schema remains in the hash.
+
+Native epoch setup has a predeclared 90-minute overall setup ceiling; the frozen
+60-second per-invocation and 20-minute hosted complete-evaluation ceilings remain.
+A failed fresh epoch is preserved, never replaced until a passing seed sample is
+found. Logs/manifests/dumps remain private in the run directory. No proxy/TLS/real
+OAuth/off-host backup or 0.6.0 acceptance is claimed. Caddy ID is required only to
+parse the production template; its service is excluded from disposable startup.
+
+A trusted external Docker CLI shim labels every epoch/hosted worker for owned
+cleanup without modifying frozen source, data or score. Epoch generation runs in
+the exact retained coordinator image. Cleanup stops dispatch controllers before
+worker removal, rescans for racing creation, and removes only labeled owned
+containers/volumes/networks. Failed-run database volumes are retained and explicitly
+accounted as private failure evidence, with all dispatch/application containers
+stopped/removed; they are not silently discarded by cleanup. No live/staging database is restored. Repeated cleanup uses
+`--cleanup` with the same private config; incomplete cleanup remains fenced and
+must be repaired before conflicting host work. An exclusive run lock prevents concurrent cleanup, final ownership inventory
+proves no live owned resource remains (apart from accounted retained failure
+volumes), and overall completion requires successful cleanup. Image source labels
+and compatibility identities are checked against retained baseline/b4d212d
+manifest inventories before epoch setup. Primary operator must independently
+review and native-verify this new orchestration before treating its result as a gate.

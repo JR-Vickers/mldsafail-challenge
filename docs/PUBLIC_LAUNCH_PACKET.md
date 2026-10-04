@@ -131,7 +131,9 @@ across architectures/hosts is not promised.
 
 ## External pilot protocol and observation form
 
-Do not recruit until required launch gates and owner recruitment approval pass.
+Do not recruit until required launch gates, approved production/public activation,
+and owner recruitment approval pass. Participant observations collected before
+these decisions do not establish the public launch pilot gate.
 Predeclare a small cohort of three consenting participants, at least one clean
 installation without repository context, using the exact candidate artifacts and
 one approved benchmark/epoch. Owner may revise cohort before observations begin;
@@ -186,3 +188,20 @@ checksummed artifacts and approved docs. Pause recruitment on failed health,
 accounting, privacy, recovery or cancellation gates. Incident response preserves
 private evidence, drains/pauses evaluation, rolls applications back without
 migrations, and records a reviewed forward repair before reactivation.
+
+
+## Owner-review recruitment draft (never sent by this task)
+
+After activation and recruitment approval, the owner may adapt this invitation:
+
+> We are inviting three consenting participants to try a small synthetic MLWE
+> optimization benchmark. The task is to install the reviewed package, validate
+> the starter locally, submit an immutable solver revision, inspect its audited
+> result and test cancellation. This does not involve real keys or signatures.
+> Participation is voluntary; please confirm consent before we record usability
+> observations. We will identify observations with an alias and exclude contact
+> details and private evidence from public reports. Approved download/server links
+> and the exact benchmark/epoch will be supplied only after launch approval.
+
+Record owner review, approved links/artifact hashes and recruitment authorization
+before delivery. The agent sends no invitations or external messages.
