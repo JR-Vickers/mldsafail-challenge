@@ -128,3 +128,9 @@ volumes), and overall completion requires successful cleanup. Image source label
 and compatibility identities are checked against retained baseline/b4d212d
 manifest inventories before epoch setup. Primary operator must independently
 review and native-verify this new orchestration before treating its result as a gate.
+
+The baseline runner rejects overlap with `/srv/mldsafail` and `/etc/mldsafail`
+as well as the configured staging evaluator root. Supply additional absolute
+`protected_roots` for any host-specific deployment, secret or evidence locations.
+Database readiness has a 120-second overall deadline and at most ten seconds per
+Docker invocation; failed and timed-out attempts are durably recorded.

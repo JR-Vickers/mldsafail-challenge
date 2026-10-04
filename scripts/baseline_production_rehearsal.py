@@ -25,11 +25,29 @@ LABEL = 'org.mldsafail.disposable-rehearsal'
 ROLE = 'org.mldsafail.disposable-role'
 
 
+def wait_database(compose, env, record):
+    deadline = time.monotonic() + 120
+    while time.monotonic() < deadline:
+        try:
+            result = subprocess.run(compose + ['exec', '-T', 'db', 'pg_isready', '-U', 'mldsafail'],
+                                    env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                    timeout=min(10, max(0.001, deadline - time.monotonic())))
+            record({'outcome': 'ready' if result.returncode == 0 else 'failed', 'returncode': result.returncode})
+            if result.returncode == 0:
+                return
+        except subprocess.TimeoutExpired:
+            record({'outcome': 'timeout', 'timeout_seconds_maximum': 10})
+        time.sleep(min(1, max(0, deadline - time.monotonic())))
+    raise RuntimeError('Disposable database readiness timeout')
+
+
 def validate(config):
     root = safe_path(config['run_directory'])
     staging = safe_path(config.get('staging_root', '/srv/mldsafail-evaluator'))
-    if root.is_relative_to(staging) or staging.is_relative_to(root):
-        raise ValueError('Disposable root must not overlap staging')
+    protected = [staging, Path('/srv/mldsafail').resolve(), Path('/etc/mldsafail').resolve()]
+    protected.extend(safe_path(value) for value in config.get('protected_roots', []))
+    if any(root.is_relative_to(value) or value.is_relative_to(root) for value in protected):
+        raise ValueError('Disposable root must not overlap staging or protected deployment roots')
     source = safe_path(config['operator_source'])
     if not (source / 'compose.production.yaml').is_file():
         raise ValueError('Retained operator source required')
@@ -259,12 +277,7 @@ def _execute_locked(config, cleanup_only=False):
         atomic_json(compose_file, generated)
         compose = ['docker', 'compose', '-p', project, '-f', str(compose_file)]
         command(compose + ['up', '-d', '--no-deps', 'db'], env=env)
-        deadline = time.monotonic() + 120
-        while subprocess.run(compose + ['exec', '-T', 'db', 'pg_isready', '-U', 'mldsafail'], env=env,
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode:
-            if time.monotonic() >= deadline:
-                raise RuntimeError('Disposable database readiness timeout')
-            time.sleep(1)
+        wait_database(compose, env, lambda evidence: stage('database_readiness_attempt', evidence))
         command(compose + ['run', '--rm', '--no-deps', 'migrate'], env=env)
         stage('explicit_fresh_migration')
         command(compose + ['up', '-d', '--no-deps', 'web', 'coordinator'], env=env)

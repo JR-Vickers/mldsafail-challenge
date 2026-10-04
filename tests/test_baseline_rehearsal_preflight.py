@@ -99,3 +99,22 @@ def test_cleanup_final_inventory_rejects_late_container_creation(tmp_path, monke
     report = json.loads((tmp_path / 'journal.json').read_text())
     assert report['cleanup_phase'] == 'incomplete'
     assert report['final_inventory']['container'] == ['late-owned-container']
+
+
+def test_protected_roots_and_readiness_timeout_are_enforced(tmp_path, monkeypatch):
+    import subprocess
+    from scripts.baseline_production_rehearsal import wait_database
+    value = config(tmp_path)
+    with pytest.raises(ValueError, match='protected'):
+        validate({**value, 'protected_roots': [str(tmp_path / 'new-owned-root')]})
+    ticks = iter([0, 0, 0, 121, 121])
+    monkeypatch.setattr('scripts.baseline_production_rehearsal.time.monotonic', lambda: next(ticks))
+    monkeypatch.setattr('scripts.baseline_production_rehearsal.time.sleep', lambda _: None)
+    def hang(argv, **kwargs):
+        assert kwargs['timeout'] == 10
+        raise subprocess.TimeoutExpired(argv, 10)
+    monkeypatch.setattr('scripts.baseline_production_rehearsal.subprocess.run', hang)
+    evidence = []
+    with pytest.raises(RuntimeError, match='readiness timeout'):
+        wait_database(['docker', 'compose'], {}, evidence.append)
+    assert evidence == [{'outcome': 'timeout', 'timeout_seconds_maximum': 10}]
