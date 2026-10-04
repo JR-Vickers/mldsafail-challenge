@@ -88,7 +88,9 @@ def test_unreconciled_prior_activation_prevents_new_provision(monkeypatch, tmp_p
     prior = tmp_path/('activation-'+'a'*32)
     prior.mkdir(mode=0o700)
     state = prior/'driver.json'
-    state.write_text(json.dumps({'cleanup': {'cleanup_complete': False}}))
+    state.write_text(json.dumps({'schema': 'mldsafail.cpu-native-driver-state.v1',
+        'daemon_kind': 'owned', 'config': {'state_root': str(prior)},
+        'cleanup': {'cleanup_complete': False}}))
     state.chmod(0o600)
     attempts = []
     monkeypatch.setattr(activation, 'current_configuration', lambda *args: {'state_root': str(tmp_path/'fresh')})
@@ -99,6 +101,45 @@ def test_unreconciled_prior_activation_prevents_new_provision(monkeypatch, tmp_p
     with pytest.raises(RuntimeError, match='Earlier activation remains fenced'):
         activation.execute(config, 'mldsafail-fixture.service')
     assert attempts == ['cleanup']
+
+
+def test_untyped_positive_prior_cleanup_cannot_authorize_another_activation(tmp_path):
+    from deploy.operator_activation import prior_complete
+    state = dict(schema='mldsafail.cpu-native-driver-state.v1', daemon_kind='owned',
+                 config={'state_root': str(tmp_path)}, state='complete',
+                 cleanup={'cleanup_complete': True})
+    assert prior_complete(state, tmp_path) is False
+    state['config']['state_root'] = '/other/root'
+    with pytest.raises(RuntimeError, match='authority'):
+        prior_complete(state, tmp_path)
+
+
+def test_corrupt_prior_receipt_does_not_skip_other_known_cleanup(monkeypatch, tmp_path):
+    from deploy import operator_activation as activation
+    from research.cpu_measurement import native_driver
+    tmp_path.chmod(0o700)
+    template = tmp_path/'template.json'
+    template.write_text('{}')
+    template.chmod(0o600)
+    for letter in ('a', 'b'):
+        prior = tmp_path/('activation-'+letter*32)
+        prior.mkdir(mode=0o700)
+        path = prior/'driver.json'
+        path.write_text('{' if letter == 'a' else json.dumps(dict(
+            schema='mldsafail.cpu-native-driver-state.v1', daemon_kind='owned',
+            config={'state_root': str(prior)}, cleanup={'cleanup_complete': False})))
+        path.chmod(0o600)
+    attempts = []
+    monkeypatch.setattr(activation, 'current_configuration', lambda *args: {})
+    monkeypatch.setattr(native_driver, 'cleanup_state', lambda path, **kw: attempts.append(path) or {'cleanup_complete': True})
+    monkeypatch.setattr(native_driver, 'execute', lambda *a, **k: pytest.fail('No new provision while corrupt prior remains'))
+    config = dict(schema='mldsafail.operator-activation.v1', driver_template=str(template),
+                  activation_root=str(tmp_path), job='fixture', job_config=None, staging_socket=None)
+    with pytest.raises(json.JSONDecodeError):
+        activation.execute(config, 'mldsafail-fixture.service')
+    assert attempts == [tmp_path/('activation-'+'b'*32)/'driver.json']
+    receipt = json.loads(next(tmp_path.glob('reconciliation-*.json')).read_text())
+    assert receipt['cleanup_complete'] is False
 
 
 def test_daily_callback_keeps_stage_endpoint_and_injects_only_restore_manifest(monkeypatch, tmp_path):

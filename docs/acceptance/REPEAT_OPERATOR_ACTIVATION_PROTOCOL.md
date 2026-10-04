@@ -63,7 +63,7 @@ the gate's controller identity check.
 From a separate reviewed delegated controller run:
 
 ```sh
-python scripts/native_repeat_activation_verification.py --receipt /private/root/activation-<first>/activation.json --receipt /private/root/activation-<second>/activation.json --output /private/new-verification
+python -m scripts.native_repeat_activation_verification --receipt /private/root/activation-<first>/activation.json --receipt /private/root/activation-<second>/activation.json --output /private/new-verification
 ```
 
 The verifier requires two distinct controller births, driver roots and daemon

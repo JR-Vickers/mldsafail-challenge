@@ -84,6 +84,30 @@ def fixture(journal, config, data):
                 evidence_refs=[str(receipt)], source_sha256=config['acceptance_source_sha256'])
 
 
+def prior_complete(state, prior):
+    if (state.get('schema') != 'mldsafail.cpu-native-driver-state.v1' or
+        state.get('daemon_kind') != 'owned' or state.get('config', {}).get('state_root') != str(prior)):
+        raise RuntimeError('Unknown prior activation driver authority')
+    cleanup = state.get('cleanup', {})
+    if cleanup.get('cleanup_complete') is not True:
+        return False
+    if (state.get('state') != 'complete' or cleanup.get('schema') != 'mldsafail.cpu-native-driver-cleanup.v1' or
+        cleanup.get('id') != state.get('id') or cleanup.get('errors') != []):
+        return False
+    if state.get('start_intent'):
+        if state.get('manifest_path') != str(prior/'daemon-manifest.json'):
+            raise RuntimeError('Prior activation manifest root binding changed')
+        manifest = owned_daemon.load_manifest(state['manifest_path'])
+        barrier = cleanup.get('daemon_barrier', {})
+        if (barrier.get('schema') != 'mldsafail.owned-daemon-barrier.v1' or
+            barrier.get('shutdown_proven') is not True or barrier.get('errors') != [] or
+            barrier.get('attempt_id') != state.get('id') or
+            barrier.get('daemon_epoch') != manifest['epoch'] or
+            barrier.get('daemon_manifest_sha256') != owned_daemon.fingerprint(manifest)):
+            return False
+    return True
+
+
 def execute(configuration, unit, *, cleanup_only=False):
     from research.cpu_measurement import native_driver
     if set(configuration) != {'schema', 'driver_template', 'activation_root', 'job', 'job_config', 'staging_socket'} or configuration['schema'] != 'mldsafail.operator-activation.v1':
@@ -101,14 +125,28 @@ def execute(configuration, unit, *, cleanup_only=False):
         config = current_configuration(template, root, unit)
         # Only exact direct child driver journals are owned; unknown directories
         # are a fence rather than a reason to skip prior interruption recovery.
+        reconciliation_errors = []
+        first_error = None
         for prior in sorted(root.glob('activation-*')):
-            if prior.is_symlink() or not prior.is_dir() or not re.fullmatch('activation-[a-f0-9]{32}', prior.name):
-                raise RuntimeError('Unknown prior activation ownership')
-            state = owned_daemon.read_private_json(prior/'driver.json', cap=4*1024*1024)
-            if state.get('cleanup', {}).get('cleanup_complete') is not True:
-                result = native_driver.cleanup_state(prior/'driver.json', controller_config=config, repository=repository)
-                if result.get('cleanup_complete') is not True:
-                    raise RuntimeError('Earlier activation remains fenced')
+            try:
+                if prior.is_symlink() or not prior.is_dir() or not re.fullmatch('activation-[a-f0-9]{32}', prior.name):
+                    raise RuntimeError('Unknown prior activation ownership')
+                state = owned_daemon.read_private_json(prior/'driver.json', cap=4*1024*1024)
+                if not prior_complete(state, prior):
+                    result = native_driver.cleanup_state(prior/'driver.json', controller_config=config, repository=repository)
+                    if result.get('cleanup_complete') is not True:
+                        raise RuntimeError('Earlier activation remains fenced')
+            except BaseException as error:
+                if first_error is None:
+                    first_error = error
+                reconciliation_errors.append(dict(state_path=str(prior/'driver.json'), error_class=type(error).__name__))
+        if first_error is not None:
+            try:
+                owned_daemon.publish(root/('reconciliation-'+uuid.uuid4().hex+'.json'),
+                    dict(cleanup_complete=False, errors=reconciliation_errors))
+            except BaseException as publication:
+                first_error.add_note('Reconciliation evidence publication failed: '+type(publication).__name__)
+            raise first_error
         if cleanup_only:
             return dict(cleanup_complete=True, activated=False)
         def acceptance(journal, config, data):
