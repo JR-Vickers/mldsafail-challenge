@@ -166,3 +166,11 @@ def test_teardown_only_birth_capture_does_not_admit_new_operator_for_evaluation(
     owned_daemon._worker_binding(provision,worker,Path(worker['path']).name,teardown_only=True)
     with pytest.raises(FileNotFoundError):
         owned_daemon._worker_binding(provision,worker,Path(worker['path']).name)
+
+
+def test_terminal_authority_cannot_evaluate_or_restart_even_with_valid_operator(tmp_path):
+    manifest=dict(terminal_only=True)
+    with pytest.raises(RuntimeError,match='Terminal-only'):
+        owned_daemon.verify_environment(manifest)
+    with pytest.raises(RuntimeError,match='Terminal-only'):
+        owned_daemon.restart_and_refresh(manifest,{},manifest_path=tmp_path/'manifest',evidence_directory=tmp_path,attempt_id='terminal')

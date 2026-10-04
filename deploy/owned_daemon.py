@@ -239,7 +239,7 @@ def register(*, unit, socket, root_dir, exec_root, rootless_state, manifest_path
     if info.get('LiveRestoreEnabled') is not False or str(info.get('CgroupVersion'))!='2' or info.get('CgroupDriver')!='systemd' or not any('rootless' in option for option in info.get('SecurityOptions',[])):
         raise RuntimeError('Rootless cgroup-v2 daemon with live restore disabled required')
     if epoch is not None and not re.fullmatch('[0-9a-f]{32}',epoch): raise RuntimeError('Exact restart epoch required')
-    manifest=dict(schema=SCHEMA,epoch=epoch or uuid.uuid4().hex,unit=unit,socket=str(socket),
+    manifest=dict(schema=SCHEMA,terminal_only=teardown_only,epoch=epoch or uuid.uuid4().hex,unit=unit,socket=str(socket),
                   roots=roots,domain=domain,leader=leader,daemon_process=daemon_process,
                   worker_domain=worker_domain,worker_cgroup_parent=worker_cgroup_parent,provisioning=provisioning,
                   server_version=expected_server_version,server_git_commit=expected_server_git_commit,
@@ -273,6 +273,7 @@ def load_manifest(path=None):
 
 
 def verify_environment(manifest, *, measurement_parent=None, docker_info=None):
+    if manifest.get('terminal_only') is True: raise RuntimeError('Terminal-only daemon authority cannot evaluate')
     _endpoint(manifest['socket'])
     state=_unit(manifest['unit'])
     if state['ActiveState']!='active' or int(state['MainPID'])!=manifest['leader']['pid'] or state['domain_path']!=manifest['domain']['path'] or state['unit_fragment_sha256']!=manifest['unit_fragment_sha256']:
@@ -354,6 +355,7 @@ def shutdown_barrier(manifest, *, worker_domains=(), evidence_directory, attempt
 
 def restart_and_refresh(manifest, shutdown_receipt, *, manifest_path, client_entries=(), evidence_directory, attempt_id):
     """Only after positive old-epoch proof and independently empty client domains."""
+    if manifest.get('terminal_only') is True: raise RuntimeError('Terminal-only daemon authority cannot restart')
     if not isinstance(shutdown_receipt,dict) or shutdown_receipt.get('schema')!='mldsafail.owned-daemon-barrier.v1' or shutdown_receipt.get('attempt_id')!=attempt_id or shutdown_receipt.get('errors')!=[] or shutdown_receipt.get('shutdown_proven') is not True or shutdown_receipt.get('daemon_manifest_sha256')!=fingerprint(manifest) or shutdown_receipt.get('daemon_epoch')!=manifest['epoch']:
         raise RuntimeError('Positive exact daemon shutdown receipt required')
     for entry in client_entries:
