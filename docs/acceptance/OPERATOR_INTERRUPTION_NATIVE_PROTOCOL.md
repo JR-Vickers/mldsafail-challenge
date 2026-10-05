@@ -40,3 +40,25 @@ A passing read-only verification report is evidence for this disposable local
 job gate only. It does not establish off-host durability, owner password custody,
 private epoch restoration, native CPU performance, or timer acceptance against
 an approved external repository.
+
+The reviewed signal step is `python -m scripts.native_interrupted_job_signal
+--driver DRIVER --activation-config CONFIG --unit UNIT --output NEW_PRIVATE_DIR`.
+Run it in a separate owned delegated controller after the original driver exists.
+It waits at most 60 seconds (configurable through 120) for the real pinned native
+`restic check --read-data` process, validates its registered kernel domain and
+full process birth, and publishes exact owner/admission intent before killing
+only the original activation MainPID. It requires a direct
+`python -m deploy.operator_activation --config CONFIG --unit UNIT` invocation.
+A wrapper MainPID is deliberately rejected.
+
+The supplied recovery configuration must explicitly mark `synthetic_only=true`,
+`actual_owner_custody_accepted=false`, and `benchmark_epoch_data_used=false`, and
+use the disposable `syntheticbucket` S3 namespace. These fixture declarations
+never satisfy the owner custody gate. Use a bounded local synthetic backend
+pause or request delay to retain a real check in progress; resume that backend
+immediately after the signal. Bound the original activation unit and backend
+fixture lifetime independently. Before stopping any creator clients, execute
+fresh activation reconciliation under the same serialized root. The observer's
+`job_cleanup_pending=true` is an explicit outstanding cleanup requirement, not
+a successful cleanup claim. Keep a failed observer receipt and invoke terminal
+cleanup under a new controller before launching conflicting work.

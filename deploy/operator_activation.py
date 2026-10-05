@@ -248,8 +248,12 @@ def execute(configuration, unit, *, cleanup_only=False):
                 else:
                     from deploy.recovery import execute as check
                     from deploy.recovery_journal import standalone_operation
-                    result = standalone_operation(private, Path(private['backup_state']).parent, 'restic',
-                        lambda operation: check(private, 'check', journal=operation))
+                    def admitted_check(operation):
+                        from deploy.recovery_daemon import bind
+                        bind(operation.data, data['manifest_path'])
+                        operation.save('scheduled check owned daemon authority')
+                        return check(private, 'check', journal=operation)
+                    result = standalone_operation(private, Path(private['backup_state']).parent, 'restic', admitted_check)
                     if result.get('completed') is not True:
                         raise RuntimeError('Complete recovery repository check required')
             data['operator_job']['state'] = 'passed'
