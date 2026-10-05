@@ -106,7 +106,7 @@ def callback(journal, config, data, *, retained_worker=None, application_rehears
         from mldsafail.benchmark_v060.candidate_authority import CandidateRehearsalAuthority
         from mldsafail.benchmark_v060.backend import HostBackend
         candidate_authority=CandidateRehearsalAuthority(Path(protocol['prerequisites']),root/'epoch/manifest.json',
-            config['source_commit'],config['supervisor_source_sha256'],image,cohort.epoch_id,cohort.public_id)
+            context['source_commit'],config['supervisor_source_sha256'],image,cohort.epoch_id,cohort.public_id)
         backend=HostBackend(image=image,parent=data['worker_parent'],cgroup_parent=data['worker_slice'],
             epoch_id=cohort.epoch_id,gates=candidate_authority,private_rehearsal=True)
         with deadline(COMPLETE_EVALUATION_SECONDS) as check:
