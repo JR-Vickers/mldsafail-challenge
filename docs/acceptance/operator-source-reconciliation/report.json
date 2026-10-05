@@ -38,7 +38,7 @@
     },
     {
       "task": "v060-cli-capability-preflight",
-      "status": "source_verification_complete_review_pending",
+      "status": "passed",
       "scope": "unsupported legacy server rejected before POST and generated idempotency evidence retained; source tests only"
     },
     {
@@ -71,6 +71,15 @@
     "reference_identity_repair_passed": true,
     "operator_repeat_and_interruption_verifier_passed": true,
     "cli_capability_preflight_tests_passed": true,
-    "cli_independent_review_passed": false
+    "cli_independent_review_passed": true
+  },
+  "independent_cli_reference_review": {
+    "reviewer": "review_controls",
+    "reviewed_primary_commit": "cda2f27c249a05e79307771ef3a763cda10f099e",
+    "source_review_passed": true,
+    "focused_cli_reference_candidate_tests_passed": 40,
+    "cli_sha256": "c149b32a0bd8ed0ef17d678b67a6897e18bdb0954c82962f325837d56cac2445",
+    "reference_sha256": "98e2f8f99407bb84a1e0b83574256b39e94b5360c95fea00a6c081b403765fdf",
+    "scope": "capability-before-POST, durable generated intent/key, uncertain acknowledgement preservation; trusted expected reference identity substitution rejection; no native or adoption claim"
   }
 }
