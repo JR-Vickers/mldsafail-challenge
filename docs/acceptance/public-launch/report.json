@@ -3388,7 +3388,7 @@
       "criteria": [
         "Build and retain reviewed version-specific prospective worker without frozen solver startup imports"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "source_commit": "eedab6c3a553d9dea8058e1644b4671e4c92620f",
@@ -3401,13 +3401,22 @@
           "result": "running after interruption reconciled; no duplicate invocation"
         }
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/native-worker-generation-d.json#/passed",
+          "criteria_met": [
+            "Build and retain reviewed version-specific prospective worker without frozen solver startup imports"
+          ]
+        }
+      ],
       "identities": {
-        "source_commit": "eedab6c3a553d9dea8058e1644b4671e4c92620f",
-        "supervisor_source_sha256": "ffb6cf314cbaf69e279721c2ff8f66345ab39c5bb5da014449065b4f3820104b",
-        "worker_image": "sha256:4a1c3ea678408a861e634babf49bdd1fd23ac5cccc16dc04f2b60c8daf49ca6b"
+        "source_commit": "e4b8669aa1eb1e242e1fda5a6564669054ebad9d",
+        "supervisor_source_sha256": "f3e7608cf7148891146b5b5ee80d282eab14a1789ef82b334b079539b9728369",
+        "image": "sha256:c5c35eb224f77fe84caa977e18a73d10a710366090fa7ad88e9eb21cde9a74cc",
+        "image_archive_sha256": "d2bba48a2307a11dcdb229fc09f2a2c52f8117d59d5e00c55334acffa7422741",
+        "source_context_sha256": "a46451848fc82ba3f3cac43e29f11152a9e01fe4b5f985053ecc20a688552126"
       },
-      "next_action": "Observe original buildD through final cleanup before claiming artifact pass",
+      "next_action": "Exact retained worker supplied to corrected native fault/pair gate",
       "checklist": []
     },
     {
@@ -3424,7 +3433,7 @@
       "criteria": [
         "Complete accounting fault suite on exact prospective worker and current reviewed supervisor"
       ],
-      "status": "failed",
+      "status": "running",
       "attempts": [
         {
           "source_commit": "eedab6c3a553d9dea8058e1644b4671e4c92620f",
@@ -3435,15 +3444,20 @@
           "source_commit": "c431bbe13e1c74cf4d4239d896cda63afd4ca489",
           "evidence": "docs/acceptance/public-launch/native-cpu-generation-i.json",
           "result": "Native startup and baseline pass; eight faults completed then lifecycle deadline failure; pairs not started"
+        },
+        {
+          "source_commit": "e4b8669aa1eb1e242e1fda5a6564669054ebad9d",
+          "protocol": "Complete native accounting fault suite then exactly thirty sequential unchanged empty/child pairs only if faults pass",
+          "result": "generationJ started with reviewed dispatch correction and retained workerD"
         }
       ],
       "evidence": [],
       "identities": {
-        "source_commit": "eedab6c3a553d9dea8058e1644b4671e4c92620f",
-        "supervisor_source_sha256": "ffb6cf314cbaf69e279721c2ff8f66345ab39c5bb5da014449065b4f3820104b",
-        "worker_image": "sha256:4a1c3ea678408a861e634babf49bdd1fd23ac5cccc16dc04f2b60c8daf49ca6b"
+        "source_commit": "e4b8669aa1eb1e242e1fda5a6564669054ebad9d",
+        "supervisor_source_sha256": "f3e7608cf7148891146b5b5ee80d282eab14a1789ef82b334b079539b9728369",
+        "image": "sha256:c5c35eb224f77fe84caa977e18a73d10a710366090fa7ad88e9eb21cde9a74cc"
       },
-      "next_action": "Independently reconcile generationI cleanup; retain reviewed diagnostic correction and source-bound worker; run complete corrected native fault suite before any pairs",
+      "next_action": "Observe single generationJ; preserve failures and reconcile cleanup before retry",
       "checklist": []
     },
     {
