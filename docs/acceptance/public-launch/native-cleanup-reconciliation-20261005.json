@@ -1,0 +1,19 @@
+{
+  "schema": "mldsafail.native-cleanup-reconciliation.v1",
+  "source_commit": "c431bbe13e1c74cf4d4239d896cda63afd4ca489",
+  "passed": true,
+  "independent_owned_domain_absence_verified": true,
+  "owned_domain_count": 6,
+  "whole_cleanup_receipts_verified": true,
+  "positive_daemon_shutdown_barriers_verified": true,
+  "staging_running_services": 4,
+  "staging_web_and_database_healthy": true,
+  "raw_sha256": {
+    "cpu_i_operator": "91f8ebd150f5ec9090240b55c5b89965c125e2984117a6b235df3291ad1f9ec4",
+    "cpu_i_driver": "518399777015936e57ea9db5c7694377e2dd9bf3984b2faa5146399b59140c37",
+    "worker_c_operator": "25907534bc44ef29fa711110041bca60fb40cae61753bf2eb0e56a587a249251",
+    "worker_c_driver": "73d6bcd725ec5c1eb744a512abfb1a130f2de7966b58d55f3502350b4529d987",
+    "worker_c_artifact": "9a7dc1a9842fbb5cd9d9950314a3bdf36f415275de08c2d1aec5339f6a10486d"
+  },
+  "scope": "Independent read-only post-interruption reconciliation of native CPU generationI and worker preparationC only; not a CPU gate pass"
+}

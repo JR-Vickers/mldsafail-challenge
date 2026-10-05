@@ -2729,7 +2729,7 @@
       "criteria": [
         "Retained reviewed orchestrator passes source-bound native baseline rehearsal and final owned-resource cleanup"
       ],
-      "status": "waiting_dependency",
+      "status": "ready",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3296,7 +3296,7 @@
       "criteria": [
         "Native administrative admission controls and daily limits"
       ],
-      "status": "waiting_dependency",
+      "status": "ready",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3318,7 +3318,7 @@
       "criteria": [
         "Native database/evaluator cleanup ownership and fencing"
       ],
-      "status": "waiting_dependency",
+      "status": "ready",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3388,12 +3388,17 @@
       "criteria": [
         "Build and retain reviewed version-specific prospective worker without frozen solver startup imports"
       ],
-      "status": "failed",
+      "status": "running",
       "attempts": [
         {
           "source_commit": "eedab6c3a553d9dea8058e1644b4671e4c92620f",
           "evidence": "docs/acceptance/public-launch/native-cpu-generation-h.json",
           "result": "Initial accounting baseline failed before any pairs; owned cleanup independently proven"
+        },
+        {
+          "source_commit": "e4b8669aa1eb1e242e1fda5a6564669054ebad9d",
+          "protocol": "Reviewed native worker buildD, exact startup65534 smoke, private image export and whole cleanup",
+          "result": "running after interruption reconciled; no duplicate invocation"
         }
       ],
       "evidence": [],
@@ -3402,7 +3407,7 @@
         "supervisor_source_sha256": "ffb6cf314cbaf69e279721c2ff8f66345ab39c5bb5da014449065b4f3820104b",
         "worker_image": "sha256:4a1c3ea678408a861e634babf49bdd1fd23ac5cccc16dc04f2b60c8daf49ca6b"
       },
-      "next_action": "Build corrected source-bound image with positive unprivileged import smoke and whole cleanup; rerun full fault/pair protocol only on changed artifact",
+      "next_action": "Observe original buildD through final cleanup before claiming artifact pass",
       "checklist": []
     },
     {
@@ -3592,7 +3597,7 @@
       "criteria": [
         "Full sealed local protected database, epoch and accepted-run evidence restoration"
       ],
-      "status": "waiting_dependency",
+      "status": "ready",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3613,7 +3618,7 @@
       "criteria": [
         "Native journal service interruption, repeated cleanup and cleanup-failure fixture"
       ],
-      "status": "waiting_dependency",
+      "status": "ready",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3661,7 +3666,7 @@
       "criteria": [
         "Execute recovery Journal lost acknowledgement faults with positive executor quiescence and cleanup"
       ],
-      "status": "waiting_dependency",
+      "status": "ready",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3681,7 +3686,7 @@
       "criteria": [
         "Build retained official Python base and frozen scientific study image with approved native wheel provenance"
       ],
-      "status": "waiting_dependency",
+      "status": "ready",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3722,7 +3727,7 @@
       "criteria": [
         "Install and exercise separately identified candidate participant artifact in native Linux"
       ],
-      "status": "waiting_dependency",
+      "status": "ready",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3877,7 +3882,7 @@
       "criteria": [
         "Positive whole cleanup receipts and independent exact owned cgroup/process absence, with staging services preserved"
       ],
-      "status": "ready",
+      "status": "passed",
       "attempts": [
         {
           "protocol": "Established staging SSH read-only connection",
@@ -3888,11 +3893,18 @@
           "result": "Owner clarified they meant localhost8080 website; prior yes-it-works answer does not establish staging SSH. This session still times out on established server connection."
         }
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/native-cleanup-reconciliation-20261005.json#/passed",
+          "criteria_met": [
+            "Positive whole cleanup receipts and independent exact owned cgroup/process absence, with staging services preserved"
+          ]
+        }
+      ],
       "identities": {
         "source_commit": "c431bbe13e1c74cf4d4239d896cda63afd4ca489"
       },
-      "next_action": "Reconnect with established key; inspect exact protected private contexts without starting new host operations",
+      "next_action": "Cleanup verified; serialize next owned native operation",
       "checklist": []
     }
   ],
