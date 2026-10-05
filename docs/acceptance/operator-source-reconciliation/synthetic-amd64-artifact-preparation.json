@@ -50,5 +50,19 @@
   "remaining_native_criteria": [
     "On exact VPS owned controller verify restic version reports0.17.3/linuxamd64 and MinIO --version reports expected original source build/Go1.26.1/linuxamd64",
     "Run complete disposable synthetic scheduled-check interruption callback and independent cleanup on retained reviewed source"
-  ]
+  ],
+  "independent_artifact_review": {
+    "reviewer": "review_controls",
+    "source_provenance_review_passed": true,
+    "verified_properties": [
+      "Actual ELF64 machine62 and no PT_INTERP for both binaries",
+      "Private owned0700 singlelink executables and600manifest",
+      "Exact restic archive checksum against retained official SHA256SUMS and byte-exact decompression",
+      "Exact MinIO approved archive/tag-object/source commit/go.sum and unchanged extracted source",
+      "Actual Go build metadata Go1.26.1 CGO0 Linuxamd64 trimpath; dependency verification record hash",
+      "Exact private preparation receipt hash matches sanitized outcome"
+    ],
+    "native_executed": false,
+    "runtime_version_and_full_callback_pending": true
+  }
 }
