@@ -37,10 +37,13 @@ def dispatch(args, fixture):
     publish(receipt, record)
     try:
         instance = generate_mlwe('small', 0, 1).public
+        # The owner-kill probe must reach proven input delivery before injection.
+        # Ordinary short runaway fixtures keep their existing two-second limit.
+        owner_kill = fixture == 'hang' and getattr(args, 'owner_kill_probe', False)
         result = run(args.image, args.parent, args.cgroup_parent,
                      Path(__file__).parent / 'fixtures' / fixture,
                      instance.to_dict(), lambda public, candidate: verify_candidate(instance, candidate)['verified'],
-                     timeout=2 if fixture in {'hang', 'descendant_hang', 'closed_stream_hang'} else 60,
+                     timeout=60 if owner_kill else (2 if fixture in {'hang', 'descendant_hang', 'closed_stream_hang'} else 60),
                      ownership_directory=args.ownership_directory,
                      evidence_metadata={'fixture': fixture}, epoch=args.epoch)
     except BaseException as original:
@@ -156,6 +159,7 @@ def main():
     parser.add_argument('--cgroup-parent', required=True)
     parser.add_argument('--image', required=True)
     parser.add_argument('--epoch', required=True)
+    parser.add_argument('--owner-kill-probe', action='store_true')
     serve(parser.parse_args())
 
 

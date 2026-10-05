@@ -83,7 +83,8 @@ def lifecycle(args, output):
     server = subprocess.Popen([sys.executable, '-m', 'research.cpu_measurement.supervisor',
                                '--socket', str(socket_path), '--ownership-directory', str(state),
                                '--parent', str(args.parent), '--cgroup-parent', args.cgroup_parent,
-                               '--image', args.image, '--epoch', 'isolated-native-lifecycle'],
+                               '--image', args.image, '--epoch', 'isolated-native-lifecycle',
+                               '--owner-kill-probe'],
                               stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                               stderr=subprocess.DEVNULL)
     results = []
@@ -121,6 +122,11 @@ def lifecycle(args, output):
         def active_input():
             dispatch_failure('hang')
             record = json.loads((state / 'journal.json').read_text())
+            disposition = output / 'last-dispatch.json'
+            if disposition.exists():
+                receipt = json.loads(disposition.read_text())
+                if receipt.get('fixture') == 'hang' and receipt.get('state') == 'complete':
+                    raise RuntimeError('Owner-kill fixture completed before proven input delivery and injection')
             return record if record['generation'] != completed['generation'] and any(
                 row['operation'] == 'input_delivered' for row in record['mutations']) else None
         interrupted = wait_for(active_input)

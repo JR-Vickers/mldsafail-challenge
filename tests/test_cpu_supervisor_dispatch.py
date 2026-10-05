@@ -104,3 +104,17 @@ def test_serial_status_backlog_pressure_is_bounded_unavailability(monkeypatch):
     def denied(self,path):raise BlockingIOError(errno.EACCES,'Wrong socket authority')
     monkeypatch.setattr(Connection,'connect',denied)
     with pytest.raises(BlockingIOError):native_lifecycle.dispatch_status('private.sock')
+
+
+def test_owner_kill_probe_retains_short_failure_limits_for_other_dispatches(tmp_path,monkeypatch):
+    observed=[]
+    def run(*args,**kwargs):
+        observed.append(kwargs['timeout']);return {'generation':'b'*32}
+    monkeypatch.setattr(supervisor,'run',run)
+    args=arguments(tmp_path)
+    supervisor.dispatch(args,'hang')
+    args.owner_kill_probe=True
+    supervisor.dispatch(args,'hang')
+    supervisor.dispatch(args,'descendant_hang')
+    supervisor.dispatch(args,'child')
+    assert observed==[2,60,2,60]
