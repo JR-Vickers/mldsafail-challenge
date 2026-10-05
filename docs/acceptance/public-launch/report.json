@@ -1334,7 +1334,9 @@
         "user-plan"
       ],
       "dependencies": [
-        "cpu-30-pairs"
+        "cpu-30-pairs",
+        "v060-versions-source",
+        "v060-native-application"
       ],
       "environment": "isolated engineering",
       "criteria": [
@@ -1354,7 +1356,9 @@
         "user-plan"
       ],
       "dependencies": [
-        "cpu-30-pairs"
+        "cpu-30-pairs",
+        "v060-evidence-source",
+        "v060-native-application"
       ],
       "environment": "isolated engineering",
       "criteria": [
@@ -1374,7 +1378,9 @@
         "user-plan"
       ],
       "dependencies": [
-        "cpu-30-pairs"
+        "cpu-30-pairs",
+        "v060-cohorts-source",
+        "v060-native-application"
       ],
       "environment": "isolated engineering",
       "criteria": [
@@ -1395,7 +1401,9 @@
       ],
       "dependencies": [
         "cpu-30-pairs",
-        "v060-reference-identity-repair"
+        "v060-reference-identity-repair",
+        "v060-epochs-source",
+        "v060-native-references"
       ],
       "environment": "isolated engineering",
       "criteria": [
@@ -1543,7 +1551,8 @@
         "recovery-native-restoration",
         "recovery-fault-report-publication",
         "recovery-service-native-faults",
-        "recovery-rpc-lost-ack-native"
+        "recovery-rpc-lost-ack-native",
+        "recovery-actual-ssh-transport-native"
       ],
       "environment": "disposable native services",
       "criteria": [
@@ -1907,7 +1916,10 @@
       "dependencies": [
         "participant-archive-review",
         "participant-native-install",
-        "participant-native-reproduction"
+        "participant-native-reproduction",
+        "candidate-participant-local",
+        "candidate-participant-source-review",
+        "candidate-participant-native-install"
       ],
       "environment": "isolated engineering",
       "criteria": [
@@ -2011,7 +2023,9 @@
         "pilot-protocol",
         "load-evaluation",
         "timer-activation",
-        "measurement-adoption"
+        "measurement-adoption",
+        "ledger-exact-checklist-validation",
+        "final-sanitized-acceptance-packet"
       ],
       "environment": "owner-approved production",
       "criteria": [
@@ -3049,12 +3063,14 @@
         "user-plan",
         "docs/INACTIVE_OPERATOR_UNIT_VERIFICATION.md"
       ],
-      "dependencies": [],
+      "dependencies": [
+        "operator-synthetic-check-interruption-native"
+      ],
       "environment": "isolated engineering and disposable native user services",
       "criteria": [
         "Independent source review and two disposable native activations prove fresh exact daemon/operator/worker identities, serialized activation and independent cleanup"
       ],
-      "status": "running",
+      "status": "waiting_dependency",
       "attempts": [
         {
           "protocol": "Implement and verify repeat operator activation without reusing a vanished or replaced manifest-bound parent inode",
@@ -3577,13 +3593,15 @@
         "user-plan"
       ],
       "dependencies": [
-        "candidate-runtime-review"
+        "candidate-runtime-review",
+        "candidate-forward-artifact-native",
+        "candidate-prior-artifact-native"
       ],
       "environment": "isolated engineering or disposable native environment",
       "criteria": [
         "Build retained private candidate web and coordinator images from reviewed runtime"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3598,7 +3616,8 @@
       ],
       "dependencies": [
         "candidate-application-images",
-        "v060-native-application"
+        "v060-native-application",
+        "candidate-private-protocol-assembly"
       ],
       "environment": "isolated engineering or disposable native environment",
       "criteria": [
@@ -3729,7 +3748,8 @@
       ],
       "dependencies": [
         "operator-repeat-activation-lifecycle",
-        "operator-real-check-observer-source"
+        "operator-real-check-observer-source",
+        "operator-synthetic-check-interruption-native"
       ],
       "environment": "isolated engineering or disposable native environment",
       "criteria": [
@@ -3933,6 +3953,319 @@
         "source_commit": "c431bbe13e1c74cf4d4239d896cda63afd4ca489"
       },
       "next_action": "Cleanup verified; serialize next owned native operation",
+      "checklist": []
+    },
+    {
+      "id": "v060-versions-source",
+      "requirement": "Independently reviewed source implementation for Explicit 0.6.0 version selection and API CLI compatibility",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Independently reviewed source implementation for Explicit 0.6.0 version selection and API CLI compatibility"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/v060-source-components-review.json#/version_source_passed",
+          "criteria_met": [
+            "Independently reviewed source implementation for Explicit 0.6.0 version selection and API CLI compatibility"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b"
+      },
+      "next_action": "Source verified; execute distinct native descendants",
+      "checklist": []
+    },
+    {
+      "id": "v060-evidence-source",
+      "requirement": "Independently reviewed source implementation for Separate 0.6.0 independently audited evidence",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Independently reviewed source implementation for Separate 0.6.0 independently audited evidence"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/v060-source-components-review.json#/evidence_source_passed",
+          "criteria_met": [
+            "Independently reviewed source implementation for Separate 0.6.0 independently audited evidence"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b"
+      },
+      "next_action": "Source verified; execute distinct native descendants",
+      "checklist": []
+    },
+    {
+      "id": "v060-cohorts-source",
+      "requirement": "Independently reviewed source implementation for Separate leaderboard cohorts and worker participant artifacts",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Independently reviewed source implementation for Separate leaderboard cohorts and worker participant artifacts"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/v060-source-components-review.json#/cohort_source_passed",
+          "criteria_met": [
+            "Independently reviewed source implementation for Separate leaderboard cohorts and worker participant artifacts"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b"
+      },
+      "next_action": "Source verified; execute distinct native descendants",
+      "checklist": []
+    },
+    {
+      "id": "v060-epochs-source",
+      "requirement": "Independently reviewed source implementation for Fresh isolated 0.6.0 epochs and reference costs",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Independently reviewed source implementation for Fresh isolated 0.6.0 epochs and reference costs"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/v060-source-components-review.json#/fresh_epoch_source_passed",
+          "criteria_met": [
+            "Independently reviewed source implementation for Fresh isolated 0.6.0 epochs and reference costs"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b"
+      },
+      "next_action": "Source verified; execute distinct native descendants",
+      "checklist": []
+    },
+    {
+      "id": "recovery-actual-ssh-transport-native",
+      "requirement": "Actual transport SSH loss preserves owned recovery birth and tiny synthetic data with repeated independent cleanup",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "disposable native Linux VM",
+      "criteria": [
+        "Actual transport SSH loss preserves owned recovery birth and tiny synthetic data with repeated independent cleanup"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/isolated-ssh-transport-native-pass.json#/passed",
+          "criteria_met": [
+            "Actual transport SSH loss preserves owned recovery birth and tiny synthetic data with repeated independent cleanup"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "805d9c886529e41056202184dc3f96500a2c1d8a"
+      },
+      "next_action": "Source verified; execute distinct native descendants",
+      "checklist": []
+    },
+    {
+      "id": "operator-synthetic-interruption-source",
+      "requirement": "Reviewed bounded actual synthetic repository interruption orchestration with independently retryable cleanup",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reviewed bounded actual synthetic repository interruption orchestration with independently retryable cleanup"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/operator-source-reconciliation/synthetic-interruption-source-review.json#/source_review_passed",
+          "criteria_met": [
+            "Reviewed bounded actual synthetic repository interruption orchestration with independently retryable cleanup"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "69f9e3800c1033c48f832c547718f072ab92901a"
+      },
+      "next_action": "Source verified; execute distinct native descendants",
+      "checklist": []
+    },
+    {
+      "id": "synthetic-restic-minio-artifact-retention",
+      "requirement": "Retain version-preserving pinned Linuxamd64 synthetic restic and MinIO binaries with independent provenance review",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "protected local artifact preparation",
+      "criteria": [
+        "Retain version-preserving pinned Linuxamd64 synthetic restic and MinIO binaries with independent provenance review"
+      ],
+      "status": "ready",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute exact declared protocol and retain failure and cleanup evidence",
+      "checklist": []
+    },
+    {
+      "id": "operator-synthetic-check-interruption-native",
+      "requirement": "Execute real synthetic repository check interruption, two fresh activations, exact reconciliation and complete independent cleanup",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "operator-synthetic-interruption-source",
+        "operator-real-check-observer-source",
+        "synthetic-restic-minio-artifact-retention",
+        "native-generation-i-cleanup-reconciliation"
+      ],
+      "environment": "disposable native Linux services",
+      "criteria": [
+        "Execute real synthetic repository check interruption, two fresh activations, exact reconciliation and complete independent cleanup"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute exact declared protocol and retain failure and cleanup evidence",
+      "checklist": []
+    },
+    {
+      "id": "candidate-forward-artifact-native",
+      "requirement": "Build retain and verify complete native forward candidate image artifact with exact runtime package and builder cleanup identities",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "candidate-runtime-review",
+        "native-generation-i-cleanup-reconciliation"
+      ],
+      "environment": "owned disposable native image preparation",
+      "criteria": [
+        "Build retain and verify complete native forward candidate image artifact with exact runtime package and builder cleanup identities"
+      ],
+      "status": "ready",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute exact declared protocol and retain failure and cleanup evidence",
+      "checklist": []
+    },
+    {
+      "id": "candidate-prior-artifact-native",
+      "requirement": "Build retain and verify separately reviewed prior candidate runtime source and distinct immutable image artifact with complete builder cleanup",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "candidate-runtime-review",
+        "native-generation-i-cleanup-reconciliation"
+      ],
+      "environment": "owned disposable native image preparation",
+      "criteria": [
+        "Build retain and verify separately reviewed prior candidate runtime source and distinct immutable image artifact with complete builder cleanup"
+      ],
+      "status": "ready",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute exact declared protocol and retain failure and cleanup evidence",
+      "checklist": []
+    },
+    {
+      "id": "candidate-private-protocol-assembly",
+      "requirement": "Assemble protected exact candidate forward prior worker prerequisite and source-bound application protocols",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "candidate-forward-artifact-native",
+        "candidate-prior-artifact-native",
+        "cpu-current-native-faults",
+        "cpu-30-pairs"
+      ],
+      "environment": "protected operator configuration",
+      "criteria": [
+        "Assemble protected exact candidate forward prior worker prerequisite and source-bound application protocols"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute exact declared protocol and retain failure and cleanup evidence",
+      "checklist": []
+    },
+    {
+      "id": "ledger-exact-checklist-validation",
+      "requirement": "All78 original checklist items mapped exactly once and complete current dependency/evidence validation succeeds",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "checklist-source"
+      ],
+      "environment": "isolated operator ledger validation",
+      "criteria": [
+        "All78 original checklist items mapped exactly once and complete current dependency/evidence validation succeeds"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute exact declared protocol and retain failure and cleanup evidence",
+      "checklist": []
+    },
+    {
+      "id": "final-sanitized-acceptance-packet",
+      "requirement": "Prepare independently reviewed current sanitized acceptance packet with exact retained release identities all native outcomes preserved failures maintenance state and external decisions",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "production-rehearsal",
+        "participant-artifacts",
+        "load-evaluation",
+        "recovery-native-faults",
+        "v060-acceptance",
+        "ledger-exact-checklist-validation"
+      ],
+      "environment": "isolated operator documentation",
+      "criteria": [
+        "Prepare independently reviewed current sanitized acceptance packet with exact retained release identities all native outcomes preserved failures maintenance state and external decisions"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute exact declared protocol and retain failure and cleanup evidence",
       "checklist": []
     }
   ],
