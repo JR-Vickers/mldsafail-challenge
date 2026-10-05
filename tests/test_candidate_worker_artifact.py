@@ -24,3 +24,18 @@ def test_wrong_artifact_cannot_reuse_native_gates(monkeypatch,field,value):
     monkeypatch.setattr(worker_artifact.owned_daemon,'read_private_json',lambda *args,**kwargs:retained)
     monkeypatch.setattr(worker_artifact,'require_prerequisites',lambda *args,**kwargs:pytest.fail('unbound artifact admitted'))
     with pytest.raises(ValueError):worker_artifact.accepted_worker('/artifact','/prerequisites',expected_image='sha256:'+'a'*64,expected_archive_sha256='b'*64,supervisor_source_sha256='e'*64,loaded_images=['sha256:'+'a'*64])
+
+
+def test_image_rehearsal_reuses_worker_source_without_app_rebuild(tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    from research.mlwe_v060_preparation import native_acceptance
+    expected=artifact();seen=[]
+    monkeypatch.setattr(native_acceptance.owned_daemon,'read_private_json',lambda *args,**kwargs:{'schema':'mldsafail.v060-native-protocol.v1','prerequisites':'private'})
+    monkeypatch.setattr(native_acceptance,'prepare_context',lambda *args,**kwargs:pytest.fail('must not rebuild accepted worker from application source'))
+    def gate(path,**kwargs):
+        seen.append(kwargs);raise RuntimeError('stop before native operations')
+    monkeypatch.setattr(native_acceptance,'require_prerequisites',gate)
+    worker=dict(image=expected['image'],source_context_sha256=expected['source_context_sha256'],source_commit=expected['source_commit'])
+    with pytest.raises(RuntimeError,match='stop before native'):
+        native_acceptance.callback(SimpleNamespace(path=tmp_path/'journal.json'),dict(image=expected['image'],source_commit='f'*40,supervisor_source_sha256='e'*64),{},retained_worker=worker)
+    assert seen[0]['worker_source_commit']=='d'*40 and seen[0]['worker_context_sha256']=='c'*64

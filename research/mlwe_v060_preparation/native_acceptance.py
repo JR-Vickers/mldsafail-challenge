@@ -59,7 +59,7 @@ def restore_environment(values):
     return errors
 
 
-def callback(journal, config, data):
+def callback(journal, config, data, *, retained_worker=None, application_rehearsal=None):
     """Reuse the exactly gated worker and prepare fresh audited references."""
     root=journal.path.parent/'v060';root.mkdir(mode=0o700)
     original=None;result=dict(schema='mldsafail.v060-native-acceptance.v1',passed=False,
@@ -68,9 +68,16 @@ def callback(journal, config, data):
         protocol=owned_daemon.read_private_json(journal.path.parent.parent/'v060-protocol.json')
         if protocol.get('schema')!='mldsafail.v060-native-protocol.v1': raise ValueError('Explicit private candidate protocol required')
         source=Path(__file__).resolve().parents[2]
-        context=prepare_context(root/'worker-context',command=lambda argv:journal.command(argv,kind='read',timeout=15).stdout,**wheel_protocol(config))
-        if not context['source_tree_clean'] or context['source_commit']!=config['source_commit']:
-            raise RuntimeError('Worker context must bind exact retained clean source')
+        if retained_worker is None:
+            context=prepare_context(root/'worker-context',command=lambda argv:journal.command(argv,kind='read',timeout=15).stdout,**wheel_protocol(config))
+            if not context['source_tree_clean'] or context['source_commit']!=config['source_commit']:
+                raise RuntimeError('Worker context must bind exact retained clean source')
+        else:
+            # Trusted source-bound image rehearsal supplies an already validated
+            # retained artifact, never a participant-selected worker or source.
+            if retained_worker.get('image')!=config['image']:
+                raise RuntimeError('Previously gated worker image differs')
+            context=dict(source_sha256=retained_worker['source_context_sha256'],source_commit=retained_worker['source_commit'])
         image=config['image']
         require_prerequisites(protocol['prerequisites'],supervisor_source_sha256=config['supervisor_source_sha256'],
             worker_image=image,worker_context_sha256=context['source_sha256'],worker_source_commit=context['source_commit'])
@@ -81,7 +88,7 @@ def callback(journal, config, data):
         if labels.get('org.mldsafail.benchmark.version')!='0.6.0' or labels.get('org.mldsafail.measurement')!='cgroup-v2-usage-usec' or labels.get('org.mldsafail.architecture')!='linux/amd64':
             raise RuntimeError('Version-specific worker artifact labels required')
         artifact=dict(benchmark_version='0.6.0',measurement_method='cgroup-v2-usage-usec',image=image,
-            source_context_sha256=context['source_sha256'],source_commit=config['source_commit'])
+            source_context_sha256=context['source_sha256'],source_commit=context['source_commit'])
         owned_daemon.publish(root/'worker-artifact.json',artifact)
         manifest=owned_daemon.load_manifest(data['manifest_path'])
         owned_daemon.verify_environment(manifest,measurement_parent=data['worker_parent'])
@@ -117,7 +124,7 @@ def callback(journal, config, data):
         owned_daemon.publish(root/'reference-authority.json',authority)
         result.update(reference_passed=True,cohort_id=cohort.public_id,epoch_id=cohort.epoch_id,
             worker_image=image,reference_table_sha256=__import__('research.mlwe_v060_preparation.reference_authority',fromlist=['digest']).digest(prepared['table']))
-        application_acceptance(journal,config,data,protocol,root,backend,cohort,candidate_authority,cases,
+        (application_rehearsal or application_acceptance)(journal,config,data,protocol,root,backend,cohort,candidate_authority,cases,
             prepared,authority,key,epoch_hash)
         result.update(passed=True,remaining_gates=['contract adoption','production/default activation'])
         return dict(schema='mldsafail.owned-native-acceptance.v1',passed=True,native_executed=True,
