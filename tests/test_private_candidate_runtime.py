@@ -165,3 +165,35 @@ def test_rootless_application_fixed_sandbox_cannot_mount_operator_roots(tmp_path
     assert argv[argv.index('--security-opt')+1]=='no-new-privileges'
     assert not any('docker.sock' in value or '/sys/fs/cgroup' in value for value in argv)
     assert argv[-3:]==['web','--config','/candidate/config.json']
+
+
+def test_gateway_owner_sigkill_reopen_preserves_unfinished_intent(tmp_path,monkeypatch):
+    import os,signal,select,tempfile,shutil
+    root=Path(tempfile.mkdtemp(prefix='gw-kill-',dir='/tmp')).resolve()/'gateway'
+    monkeypatch.setattr(gateway.sys,'platform','linux');monkeypatch.setattr(socket,'SO_PEERCRED',17,raising=False)
+    def identity(pid):
+        os.kill(pid,0)
+        return {'pid':pid,'start_ticks':1}
+    monkeypatch.setattr(gateway.owned_client,'identity',identity)
+    monkeypatch.setattr(gateway.owned_client,'boot_id',lambda:'boot')
+    authority=SimpleNamespace(cohort_id='cohort')
+    read,write=os.pipe();child=os.fork()
+    if child==0:
+        try:
+            os.close(read)
+            value=gateway.Gateway(root=root,worker_domain={},authority=authority,evaluate_source=lambda *args:None)
+            run=root/('a'*32);run.mkdir();(run/'journal.json').write_text(json.dumps({'state':'intent'}))
+            os.write(write,b'1');signal.pause()
+        finally:os._exit(1)
+    os.close(write)
+    try:
+        assert select.select([read],[],[],5)[0] and os.read(read,1)==b'1'
+        os.kill(child,signal.SIGKILL);os.waitpid(child,0);child=None
+        reopened=gateway.Gateway(root=root,worker_domain={},authority=authority,evaluate_source=lambda *args:None)
+        try:assert json.loads((root/('a'*32)/'journal.json').read_text())['state']=='intent'
+        finally:reopened.close()
+    finally:
+        os.close(read)
+        if child is not None:
+            os.kill(child,signal.SIGKILL);os.waitpid(child,0)
+        shutil.rmtree(root.parent)
