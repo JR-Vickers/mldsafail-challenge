@@ -35,7 +35,26 @@ def assess(rows, source_commit, source_sha256):
         raise RuntimeError('Repeat activations must share the same serialized activation root')
 
 
-def verify(paths, output):
+def assess_interrupted(state, path, rows, source):
+    """Reject fixtures, unadmitted jobs, and same-context replacement claims."""
+    job = state.get('operator_job', {})
+    if (state.get('schema') != 'mldsafail.cpu-native-driver-state.v1' or
+        state.get('daemon_kind') != 'owned' or
+        state.get('config', {}).get('source_commit') != source or
+        state['config'].get('state_root') != str(Path(path).parent) or
+        job.get('schema') != 'mldsafail.operator-job-intent.v1' or
+        job.get('job') not in {'recovery-check', 'daily-recovery'} or
+        job.get('state') != 'running' or job.get('journal_created') is not True):
+        raise RuntimeError('Actual interrupted admitted recovery job required')
+    parent = Path(path).parent.parent
+    if any(Path(row['driver_state']).parent.parent != parent for row in rows):
+        raise RuntimeError('Interrupted and replacement activations must share ownership root')
+    if any(row['daemon_epoch'] == state['registered_manifest']['epoch'] or
+           row['operator_domain'] == state['provisioning']['operator_domain'] for row in rows):
+        raise RuntimeError('Replacement must use fresh daemon and controller identities')
+
+
+def verify(paths, output, interrupted_driver=None):
     if sys.platform != 'linux':
         raise RuntimeError('Native Linux verification required')
     repository = Path(__file__).resolve().parents[1]
@@ -69,6 +88,52 @@ def verify(paths, output):
             if rival.returncode != 73 or json.loads(rival.stdout) != {'ownership_rejected': 'activation_lock_contended'}:
                 raise RuntimeError('Native independent process did not prove activation flock exclusivity')
         report['native_serialization_passed'] = True
+        if interrupted_driver is not None:
+            interrupted = owned_daemon.read_private_json(interrupted_driver, cap=4*1024*1024)
+            assess_interrupted(interrupted, interrupted_driver, rows, source)
+            job = interrupted['operator_job']
+            effective = owned_daemon.read_private_json(job['effective_config_path'])
+            from deploy.operator_activation import configuration_digest, job_journal_path, prior_complete
+            if configuration_digest(effective) != job['effective_config_digest']:
+                raise RuntimeError('Interrupted effective job configuration changed')
+            if str(job_journal_path(job['job'], effective)) != job['journal_path']:
+                raise RuntimeError('Interrupted operation journal binding changed')
+            if not prior_complete(interrupted, Path(interrupted_driver).parent):
+                raise RuntimeError('Interrupted driver terminal cleanup is incomplete')
+            operation = owned_daemon.read_private_json(job['journal_path'], cap=4*1024*1024)
+            if (operation.get('cleanup_complete') is not True or
+                operation.get('terminal_no_restart') is not True or
+                operation.get('terminal_retirement', {}).get('attempt_id') != interrupted['id']):
+                raise RuntimeError('Actual interrupted job lacks terminal retirement and cleanup')
+            from deploy.recovery_terminal import validate_retirement
+            contexts = operation.get('daemon_contexts')
+            if not isinstance(contexts, dict) or not contexts:
+                raise RuntimeError('Actual interrupted operation must have acquired daemon authority')
+            for key in contexts:
+                validate_retirement(operation, key)
+            reconciliations = list(Path(interrupted_driver).parent.glob('job-reconciliation-*.json'))
+            if not reconciliations or not any(
+                owned_daemon.read_private_json(path).get('schema') == 'mldsafail.terminal-recovery-job.v1' and
+                owned_daemon.read_private_json(path).get('cleanup_complete') is True
+                for path in reconciliations):
+                raise RuntimeError('Next activation did not publish actual job reconciliation')
+            result = owned_client.run(['systemctl', '--user', 'show', interrupted['config']['operator_unit'],
+                '--property=ExecMainCode', '--property=ExecMainStatus', '--property=ActiveState'],
+                clients, save, root, timeout=15, capture_output=True)
+            properties = dict(line.split('=', 1) for line in result.stdout.decode().splitlines() if '=' in line)
+            if (properties.get('ExecMainCode') != '2' or properties.get('ExecMainStatus') != '9' or
+                properties.get('ActiveState') not in {'inactive', 'failed'}):
+                raise RuntimeError('Retained named unit must prove actual SIGKILL exit')
+            for domain in (interrupted['provisioning']['operator_domain'],
+                           interrupted['registered_manifest']['domain'],
+                           interrupted['registered_manifest']['worker_domain']):
+                if owned_client.verify_domain({'cgroup': domain}) is not None:
+                    raise RuntimeError('Interrupted activation owned domain remains present')
+            for client in interrupted['clients']:
+                if owned_client.verify_domain(client) is not None:
+                    raise RuntimeError('Interrupted activation command domain remains present')
+            report['interrupted_job_reconciled'] = True
+            report['interrupted_driver'] = str(interrupted_driver)
         for row in rows:
             state = owned_daemon.read_private_json(row['driver_state'], cap=4*1024*1024)
             if (state.get('native_acceptance_passed') is not True or
@@ -123,5 +188,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--receipt', type=Path, action='append', required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--interrupted-driver', type=Path)
     args = parser.parse_args()
-    verify(args.receipt, args.output)
+    verify(args.receipt, args.output, args.interrupted_driver)
