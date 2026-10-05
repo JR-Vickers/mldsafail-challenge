@@ -1,6 +1,8 @@
 """HOST-only private gateway; fixed evaluator/cases/cohort supplied by operator."""
 import base64
 import hashlib
+import fcntl
+import stat
 import json
 import os
 from pathlib import Path,PurePosixPath
@@ -47,13 +49,47 @@ def snapshot(root,files):
 class Gateway:
     def __init__(self,*,root,worker_domain,authority,evaluate_source):
         if sys.platform!='linux' or not hasattr(socket,'SO_PEERCRED'):raise RuntimeError('Native Linux Unix peer binding required')
-        self.root=Path(root).resolve();self.domain=worker_domain;self.authority=authority;self.evaluator=evaluate_source
-        if self.root.exists():raise ValueError('Fresh protected gateway root required')
-        self.root.mkdir(mode=0o700);self.socket_path=self.root/'candidate.sock'
-        self.server=socket.socket(socket.AF_UNIX);self.server.settimeout(30)
-        try:self.server.bind(str(self.socket_path));os.chmod(self.socket_path,0o600);self.server.listen(1)
-        except BaseException:self.server.close();raise
-        self.socket_inode=self.socket_path.lstat().st_ino
+        from deploy import owned_daemon
+        self.root=owned_daemon._canonical(root);self.domain=worker_domain;self.authority=authority;self.evaluator=evaluate_source
+        self.root.mkdir(mode=0o700,exist_ok=True)
+        info=self.root.lstat()
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid!=os.getuid() or info.st_mode&0o077:
+            raise ValueError('Exclusive protected gateway root required')
+        self.lock=os.open(self.root/'owner.lock',os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW|os.O_NONBLOCK,0o600)
+        self.server=None
+        try:
+            lockinfo=os.fstat(self.lock)
+            if not stat.S_ISREG(lockinfo.st_mode) or lockinfo.st_uid!=os.getuid() or lockinfo.st_nlink!=1 or lockinfo.st_mode&0o077:
+                raise ValueError('Private gateway lifecycle lock required')
+            fcntl.flock(self.lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+            self.lifecycle_path=self.root/'lifecycle.json';self.socket_path=self.root/'candidate.sock'
+            if self.lifecycle_path.exists():
+                old=owned_daemon.read_private_json(self.lifecycle_path)
+                if old.get('schema')!='mldsafail.candidate-gateway-lifecycle.v1' or old.get('domain')!=worker_domain or old.get('cohort_id')!=authority.cohort_id:
+                    raise ValueError('Retained gateway authority differs')
+                if old.get('state')!='closed' and old.get('boot_id')==owned_client.boot_id():
+                    try:alive=owned_client.identity(old['owner']['pid'])==old['owner']
+                    except ProcessLookupError:alive=False
+                    except FileNotFoundError:alive=False
+                    if alive:raise RuntimeError('Prior gateway owner remains live')
+                if self.socket_path.exists():
+                    stale=self.socket_path.lstat()
+                    if not stat.S_ISSOCK(stale.st_mode) or stale.st_ino!=old.get('socket_inode'):
+                        raise RuntimeError('Retained gateway socket identity differs')
+                    self.socket_path.unlink()
+            elif self.socket_path.exists():raise RuntimeError('Unaccounted gateway socket remains fenced')
+            self.lifecycle=dict(schema='mldsafail.candidate-gateway-lifecycle.v1',domain=worker_domain,
+                cohort_id=authority.cohort_id,owner=owned_client.identity(os.getpid()),boot_id=owned_client.boot_id(),state='opening')
+            atomic_json(self.lifecycle_path,self.lifecycle)
+            self.server=socket.socket(socket.AF_UNIX);self.server.settimeout(30)
+            self.server.bind(str(self.socket_path));os.chmod(self.socket_path,0o600);self.server.listen(1)
+            self.socket_inode=self.socket_path.lstat().st_ino
+            self.lifecycle.update(state='open',socket_inode=self.socket_inode)
+            atomic_json(self.lifecycle_path,self.lifecycle)
+        except BaseException:
+            if self.server is not None:self.server.close()
+            os.close(self.lock)
+            raise
     def serve_once(self):
         connection,_=self.server.accept()
         with connection:
@@ -113,5 +149,11 @@ class Gateway:
             if self.socket_path.exists():
                 if self.socket_path.lstat().st_ino!=self.socket_inode:raise RuntimeError('Candidate socket ownership changed')
                 self.socket_path.unlink()
+        except BaseException as error:errors.append(error)
+        try:
+            self.lifecycle['state']='closed' if not errors else 'cleanup_incomplete'
+            atomic_json(self.lifecycle_path,self.lifecycle)
+        except BaseException as error:errors.append(error)
+        try:os.close(self.lock)
         except BaseException as error:errors.append(error)
         if errors:raise RuntimeError('Independent candidate gateway cleanup incomplete') from errors[0]

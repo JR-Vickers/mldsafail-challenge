@@ -32,10 +32,11 @@ def test_frame_cap_rejected_before_body_read():
 
 def test_private_gateway_requires_durable_request_before_evaluation(tmp_path,monkeypatch):
     import tempfile
-    tmp_path=Path(tempfile.mkdtemp(prefix='gateway-',dir='/tmp'))
+    tmp_path=Path(tempfile.mkdtemp(prefix='gateway-',dir='/tmp')).resolve()
     monkeypatch.setattr(gateway.sys,'platform','linux');monkeypatch.setattr(socket,'SO_PEERCRED',17,raising=False)
     identity={'pid':123,'start_ticks':456};monkeypatch.setattr(gateway,'peer_identity',lambda *args:identity)
     monkeypatch.setattr(gateway.owned_client,'identity',lambda pid:identity)
+    monkeypatch.setattr(gateway.owned_client,'boot_id',lambda:'test-boot')
     authority=SimpleNamespace(cohort_id='cohort',require_private=lambda value:None)
     request='a'*32;observed=[]
     def evaluate(source,checkpoint):
@@ -131,3 +132,34 @@ def test_lost_private_response_reuses_durable_job_identity_without_evaluation(tm
     assert client.evaluate('private',source,lambda:None,binding=binding,request_directory=tmp_path/'requests',attempt_id='44444444-4444-4444-8444-444444444444')=={'retained':'signed'}
     assert [request['operation'] for request in requests]==['evaluate','lookup']
     assert requests[0]['request_id']==requests[1]['request_id'] and 'files' not in requests[1]
+
+
+def test_gateway_reopen_retains_results_and_fences_concurrent_owner(tmp_path,monkeypatch):
+    import tempfile,shutil
+    root=Path(tempfile.mkdtemp(prefix='gw-',dir='/tmp')).resolve()/'gateway'
+    monkeypatch.setattr(gateway.sys,'platform','linux');monkeypatch.setattr(socket,'SO_PEERCRED',17,raising=False)
+    monkeypatch.setattr(gateway.owned_client,'identity',lambda pid:{'pid':pid,'start_ticks':1})
+    monkeypatch.setattr(gateway.owned_client,'boot_id',lambda:'boot')
+    authority=SimpleNamespace(cohort_id='cohort')
+    value=gateway.Gateway(root=root,worker_domain={},authority=authority,evaluate_source=lambda *args:None)
+    try:
+        retained=root/('a'*32)
+        retained.mkdir();(retained/'journal.json').write_text(json.dumps({'state':'intent'}))
+        with pytest.raises(BlockingIOError):gateway.Gateway(root=root,worker_domain={},authority=authority,evaluate_source=lambda *args:None)
+    finally:value.close()
+    reopened=gateway.Gateway(root=root,worker_domain={},authority=authority,evaluate_source=lambda *args:None)
+    try:
+        assert json.loads((retained/'journal.json').read_text())['state']=='intent'
+        assert json.loads((root/'lifecycle.json').read_text())['state']=='open'
+    finally:reopened.close();shutil.rmtree(root.parent)
+
+
+def test_rootless_application_fixed_sandbox_cannot_mount_operator_roots(tmp_path):
+    from candidate_runtime.native import application_create
+    argv=application_create(name='candidate-web-one',image='sha256:'+'a'*64,role='web',network='candidate-private-one',
+        application_parent='mldsafail-owned-workers-aabb.slice',gateway_root=tmp_path/'gateway',config_path=tmp_path/'config',work_root=tmp_path/'work')
+    assert argv[argv.index('--user')+1]=='0:0'
+    assert '--read-only' in argv and argv[argv.index('--cap-drop')+1]=='ALL'
+    assert argv[argv.index('--security-opt')+1]=='no-new-privileges'
+    assert not any('docker.sock' in value or '/sys/fs/cgroup' in value for value in argv)
+    assert argv[-3:]==['web','--config','/candidate/config.json']

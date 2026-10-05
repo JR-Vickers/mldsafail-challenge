@@ -61,7 +61,7 @@ for name in ('mldsafail','mldsafail_challenge-0.5.1.dist-info'):
 with zipfile.ZipFile('/candidate.whl') as archive:archive.extractall(root)
 """
     (output/'install_candidate.py').write_text(install)
-    (output/'Dockerfile').write_text('FROM '+base+'\nLABEL org.mldsafail.candidate=private-unapproved org.mldsafail.protocol=0.6.0 org.mldsafail.default=0.5.0\nUSER 0:0\nCOPY candidate.whl /candidate.whl\nCOPY install_candidate.py /install_candidate.py\nRUN /app/.venv/bin/python /install_candidate.py && rm /candidate.whl /install_candidate.py\nCOPY candidate_runtime /app/candidate_runtime\nCOPY deploy /app/deploy\nENV PYTHONPATH=/app\nWORKDIR /app\nUSER 10001:10001\nENTRYPOINT ["/app/.venv/bin/python","-m","candidate_runtime"]\n')
+    (output/'Dockerfile').write_text('FROM '+base+'\nLABEL org.mldsafail.candidate=private-unapproved org.mldsafail.protocol=0.6.0 org.mldsafail.default=0.5.0\nUSER 0:0\nCOPY candidate.whl /candidate.whl\nCOPY install_candidate.py /install_candidate.py\nRUN /app/.venv/bin/python /install_candidate.py && rm /candidate.whl /install_candidate.py\nCOPY candidate_runtime /app/candidate_runtime\nCOPY deploy /app/deploy\nENV PYTHONPATH=/app\nWORKDIR /app\nUSER 0:0\nENTRYPOINT ["/app/.venv/bin/python","-m","candidate_runtime"]\n')
     files={path.relative_to(output).as_posix():hashlib.sha256(path.read_bytes()).hexdigest() for path in sorted(output.rglob('*')) if path.is_file()}
     record=dict(schema='mldsafail.private-candidate-image-context.v1',candidate_only=True,production_adopted=False,default_changed=False,
         native_image_build_passed=False,native_rehearsal_passed=False,base_image=base,base_source_commit=SOURCE,
