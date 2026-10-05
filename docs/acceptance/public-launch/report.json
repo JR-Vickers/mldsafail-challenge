@@ -3882,6 +3882,10 @@
         {
           "protocol": "Established staging SSH read-only connection",
           "result": "Current session connection timeout; owner separately confirms machine SSH works"
+        },
+        {
+          "protocol": "Clarify port and existing staging access",
+          "result": "Owner clarified they meant localhost8080 website; prior yes-it-works answer does not establish staging SSH. This session still times out on established server connection."
         }
       ],
       "evidence": [],
