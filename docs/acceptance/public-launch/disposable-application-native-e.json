@@ -1,0 +1,21 @@
+{
+  "schema": "mldsafail.disposable-application-native.v1",
+  "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+  "native_executed": true,
+  "passed": false,
+  "postgres_native_passed": true,
+  "postgres_tests": 5,
+  "postgres_version": "17.11",
+  "database_image": "sha256:639ab7ceb90e13123085b741fb31ef493fba25463002f6da665352e7b534b652",
+  "application_probe_passed": false,
+  "application_failure": "Retained private source probe unreadable by mapped application UID; failed before UI probe execution",
+  "whole_owned_cleanup_verified": true,
+  "independent_all_owned_domains_absent": true,
+  "raw_sha256": {
+    "operator": "0464b981a682149138abd71e194e1d0e54062d0fe4632754d0c7d6e2e8703148",
+    "driver": "550716261e24cc5becb47c9e89b3bfe535437fb614fbd7bd908083a5816ace8e",
+    "postgres": "ff49e0cb3fb0aea2a74265e826fafdf1557537f95e6510925fb88f526c7998fb"
+  },
+  "evidence_reference": "protected disposable application generationE",
+  "scope": "Five actual PostgreSQL admission/admin/daily-limit/cancellation-fencing tests only; no broader UI gate claim"
+}

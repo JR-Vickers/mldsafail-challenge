@@ -30,3 +30,17 @@ def test_nonzero_application_exit_cannot_pass(tmp_path, monkeypatch):
     journal = SimpleNamespace(path=tmp_path / 'driver.json', command=lambda *a, **k: SimpleNamespace(stdout=next(outputs)))
     with pytest.raises(RuntimeError, match='expired-token acceptance failed'):
         module.acceptance(journal, {}, {'loaded_images': [module.DATABASE_IMAGE, module.WEB_IMAGE], 'id': 'test', 'worker_slice': 'isolated.slice'})
+    probe = tmp_path / 'expired-token-probe.py'
+    assert probe.stat().st_mode & 0o777 == 0o644
+    assert probe.read_bytes() == module.Path(module.__file__).with_name('native_expired_token_probe.py').read_bytes()
+
+
+def test_probe_staging_never_overwrites_existing_file(tmp_path, monkeypatch):
+    monkeypatch.setattr(module.native_postgres_acceptance, 'run', lambda *a: None)
+    monkeypatch.setattr(module.owned_daemon, 'read_private_json', lambda *a, **k: {'passed': True, 'cleanup_complete': True})
+    probe = tmp_path / 'expired-token-probe.py'
+    probe.write_text('existing evidence')
+    journal = SimpleNamespace(path=tmp_path / 'driver.json', command=lambda *a, **k: pytest.fail('Unexpected application mutation'))
+    with pytest.raises(FileExistsError):
+        module.acceptance(journal, {}, {'loaded_images': [module.DATABASE_IMAGE, module.WEB_IMAGE]})
+    assert probe.read_text() == 'existing evidence'

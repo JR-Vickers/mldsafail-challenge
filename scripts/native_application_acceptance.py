@@ -4,6 +4,7 @@ Called only by the reviewed isolated native driver; no staging endpoint is used.
 """
 import hashlib
 import json
+import os
 from pathlib import Path
 
 from deploy import owned_daemon
@@ -22,7 +23,24 @@ def acceptance(journal, config, data):
     postgres = owned_daemon.read_private_json(output / 'report.json', cap=4 * 1024 * 1024)
     if postgres.get('passed') is not True or postgres.get('cleanup_complete') is not True:
         raise RuntimeError('Complete native PostgreSQL acceptance required')
-    probe = Path(__file__).with_name('native_expired_token_probe.py').resolve()
+    original_probe = Path(__file__).with_name('native_expired_token_probe.py').resolve()
+    # The retained source remains private and immutable. The container's mapped
+    # application UID needs a readable file at the bind mount, not source access.
+    probe = journal.path.parent / 'expired-token-probe.py'
+    payload = original_probe.read_bytes()
+    descriptor = os.open(probe, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, 'wb') as stream:
+        stream.write(payload)
+        stream.flush()
+        os.fchmod(stream.fileno(), 0o644)
+        os.fsync(stream.fileno())
+    directory = os.open(probe.parent, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(directory)
+    finally:
+        os.close(directory)
+    if probe.read_bytes() != payload:
+        raise RuntimeError('Exact staged application probe required')
     name = 'mldsafail-token-probe-' + data['id']
     identifier = journal.command([
         'docker', 'create', '--name', name, '--network', 'none', '--read-only',

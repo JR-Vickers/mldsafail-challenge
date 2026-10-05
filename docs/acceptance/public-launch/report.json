@@ -1700,7 +1700,7 @@
       "criteria": [
         "Disposable native PostgreSQL admission idempotency serialized ownership stale lease cleanup fencing and administrative controls"
       ],
-      "status": "waiting_dependency",
+      "status": "ready",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3318,11 +3318,28 @@
       "criteria": [
         "Native administrative admission controls and daily limits"
       ],
-      "status": "ready",
-      "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "status": "passed",
+      "attempts": [
+        {
+          "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+          "evidence": "docs/acceptance/public-launch/disposable-application-native-e.json",
+          "result": "Five actual native PostgreSQL tests passed; subsequent independent application fixture permission failure retained; whole owned cleanup verified"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/disposable-application-native-e.json#/postgres_native_passed",
+          "criteria_met": [
+            "Native administrative admission controls and daily limits"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+        "database_image": "sha256:639ab7ceb90e13123085b741fb31ef493fba25463002f6da665352e7b534b652",
+        "postgres_version": "17.11"
+      },
+      "next_action": "Preserve scoped native acceptance; rerun affected gates after substantive source changes",
       "checklist": []
     },
     {
@@ -3340,11 +3357,28 @@
       "criteria": [
         "Native database/evaluator cleanup ownership and fencing"
       ],
-      "status": "ready",
-      "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "status": "passed",
+      "attempts": [
+        {
+          "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+          "evidence": "docs/acceptance/public-launch/disposable-application-native-e.json",
+          "result": "Five actual native PostgreSQL tests passed; subsequent independent application fixture permission failure retained; whole owned cleanup verified"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/disposable-application-native-e.json#/postgres_native_passed",
+          "criteria_met": [
+            "Native database/evaluator cleanup ownership and fencing"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+        "database_image": "sha256:639ab7ceb90e13123085b741fb31ef493fba25463002f6da665352e7b534b652",
+        "postgres_version": "17.11"
+      },
+      "next_action": "Preserve scoped native acceptance; rerun affected gates after substantive source changes",
       "checklist": []
     },
     {
