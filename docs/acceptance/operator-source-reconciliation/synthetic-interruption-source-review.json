@@ -1,0 +1,32 @@
+{
+  "schema": "mldsafail.source-verification.v1",
+  "source_commit": "69f9e3800c1033c48f832c547718f072ab92901a",
+  "source_review_passed": true,
+  "source_files_sha256": {
+    "scripts/native_synthetic_operator_interruption.py": "745b3ddd9c4e4d799bb6eb2985c924539fcf60a66124173cbf0e06a26f6d0e08",
+    "tests/test_native_synthetic_operator_interruption.py": "e23f4053d1afae56bdce20bb2b4ddf49b997d157a672f7ba4fa90bac4e25bb91",
+    "docs/acceptance/SYNTHETIC_OPERATOR_INTERRUPTION_PROTOCOL.md": "02a6f21e99f8a8427b6dce5d5d1368b4a40d4eb1709ec35d7235497c9a785be1"
+  },
+  "author_focused_tests_passed": 23,
+  "make_check": {
+    "passed": 824,
+    "skipped": 11
+  },
+  "independent_source_review": {
+    "reviewer": "review_controls",
+    "source_review_passed": true,
+    "focused_tests_passed": 21
+  },
+  "native_executed": false,
+  "native_acceptance_passed": false,
+  "actual_offhost_storage_accepted": false,
+  "actual_owner_custody_accepted": false,
+  "scope": "End-to-end disposable synthetic HTTPS S3 scheduled-check interruption and independently retryable cleanup source only",
+  "remaining_native_criteria": [
+    "Actual native pinned S3 initialization tiny backup and full repository check",
+    "Exact live admitted restic check and owned epoch journal before PIDfd SIGKILL",
+    "Backend resumes and two fresh exited fixture activations reconcile old operation before new provisioning",
+    "Read-only exact interrupted owner/replacement binding plus native SIGKILL unit disposition and kernel absence",
+    "Independent terminal retry resource cleanup and outer generic driver whole-daemon worker barrier and domain absence"
+  ]
+}
