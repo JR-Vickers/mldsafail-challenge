@@ -35,7 +35,7 @@ def backend_signal(entry, signum):
 
 def start_unit(driver, unit, source, configuration, *, wait=False, cleanup=False, cacert=None):
     argv=['systemd-run','--user','--unit='+unit,'--property=Delegate=yes','--property=UMask=0077',
-        '--property=Restart=no','--property=RuntimeMaxSec=600',
+        '--property=Restart=no','--property=RuntimeMaxSec=600','--property=MemoryMax=512M','--property=TasksMax=128',
         '--property=KillMode='+('control-group' if wait else 'process'),
         '--working-directory='+str(source), '--setenv=PYTHONPATH='+str(source/'src')+':'+str(source)]
     if cacert:argv.append('--setenv=RESTIC_CACERT='+str(cacert))
@@ -172,7 +172,7 @@ def callback(driver, config, data):
         custody=root/'synthetic-custody-copy';custody.write_bytes(password.read_bytes());custody.chmod(0o600)
         server=Server([str(artifacts/'minio'),'server','--quiet','--address',endpoint.removeprefix('https://'),
             '--console-address','127.0.0.1:'+str(port()),'--certs-dir',str(certs),str(storage)],
-            dict(os.environ,MINIO_ROOT_USER=credentials['AWS_ACCESS_KEY_ID'],MINIO_ROOT_PASSWORD=credentials['AWS_SECRET_ACCESS_KEY'],MINIO_BROWSER='off'),root)
+            dict(os.environ,MINIO_ROOT_USER=credentials['AWS_ACCESS_KEY_ID'],MINIO_ROOT_PASSWORD=credentials['AWS_SECRET_ACCESS_KEY'],MINIO_BROWSER='off',GOMAXPROCS='2',GOMEMLIMIT='256MiB'),root)
         deadline=time.monotonic()+30
         while True:
             try:

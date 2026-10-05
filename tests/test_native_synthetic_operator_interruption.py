@@ -31,6 +31,8 @@ def test_units_are_disposable_bounded_no_timer_installation():
     argv,kw=calls[0]
     assert argv[:2]==['systemd-run','--user']
     assert '--property=RuntimeMaxSec=600' in argv
+    assert '--property=MemoryMax=512M' in argv
+    assert '--property=TasksMax=128' in argv
     assert '--property=KillMode=process' in argv
     assert '--wait' not in argv
     assert kw['timeout']==30

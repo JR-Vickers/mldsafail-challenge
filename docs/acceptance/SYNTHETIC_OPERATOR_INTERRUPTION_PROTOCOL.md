@@ -32,7 +32,9 @@ for the outer driver; it is reused for all actual temporary activation units.
 The callback generates a private local CA and disposable HTTPS MinIO server,
 fresh random synthetic credentials/password and explicitly synthetic custody
 copy, one tiny repository-generated public file, an actual restic initialization,
-backup, and complete repository check. The backend is then paused through a
+backup, and complete repository check. Temporary activation units have 512 MiB memory and 128-task ceilings; the MinIO
+fixture limits Go execution to two threads and a 256 MiB managed-memory target.
+The backend is then paused through a
 process descriptor after its full birth and owned domain are verified. Pause
 intent is durable and the finite original-driver/admission waits bound the pause
 phase to 450 seconds; independent cleanup attempts backend continuation first.
