@@ -2159,11 +2159,22 @@
       "criteria": [
         "Reconcile historical unresolved gate seven_scenarios_and_rollback"
       ],
-      "status": "ready",
+      "status": "passed",
       "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Reconcile historical unresolved gate seven_scenarios_and_rollback"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "release_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "rollback_commit": "b4d212da3109b7716eb41553986848e377fb5b3d"
+      },
+      "next_action": "Historical negative reports remain unchanged; current scoped acceptance reconciled",
       "checklist": []
     },
     {
@@ -2543,11 +2554,22 @@
       "criteria": [
         "Reconcile historical unresolved gate seven_scenario_acceptance"
       ],
-      "status": "ready",
+      "status": "passed",
       "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Reconcile historical unresolved gate seven_scenario_acceptance"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "release_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "rollback_commit": "b4d212da3109b7716eb41553986848e377fb5b3d"
+      },
+      "next_action": "Historical negative reports remain unchanged; current scoped acceptance reconciled",
       "checklist": []
     },
     {
@@ -3388,6 +3410,11 @@
           "source_commit": "eedab6c3a553d9dea8058e1644b4671e4c92620f",
           "evidence": "docs/acceptance/public-launch/native-cpu-generation-h.json",
           "result": "Initial accounting baseline failed before any pairs; owned cleanup independently proven"
+        },
+        {
+          "source_commit": "c431bbe13e1c74cf4d4239d896cda63afd4ca489",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-i.json",
+          "result": "Native startup and baseline pass; eight faults completed then lifecycle deadline failure; pairs not started"
         }
       ],
       "evidence": [],
@@ -3396,7 +3423,7 @@
         "supervisor_source_sha256": "ffb6cf314cbaf69e279721c2ff8f66345ab39c5bb5da014449065b4f3820104b",
         "worker_image": "sha256:4a1c3ea678408a861e634babf49bdd1fd23ac5cccc16dc04f2b60c8daf49ca6b"
       },
-      "next_action": "Build corrected source-bound image with positive unprivileged import smoke and whole cleanup; rerun full fault/pair protocol only on changed artifact",
+      "next_action": "Independently reconcile generationI cleanup; retain reviewed diagnostic correction and source-bound worker; run complete corrected native fault suite before any pairs",
       "checklist": []
     },
     {

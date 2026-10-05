@@ -1,0 +1,23 @@
+{
+  "schema": "mldsafail.native-cpu-generation.v1",
+  "source_commit": "c431bbe13e1c74cf4d4239d896cda63afd4ca489",
+  "supervisor_source_sha256": "ffb6cf314cbaf69e279721c2ff8f66345ab39c5bb5da014449065b4f3820104b",
+  "worker_image": "sha256:b446b64575a2bfb439b25539d0941889300cea480f32ea46ac0a09c6df597e09",
+  "native_executed": true,
+  "passed": false,
+  "native_fault_suite_passed": false,
+  "pairs_started": false,
+  "startup_smoke_passed": true,
+  "initial_accounting_baseline_passed": true,
+  "completed_faults_before_lifecycle_failure": 8,
+  "failure": "Lifecycle or descendant probe exceeded its native transition deadline; old evidence does not distinguish disconnected dispatch completion from subsequent owner kill phase",
+  "classification": "infrastructure_failure",
+  "whole_owned_cleanup_reported_complete": true,
+  "independent_owned_cgroup_absence_verified": false,
+  "remaining_cleanup_verification": "Re-read exact native ownership contexts and independently prove all owned domains absent when session SSH reconnects; prohibit conflicting host operations until then",
+  "remaining_faults_unverified": true,
+  "thresholds_changed": false,
+  "raw_evidence_location": "protected native CPU generationI and worker preparationC; exact raw hashes pending reconnect",
+  "corrective_source_commit": "593334f",
+  "corrective_scope": "Durable bounded private dispatch failure evidence and serialized post-publication status; no changed timing window fixtures thresholds or scoring"
+}
