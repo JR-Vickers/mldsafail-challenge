@@ -1,0 +1,50 @@
+{
+  "schema": "mldsafail.application-native-scope.v1",
+  "source_commit": "0e0bc13b1f17bb7da7e85609c302ef22bca7ec1c",
+  "native_executed": true,
+  "postgres_admission_passed": true,
+  "expired_token_passed": true,
+  "owned_cleanup_verified": true,
+  "expired_behavior": {
+    "authentication_rejected": true,
+    "expired_active_revoked_statuses_rendered": true,
+    "synthetic_values_absent": true
+  },
+  "postgres_scope": [
+    "concurrent account admission and idempotent replay",
+    "concurrent global queue admission",
+    "serialized claims, stale leases and prior-owner heartbeat fencing"
+  ],
+  "not_covered": [
+    "native administrative controls",
+    "cleanup ownership across database and native evaluator",
+    "production deployment"
+  ],
+  "raw_evidence_location": "protected native application attemptD",
+  "raw_sha256": {
+    "operator": "c5076ae920d198da234bd4f1452c365feb1f63c28dcc187bd25a112ab698308c",
+    "driver": "2a3fa21d7275b313603c04a3ba47c5fe51e9f2379dbfc1f172d6a513c66f2a9c",
+    "application": "d5d9f57a9d53fcf2e7d7dd6bead8afefc15ab01b3d942dc0a3e9ba910346b959",
+    "postgres": "b9092644f986e75536382593acfe2ff86d7f6f8ac2f0a91a391acc53525148a5"
+  },
+  "earlier_attempts": [
+    {
+      "id": "A",
+      "failure": "additional archive configuration rejected",
+      "cleanup_verified": true
+    },
+    {
+      "id": "B",
+      "failure": "delayed native Docker root mode change rejected",
+      "cleanup_verified": true
+    },
+    {
+      "id": "C",
+      "failure": "frozen staging environment lacks pytest",
+      "cleanup_verified": true
+    }
+  ],
+  "environment_repair": "Separate locked engineering environment; frozen staging environment unchanged",
+  "database_image": "sha256:639ab7ceb90e13123085b741fb31ef493fba25463002f6da665352e7b534b652",
+  "web_image": "sha256:336462b8995c03dec545601634a9d430e6b3edea7663437f8edcbfe7016177d5"
+}

@@ -1,0 +1,22 @@
+{
+  "schema": "mldsafail.native-cpu-generation.v1",
+  "source_commit": "eedab6c3a553d9dea8058e1644b4671e4c92620f",
+  "supervisor_source_sha256": "ffb6cf314cbaf69e279721c2ff8f66345ab39c5bb5da014449065b4f3820104b",
+  "worker_image": "sha256:4a1c3ea678408a861e634babf49bdd1fd23ac5cccc16dc04f2b60c8daf49ca6b",
+  "worker_archive_sha256": "ef11bfa2d152b4c327cc2bb97638054db15403a485ac29f9a9e20699923cbeda",
+  "worker_context_sha256": "9dc60f0fc5684cb3323c7fd16b577467c1ec292d1a10bbdd271708ddaa08c4bb",
+  "native_executed": true,
+  "passed": false,
+  "native_fault_suite_passed": false,
+  "pairs_started": false,
+  "failure": "Initial baseline could not establish worker membership; no authoritative measurement emitted",
+  "classification": "infrastructure_failure",
+  "diagnosis": "Native private umask produced package directories0700/files0600 inaccessible to worker65534; source permission and pre-export import smoke correction independently reviewed",
+  "owned_cleanup_verified": true,
+  "positive_daemon_barrier_verified": true,
+  "independent_owned_cgroup_absence_verified": true,
+  "staging_services_preserved": true,
+  "driver_sha256": "374fe70c5be4d200a2d4cbb941f84573186e9618051c0e549921895726745232",
+  "raw_evidence_location": "protected native CPU generationH and worker preparationB",
+  "thresholds_changed": false
+}
