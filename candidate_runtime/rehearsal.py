@@ -12,6 +12,7 @@ import secrets
 import socket
 import threading
 import time
+from types import MappingProxyType
 from deploy import owned_daemon
 from candidate_runtime.gateway import Gateway
 from candidate_runtime.native import application_create
@@ -189,15 +190,21 @@ def application_rehearsal(journal,config,data,protocol,root,backend,cohort,candi
             workspace=work/'participant'
             inner_journal.command([str(python),'-I','-m','mldsafail.cli','clone',str(workspace),'--benchmark-version','0.6.0'],kind='participant_scaffold',timeout=60)
             commit=inner_journal.command(['git','-C',str(workspace),'rev-parse','HEAD'],timeout=15).stdout.decode().strip()
+            application_environment=dict(os.environ)
+            application_environment.update(DOCKER_HOST='unix://'+inner_data['socket'],
+                MLDSAFAIL_OPERATOR_DAEMON_MANIFEST=inner_data['manifest_path'])
+            application_environment.pop('DOCKER_CONTEXT',None)
+            application_environment.pop('MLDSAFAIL_CPU_DAEMON_MANIFEST',None)
+            application_environment=MappingProxyType(application_environment)
             serve_operation(gateway,lambda cancel:inner_journal.command([str(python),'-I','-m','mldsafail.cli','submit',
                 '--repo','file:///candidate/work/participant','--commit',commit,'--hypothesis','private source-bound native image rehearsal',
-                '--benchmark-version','0.6.0','--idempotency-key','private-image-'+secrets.token_hex(16)],kind='participant_submission',timeout=60,env=dict(os.environ)),seconds=65,journal=inner_journal,receipt=root/(secrets.token_hex(16)+'-io.json'))
+                '--benchmark-version','0.6.0','--idempotency-key','private-image-'+secrets.token_hex(16)],kind='participant_submission',timeout=60,env=application_environment),seconds=65,journal=inner_journal,receipt=root/(secrets.token_hex(16)+'-io.json'))
             with Session(engine) as database:
                 submission=database.scalar(select(Submission));job=database.scalar(select(EvaluationJob))
                 if submission is None or job is None or job.status!='queued' or submission.benchmark_version!='0.6.0':raise RuntimeError('Candidate queue admission failed')
                 submission_id=submission.id
             inner_journal.command(['docker','start',coordinator],kind='application_start',timeout=60)
-            serve_operation(gateway,lambda cancel:inner_journal.command(['docker','wait',coordinator],kind='application_wait',timeout=1200,env=dict(os.environ)),seconds=1200,journal=inner_journal,receipt=root/(secrets.token_hex(16)+'-io.json'))
+            serve_operation(gateway,lambda cancel:inner_journal.command(['docker','wait',coordinator],kind='application_wait',timeout=1200,env=application_environment),seconds=1200,journal=inner_journal,receipt=root/(secrets.token_hex(16)+'-io.json'))
             state=json.loads(inner_journal.command(['docker','inspect',coordinator],timeout=30).stdout)[0]['State']
             if state['Running'] or state['ExitCode']!=0:raise RuntimeError('Private coordinator did not exit successfully')
             with Session(engine) as database:

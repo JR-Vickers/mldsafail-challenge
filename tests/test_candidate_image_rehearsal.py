@@ -73,3 +73,27 @@ def test_gateway_failure_stops_owned_transport_and_publishes_closed_lifecycle(mo
     proof=json.loads(receipt.read_text())
     assert observed==[entry] and proof['state']=='closed' and proof['cleanup_complete'] is True
     assert proof['thread_alive'] is False and proof['cancel_requested'] is True
+
+
+def test_surviving_io_thread_retains_negative_lifecycle(monkeypatch,tmp_path):
+    import itertools
+    import json
+    from candidate_runtime import rehearsal
+    release=threading.Event();finished=threading.Event()
+    def operation(cancel):
+        release.wait(2)
+        finished.set()
+    ticks=iter(itertools.count(0,100))
+    monkeypatch.setattr(rehearsal.time,'monotonic',lambda:next(ticks))
+    gateway=SimpleNamespace(server=SimpleNamespace(settimeout=lambda seconds:None))
+    receipt=tmp_path/'negative.json'
+    try:
+        with pytest.raises(rehearsal.OperationCleanupIncomplete,match='runtime reuse prohibited'):
+            serve_operation(gateway,operation,seconds=1,receipt=receipt)
+        proof=json.loads(receipt.read_text())
+        assert proof['state']=='cleanup_incomplete' and proof['cleanup_complete'] is False
+        assert proof['thread_alive'] is True and proof['cancel_requested'] is True
+    finally:
+        monkeypatch.undo()
+        release.set()
+        assert finished.wait(2)
