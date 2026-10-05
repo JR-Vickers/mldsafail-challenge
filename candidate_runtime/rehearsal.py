@@ -21,24 +21,59 @@ from research.cpu_measurement import native_driver
 from research.mlwe_v060_preparation import native_acceptance
 
 
-def serve_operation(gateway, operation, *, seconds):
-    """Run application I/O concurrently; dispatch HOST evaluation on this thread."""
+class OperationCleanupIncomplete(RuntimeError):
+    """Operator must exit after outer cleanup; never reuse this runtime."""
+
+
+def serve_operation(gateway, operation, *, seconds, journal=None, receipt=None):
+    """Dispatch native evaluation here; independently stop owned I/O on failure."""
     if threading.current_thread() is not threading.main_thread():
         raise RuntimeError('Native measurement dispatcher must remain on main thread')
-    result=[];errors=[]
+    from deploy import owned_client
+    result=[];errors=[];cancel=threading.Event();original=None
+    start=len(journal.data.get('clients',[])) if journal else 0
+    record=dict(schema='mldsafail.candidate-io-lifecycle.v1',state='intent',cleanup_complete=False,
+        owner=owned_client.identity(os.getpid()),operation_id=secrets.token_hex(16))
+    def publish():
+        if receipt is not None:owned_daemon.publish(receipt,record)
+    publish()
     def run():
-        try:result.append(operation())
+        try:result.append(operation(cancel))
         except BaseException as error:errors.append(error)
     thread=threading.Thread(target=run,daemon=True);thread.start()
-    expires=time.monotonic()+seconds
-    gateway.server.settimeout(.2)
-    while thread.is_alive():
-        if time.monotonic()>=expires:raise TimeoutError('Bounded private application operation')
-        try:gateway.serve_once()
-        except socket.timeout:continue
-    thread.join(timeout=1)
-    if errors:raise errors[0]
-    return result[0]
+    try:
+        record.update(state='running',thread_ident=thread.ident);publish()
+        expires=time.monotonic()+seconds;gateway.server.settimeout(.2)
+        while thread.is_alive():
+            if time.monotonic()>=expires:raise TimeoutError('Bounded private application operation')
+            try:gateway.serve_once()
+            except socket.timeout:continue
+        if errors:raise errors[0]
+        return result[0]
+    except BaseException as error:original=error;raise
+    finally:
+        cancel.set();cleanup_errors=[]
+        expires=time.monotonic()+35
+        # These operations are HTTP readiness, CLI submission or Docker wait,
+        # never daemon/container creators. Each client has its own birth fence.
+        while thread.is_alive() and time.monotonic()<expires:
+            if journal is not None:
+                for entry in list(journal.data.get('clients',[])[start:]):
+                    try:owned_client.stop(entry)
+                    except BaseException as error:cleanup_errors.append(repr(error))
+            thread.join(timeout=.1)
+        record.update(state='cleanup_incomplete' if thread.is_alive() or cleanup_errors else 'closed',
+            cleanup_complete=not thread.is_alive() and not cleanup_errors,cleanup_errors=cleanup_errors,
+            thread_alive=thread.is_alive(),cancel_requested=True)
+        try:publish()
+        except BaseException as error:cleanup_errors.append('Lifecycle publication: '+repr(error))
+        if thread.is_alive():
+            failure=OperationCleanupIncomplete('Private application I/O thread remains active; runtime reuse prohibited')
+            if original is not None:failure.add_note('Original operation failure: '+repr(original))
+            raise failure
+        if cleanup_errors:
+            if original is not None:original.add_note('Independent operation cleanup: '+repr(cleanup_errors))
+            else:raise RuntimeError('Private operation cleanup incomplete: '+repr(cleanup_errors))
 
 
 def callback(journal,config,data):
@@ -130,15 +165,15 @@ def application_rehearsal(journal,config,data,protocol,root,backend,cohort,candi
             ports=json.loads(inner_journal.command(['docker','inspect',web],timeout=30).stdout)[0]['NetworkSettings']['Ports']['8000/tcp']
             if len(ports)!=1 or ports[0]['HostIp']!='127.0.0.1':raise RuntimeError('Loopback-only candidate website')
             base='http://127.0.0.1:'+ports[0]['HostPort']
-            def readiness():
+            def readiness(cancel):
                 expires=time.monotonic()+60
-                while time.monotonic()<expires:
+                while time.monotonic()<expires and not cancel.is_set():
                     try:
                         if requests.get(base+'/health/ready',timeout=2).status_code==200:return True
                     except requests.RequestException:pass
                     time.sleep(.2)
                 raise TimeoutError('Private candidate HTTP readiness')
-            serve_operation(gateway,readiness,seconds=65)
+            serve_operation(gateway,readiness,seconds=65,journal=inner_journal,receipt=root/(secrets.token_hex(16)+'-io.json'))
             environment=root/'participant-environment';artifacts=root/'participant-artifact';artifacts.mkdir(mode=0o700)
             inner_journal.command(['uv','build','--wheel','--out-dir',str(artifacts),str(source)],kind='artifact_build',timeout=120)
             wheels=list(artifacts.glob('*.whl'))
@@ -154,15 +189,15 @@ def application_rehearsal(journal,config,data,protocol,root,backend,cohort,candi
             workspace=work/'participant'
             inner_journal.command([str(python),'-I','-m','mldsafail.cli','clone',str(workspace),'--benchmark-version','0.6.0'],kind='participant_scaffold',timeout=60)
             commit=inner_journal.command(['git','-C',str(workspace),'rev-parse','HEAD'],timeout=15).stdout.decode().strip()
-            serve_operation(gateway,lambda:inner_journal.command([str(python),'-I','-m','mldsafail.cli','submit',
+            serve_operation(gateway,lambda cancel:inner_journal.command([str(python),'-I','-m','mldsafail.cli','submit',
                 '--repo','file:///candidate/work/participant','--commit',commit,'--hypothesis','private source-bound native image rehearsal',
-                '--benchmark-version','0.6.0','--idempotency-key','private-image-'+secrets.token_hex(16)],kind='participant_submission',timeout=60),seconds=65)
+                '--benchmark-version','0.6.0','--idempotency-key','private-image-'+secrets.token_hex(16)],kind='participant_submission',timeout=60,env=dict(os.environ)),seconds=65,journal=inner_journal,receipt=root/(secrets.token_hex(16)+'-io.json'))
             with Session(engine) as database:
                 submission=database.scalar(select(Submission));job=database.scalar(select(EvaluationJob))
                 if submission is None or job is None or job.status!='queued' or submission.benchmark_version!='0.6.0':raise RuntimeError('Candidate queue admission failed')
                 submission_id=submission.id
             inner_journal.command(['docker','start',coordinator],kind='application_start',timeout=60)
-            serve_operation(gateway,lambda:inner_journal.command(['docker','wait',coordinator],kind='application_wait',timeout=1200),seconds=1200)
+            serve_operation(gateway,lambda cancel:inner_journal.command(['docker','wait',coordinator],kind='application_wait',timeout=1200,env=dict(os.environ)),seconds=1200,journal=inner_journal,receipt=root/(secrets.token_hex(16)+'-io.json'))
             state=json.loads(inner_journal.command(['docker','inspect',coordinator],timeout=30).stdout)[0]['State']
             if state['Running'] or state['ExitCode']!=0:raise RuntimeError('Private coordinator did not exit successfully')
             with Session(engine) as database:
@@ -199,7 +234,7 @@ def application_rehearsal(journal,config,data,protocol,root,backend,cohort,candi
             # Restart is explicitly recorded as restart, never mislabeled rollback.
             inner_journal.command(['docker','stop','--time','10',web],kind='application_stop',timeout=30)
             inner_journal.command(['docker','start',web],kind='application_start',timeout=30)
-            serve_operation(gateway,readiness,seconds=65)
+            serve_operation(gateway,readiness,seconds=65,journal=inner_journal,receipt=root/(secrets.token_hex(16)+'-io.json'))
             repeated=requests.get(base+'/api/v1/leaderboard?benchmark_version=0.6.0',headers=headers,timeout=10)
             repeated.raise_for_status()
             if repeated.json()!=candidate.json():raise RuntimeError('Application restart changed accepted leaderboard')
@@ -215,6 +250,8 @@ def application_rehearsal(journal,config,data,protocol,root,backend,cohort,candi
 
         except BaseException as error:failure=error;raise
         finally:
+            if isinstance(failure,OperationCleanupIncomplete):
+                errors.append('Application I/O thread survives; runtime reuse prohibited')
             if gateway is not None:
                 try:gateway.close()
                 except BaseException as error:errors.append(repr(error))
@@ -225,7 +262,7 @@ def application_rehearsal(journal,config,data,protocol,root,backend,cohort,candi
     try:native_driver.execute(inner,source,acceptance=execute,daemon_kind='owned')
     except BaseException as error:original=error;raise
     finally:
-        errors=native_acceptance.restore_environment(previous)
+        errors=['Runtime reuse prohibited after surviving application I/O'] if isinstance(original,OperationCleanupIncomplete) else native_acceptance.restore_environment(previous)
         if errors:
             if original is None:raise RuntimeError('Nested application environment restoration failed: '+repr(errors))
             original.add_note('Nested application environment restoration failed: '+repr(errors))
