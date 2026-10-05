@@ -64,7 +64,15 @@ class Gateway:
             if not stat.S_ISREG(lockinfo.st_mode) or lockinfo.st_uid!=os.getuid() or lockinfo.st_nlink!=1 or lockinfo.st_mode&0o077:
                 raise ValueError('Private gateway lifecycle lock required')
             fcntl.flock(self.lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
-            self.lifecycle_path=self.root/'lifecycle.json';self.socket_path=self.root/'candidate.sock'
+            self.lifecycle_path=self.root/'lifecycle.json'
+            self.shared=self.root.with_name(self.root.name+'-socket')
+            self.shared.mkdir(mode=0o700,exist_ok=True)
+            shared_info=self.shared.lstat()
+            if not stat.S_ISDIR(shared_info.st_mode) or shared_info.st_uid!=os.getuid() or shared_info.st_mode&0o077:
+                raise ValueError('Private socket-only shared directory required')
+            self.socket_path=self.shared/'candidate.sock'
+            if set(path.name for path in self.shared.iterdir())-{'candidate.sock'}:
+                raise ValueError('Host evidence forbidden in shared socket directory')
             if self.lifecycle_path.exists():
                 old=owned_daemon.read_private_json(self.lifecycle_path)
                 if old.get('schema')!='mldsafail.candidate-gateway-lifecycle.v1' or old.get('domain')!=worker_domain or old.get('cohort_id')!=authority.cohort_id:

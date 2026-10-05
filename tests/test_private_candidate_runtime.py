@@ -44,6 +44,9 @@ def test_private_gateway_requires_durable_request_before_evaluation(tmp_path,mon
         assert retained['state']=='intent' and retained['peer']==identity
         checkpoint();observed.append(source);return {'signed':'tiny synthetic envelope'}
     value=gateway.Gateway(root=tmp_path/'gateway',worker_domain={},authority=authority,evaluate_source=evaluate)
+    assert value.shared != value.root
+    assert {path.name for path in value.shared.iterdir()} == {'candidate.sock'}
+    assert (value.root/'lifecycle.json').exists() and not (value.shared/'lifecycle.json').exists()
     errors=[]
     def serve():
         try:value.serve_once()
