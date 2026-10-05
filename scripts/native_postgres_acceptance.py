@@ -190,7 +190,7 @@ def execute(image, output, cleanup_only):
     report = dict(source_commit=commit, source_script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                   database_image=image, passed=False, tests_passed=False, cleanup_complete=False,
                   python=sys.version, kernel=platform.release(),
-                  protocol='three synchronized admission/ownership tests in empty disposable PostgreSQL')
+                  protocol='five declared admission, administrative revocation and cancellation-fencing tests in empty disposable PostgreSQL')
     atomic_json(output / 'report.json', report)
     def call(argv, **kwargs):
         return command(argv, output, receipt, **kwargs)

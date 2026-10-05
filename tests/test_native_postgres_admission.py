@@ -119,3 +119,47 @@ def test_native_serialized_claim_and_stale_owner_fencing(database):
         assert not heartbeat(session, claimed[0], old_owner)
         assert heartbeat(session, claimed[0], 'new-owner')
         assert claim_job(session, 'competing-owner') is None
+
+
+def test_native_operator_revocation_and_actor_audit(database):
+    # Exercise the same source-bound operator controls on real PostgreSQL.
+    from test_admin_moderation import exercise
+    engine, _ = database
+    exercise(engine)
+
+
+def test_native_daily_window_and_running_cancellation_lease_fence(database):
+    from mldsafail.web.services import cancel_submission, transition_submission
+    from mldsafail.web.models import SubmissionState
+    engine, users = database
+    with Session(engine) as session:
+        user=session.get(User,users[0])
+        first,_=create_submission(session,user,PAYLOAD,'daily-first',admission_limits=LIMITS)
+        cancel_submission(session,first)
+        second,_=create_submission(session,user,PAYLOAD,'daily-second',admission_limits=LIMITS)
+        job=claim_job(session,'native-cancellation-owner')
+        assert job.submission_id==second.id
+        transition_submission(session,second,SubmissionState.RUNNING)
+        job.status='running';session.commit()
+        cancel_submission(session,second)
+        assert second.cancel_requested and second.state=='running'
+        assert session.get(EvaluationJob,job.id).status=='running'
+        assert claim_job(session,'premature-replacement') is None
+        with pytest.raises(DomainError) as limited:
+            create_submission(session,user,PAYLOAD,'daily-third',admission_limits=LIMITS)
+        assert limited.value.status==429;session.rollback()
+        # Only the explicitly expired cancelled lease is reconciled. The prior
+        # owner's heartbeat is fenced after reconciliation, and cancellation
+        # still counts toward the independently configured rolling daily limit.
+        second=session.get(Submission,second.id)
+        transition_submission(session,second,SubmissionState.CANCELLED)
+        job=session.get(EvaluationJob,job.id)
+        job.lease_expires_at=utcnow()-timedelta(seconds=1);session.commit()
+        assert recover_stale_jobs(session)==(0,0)
+        assert not heartbeat(session,job.id,'native-cancellation-owner')
+        with pytest.raises(DomainError):
+            create_submission(session,user,PAYLOAD,'daily-third',admission_limits=LIMITS)
+        session.rollback()
+        first=session.get(Submission,first.id)
+        first.created_at=utcnow()-timedelta(hours=24,seconds=1);session.commit()
+        assert create_submission(session,user,PAYLOAD,'daily-third',admission_limits=LIMITS)[1]
