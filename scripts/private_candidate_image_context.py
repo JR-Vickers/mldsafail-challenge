@@ -15,11 +15,12 @@ from deploy import owned_daemon
 SOURCE='6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf'
 
 
-def context(output,*,source,wheel,wheel_manifest,base_manifest):
+def context(output,*,source,wheel,wheel_manifest,base_manifest,runtime_source=None,runtime_source_commit=None,command=None):
     output,source,wheel=map(Path,(output,source,wheel))
+    command=command or (lambda argv:subprocess.check_output(argv,timeout=15))
     if output.exists():raise ValueError('Fresh protected image context required')
-    if subprocess.check_output(['git','-C',str(source),'status','--porcelain'],timeout=15).strip():raise ValueError('Clean reviewed package source required')
-    commit=subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],timeout=15).decode().strip()
+    if command(['git','-C',str(source),'status','--porcelain']).strip():raise ValueError('Clean reviewed package source required')
+    commit=command(['git','-C',str(source),'rev-parse','HEAD']).decode().strip()
     if wheel_manifest.get('source_commit')!=commit or wheel_manifest.get('benchmark_protocol')!='0.6.0' or wheel_manifest.get('package_version')!='0.5.1' or wheel_manifest.get('publication_approved') is not False:
         raise ValueError('Exact separately identified unapproved wheel source required')
     descriptor=os.open(wheel,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
@@ -41,17 +42,23 @@ def context(output,*,source,wheel,wheel_manifest,base_manifest):
     if base_manifest.get('source_commit')!=SOURCE:raise ValueError('Exact compatible frozen baseline release required')
     base=base_manifest['images']['web']['id']
     if not re.fullmatch('sha256:[0-9a-f]{64}',base):raise ValueError('Immutable retained baseline web required')
-    operator=Path(__file__).resolve().parents[1]
-    if subprocess.check_output(['git','-C',str(operator),'status','--porcelain'],timeout=15).strip():raise ValueError('Clean candidate runtime source required')
+    operator=Path(runtime_source) if runtime_source is not None else Path(__file__).resolve().parents[1]
+    owned_daemon._canonical(operator)
+    if command(['git','-C',str(operator),'status','--porcelain']).strip():raise ValueError('Clean candidate runtime source required')
+    runtime_commit=command(['git','-C',str(operator),'rev-parse','HEAD']).decode().strip()
+    if not re.fullmatch('[0-9a-f]{40}',runtime_commit) or runtime_source_commit is not None and runtime_commit!=runtime_source_commit:
+        raise ValueError('Exact retained candidate runtime source required')
     output.mkdir(mode=0o700,parents=True);(output/'candidate.whl').write_bytes(block)
     runtime=output/'candidate_runtime';runtime.mkdir()
     for name in ('__init__.py','__main__.py','config.py','client.py','protocol.py'):
         path=operator/'candidate_runtime'/name
         if path.is_symlink():raise ValueError('Runtime links forbidden')
-        shutil.copyfile(path,runtime/path.name)
+        value=command(['git','-C',str(operator),'show','HEAD:candidate_runtime/'+name])
+        if len(value)>1024*1024:raise ValueError('Bounded tracked runtime file required')
+        (runtime/path.name).write_bytes(value)
     helpers=output/'deploy';helpers.mkdir();(helpers/'__init__.py').write_text('')
     for name in ('owned_daemon.py','owned_client.py'):
-        value=subprocess.check_output(['git','-C',str(source),'show','HEAD:deploy/'+name],timeout=15)
+        value=command(['git','-C',str(operator),'show','HEAD:deploy/'+name])
         (helpers/name).write_bytes(value)
     install="""import sysconfig,pathlib,zipfile,shutil
 root=pathlib.Path(sysconfig.get_paths()['purelib'])
@@ -61,12 +68,15 @@ for name in ('mldsafail','mldsafail_challenge-0.5.1.dist-info'):
 with zipfile.ZipFile('/candidate.whl') as archive:archive.extractall(root)
 """
     (output/'install_candidate.py').write_text(install)
-    (output/'Dockerfile').write_text('FROM '+base+'\nLABEL org.mldsafail.candidate=private-unapproved org.mldsafail.protocol=0.6.0 org.mldsafail.default=0.5.0\nUSER 0:0\nCOPY candidate.whl /candidate.whl\nCOPY install_candidate.py /install_candidate.py\nRUN /app/.venv/bin/python /install_candidate.py && rm /candidate.whl /install_candidate.py\nCOPY candidate_runtime /app/candidate_runtime\nCOPY deploy /app/deploy\nENV PYTHONPATH=/app\nWORKDIR /app\nUSER 0:0\nENTRYPOINT ["/app/.venv/bin/python","-m","candidate_runtime"]\n')
+    (output/'Dockerfile').write_text('FROM '+base+'\nLABEL org.mldsafail.candidate=private-unapproved org.mldsafail.protocol=0.6.0 org.mldsafail.default=0.5.0 org.mldsafail.candidate.source_commit='+runtime_commit+' org.mldsafail.candidate.wheel_source_commit='+commit+' org.mldsafail.candidate.wheel_sha256='+wheel_manifest['wheel_sha256']+'\nUSER 0:0\nCOPY candidate.whl /candidate.whl\nCOPY install_candidate.py /install_candidate.py\nRUN /app/.venv/bin/python /install_candidate.py && rm /candidate.whl /install_candidate.py\nCOPY candidate_runtime /app/candidate_runtime\nCOPY deploy /app/deploy\nENV PYTHONPATH=/app\nWORKDIR /app\nUSER 0:0\nENTRYPOINT ["/app/.venv/bin/python","-m","candidate_runtime"]\n')
     files={path.relative_to(output).as_posix():hashlib.sha256(path.read_bytes()).hexdigest() for path in sorted(output.rglob('*')) if path.is_file()}
     record=dict(schema='mldsafail.private-candidate-image-context.v1',candidate_only=True,production_adopted=False,default_changed=False,
         native_image_build_passed=False,native_rehearsal_passed=False,base_image=base,base_source_commit=SOURCE,
-        wheel_source_commit=commit,wheel_sha256=wheel_manifest['wheel_sha256'],runtime_source_commit=subprocess.check_output(['git','-C',str(operator),'rev-parse','HEAD'],timeout=15).decode().strip(),
+        wheel_source_commit=commit,wheel_sha256=wheel_manifest['wheel_sha256'],runtime_source_commit=runtime_commit,
         files_sha256=files,context_sha256=hashlib.sha256(json.dumps(files,sort_keys=True,separators=(',',':')).encode()).hexdigest())
+    for directory,identity in ((source,commit),(operator,runtime_commit)):
+        if command(['git','-C',str(directory),'status','--porcelain']).strip() or command(['git','-C',str(directory),'rev-parse','HEAD']).decode().strip()!=identity:
+            raise RuntimeError('Retained package/runtime source changed during context assembly')
     owned_daemon.publish(output.parent/(output.name+'-manifest.json'),record)
     return record
 
