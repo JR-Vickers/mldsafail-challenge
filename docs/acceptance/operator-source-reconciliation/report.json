@@ -65,5 +65,12 @@
   ],
   "still_missing_engineering": [
     "Bounded synthetic repository-check fixture/orchestrator ensuring an actual restic check remains in progress at exact admitted-journal signal boundary; existing verifier does not execute or substitute this test"
-  ]
+  ],
+  "source_assertions": {
+    "recovery_rpc_lost_ack_tooling_passed": true,
+    "reference_identity_repair_passed": true,
+    "operator_repeat_and_interruption_verifier_passed": true,
+    "cli_capability_preflight_tests_passed": true,
+    "cli_independent_review_passed": false
+  }
 }
