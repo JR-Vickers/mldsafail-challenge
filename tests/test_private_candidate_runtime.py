@@ -197,3 +197,9 @@ def test_gateway_owner_sigkill_reopen_preserves_unfinished_intent(tmp_path,monke
         if child is not None:
             os.kill(child,signal.SIGKILL);os.waitpid(child,0)
         shutil.rmtree(root.parent)
+
+
+def test_encoded_public_registration_rejected_before_decode(tmp_path,monkeypatch):
+    monkeypatch.setattr(gateway.base64,'b64decode',lambda *args,**kwargs:pytest.fail('oversize encoded source admitted'))
+    with pytest.raises(ValueError,match='Bounded encoded'):
+        gateway.snapshot(tmp_path/'source',{'solver.py':'a'*(4*((256*1024+2)//3)+1)})

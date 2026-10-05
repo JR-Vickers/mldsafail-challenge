@@ -39,6 +39,8 @@ def snapshot(root,files):
         path=PurePosixPath(name)
         if not isinstance(name,str) or path.is_absolute() or any(part in {'.','..','.git'} for part in path.parts) or path.suffix!='.py' or path.as_posix()!=name:
             raise ValueError('Only approved public Python paths allowed')
+        if not isinstance(encoded,str) or len(encoded)>4*((256*1024+2)//3):
+            raise ValueError('Bounded encoded public Python source required')
         block=base64.b64decode(encoded,validate=True);total+=len(block)
         if len(block)>256*1024 or total>MAX_SERIALIZED_BYTES:raise ValueError('Public source exceeds frozen cap')
         destination=root/path;destination.parent.mkdir(mode=0o700,parents=True,exist_ok=True);destination.write_bytes(block)
