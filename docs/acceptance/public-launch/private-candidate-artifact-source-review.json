@@ -1,0 +1,9 @@
+{
+  "schema": "mldsafail.private-candidate-artifact-source-review.v1",
+  "source_commit": "358a75796990bd91ebbe7f767710584c698f9d2c",
+  "source_review_passed": true,
+  "focused_tests_passed": 8,
+  "reviewer": "independent review_controls agent",
+  "native_executed": false,
+  "scope": "Native owned callback independently binds runtime/package source, tracked context bytes, offline image build, immutable image/source labels, isolated import smoke, sealed archive and completed matching builder cleanup before artifact admission"
+}

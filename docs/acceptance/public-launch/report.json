@@ -4128,11 +4128,23 @@
       "criteria": [
         "Retain version-preserving pinned Linuxamd64 synthetic restic and MinIO binaries with independent provenance review"
       ],
-      "status": "ready",
+      "status": "passed",
       "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute exact declared protocol and retain failure and cleanup evidence",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/operator-source-reconciliation/synthetic-amd64-artifact-preparation.json#/independent_artifact_review/source_provenance_review_passed",
+          "criteria_met": [
+            "Retain version-preserving pinned Linuxamd64 synthetic restic and MinIO binaries with independent provenance review"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "e9e4aa961bf486d84f6d169c6eeae6b05694dd41",
+        "restic_binary_sha256": "1284c80a5b1e569a6e0cf44957d8a1d329e14774321cbf4f3f268021492ee989",
+        "minio_binary_sha256": "84091054b08d3dcce5beac8e67fee2980f093eb9c0227c99c4d4135ed78407ee",
+        "archive_sha256": "08c9955f61a885a5fdb707036c560670790ba7b3bef6dca025c51de418a4bfea"
+      },
+      "next_action": "Upload protected exact binaries after current CPU gate cleanup; execute actual versions and native synthetic callback",
       "checklist": []
     },
     {
@@ -4151,7 +4163,7 @@
       "criteria": [
         "Execute real synthetic repository check interruption, two fresh activations, exact reconciliation and complete independent cleanup"
       ],
-      "status": "waiting_dependency",
+      "status": "ready",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -4166,7 +4178,8 @@
       ],
       "dependencies": [
         "candidate-runtime-review",
-        "native-generation-i-cleanup-reconciliation"
+        "native-generation-i-cleanup-reconciliation",
+        "candidate-image-build-source-review"
       ],
       "environment": "owned disposable native image preparation",
       "criteria": [
@@ -4187,7 +4200,8 @@
       ],
       "dependencies": [
         "candidate-runtime-review",
-        "native-generation-i-cleanup-reconciliation"
+        "native-generation-i-cleanup-reconciliation",
+        "candidate-image-build-source-review"
       ],
       "environment": "owned disposable native image preparation",
       "criteria": [
@@ -4266,6 +4280,33 @@
       "evidence": [],
       "identities": {},
       "next_action": "Execute exact declared protocol and retain failure and cleanup evidence",
+      "checklist": []
+    },
+    {
+      "id": "candidate-image-build-source-review",
+      "requirement": "Independent source review of exact retained private candidate image builder and artifact admission",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Independent source review of exact retained private candidate image builder and artifact admission"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/private-candidate-artifact-source-review.json#/source_review_passed",
+          "criteria_met": [
+            "Independent source review of exact retained private candidate image builder and artifact admission"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "358a75796990bd91ebbe7f767710584c698f9d2c"
+      },
+      "next_action": "Execute distinct forward and prior native artifact builds",
       "checklist": []
     }
   ],
