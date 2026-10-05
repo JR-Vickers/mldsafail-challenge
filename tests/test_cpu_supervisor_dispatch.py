@@ -89,3 +89,18 @@ def test_readonly_dispatch_status_has_exact_bounded_request_shape():
             else:
                 with pytest.raises(ValueError):supervisor.read_request(server)
         finally:server.close();client.close()
+
+
+def test_serial_status_backlog_pressure_is_bounded_unavailability(monkeypatch):
+    import errno
+    from research.cpu_measurement import native_lifecycle
+    class Connection:
+        def __enter__(self):return self
+        def __exit__(self,*args):pass
+        def settimeout(self,value):assert value==.25
+        def connect(self,path):raise BlockingIOError(errno.EAGAIN,'Unix backlog is full')
+    monkeypatch.setattr(native_lifecycle.socket,'socket',lambda *args:Connection())
+    assert native_lifecycle.dispatch_status('private.sock') is None
+    def denied(self,path):raise BlockingIOError(errno.EACCES,'Wrong socket authority')
+    monkeypatch.setattr(Connection,'connect',denied)
+    with pytest.raises(BlockingIOError):native_lifecycle.dispatch_status('private.sock')

@@ -5,6 +5,7 @@ results are scored. Complete/failed generation evidence is retained by superviso
 """
 from __future__ import annotations
 import json
+import errno
 import os
 from pathlib import Path
 import signal
@@ -50,6 +51,12 @@ def dispatch_status(socket_path):
             return response['dispatch']
     except (TimeoutError, ConnectionRefusedError, FileNotFoundError):
         return None
+    except BlockingIOError as error:
+        # A serial Unix listener can fill its backlog during active dispatch.
+        # This means status is temporarily unavailable, not that dispatch failed.
+        if error.errno in {errno.EAGAIN, errno.EWOULDBLOCK}:
+            return None
+        raise
 
 
 def completed_dispatch(state, previous, socket_path):
