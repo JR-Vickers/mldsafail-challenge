@@ -212,6 +212,7 @@ def test_failed_startup_proof_is_distinct_and_rejects_uncertain_manager_request(
     base=tmp_path/'owned';provision=owned_daemon.provision(base,unit='mldsafail-cpu-daemon-retire.service',protected_roots=[tmp_path/'protected'])
     worker=tmp_path/('mldsafail-cpu-workers-'+provision['id']+'.slice');worker.mkdir();(worker/'cgroup.procs').write_text('')
     provision.update(worker_birth={'path':str(worker)},operator_domain={'path':str(tmp_path/'operator')},protected_domains=[])
+    owned_daemon.publish(Path(provision['base']['path'])/'provision.json',provision)
     state=dict(id='attempt',worker_slice=worker.name,commands=[dict(kind='daemon_start',state='passed',argv=['systemctl'])],provisioning=provision,daemon_unit=provision['unit'],manifest_path=str(base/'absent-manifest'),socket=str(base/'docker.sock'),units=[dict(path=provision['unit'],sha256='a'*64)])
     monkeypatch.setattr(owned_daemon,'_unit',lambda unit:dict(unit_fragment_sha256='a'*64,ActiveState='failed',MainPID='0',ControlGroup=''))
     monkeypatch.setattr(owned_daemon.subprocess,'check_output',lambda *a,**kw:job_output)
@@ -272,3 +273,121 @@ def test_data_root_transition_never_masks_other_identity_changes(tmp_path,damage
     if damage=='invalid_registered_mode':roots['root_dir']['mode']=0o750
     with pytest.raises(RuntimeError):owned_daemon.verify_root_identities(manifest)
     assert not list(base.glob('root-mode-*.json'))
+
+
+def _startup_socket_fixture(tmp_path,monkeypatch):
+    monkeypatch.setattr(owned_client,'boot_id',lambda:'synthetic-boot')
+    provision=owned_daemon.provision(tmp_path/'owned',unit='mldsafail-cpu-daemon-retire.service',protected_roots=[tmp_path/'protected'])
+    worker=tmp_path/('mldsafail-cpu-workers-'+provision['id']+'.slice')
+    worker.mkdir();(worker/'cgroup.procs').write_text('')
+    provision.update(worker_birth={'path':str(worker)},operator_domain={'path':str(tmp_path/'operator')},protected_domains=[])
+    owned_daemon.publish(Path(provision['base']['path'])/'provision.json',provision)
+    state=dict(worker_slice=worker.name,commands=[dict(kind='daemon_start',state='passed',argv=['systemctl'])],provisioning=provision,daemon_unit=provision['unit'],manifest_path=str(tmp_path/'absent-manifest'),socket=str(tmp_path/'owned/docker.sock'),units=[dict(path=provision['unit'],sha256='a'*64)])
+    monkeypatch.setattr(owned_daemon,'_unit',lambda unit:dict(unit_fragment_sha256='a'*64,ActiveState='failed',MainPID='0',ControlGroup=''))
+    monkeypatch.setattr(owned_daemon.subprocess,'check_output',lambda *a,**kw:b'[]')
+    monkeypatch.setattr(owned_client,'verify_domain',lambda entry:worker)
+    monkeypatch.setattr(owned_client,'populated',lambda domain:False)
+    return state,worker
+
+
+def test_native_endpoint_preflight_accounts_for_internal_suffix_before_mkdir(tmp_path,monkeypatch):
+    monkeypatch.setattr(owned_daemon.sys,'platform','linux')
+    base=tmp_path/('x'*105)
+    with pytest.raises(RuntimeError,match='104-byte'):
+        owned_daemon.provision(base,unit='mldsafail-cpu-daemon-bounds.service',protected_roots=[tmp_path/'protected'])
+    assert not base.exists()
+    owned_daemon._native_endpoint_preflight(Path('/a'))
+    with pytest.raises(RuntimeError,match='104-byte'):
+        owned_daemon._native_endpoint_preflight(Path('/'+'é'*40))
+
+
+@pytest.mark.parametrize('fence',['live','worker','job','fragment','admitted','replacement','intent_failure'])
+def test_stale_socket_retirement_fences_all_authority_before_unlink(monkeypatch,fence):
+    import socket,tempfile,shutil
+    root=Path(tempfile.mkdtemp(prefix='mlds-',dir='/tmp')).resolve();root.chmod(0o700)
+    try:
+        state,worker=_startup_socket_fixture(root,monkeypatch)
+        path=Path(state['socket'])
+        with socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as endpoint:
+            endpoint.bind(str(path))
+            if fence=='live': endpoint.listen(1)
+        if fence=='live':
+            # Keep a real listener alive through the authority probe.
+            path.unlink();listener=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);listener.bind(str(path));listener.listen(1)
+        else: listener=None
+        if fence=='worker': (worker/'cgroup.procs').write_text('123')
+        if fence=='job': monkeypatch.setattr(owned_daemon.subprocess,'check_output',lambda *a,**kw:__import__('json').dumps([dict(unit=state['daemon_unit'])]).encode())
+        if fence=='fragment': state['units'][0]['sha256']='b'*64
+        if fence=='admitted': state['image_load_intent']=True
+        original=owned_daemon.publish
+        def publication(target,value):
+            if value.get('schema')=='mldsafail.owned-daemon-socket-retirement-intent.v1':
+                if fence=='intent_failure': raise OSError('intent durability failure')
+                if fence=='replacement':
+                    path.unlink();path.write_text('replacement')
+            return original(target,value)
+        monkeypatch.setattr(owned_daemon,'publish',publication)
+        receipt=owned_daemon.failed_startup_barrier(state,evidence_directory=root,attempt_id='attempt')
+        assert receipt['startup_shutdown_proven'] is False
+        assert path.exists()
+        if listener: listener.close()
+    finally: shutil.rmtree(root)
+
+
+def test_refused_owned_socket_retirement_is_durable_and_independently_retryable(monkeypatch):
+    import socket,tempfile,shutil,json
+    root=Path(tempfile.mkdtemp(prefix='mlds-',dir='/tmp')).resolve();root.chmod(0o700)
+    try:
+        state,worker=_startup_socket_fixture(root,monkeypatch);path=Path(state['socket'])
+        with socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as endpoint: endpoint.bind(str(path))
+        original=owned_daemon.publish
+        def publication(target,value):
+            if value.get('schema')=='mldsafail.owned-daemon-socket-retirement-intent.v1':
+                assert path.exists()  # Durable intent must precede deletion.
+            return original(target,value)
+        monkeypatch.setattr(owned_daemon,'publish',publication)
+        receipt=owned_daemon.failed_startup_barrier(state,evidence_directory=root,attempt_id='attempt')
+        assert receipt['startup_shutdown_proven'] and not path.exists()
+        retirement=receipt['socket_retirement'];assert retirement['state']=='retired'
+        assert json.loads(Path(retirement['intent_path']).read_text())['socket_identity']==retirement['socket_identity']
+        retry=owned_daemon.failed_startup_barrier(state,evidence_directory=root,attempt_id='attempt')
+        assert retry['startup_shutdown_proven'] and retry['socket_retirement']['state']=='absent'
+    finally: shutil.rmtree(root)
+
+
+def test_retirement_unlink_durability_failure_preserves_negative_and_retry(monkeypatch):
+    import socket,tempfile,shutil,json,stat
+    root=Path(tempfile.mkdtemp(prefix='mlds-',dir='/tmp')).resolve();root.chmod(0o700)
+    try:
+        state,worker=_startup_socket_fixture(root,monkeypatch);path=Path(state['socket'])
+        with socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as endpoint: endpoint.bind(str(path))
+        original=owned_daemon.os.fsync;failed=False
+        def fsync(descriptor):
+            nonlocal failed
+            if not failed and not path.exists() and stat.S_ISDIR(os.fstat(descriptor).st_mode) and os.fstat(descriptor).st_ino==state['provisioning']['base']['inode']:
+                failed=True;raise OSError('unlink directory fsync failed')
+            return original(descriptor)
+        monkeypatch.setattr(owned_daemon.os,'fsync',fsync)
+        receipt=owned_daemon.failed_startup_barrier(state,evidence_directory=root,attempt_id='attempt')
+        assert not receipt['startup_shutdown_proven'] and not path.exists()
+        negative=[p for p in root.glob('*failed-startup*')][0];original_bytes=negative.read_bytes()
+        retry=owned_daemon.failed_startup_barrier(state,evidence_directory=root,attempt_id='attempt')
+        assert retry['startup_shutdown_proven'] and negative.read_bytes()==original_bytes
+        assert json.loads(original_bytes)['errors']
+    finally: shutil.rmtree(root)
+
+
+def test_failed_startup_ambiguous_positive_publication_retracts_original(monkeypatch,tmp_path):
+    import json
+    state,worker=_startup_socket_fixture(tmp_path,monkeypatch)
+    original=owned_daemon.publish;published=[]
+    failure=OSError('after rename failure')
+    def publish(path,value):
+        original(path,value);published.append(Path(path))
+        if value.get('startup_shutdown_proven') is True: raise failure
+    monkeypatch.setattr(owned_daemon,'publish',publish)
+    with pytest.raises(OSError) as caught:
+        owned_daemon.failed_startup_barrier(state,evidence_directory=tmp_path,attempt_id='attempt')
+    assert caught.value is failure
+    receipt=json.loads(published[-1].read_text())
+    assert receipt['startup_shutdown_proven'] is False and receipt['errors'][0]['step']=='publication'

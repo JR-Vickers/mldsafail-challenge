@@ -11,6 +11,8 @@ import re
 import shutil
 import subprocess
 import stat
+import socket as socket_module
+import sys
 import time
 import uuid
 from deploy import owned_client
@@ -67,6 +69,15 @@ def _private_directory(path, *, docker_data=False):
 
 
 
+def _native_endpoint_preflight(base):
+    """Linux Docker/containerd endpoints include their longest internal suffix."""
+    if sys.platform != 'linux': return
+    for relative in ('docker.sock','exec_root/containerd/containerd.sock',
+                     'exec_root/containerd/containerd.sock.ttrpc','rootless_state/api.sock'):
+        if len(os.fsencode(Path(base)/relative)) > 104:
+            raise RuntimeError('Native Unix endpoint exceeds 104-byte bound: '+relative)
+
+
 def provision(base, *, unit, protected_roots):
     """Fresh private roots only; pre-existing daemon/evaluator roots are ineligible."""
     base=_canonical(base)
@@ -79,6 +90,7 @@ def provision(base, *, unit, protected_roots):
         raise RuntimeError('Dedicated daemon roots overlap protected infrastructure')
     if not re.fullmatch('mldsafail-(?:owned|cpu)-daemon-[a-z0-9-]+\\.service',unit):
         raise RuntimeError('Dedicated daemon unit required')
+    _native_endpoint_preflight(base)
     base.mkdir(mode=0o700)  # Existing roots, including prior failed provision, are never reused.
     roots={}
     for name in ('root_dir','exec_root','rootless_state'):
@@ -437,52 +449,115 @@ def restart_and_refresh(manifest, shutdown_receipt, *, manifest_path, client_ent
     return refreshed
 
 
-def failed_startup_barrier(state, *, evidence_directory, attempt_id):
-    """Never-admitted fresh service retirement, distinct from a daemon epoch.
+def _failed_startup_authority(state):
+    if state.get('image_load_intent') or state.get('registered_manifest') or Path(state['manifest_path']).exists():
+        raise RuntimeError('Never-admitted startup proof cannot replace registered daemon barrier')
+    commands=state['commands']
+    if not isinstance(commands,list) or any(not isinstance(row,dict) for row in commands):
+        raise RuntimeError('Exact completed setup command receipts required')
+    if any(row.get('kind')!='read' and row.get('state')!='passed' for row in commands):
+        raise RuntimeError('Uncertain system manager mutation remains fenced')
+    if any(row.get('argv',[None])[0]=='docker' and row.get('kind')!='read' for row in commands):
+        raise RuntimeError('Docker mutation admission forbids startup-only proof')
+    provisioning=state['provisioning'];base=provisioning['base']
+    if provisioning['boot_id']!=owned_client.boot_id() or _private_directory(base['path'])!=base or provisioning['unit']!=state['daemon_unit']:
+        raise RuntimeError('Exact same-boot fresh daemon provisioning required')
+    if read_private_json(Path(base['path'])/'provision.json')!=provisioning:
+        raise RuntimeError('Exact retained provisioning receipt changed')
+    unit=_unit(state['daemon_unit'])
+    fragment=[row for row in state['units'] if Path(row['path']).name==state['daemon_unit']]
+    if len(fragment)!=1 or unit['unit_fragment_sha256']!=fragment[0]['sha256']:
+        raise RuntimeError('Fresh unit fragment identity changed')
+    if unit['ActiveState'] not in {'inactive','failed'} or int(unit['MainPID'])!=0:
+        raise RuntimeError('Never-admitted daemon must be inactive with no leader')
+    raw_jobs=subprocess.check_output(['systemctl','--user','list-jobs','--output=json'],timeout=15)
+    jobs=[] if not raw_jobs.strip() else json.loads(raw_jobs)
+    if not isinstance(jobs,list) or any(row.get('unit')==state['daemon_unit'] for row in jobs):
+        raise RuntimeError('Fresh daemon startup jobs remain pending')
+    group=unit.get('ControlGroup','')
+    if group and (Path('/sys/fs/cgroup')/group.lstrip('/')).exists():
+        raise RuntimeError('Never-admitted daemon cgroup remains present')
+    worker=provisioning['worker_birth']
+    operator=_canonical(provisioning['operator_domain']['path'])
+    managers=[path for path in operator.parents if path.name=='user@'+str(os.getuid())+'.service']
+    if sys.platform=='linux' and (len(managers)!=1 or Path('/sys/fs/cgroup') not in managers[0].parents):
+        raise RuntimeError('Exact native user manager cgroup required')
+    if managers and (managers[0]/'app.slice'/state['daemon_unit']).exists():
+        raise RuntimeError('Exact fresh daemon cgroup remains present')
+    _worker_binding(provisioning,worker,state['worker_slice'],teardown_only=True)
+    domain=owned_client.verify_domain({'cgroup':worker})
+    if domain is not None and (owned_client.populated(domain) or (domain/'cgroup.procs').read_text().strip() or list(domain.rglob('cgroup.procs'))!=[domain/'cgroup.procs']):
+        raise RuntimeError('Exact failed-start worker parent is not empty')
+    socket=_canonical(state['socket'])
+    if socket != Path(base['path'])/'docker.sock':
+        raise RuntimeError('Exact provisioned Docker socket required')
+    return socket,base
 
-    Admissible only when every mutating setup response was durably acknowledged,
-    no Docker mutation/image admission occurred, the exact fresh unit is dead,
-    and the exact empty worker birth remains. Transient rootlesskit deletion is
-    expected on exit and is never used as surviving control authority.
+
+def _socket_identity(path):
+    info=path.lstat()
+    if not stat.S_ISSOCK(info.st_mode) or info.st_uid!=os.getuid():
+        raise RuntimeError('Exact owner Unix socket required')
+    return dict(device=info.st_dev,inode=info.st_ino,uid=info.st_uid,mode=info.st_mode)
+
+
+def _refused_socket(path):
+    with socket_module.socket(socket_module.AF_UNIX,socket_module.SOCK_STREAM) as probe:
+        probe.settimeout(1)
+        try: probe.connect(str(path))
+        except ConnectionRefusedError: return
+        raise RuntimeError('Failed-start socket still accepts connections')
+
+
+def _retire_startup_socket(state, *, evidence_directory, attempt_id):
+    path,base=_failed_startup_authority(state)
+    try: identity=_socket_identity(path)
+    except FileNotFoundError: return dict(state='absent',socket=str(path))
+    _refused_socket(path)
+    intent_path=Path(evidence_directory)/(attempt_id+'-socket-retirement-intent-'+uuid.uuid4().hex+'.json')
+    intent=dict(schema='mldsafail.owned-daemon-socket-retirement-intent.v1',
+                attempt_id=attempt_id,provision_sha256=fingerprint(state['provisioning']),
+                socket=str(path),socket_identity=identity,base=base,boot_id=owned_client.boot_id())
+    publish(intent_path,intent)  # No mutation without durable independent authority.
+    _failed_startup_authority(state)
+    _refused_socket(path)
+    descriptor=os.open(path.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+    try:
+        directory=os.fstat(descriptor)
+        if (directory.st_dev,directory.st_ino,directory.st_uid,directory.st_mode&0o777)!=(base['device'],base['inode'],base['uid'],base['mode']):
+            raise RuntimeError('Private socket base changed before retirement')
+        info=os.stat(path.name,dir_fd=descriptor,follow_symlinks=False)
+        if dict(device=info.st_dev,inode=info.st_ino,uid=info.st_uid,mode=info.st_mode)!=identity:
+            raise RuntimeError('Socket birth changed before retirement')
+        os.unlink(path.name,dir_fd=descriptor)
+        os.fsync(descriptor)
+    finally: os.close(descriptor)
+    _failed_startup_authority(state)
+    if path.exists() or path.is_symlink(): raise RuntimeError('Socket reappeared after retirement')
+    return dict(state='retired',socket=str(path),socket_identity=identity,
+                intent_path=str(intent_path),intent_sha256=fingerprint(intent))
+
+
+def failed_startup_barrier(state, *, evidence_directory, attempt_id):
+    """Retire only a never-admitted dead service and its refused owned socket.
+
+    The controller must serialize maintenance with the provision lease. Every
+    retry creates independent evidence and preserves earlier negative receipts.
     """
-    errors=[]
+    errors=[];retirement=None
     try:
         if not re.fullmatch('[a-zA-Z0-9_-]{1,128}',attempt_id): raise ValueError('Safe attempt identity required')
-        if state.get('image_load_intent') or state.get('registered_manifest') or Path(state['manifest_path']).exists():
-            raise RuntimeError('Never-admitted startup proof cannot replace registered daemon barrier')
-        commands=state['commands']
-        if not isinstance(commands,list) or any(not isinstance(row,dict) for row in commands):
-            raise RuntimeError('Exact completed setup command receipts required')
-        if any(row.get('kind')!='read' and row.get('state')!='passed' for row in commands):
-            raise RuntimeError('Uncertain system manager mutation remains fenced')
-        if any(row.get('argv',[None])[0]=='docker' and row.get('kind')!='read' for row in commands):
-            raise RuntimeError('Docker mutation admission forbids startup-only proof')
-        provisioning=state['provisioning'];base=provisioning['base']
-        if provisioning['boot_id']!=owned_client.boot_id() or _private_directory(base['path'])!=base or provisioning['unit']!=state['daemon_unit']:
-            raise RuntimeError('Exact same-boot fresh daemon provisioning required')
-        unit=_unit(state['daemon_unit'])
-        fragment=[row for row in state['units'] if Path(row['path']).name==state['daemon_unit']]
-        if len(fragment)!=1 or unit['unit_fragment_sha256']!=fragment[0]['sha256']:
-            raise RuntimeError('Fresh unit fragment identity changed')
-        if unit['ActiveState'] not in {'inactive','failed'} or int(unit['MainPID'])!=0:
-            raise RuntimeError('Never-admitted daemon must be inactive with no leader')
-        raw_jobs=subprocess.check_output(['systemctl','--user','list-jobs','--output=json'],timeout=15)
-        jobs=[] if not raw_jobs.strip() else json.loads(raw_jobs)
-        if not isinstance(jobs,list) or any(row.get('unit')==state['daemon_unit'] for row in jobs):
-            raise RuntimeError('Fresh daemon startup jobs remain pending')
-        group=unit.get('ControlGroup','')
-        if group and (Path('/sys/fs/cgroup')/group.lstrip('/')).exists():
-            raise RuntimeError('Never-admitted daemon cgroup remains present')
-        socket=_canonical(state['socket'])
-        if socket.parent!=Path(base['path']) or socket.exists():
-            raise RuntimeError('Fresh private socket must be absent after failed startup')
-        worker=provisioning['worker_birth']
-        _worker_binding(provisioning,worker,state['worker_slice'],teardown_only=True)
-        domain=owned_client.verify_domain({'cgroup':worker})
-        if domain is not None and (owned_client.populated(domain) or list(domain.rglob('cgroup.procs'))!=[domain/'cgroup.procs']):
-            raise RuntimeError('Exact failed-start worker parent is not empty')
-    except BaseException as error:errors.append(dict(step='failed_startup_authority',error=repr(error)))
+        retirement=_retire_startup_socket(state,evidence_directory=evidence_directory,attempt_id=attempt_id)
+    except BaseException as error: errors.append(dict(step='failed_startup_authority',error=repr(error)))
     receipt=dict(schema='mldsafail.owned-daemon-failed-startup.v1',attempt_id=attempt_id,
-        startup_shutdown_proven=not errors,healthy_daemon_registered=False,errors=errors)
-    publish(Path(evidence_directory)/(attempt_id+'-failed-startup-'+uuid.uuid4().hex+'.json'),receipt)
+        startup_shutdown_proven=not errors,healthy_daemon_registered=False,errors=errors,
+        socket_retirement=retirement)
+    path=Path(evidence_directory)/(attempt_id+'-failed-startup-'+uuid.uuid4().hex+'.json')
+    try: publish(path,receipt)
+    except BaseException as original:
+        receipt['startup_shutdown_proven']=False
+        receipt['errors'].append(dict(step='publication',error=repr(original)))
+        try: publish(path,receipt)
+        except BaseException as retry: original.add_note('Negative publication retry failed: '+repr(retry))
+        raise
     return receipt
