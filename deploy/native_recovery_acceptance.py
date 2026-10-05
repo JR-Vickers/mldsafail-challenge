@@ -207,9 +207,24 @@ def cleanup_fixture(root, ownership, results, execution_error=None, owned_child_
         native_service_suite_passed=case_passed and execution_error is None and not errors,
         execution_error=execution_error,
         actual_power_loss_passed=False, actual_connection_loss_passed=False)
-    attempt('cleanup_receipt', lambda: atomic_json(root/(uuid.uuid4().hex+'-cleanup.json'), report))
+    # This intermediate cleanup observation is not the final suite acceptance.
+    cleanup_observation = dict(report, native_service_suite_passed=False,
+                               provisional=True)
+    attempt('cleanup_receipt', lambda: atomic_json(root/(uuid.uuid4().hex+'-cleanup.json'), cleanup_observation))
     report.update(cleanup_complete=not errors, native_service_suite_passed=case_passed and execution_error is None and not errors)
-    atomic_json(root/'results.json', report)
+    try:
+        atomic_json(root/'results.json', report)
+    except BaseException as publication:
+        # Rename can succeed before directory fsync fails. Retract that visible
+        # positive receipt independently without hiding the original error.
+        errors.append({'step':'results_publication','error_type':type(publication).__name__})
+        report.update(cleanup_complete=False, native_service_suite_passed=False,
+                      evidence_publication_failed=True)
+        try:
+            atomic_json(root/'results.json', report)
+        except BaseException as retry:
+            publication.add_note('Negative recovery receipt publication failed: '+repr(retry))
+        raise
     if errors:
         raise RuntimeError('Disposable fixture cleanup incomplete')
     return report

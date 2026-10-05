@@ -169,3 +169,38 @@ def test_owned_fork_cleanup_failure_cannot_publish_successful_native_receipt(tmp
     report=json.loads((tmp_path/'results.json').read_text())
     assert report['cleanup_complete'] is False and report['native_service_suite_passed'] is False
     assert report['cleanup_errors']==[{'step':'owned_fork_quiescence','error_type':'TimeoutError'}]
+
+
+@pytest.mark.parametrize('retry_fails',[False,True])
+def test_final_receipt_rename_then_fsync_failure_retracts_success(tmp_path,monkeypatch,retry_fails):
+    import json
+    from deploy import native_recovery_acceptance as native
+    class Journal:
+        def __init__(self,*args):pass
+        def cleanup(self):pass
+    monkeypatch.setattr(native,'Journal',Journal)
+    monkeypatch.setattr(native,'command',lambda argv:'')
+    actual=native.atomic_json; original=OSError('results directory fsync failed');records=[]
+    def publish(path,value):
+        if path.name=='results.json':
+            records.append(dict(value))
+            if len(records)==1:
+                actual(path,value)
+                raise original
+            if retry_fails:raise OSError('negative receipt write failed')
+        actual(path,value)
+    monkeypatch.setattr(native,'atomic_json',publish)
+    ownership=dict(project='recovery-test-'+'a'*32,source='source',source_script_sha256='script',
+        daemon_fingerprint='daemon',image='immutable')
+    cases=[dict(fault=name,passed=True) for name in ('SIGTERM','SIGKILL','connection_loss','cleanup_failure')]
+    with pytest.raises(OSError) as caught:native.cleanup_fixture(tmp_path,ownership,cases)
+    assert caught.value is original
+    assert len(records)==2 and records[0]['native_service_suite_passed'] is True
+    assert records[1]['native_service_suite_passed'] is False
+    assert records[1]['cleanup_complete'] is False and records[1]['evidence_publication_failed'] is True
+    intermediate=json.loads(next(tmp_path.glob('*-cleanup.json')).read_text())
+    assert intermediate['native_service_suite_passed'] is False and intermediate['provisional'] is True
+    if retry_fails:assert 'Negative recovery receipt publication failed' in original.__notes__[0]
+    else:
+        receipt=json.loads((tmp_path/'results.json').read_text())
+        assert receipt['native_service_suite_passed'] is False and receipt['cleanup_complete'] is False
