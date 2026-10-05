@@ -7,6 +7,7 @@ import dataclasses
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import secrets
 import socket
@@ -77,6 +78,29 @@ def serve_operation(gateway, operation, *, seconds, journal=None, receipt=None):
             else:raise RuntimeError('Private operation cleanup incomplete: '+repr(cleanup_errors))
 
 
+def application_base(journal,name,*,image):
+    rows=json.loads(journal.command(['docker','inspect',name],timeout=30).stdout)
+    if not isinstance(rows,list) or len(rows)!=1 or rows[0].get('Image')!=image or rows[0].get('State',{}).get('Running') is not True:
+        raise ValueError('Exact running application container required')
+    ports=rows[0].get('NetworkSettings',{}).get('Ports',{}).get('8000/tcp')
+    if not isinstance(ports,list) or len(ports)!=1 or ports[0].get('HostIp')!='127.0.0.1':
+        raise ValueError('Loopback-only private application port required')
+    port=ports[0].get('HostPort')
+    if not isinstance(port,str) or not port.isdecimal() or not 1<=int(port)<=65535:
+        raise ValueError('Actual private application host port required')
+    return 'http://127.0.0.1:'+port
+
+
+def restoration_query(table_names,*,normalize_auth_timestamps=False):
+    if not table_names or len(set(table_names))!=len(table_names) or any(not re.fullmatch('[a-z][a-z0-9_]{0,62}',name) for name in table_names):
+        raise ValueError('Fixed unique ORM public table inventory required')
+    rows=[]
+    for name in sorted(table_names):
+        value="to_jsonb(t) - 'last_used_at'" if normalize_auth_timestamps and name=='api_tokens' else 'to_jsonb(t)'
+        rows.extend(["'"+name+"'","(SELECT coalesce(jsonb_agg("+value+" ORDER BY ("+value+")::text),'[]'::jsonb) FROM "+name+" t)"])
+    return "SELECT jsonb_build_object('schema',(SELECT jsonb_agg(jsonb_build_array(table_name,column_name,data_type,is_nullable,column_default) ORDER BY table_name,ordinal_position) FROM information_schema.columns WHERE table_schema='public'),'tables',jsonb_build_object("+','.join(rows)+"))"
+
+
 def callback(journal,config,data):
     protocol=owned_daemon.read_private_json(journal.path.parent.parent/'candidate-image-protocol.json')
     if protocol.get('schema')!='mldsafail.private-candidate-image-protocol.v1':
@@ -85,12 +109,22 @@ def callback(journal,config,data):
         expected_image=config['image'],expected_archive_sha256=config['image_archive_sha256'],
         supervisor_source_sha256=config['supervisor_source_sha256'],loaded_images=data['loaded_images'])
     application=require_image(journal,protocol['application_artifact'],expected_source=config['source_commit'],loaded_images=data['loaded_images'])
-    def images(*args):return application_rehearsal(*args,application_image=application['image'])
+    rollback=None
+    fields={'rollback_application_artifact','rollback_application_source_commit'}
+    if fields.intersection(protocol):
+        if not fields.issubset(protocol) or not re.fullmatch('[0-9a-f]{40}',protocol['rollback_application_source_commit']):
+            raise ValueError('Complete separately identified prior candidate source required')
+        if protocol['rollback_application_source_commit']==config['source_commit']:
+            raise ValueError('Prior application source must differ from forward source')
+        rollback=require_image(journal,protocol['rollback_application_artifact'],
+            expected_source=protocol['rollback_application_source_commit'],loaded_images=data['loaded_images'])
+        if rollback['image']==application['image']:raise ValueError('Rollback must use a distinct immutable application image')
+    def images(*args):return application_rehearsal(*args,application_image=application['image'],rollback_artifact=rollback)
     return native_acceptance.callback(journal,config,data,retained_worker=worker,application_rehearsal=images)
 
 
 def application_rehearsal(journal,config,data,protocol,root,backend,cohort,candidate_authority,cases,
-                          prepared,authority,reference_key,epoch_hash,*,application_image):
+                          prepared,authority,reference_key,epoch_hash,*,application_image,rollback_artifact=None):
     """Separate daemon and CPU domains for database/apps versus measured worker."""
     from sqlalchemy import create_engine,select
     from sqlalchemy.orm import Session
@@ -104,8 +138,11 @@ def application_rehearsal(journal,config,data,protocol,root,backend,cohort,candi
     pg=dict(protocol['postgres_artifact'])
     if set(pg)!={'image','image_archive','image_archive_sha256'}:
         raise ValueError('Exact separate PostgreSQL artifact required')
-    additional=[row for row in config.get('additional_images',[]) if row['image']==application_image]
-    if len(additional)!=1:raise ValueError('Exactly one retained private application archive required')
+    application_images={application_image}
+    if rollback_artifact is not None:application_images.add(rollback_artifact['image'])
+    additional=[row for row in config.get('additional_images',[]) if row['image'] in application_images]
+    if len(additional)!=len(application_images) or {row['image'] for row in additional}!=application_images:
+        raise ValueError('Exactly one retained archive for every distinct application image required')
     inner=dict(config,**pg,state_root=str(root/'application-context'),additional_images=additional)
     inner['protected_roots']=config['protected_roots']+[v['path'] for v in outer['roots'].values()]
     inner['protected_cgroups']=config['protected_cgroups']+[outer['domain']['path'],outer['worker_domain']['path']]
@@ -117,6 +154,9 @@ def application_rehearsal(journal,config,data,protocol,root,backend,cohort,candi
         try:
             domain=owned_daemon.load_manifest(inner_data['manifest_path'])['worker_domain']
             network='candidate-'+inner_data['id'];db=network+'-db';web=network+'-web';coordinator=network+'-coordinator'
+            inspected=json.loads(inner_journal.command(['docker','image','inspect',pg['image']],timeout=30).stdout)[0]
+            if inspected.get('Id')!=pg['image'] or set(inspected.get('Config',{}).get('Volumes') or {})-{'/var/lib/postgresql/data'}:
+                raise ValueError('Exact PostgreSQL image with accounted data mount required')
             inner_journal.command(['docker','network','create',network],kind='network_create',timeout=30)
             inner_journal.command(['docker','run','-d','--name',db,'--network',network,'--network-alias','database',
                 '--cgroup-parent',inner_data['worker_slice'],'--pids-limit','128','--memory','384m',
@@ -133,7 +173,7 @@ def application_rehearsal(journal,config,data,protocol,root,backend,cohort,candi
             Base.metadata.create_all(engine)
             with Session(engine) as database:
                 user=User(display_name='Private native image rehearsal');database.add(user);database.commit()
-                _,token=create_api_token(database,user,'private-image')
+                _,token=create_api_token(database,user,'private-image');expected_user_id=user.id
             signing_key=secrets.token_bytes(32)
             def run_source(contestant,checkpoint):
                 saved={name:os.environ.get(name) for name in names}
@@ -163,9 +203,7 @@ def application_rehearsal(journal,config,data,protocol,root,backend,cohort,candi
                 if role=='web':args[2:2]=['-p','127.0.0.1::8000']
                 inner_journal.command(args,kind='application_create',timeout=60)
             inner_journal.command(['docker','start',web],kind='application_start',timeout=60)
-            ports=json.loads(inner_journal.command(['docker','inspect',web],timeout=30).stdout)[0]['NetworkSettings']['Ports']['8000/tcp']
-            if len(ports)!=1 or ports[0]['HostIp']!='127.0.0.1':raise RuntimeError('Loopback-only candidate website')
-            base='http://127.0.0.1:'+ports[0]['HostPort']
+            base=application_base(inner_journal,web,image=application_image)
             def readiness(cancel):
                 expires=time.monotonic()+60
                 while time.monotonic()<expires and not cancel.is_set():
@@ -222,6 +260,9 @@ def application_rehearsal(journal,config,data,protocol,root,backend,cohort,candi
             if candidate.json()['benchmark_version']!='0.6.0' or len(candidate.json()['leaderboard'])!=1 or legacy.json()['benchmark_version']!='0.5.0' or legacy.json()['leaderboard']!=[]:
                 raise RuntimeError('Private candidate leaderboard isolation failed')
             if requests.get(base+'/api/v1/me',timeout=10).status_code!=401:raise RuntimeError('Unauthenticated private identity access')
+            identity=requests.get(base+'/api/v1/me',headers=headers,timeout=10)
+            identity.raise_for_status()
+            if identity.json()['id']!=expected_user_id:raise RuntimeError('Authenticated identity mismatch')
             rendered=json.dumps(candidate.json())
             if any(value in rendered for value in (token,str(root),epoch_hash,reference_key.hex(),signing_key.hex())):
                 raise RuntimeError('Host-private authority leaked through participant API')
@@ -229,26 +270,77 @@ def application_rehearsal(journal,config,data,protocol,root,backend,cohort,candi
             dump=root/'rehearsal.dump'
             inner_journal.command(['docker','cp',db+':/tmp/rehearsal.dump',str(dump)],kind='database_backup',timeout=60)
             os.chmod(dump,0o400)
-            inner_journal.command(['docker','exec',db,'createdb','-U','postgres','restored'],kind='database_restore',timeout=30)
-            inner_journal.command(['docker','exec',db,'pg_restore','-U','postgres','--exit-on-error','-d','restored','/tmp/rehearsal.dump'],kind='database_restore',timeout=60)
-            restored=create_engine('postgresql+psycopg://postgres@127.0.0.1:'+database_port+'/restored')
-            try:
-                with Session(restored) as database:
-                    rows=list(database.scalars(select(ExperimentResult)))
-                    if len(rows)!=1 or rows[0].mlwe_score!=expected_score or rows[0].epoch_id!=cohort.epoch_id:
-                        raise RuntimeError('Fresh isolated database restoration changed accepted result')
-            finally:restored.dispose()
+            restore_name=network+'-restore'
+            inner_journal.command(['docker','run','-d','--name',restore_name,'--network','none',
+                '--cgroup-parent',inner_data['worker_slice'],'--pids-limit','128','--memory','384m',
+                '--tmpfs','/var/lib/postgresql/data:size=256m','-e','POSTGRES_HOST_AUTH_METHOD=trust',pg['image']],
+                kind='database_restore_start',timeout=90)
+            expires=time.monotonic()+60
+            while inner_journal.command(['docker','exec',restore_name,'pg_isready','-U','postgres'],check=False,timeout=10).returncode:
+                if time.monotonic()>expires:raise TimeoutError('Independent restore PostgreSQL readiness')
+                time.sleep(.2)
+            inner_journal.command(['docker','cp',str(dump),restore_name+':/tmp/rehearsal.dump'],kind='database_restore',timeout=60)
+            inner_journal.command(['docker','exec',restore_name,'pg_restore','-U','postgres','--exit-on-error','-d','postgres','/tmp/rehearsal.dump'],kind='database_restore',timeout=60)
+            # Network-none restored PG is accessed via native psql JSON queries;
+            # schema and public accepted records are compared to the untouched DB.
+            def state(container,*,normalize_auth_timestamps=False):
+                query=restoration_query(list(Base.metadata.tables),normalize_auth_timestamps=normalize_auth_timestamps)
+                return json.loads(inner_journal.command(['docker','exec',container,'psql','-U','postgres','-d','postgres','-At','-c',query],timeout=30).stdout)
+            if state(db)!=state(restore_name):raise RuntimeError('Isolated PostgreSQL restore changed schema or accepted result identities')
             # Restart is explicitly recorded as restart, never mislabeled rollback.
             inner_journal.command(['docker','stop','--time','10',web],kind='application_stop',timeout=30)
             inner_journal.command(['docker','start',web],kind='application_start',timeout=30)
+            base=application_base(inner_journal,web,image=application_image)
             serve_operation(gateway,readiness,seconds=65,journal=inner_journal,receipt=root/(secrets.token_hex(16)+'-io.json'))
             repeated=requests.get(base+'/api/v1/leaderboard?benchmark_version=0.6.0',headers=headers,timeout=10)
             repeated.raise_for_status()
             if repeated.json()!=candidate.json():raise RuntimeError('Application restart changed accepted leaderboard')
+            def verify_views(address):
+                me=requests.get(address+'/api/v1/me',headers=headers,timeout=10)
+                me.raise_for_status()
+                if me.json()['id']!=expected_user_id or requests.get(address+'/api/v1/me',timeout=10).status_code!=401:
+                    raise RuntimeError('Application switch changed authentication')
+                legacy_view=requests.get(address+'/api/v1/leaderboard',headers=headers,timeout=10)
+                legacy_view.raise_for_status()
+                if legacy_view.json()!=legacy.json():raise RuntimeError('Application switch changed default cohort')
+            rollback_passed=False
+            if rollback_artifact is not None:
+                baseline_state=state(db,normalize_auth_timestamps=True)
+                prior=network+'-rollback'
+                args=application_create(name=prior,image=rollback_artifact['image'],role='web',network=network,
+                    application_parent=inner_data['worker_slice'],gateway_root=gateway.shared,config_path=mounted,work_root=work)
+                args[2:2]=['-p','127.0.0.1::8000']
+                inner_journal.command(args,kind='application_rollback_create',timeout=60)
+                # Durable intent predates every service-state mutation; exact IDs
+                # are retained even if either switch or HTTP verification fails.
+                owned_daemon.publish(root/'application-switch.json',dict(schema='mldsafail.private-candidate-switch.v1',
+                    state='rollback_intent',passed=False,forward_image=application_image,
+                    rollback_image=rollback_artifact['image'],rollback_source_commit=rollback_artifact['source_commit']))
+                inner_journal.command(['docker','stop','--time','10',web],kind='application_stop',timeout=30)
+                inner_journal.command(['docker','start',prior],kind='application_rollback_start',timeout=30)
+                base=application_base(inner_journal,prior,image=rollback_artifact['image'])
+                serve_operation(gateway,readiness,seconds=65,journal=inner_journal,receipt=root/(secrets.token_hex(16)+'-io.json'))
+                verify_views(base)
+                response=requests.get(base+'/api/v1/leaderboard?benchmark_version=0.6.0',headers=headers,timeout=10)
+                response.raise_for_status()
+                if response.json()!=candidate.json() or state(db,normalize_auth_timestamps=True)!=baseline_state:raise RuntimeError('Prior image changed accepted data or candidate cohort')
+                inner_journal.command(['docker','stop','--time','10',prior],kind='application_rollback_stop',timeout=30)
+                inner_journal.command(['docker','start',web],kind='application_forward_start',timeout=30)
+                base=application_base(inner_journal,web,image=application_image)
+                serve_operation(gateway,readiness,seconds=65,journal=inner_journal,receipt=root/(secrets.token_hex(16)+'-io.json'))
+                verify_views(base)
+                response=requests.get(base+'/api/v1/leaderboard?benchmark_version=0.6.0',headers=headers,timeout=10)
+                response.raise_for_status()
+                if response.json()!=candidate.json() or state(db,normalize_auth_timestamps=True)!=baseline_state:raise RuntimeError('Application forward switch changed accepted data or cohort')
+                owned_daemon.publish(root/'application-switch.json',dict(schema='mldsafail.private-candidate-switch.v1',
+                    state='forward_verified',passed=True,forward_image=application_image,
+                    rollback_image=rollback_artifact['image'],rollback_source_commit=rollback_artifact['source_commit'],
+                    data_preserved=True,migrations_invoked=False,live_database_restored=False))
+                rollback_passed=True
             application.update(native_executed=True,behavior_passed=True,application_image=application_image,
                 application_source_commit=config['source_commit'],actual_installed_cli=True,container_coordinator=True,
                 main_thread_host_evaluation=True,signed_result_verified=True,cohort_isolation=True,
-                disposable_database_restoration=True,application_restart=True,application_rollback_passed=False,
+                disposable_database_restoration=True,application_restart=True,application_rollback_passed=rollback_passed,
                 independent_recovery_acceptance_passed=False,contract_adopted=False,default_changed=False,
                 participant_wheel_sha256=hashlib.sha256(wheels[0].read_bytes()).hexdigest(),
                 dump_sha256=hashlib.sha256(dump.read_bytes()).hexdigest(),submission_id=submission_id)

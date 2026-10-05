@@ -26,12 +26,25 @@ The host independently checks the signed result, accepted database record,
 authentication and separate default 0.5.0 and candidate 0.6.0 leaderboards.
 
 An encrypted off-host recovery gate is not implied. The callback retains a
-custom-format dump, restores it into a fresh disposable database, and verifies
-accepted result identity. It also restarts the exact application image and checks
+custom-format dump, restores it into a separate network-none PostgreSQL
+container, and compares every ORM table and public schema to the original
+disposable database. It also restarts the exact application image and checks
 leaderboard preservation. This is explicitly an application restart, not a
-rollback: `application_rollback_passed` and
-`independent_recovery_acceptance_passed` remain false. Those separate launch gates
-must be supplied by their own native acceptance routines.
+rollback. Without a separately identified prior candidate image,
+`application_rollback_passed` remains false.
+`independent_recovery_acceptance_passed` remains false in either case. If `rollback_application_artifact` and `rollback_application_source_commit`
+are supplied together in the image protocol, the callback additionally validates
+a separately source-bound prior inert candidate image. Its source commit and
+immutable image must both differ from the forward image; a frozen staging image
+cannot substitute for that candidate artifact. Both archives must be preloaded.
+The callback stops the current web image, starts the prior image, verifies
+authentication, default/candidate cohorts and all retained database state, then
+forwards the original image and repeats verification. It invokes no migrations
+and never restores the original database. Only API-token `last_used_at` is
+normalized during these authenticated switch comparisons; fresh restoration
+compares every field exactly. Actual rollback acceptance stays false unless this
+entire native sequence completes. Independent recovery acceptance still requires
+its own native gate.
 
 Every inner context must complete the owned driver's whole-daemon cleanup;
 application disposition publication and host environment restoration are

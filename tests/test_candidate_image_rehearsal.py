@@ -97,3 +97,59 @@ def test_surviving_io_thread_retains_negative_lifecycle(monkeypatch,tmp_path):
         monkeypatch.undo()
         release.set()
         assert finished.wait(2)
+
+
+def test_application_port_and_immutable_identity_are_rechecked_after_switch():
+    import json
+    from candidate_runtime.rehearsal import application_base
+    image='sha256:'+'a'*64
+    row={'Image':image,'State':{'Running':True},'NetworkSettings':{'Ports':{'8000/tcp':[{'HostIp':'127.0.0.1','HostPort':'32123'}]}}}
+    journal=SimpleNamespace(command=lambda *args,**kwargs:SimpleNamespace(stdout=json.dumps([row])))
+    assert application_base(journal,'owned',image=image)=='http://127.0.0.1:32123'
+    row['NetworkSettings']['Ports']['8000/tcp'][0]['HostPort']='32124'
+    assert application_base(journal,'owned',image=image)=='http://127.0.0.1:32124'
+    row['NetworkSettings']['Ports']['8000/tcp'][0]['HostIp']='0.0.0.0'
+    with pytest.raises(ValueError,match='Loopback-only'):application_base(journal,'owned',image=image)
+    row['NetworkSettings']['Ports']['8000/tcp'][0]['HostIp']='127.0.0.1'
+    row['Image']='sha256:'+'b'*64
+    with pytest.raises(ValueError,match='Exact running'):application_base(journal,'owned',image=image)
+
+
+def test_restoration_query_limits_normalization_to_declared_auth_timestamp():
+    from candidate_runtime.rehearsal import restoration_query
+    exact=restoration_query(['api_tokens','experiment_results'])
+    normalized=restoration_query(['api_tokens','experiment_results'],normalize_auth_timestamps=True)
+    assert "to_jsonb(t) - 'last_used_at'" not in exact
+    assert normalized.count("to_jsonb(t) - 'last_used_at'")==2
+    assert 'FROM experiment_results t' in normalized and 'FROM api_tokens t' in normalized
+    with pytest.raises(ValueError):restoration_query(['users; DROP TABLE users'])
+    with pytest.raises(ValueError):restoration_query(['users','users'])
+
+
+@pytest.mark.parametrize('prior',[
+    {'rollback_application_artifact':'private'},
+    {'rollback_application_source_commit':'b'*40},
+    {'rollback_application_artifact':'private','rollback_application_source_commit':'not-a-commit'},
+    {'rollback_application_artifact':'private','rollback_application_source_commit':'a'*40},
+])
+def test_rollback_admission_rejects_incomplete_or_same_source(monkeypatch,prior):
+    from candidate_runtime import rehearsal
+    protocol=dict(schema='mldsafail.private-candidate-image-protocol.v1',worker_artifact='worker',prerequisites='prerequisites',application_artifact='current',**prior)
+    monkeypatch.setattr(rehearsal.owned_daemon,'read_private_json',lambda path:protocol)
+    monkeypatch.setattr(rehearsal,'accepted_worker',lambda *args,**kwargs:{'image':'sha256:'+'c'*64})
+    monkeypatch.setattr(rehearsal,'require_image',lambda *args,**kwargs:{'image':'sha256:'+'d'*64})
+    journal=SimpleNamespace(path=__import__('pathlib').Path('/private/state/journal.json'))
+    config={'source_commit':'a'*40,'image':'sha256:'+'c'*64,'image_archive_sha256':'e'*64,'supervisor_source_sha256':'f'*64}
+    with pytest.raises(ValueError):rehearsal.callback(journal,config,{'loaded_images':[config['image']]})
+
+
+def test_rollback_admission_rejects_same_immutable_image(monkeypatch):
+    from candidate_runtime import rehearsal
+    protocol=dict(schema='mldsafail.private-candidate-image-protocol.v1',worker_artifact='worker',prerequisites='prerequisites',application_artifact='current',
+        rollback_application_artifact='prior',rollback_application_source_commit='b'*40)
+    monkeypatch.setattr(rehearsal.owned_daemon,'read_private_json',lambda path:protocol)
+    monkeypatch.setattr(rehearsal,'accepted_worker',lambda *args,**kwargs:{'image':'sha256:'+'c'*64})
+    monkeypatch.setattr(rehearsal,'require_image',lambda *args,**kwargs:{'image':'sha256:'+'d'*64})
+    journal=SimpleNamespace(path=__import__('pathlib').Path('/private/state/journal.json'))
+    config={'source_commit':'a'*40,'image':'sha256:'+'c'*64,'image_archive_sha256':'e'*64,'supervisor_source_sha256':'f'*64}
+    with pytest.raises(ValueError,match='distinct immutable'):rehearsal.callback(journal,config,{'loaded_images':[config['image']]})
