@@ -2842,7 +2842,7 @@
       "criteria": [
         "Tampered worker/source/reference identities rejected; independent re-review and focused tests pass"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "source_commit": "6f24d40e10a11d3af6f0e98b6990199e5df02077",
@@ -2850,9 +2850,18 @@
           "result": "Reference image/source equality finding requires repair"
         }
       ],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Repair trusted expected-identity validation; repeat independent review",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/operator-source-reconciliation/report.json#/source_assertions/reference_identity_repair_passed",
+          "criteria_met": [
+            "Tampered worker/source/reference identities rejected; independent re-review and focused tests pass"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "f97f147b728b460884bfefa17e3aebd7d4b87a47"
+      },
+      "next_action": "Source complete; execute independently tracked native descendants",
       "checklist": []
     },
     {
@@ -3112,16 +3121,25 @@
       "criteria": [
         "Source-bound compatibility test proves unsupported0.6 rejected before POST, with zero legacy jobs created"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "protocol": "Prevent explicit proposed0.6 submission from silently queuing legacy0.5 work on an old server",
           "result": "corrective source preparation and independent review in progress"
         }
       ],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Complete exact source verification; preserve earlier findings and failures",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/integrated-candidate-source-review.json#/cli_capability_preflight_passed",
+          "criteria_met": [
+            "Source-bound compatibility test proves unsupported0.6 rejected before POST, with zero legacy jobs created"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "cda2f27c249a05e79307771ef3a763cda10f099e"
+      },
+      "next_action": "Reviewed source complete; execute separately tracked exact native gates",
       "checklist": []
     },
     {
@@ -3238,7 +3256,8 @@
         "user-plan"
       ],
       "dependencies": [
-        "postgres-native-admission"
+        "postgres-native-admission",
+        "administrative-controls-source"
       ],
       "environment": "disposable native PostgreSQL",
       "criteria": [
@@ -3258,7 +3277,8 @@
         "user-plan"
       ],
       "dependencies": [
-        "postgres-native-admission"
+        "postgres-native-admission",
+        "administrative-controls-source"
       ],
       "environment": "disposable native PostgreSQL and owned evaluator",
       "criteria": [
@@ -3430,11 +3450,20 @@
       "criteria": [
         "Private application-to-host runtime with durable registration, lost-response reconciliation and restart fencing"
       ],
-      "status": "ready",
+      "status": "passed",
       "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/private-candidate-source-review.json#/source_review_passed",
+          "criteria_met": [
+            "Private application-to-host runtime with durable registration, lost-response reconciliation and restart fencing"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "cda2f27c249a05e79307771ef3a763cda10f099e"
+      },
+      "next_action": "Execute separate image deployment and native acceptance; rollback/recovery engineering continues independently",
       "checklist": []
     },
     {
@@ -3450,11 +3479,20 @@
       "criteria": [
         "Independent private runtime and image boundary review"
       ],
-      "status": "waiting_dependency",
+      "status": "passed",
       "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/integrated-candidate-source-review.json#/candidate_runtime_review_passed",
+          "criteria_met": [
+            "Independent private runtime and image boundary review"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "cda2f27c249a05e79307771ef3a763cda10f099e"
+      },
+      "next_action": "Reviewed source complete; execute separately tracked exact native gates",
       "checklist": []
     },
     {
@@ -3470,7 +3508,7 @@
       "criteria": [
         "Build retained private candidate web and coordinator images from reviewed runtime"
       ],
-      "status": "waiting_dependency",
+      "status": "ready",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3549,11 +3587,20 @@
       "criteria": [
         "Native recovery Journal lost Docker create/start acknowledgement quiescence and reconciliation tooling"
       ],
-      "status": "ready",
+      "status": "passed",
       "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/operator-source-reconciliation/report.json#/source_assertions/recovery_rpc_lost_ack_tooling_passed",
+          "criteria_met": [
+            "Native recovery Journal lost Docker create/start acknowledgement quiescence and reconciliation tooling"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "f97f147b728b460884bfefa17e3aebd7d4b87a47"
+      },
+      "next_action": "Source complete; execute independently tracked native descendants",
       "checklist": []
     },
     {
@@ -3569,7 +3616,7 @@
       "criteria": [
         "Execute recovery Journal lost acknowledgement faults with positive executor quiescence and cleanup"
       ],
-      "status": "waiting_dependency",
+      "status": "ready",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3711,6 +3758,34 @@
         "source_commit": "b0421cdcda842e4dd6c4b43fafd90541a7ae0cd2"
       },
       "next_action": "Complete within declared evidence scope",
+      "checklist": []
+    },
+    {
+      "id": "administrative-controls-source",
+      "requirement": "Audited privileged local operator token revocation and queued/running cancellation with daily admission and cleanup fencing tests",
+      "sources": [
+        "user-plan",
+        "docs/ADMINISTRATIVE_CONTROLS.md"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Independent source review and local verification of administrative controls and declared native five-test protocol"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/source-verification-20261005.json#/source_review_passed",
+          "criteria_met": [
+            "Independent source review and local verification of administrative controls and declared native five-test protocol"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "10da7cc6eaca95a3372edaf708f6b5c457f3321a"
+      },
+      "next_action": "Execute five actual native PostgreSQL tests on exact retained source",
       "checklist": []
     }
   ],

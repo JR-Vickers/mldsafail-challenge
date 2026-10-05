@@ -1,0 +1,30 @@
+{
+  "schema": "mldsafail.private-candidate-source-review.v1",
+  "source_commit": "cda2f27c249a05e79307771ef3a763cda10f099e",
+  "author_source_commit": "e25a8686aa39ca7e01f370cabbb1016de4433868",
+  "source_review_passed": true,
+  "local_verification_passed": true,
+  "make_check_passed_count": 848,
+  "make_check_skipped_count": 13,
+  "independent_review_tests_passed": 19,
+  "native_acceptance_passed": false,
+  "scope": "Durable registration, lost response lookup, restart fencing, private socket-only evidence boundary, immutable daemon environment and bounded owned I/O cleanup",
+  "pending_native_gates": [
+    "image deployment",
+    "full evaluation",
+    "application rollback and forward",
+    "distinct-container recovery"
+  ],
+  "file_sha256": {
+    "candidate_runtime/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "candidate_runtime/__main__.py": "d26e7de7864010ceeb7985412266f8dcc2ce69724325b8d77de6a937bb1a3ddb",
+    "candidate_runtime/client.py": "479c4bd74d07b8d4abe194dc7f87a22d40cca54acd71df679a6c7e442289f406",
+    "candidate_runtime/config.py": "aa128c9bf42175791c393c0d3b44c296b7e2591ca702654873962e27f289e0df",
+    "candidate_runtime/gateway.py": "75ecf4af947e95b2641234369b58d2e6503bc1a9f186a683d141f77db89d27bd",
+    "candidate_runtime/image_artifact.py": "297bfb14c69822a8a83fbbe84a6d5223ec770ce2c14dff04ef373f3a57b18bb0",
+    "candidate_runtime/native.py": "34c2362893db36b4087048b5f6b1d99025cb9e359a932e5744d70c386e2ab836",
+    "candidate_runtime/protocol.py": "7f23933392ac26caaa5c3be5addbd0affe982a6e14c0614785b362de0cc3e9b2",
+    "candidate_runtime/rehearsal.py": "5d6ef0093aa3fd58a2e67f85db701cdeb0fc36b5700ad67c0f856a27cbab949d",
+    "candidate_runtime/worker_artifact.py": "6783ced382638cc5c6aa6b6aec47b244b111cdb8f263153621b0ec485d7c66e0"
+  }
+}
