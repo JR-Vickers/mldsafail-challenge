@@ -1,0 +1,27 @@
+{
+  "schema": "mldsafail.native-cpu-generation.v1",
+  "source_commit": "e4b8669aa1eb1e242e1fda5a6564669054ebad9d",
+  "supervisor_source_sha256": "f3e7608cf7148891146b5b5ee80d282eab14a1789ef82b334b079539b9728369",
+  "worker_image": "sha256:c5c35eb224f77fe84caa977e18a73d10a710366090fa7ad88e9eb21cde9a74cc",
+  "native_executed": true,
+  "passed": false,
+  "native_fault_suite_passed": false,
+  "pairs_started": false,
+  "completed_faults_before_failure": 8,
+  "failure_type": "BlockingIOError",
+  "failure": "Bounded private supervisor status connect failed with EAGAIN while serial listener backlog was full; observer terminated dispatch during pre-admission",
+  "diagnostic_limitation": "Shutdown KeyboardInterrupt receipt does not prove evaluation itself stalled; original lifecycle30second deadline and all measurement thresholds remain unchanged",
+  "whole_owned_cleanup_verified": true,
+  "independent_all_owned_domains_absent": true,
+  "raw_sha256": {
+    "operator": "1581e50b7c80c47fa37beb2d7f1f5160c491af1ddb687175a81cb5982057fc26",
+    "driver": "f1cc1b7d80618cf3c92571e97572b0e475abc5dda16f17f2a5fadc2237f5a1f2",
+    "fault_report": "27f03be6fc0a5d000c6b57b0c495eac08c513b50ec2f4de7b7c437c6196036c6",
+    "dispatch": "4d56f00fff387edd52bac1bc18003eb83bb90a60304f7519a60e33fe8e6331cf"
+  },
+  "corrective_source_commit": "d63d2504b4ba60c7d0d45b5306cb3d7525da5baa",
+  "corrective_review_passed": true,
+  "corrective_focused_tests_passed": 8,
+  "thresholds_changed": false,
+  "evidence_reference": "protected native CPU generationJ"
+}
