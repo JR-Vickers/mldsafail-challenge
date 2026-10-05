@@ -118,7 +118,9 @@ class Operator:
         return json.loads(self.command(['docker','inspect',*ids])) if ids else []
 
     def identity(self):
-        release=owned_daemon.read_private_json(self.c['release_manifest'])
+        # Retained release manifests include the complete source-file inventory.
+        # Keep reads bounded while admitting the reviewed native manifest.
+        release=owned_daemon.read_private_json(self.c['release_manifest'],cap=1024*1024)
         require(release['source_commit']==SOURCE,'Compatible retained application source required')
         images=self.containers()
         for role in ('web','coordinator'):
@@ -269,7 +271,17 @@ class Operator:
                     self.wait_state(lambda row:row['job_status'] in {'complete','failed'},identifier,time.monotonic()+90)
             require(self.guard(),'Cleanup queue/resources not idle')
             require(not [row for row in self.containers() if row['Name'].startswith('/mlwe-')],'Worker remains after cleanup')
-            require(self.identity()==self.j['identity'],'Cleanup identity changed')
+            current=self.identity()
+            if 'identity' in self.j:
+                require(current==self.j['identity'],'Cleanup identity changed')
+            else:
+                require(self.j.get('state')=='prepared'
+                    and not self.j.get('submission_intent')
+                    and not self.j.get('measurement_started_at'),
+                    'Missing initial identity after admission remains fenced')
+                # No evaluation or measurement was admitted. Record the actual
+                # release-bound identity solely as a cleanup observation.
+                self.j['pre_admission_cleanup_identity']=current
         except BaseException as error:errors.append(type(error).__name__)
         for entry in list(self.j['clients']):
             try:owned_client.stop(entry)

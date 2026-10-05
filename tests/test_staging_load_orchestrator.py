@@ -112,7 +112,7 @@ def health_inventory(value,monkeypatch):
     from scripts.staging_load_orchestrator import SOURCE
     value.c.update(web_container='web',coordinator_container='coordinator',database_container='db',
         service_images={name:name+'-image' for name in ('web','db','coordinator','proxy')},release_manifest='private')
-    monkeypatch.setattr(owned_daemon,'read_private_json',lambda path:{'source_commit':SOURCE,
+    monkeypatch.setattr(owned_daemon,'read_private_json',lambda path,**kwargs:{'source_commit':SOURCE,
         'images':{role:{'id':role+'-image'} for role in ('web','coordinator','worker')}})
     rows=[{'Name':'/'+name,'Image':image,'State':{'Running':True},'Config':{}} for name,image in value.c['service_images'].items()]
     for row in rows[:2]:row['Config']['Healthcheck']={'Test':['CMD','true']};row['State']['Health']={'Status':'healthy'}
@@ -139,3 +139,33 @@ def test_web_database_missing_required_health_is_rejected(tmp_path,monkeypatch,i
     value=operator(tmp_path);rows,_=health_inventory(value,monkeypatch)
     rows[index]['State'].pop('Health')
     with pytest.raises(RuntimeError,match='Health missing'):value.identity()
+
+
+def test_pre_admission_failure_can_reconcile_without_initial_identity(tmp_path):
+    value=operator(tmp_path);cleanup_ready(value)
+    value.j.pop('identity');value.j.update(state='prepared',passed=False)
+    assert value.cleanup() is True
+    assert value.j['pre_admission_cleanup_identity']=={'epoch':'unchanged'}
+    assert value.j['passed'] is False and 'identity' not in value.j
+
+
+@pytest.mark.parametrize('admitted',[{'state':'preflight_passed'},
+    {'state':'prepared','submission_intent':{'key':'unknown'}},
+    {'state':'prepared','measurement_started_at':1}])
+def test_missing_identity_after_admission_remains_fenced(tmp_path,admitted):
+    value=operator(tmp_path);cleanup_ready(value);value.j.pop('identity');value.j.update(admitted)
+    assert value.cleanup() is False
+    assert value.j['passed'] is False
+
+
+def test_retained_source_inventory_manifest_over_default_receipt_cap(tmp_path,monkeypatch):
+    from scripts.staging_load_orchestrator import SOURCE
+    from deploy import owned_daemon
+    value=operator(tmp_path);rows,_=health_inventory(value,monkeypatch)
+    monkeypatch.undo()
+    release={'source_commit':SOURCE,'images':{role:{'id':role+'-image'} for role in ('web','coordinator','worker')},
+        'files':{str(i):'a'*64 for i in range(4000)}}
+    path=tmp_path/'manifest.json';path.write_text(json.dumps(release));path.chmod(0o600)
+    assert path.stat().st_size>256*1024
+    value.c['release_manifest']=str(path)
+    assert value.identity()=={'worker':'worker-image'}
