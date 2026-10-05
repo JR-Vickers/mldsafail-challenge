@@ -35,6 +35,19 @@ def assess(rows, source_commit, source_sha256):
         raise RuntimeError('Repeat activations must share the same serialized activation root')
 
 
+def reconciliation_matches(receipt, interrupted, rows):
+    job = interrupted['operator_job']
+    actor = receipt.get('reconciling_activation', {})
+    return (receipt.get('schema') == 'mldsafail.terminal-recovery-job.v1' and
+        receipt.get('cleanup_complete') is True and receipt.get('journal_present') is True and
+        receipt.get('journal') == job['journal_path'] and
+        receipt.get('terminal_daemon_epoch') == interrupted['registered_manifest']['epoch'] and
+        receipt.get('reconciled_attempt_id') == interrupted['id'] and
+        any(actor == dict(source_commit=row['source_commit'], operator_unit=row['operator_unit'],
+                          operator_parent=row['operator_domain']['path'], driver_state=row['driver_state'])
+            for row in rows))
+
+
 def assess_interrupted(state, path, rows, source):
     """Reject fixtures, unadmitted jobs, and same-context replacement claims."""
     job = state.get('operator_job', {})
@@ -112,11 +125,9 @@ def verify(paths, output, interrupted_driver=None):
             for key in contexts:
                 validate_retirement(operation, key)
             reconciliations = list(Path(interrupted_driver).parent.glob('job-reconciliation-*.json'))
-            if not reconciliations or not any(
-                owned_daemon.read_private_json(path).get('schema') == 'mldsafail.terminal-recovery-job.v1' and
-                owned_daemon.read_private_json(path).get('cleanup_complete') is True
-                for path in reconciliations):
-                raise RuntimeError('Next activation did not publish actual job reconciliation')
+            if not any(reconciliation_matches(owned_daemon.read_private_json(path), interrupted, rows)
+                       for path in reconciliations):
+                raise RuntimeError('Next activation did not publish exact job reconciliation')
             result = owned_client.run(['systemctl', '--user', 'show', interrupted['config']['operator_unit'],
                 '--property=ExecMainCode', '--property=ExecMainStatus', '--property=ActiveState'],
                 clients, save, root, timeout=15, capture_output=True)

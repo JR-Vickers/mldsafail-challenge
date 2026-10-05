@@ -193,7 +193,10 @@ def execute(configuration, unit, *, cleanup_only=False):
                         else:
                             from deploy.recovery_terminal import terminal_job_cleanup
                             job_result = terminal_job_cleanup(job['job'], effective, state)
-                        owned_daemon.publish(prior/('job-reconciliation-'+uuid.uuid4().hex+'.json'), job_result)
+                        owned_daemon.publish(prior/('job-reconciliation-'+uuid.uuid4().hex+'.json'), dict(job_result,
+                            reconciled_attempt_id=state['id'], reconciling_activation=dict(
+                                source_commit=config['source_commit'], operator_unit=config['operator_unit'],
+                                operator_parent=config['operator_parent'], driver_state=str(Path(config['state_root'])/'driver.json'))))
                         if job_result.get('cleanup_complete') is not True:
                             raise RuntimeError('Earlier operator job remains fenced')
             except BaseException as error:
