@@ -9,5 +9,6 @@ COPY artifacts.py /artifacts.py
 RUN python /artifacts.py > /artifacts.json
 WORKDIR /worker
 COPY mldsafail /worker/mldsafail
+RUN chmod -R a+rX /worker/mldsafail
 USER 65534:65534
 ENTRYPOINT ["python", "-m", "mldsafail.benchmark_v060.worker"]

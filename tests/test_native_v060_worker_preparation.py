@@ -6,7 +6,7 @@ import pytest
 from scripts import native_v060_worker_preparation as preparation
 
 
-def setup(monkeypatch,tmp_path,*,wrong_image=False,fail_export=False):
+def setup(monkeypatch,tmp_path,*,wrong_image=False,fail_export=False,fail_startup=False):
     image='sha256:'+'a'*64;calls=[]
     context=dict(source_tree_clean=True,source_commit='b'*40,source_sha256='c'*64,architecture_lock_sha256='d'*64,files={})
     monkeypatch.setattr(preparation,'prepare_context',lambda path,**kwargs:context)
@@ -21,14 +21,20 @@ def setup(monkeypatch,tmp_path,*,wrong_image=False,fail_export=False):
             if args[1:3]==['image','save']:
                 if fail_export:raise RuntimeError('export failure')
                 Path(args[args.index('--output')+1]).write_bytes(b'immutable exported image')
-            return SimpleNamespace(stdout='')
+            if args[1]=='create':return SimpleNamespace(stdout=('1'*64).encode())
+            if args[1]=='start':
+                if fail_startup:raise RuntimeError('unreadable private package')
+                return SimpleNamespace(stdout=b'{"passed":true,"uid":65534}')
+            if args[1]=='inspect':
+                return SimpleNamespace(stdout=json.dumps([dict(Id='1'*64,Image=image,Name='/mldsafail-v060-startup-test',State=dict(Running=False,ExitCode=0))]).encode())
+            return SimpleNamespace(stdout=b'')
     config=dict(state_root=str(tmp_path/'new-state'),source_commit='b'*40,supervisor_source_sha256='e'*64,acceptance_source_sha256='f'*64)
     return Journal(),config,calls
 
 
 def test_build_only_preparation_retains_exact_archive_without_native_gate_claim(monkeypatch,tmp_path):
     journal,config,calls=setup(monkeypatch,tmp_path)
-    result=preparation.callback(journal,config,{})
+    result=preparation.callback(journal,config,{'id':'test','worker_slice':'owned-worker.slice'})
     artifact=json.loads((tmp_path/'v060-worker/artifact.json').read_text())
     archive=Path(artifact['image_archive'])
     assert result['passed'] and artifact['passed']
@@ -36,14 +42,14 @@ def test_build_only_preparation_retains_exact_archive_without_native_gate_claim(
     assert archive.stat().st_mode&0o777==0o400
     assert not any(artifact[key] for key in ('contract_adopted','epoch_created','reference_created','native_faults_passed','native_pairs_passed','default_changed'))
     assert artifact['outer_cleanup_required'] is True
-    assert [row[0][1] for row in calls]==['build','image','image']
+    assert [row[0][1] for row in calls]==['build','image','create','start','inspect','image']
     assert all(row[1]['timeout']<=600 for row in calls)
 
 
-@pytest.mark.parametrize('failure',['wrong_image','fail_export'])
+@pytest.mark.parametrize('failure',['wrong_image','fail_export','fail_startup'])
 def test_inspection_or_export_failure_never_publishes_positive_artifact(monkeypatch,tmp_path,failure):
     journal,config,_=setup(monkeypatch,tmp_path,**{failure:True})
-    with pytest.raises(RuntimeError):preparation.callback(journal,config,{})
+    with pytest.raises(RuntimeError):preparation.callback(journal,config,{'id':'test','worker_slice':'owned-worker.slice'})
     assert not (tmp_path/'v060-worker/artifact.json').exists()
 
 
@@ -65,3 +71,11 @@ def test_archive_mode_metadata_is_synced_after_sealing(tmp_path,monkeypatch):
     monkeypatch.setattr(preparation.os,'fsync',fsync)
     preparation.retain_archive(archive)
     assert file_modes[-1]==0o400
+
+
+def test_startup_failure_never_exports_unrunnable_worker(monkeypatch,tmp_path):
+    journal,config,calls=setup(monkeypatch,tmp_path,fail_startup=True)
+    with pytest.raises(RuntimeError,match='unreadable private package'):
+        preparation.callback(journal,config,{'id':'test','worker_slice':'owned-worker.slice'})
+    assert not any(args[1:3]==['image','save'] for args,_ in calls)
+    assert not (tmp_path/'v060-worker/artifact.json').exists()

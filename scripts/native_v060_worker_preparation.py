@@ -59,6 +59,19 @@ def callback(journal,config,data):
             or metadata.get('Entrypoint')!=['python','-m','mldsafail.benchmark_v060.worker']
             or metadata.get('User')!='65534:65534'):
         raise RuntimeError('Version-correct minimal worker configuration required')
+    name='mldsafail-v060-startup-'+data['id']
+    probe='import json,os;import mldsafail.benchmark_v060.worker;assert os.getuid()==65534;print(json.dumps({"passed":True,"uid":os.getuid()}))'
+    identifier=journal.command(['docker','create','--name',name,'--network','none','--read-only',
+        '--cap-drop','ALL','--security-opt','no-new-privileges','--user','65534:65534',
+        '--pids-limit','32','--memory','128m','--cgroup-parent',data['worker_slice'],
+        '--entrypoint','python',image,'-c',probe],kind='container_create',timeout=30).stdout.decode().strip()
+    if not re.fullmatch('[0-9a-f]{64}',identifier):raise RuntimeError('Exact startup probe container identity required')
+    startup=json.loads(journal.command(['docker','start','--attach',identifier],kind='container_start',timeout=60).stdout)
+    container=json.loads(journal.command(['docker','inspect',identifier],kind='read',timeout=30).stdout)[0]
+    if (container['Id']!=identifier or container['Image']!=image or container['Name']!='/'+name
+            or container['State']['Running'] is not False or container['State']['ExitCode']!=0
+            or startup!={'passed':True,'uid':65534}):
+        raise RuntimeError('Unprivileged native worker startup failed')
     archive=root/'worker-image.tar'
     if archive.exists():raise RuntimeError('New worker export path required')
     journal.command(['docker','image','save','--output',str(archive),image],kind='read',timeout=600)
@@ -69,6 +82,7 @@ def callback(journal,config,data):
         image_archive=str(archive),image_archive_sha256=sealed['sha256'],image_archive_bytes=sealed['bytes'],
         source_commit=context['source_commit'],source_context_sha256=context['source_sha256'],
         source_manifest=context,supervisor_source_sha256=config['supervisor_source_sha256'],
+        native_unprivileged_startup_passed=True,
         contract_adopted=False,reference_created=False,epoch_created=False,default_changed=False,
         native_faults_passed=False,native_pairs_passed=False,outer_cleanup_required=True)
     owned_daemon.publish(root/'artifact.json',artifact)
