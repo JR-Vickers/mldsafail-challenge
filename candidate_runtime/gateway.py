@@ -65,6 +65,8 @@ class Gateway:
                 raise ValueError('Private gateway lifecycle lock required')
             fcntl.flock(self.lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
             self.lifecycle_path=self.root/'lifecycle.json'
+            if (self.root/'candidate.sock').exists():
+                raise RuntimeError('Legacy mixed evidence/socket directory requires explicit cleanup')
             self.shared=self.root.with_name(self.root.name+'-socket')
             self.shared.mkdir(mode=0o700,exist_ok=True)
             shared_info=self.shared.lstat()
