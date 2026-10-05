@@ -1309,7 +1309,8 @@
       "dependencies": [
         "cpu-fault-suite",
         "cpu-current-native-faults",
-        "cpu-lifecycle-overhead-repair"
+        "cpu-lifecycle-overhead-repair",
+        "synthetic-startup-terminal-repair"
       ],
       "environment": "isolated native host sequential",
       "criteria": [
@@ -2754,13 +2755,14 @@
         "production-templates",
         "owned-native-client-fencing",
         "native-daemon-request-fencing",
-        "native-generation-i-cleanup-reconciliation"
+        "native-generation-i-cleanup-reconciliation",
+        "synthetic-startup-terminal-repair"
       ],
       "environment": "disposable native services; no production activation",
       "criteria": [
         "Retained reviewed orchestrator passes source-bound native baseline rehearsal and final owned-resource cleanup"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3698,13 +3700,14 @@
       ],
       "dependencies": [
         "recovery-restoration-code",
-        "native-generation-i-cleanup-reconciliation"
+        "native-generation-i-cleanup-reconciliation",
+        "synthetic-startup-terminal-repair"
       ],
       "environment": "isolated engineering or disposable native environment",
       "criteria": [
         "Full sealed local protected database, epoch and accepted-run evidence restoration"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3719,13 +3722,14 @@
       ],
       "dependencies": [
         "recovery-restoration-code",
-        "native-generation-i-cleanup-reconciliation"
+        "native-generation-i-cleanup-reconciliation",
+        "synthetic-startup-terminal-repair"
       ],
       "environment": "isolated engineering or disposable native environment",
       "criteria": [
         "Native journal service interruption, repeated cleanup and cleanup-failure fixture"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3767,13 +3771,14 @@
       ],
       "dependencies": [
         "recovery-rpc-lost-ack-source",
-        "native-generation-i-cleanup-reconciliation"
+        "native-generation-i-cleanup-reconciliation",
+        "synthetic-startup-terminal-repair"
       ],
       "environment": "isolated engineering or disposable native environment",
       "criteria": [
         "Execute recovery Journal lost acknowledgement faults with positive executor quiescence and cleanup"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3787,13 +3792,14 @@
         "user-plan"
       ],
       "dependencies": [
-        "native-generation-i-cleanup-reconciliation"
+        "native-generation-i-cleanup-reconciliation",
+        "synthetic-startup-terminal-repair"
       ],
       "environment": "isolated engineering or disposable native environment",
       "criteria": [
         "Build retained official Python base and frozen scientific study image with approved native wheel provenance"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3829,13 +3835,14 @@
         "user-plan"
       ],
       "dependencies": [
-        "native-generation-i-cleanup-reconciliation"
+        "native-generation-i-cleanup-reconciliation",
+        "synthetic-startup-terminal-repair"
       ],
       "environment": "isolated engineering or disposable native environment",
       "criteria": [
         "Install and exercise separately identified candidate participant artifact in native Linux"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -4217,7 +4224,8 @@
         "operator-synthetic-interruption-source",
         "operator-real-check-observer-source",
         "synthetic-restic-minio-artifact-retention",
-        "native-generation-i-cleanup-reconciliation"
+        "native-generation-i-cleanup-reconciliation",
+        "synthetic-startup-terminal-repair"
       ],
       "environment": "disposable native Linux services",
       "criteria": [
@@ -4247,13 +4255,14 @@
       "dependencies": [
         "candidate-runtime-review",
         "native-generation-i-cleanup-reconciliation",
-        "candidate-image-build-source-review"
+        "candidate-image-build-source-review",
+        "synthetic-startup-terminal-repair"
       ],
       "environment": "owned disposable native image preparation",
       "criteria": [
         "Build retain and verify complete native forward candidate image artifact with exact runtime package and builder cleanup identities"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -4269,13 +4278,14 @@
       "dependencies": [
         "candidate-runtime-review",
         "native-generation-i-cleanup-reconciliation",
-        "candidate-image-build-source-review"
+        "candidate-image-build-source-review",
+        "synthetic-startup-terminal-repair"
       ],
       "environment": "owned disposable native image preparation",
       "criteria": [
         "Build retain and verify separately reviewed prior candidate runtime source and distinct immutable image artifact with complete builder cleanup"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
