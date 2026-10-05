@@ -27,8 +27,10 @@ authentication and separate default 0.5.0 and candidate 0.6.0 leaderboards.
 
 An encrypted off-host recovery gate is not implied. The callback retains a
 custom-format dump, restores it into a separate network-none PostgreSQL
-container, and compares every ORM table and public schema to the original
-disposable database. It also restarts the exact application image and checks
+container, and compares every ORM table and the public column, constraint and index
+definitions to the original disposable database. Native negative probes alter
+one constraint and one index only on the restored target, prove those changes
+are detected, then independently remove each probe and verify exact recovery. It also restarts the exact application image and checks
 leaderboard preservation. This is explicitly an application restart, not a
 rollback. Without a separately identified prior candidate image,
 `application_rollback_passed` remains false.

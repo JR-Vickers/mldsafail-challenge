@@ -91,6 +91,17 @@ def application_base(journal,name,*,image):
     return 'http://127.0.0.1:'+port
 
 
+def publish_verified_switch(path,record):
+    """Retract an ambiguously renamed positive receipt after publication failure."""
+    try:owned_daemon.publish(path,record)
+    except BaseException as original:
+        negative=dict(record,passed=False,state='publication_failed',evidence_publication_failed=True,
+            publication_failure_class=type(original).__name__)
+        try:owned_daemon.publish(path,negative)
+        except BaseException as retry:original.add_note('Negative switch disposition publication failed: '+repr(retry))
+        raise
+
+
 def restoration_query(table_names,*,normalize_auth_timestamps=False):
     if not table_names or len(set(table_names))!=len(table_names) or any(not re.fullmatch('[a-z][a-z0-9_]{0,62}',name) for name in table_names):
         raise ValueError('Fixed unique ORM public table inventory required')
@@ -98,7 +109,7 @@ def restoration_query(table_names,*,normalize_auth_timestamps=False):
     for name in sorted(table_names):
         value="to_jsonb(t) - 'last_used_at'" if normalize_auth_timestamps and name=='api_tokens' else 'to_jsonb(t)'
         rows.extend(["'"+name+"'","(SELECT coalesce(jsonb_agg("+value+" ORDER BY ("+value+")::text),'[]'::jsonb) FROM "+name+" t)"])
-    return "SELECT jsonb_build_object('schema',(SELECT jsonb_agg(jsonb_build_array(table_name,column_name,data_type,is_nullable,column_default) ORDER BY table_name,ordinal_position) FROM information_schema.columns WHERE table_schema='public'),'tables',jsonb_build_object("+','.join(rows)+"))"
+    return "SELECT jsonb_build_object('schema',jsonb_build_object('columns',(SELECT jsonb_agg(jsonb_build_array(table_name,column_name,data_type,is_nullable,column_default) ORDER BY table_name,ordinal_position) FROM information_schema.columns WHERE table_schema='public'),'constraints',(SELECT coalesce(jsonb_agg(jsonb_build_array(r.relname,c.conname,c.contype,pg_get_constraintdef(c.oid,true)) ORDER BY r.relname,c.conname),'[]'::jsonb) FROM pg_constraint c JOIN pg_class r ON r.oid=c.conrelid JOIN pg_namespace n ON n.oid=r.relnamespace WHERE n.nspname='public'),'indexes',(SELECT coalesce(jsonb_agg(jsonb_build_array(tablename,indexname,indexdef) ORDER BY tablename,indexname),'[]'::jsonb) FROM pg_indexes WHERE schemaname='public')),'tables',jsonb_build_object("+','.join(rows)+"))"
 
 
 def callback(journal,config,data):
@@ -286,7 +297,26 @@ def application_rehearsal(journal,config,data,protocol,root,backend,cohort,candi
             def state(container,*,normalize_auth_timestamps=False):
                 query=restoration_query(list(Base.metadata.tables),normalize_auth_timestamps=normalize_auth_timestamps)
                 return json.loads(inner_journal.command(['docker','exec',container,'psql','-U','postgres','-d','postgres','-At','-c',query],timeout=30).stdout)
-            if state(db)!=state(restore_name):raise RuntimeError('Isolated PostgreSQL restore changed schema or accepted result identities')
+            restored_baseline=state(db)
+            if restored_baseline!=state(restore_name):raise RuntimeError('Isolated PostgreSQL restore changed schema or accepted result identities')
+            # Native negative probes mutate only the freshly restored disposable
+            # target. Both altered definitions must be rejected by comparison.
+            probes=[('constraint',"ALTER TABLE experiment_results ADD CONSTRAINT candidate_restore_probe_ck CHECK (epoch_id IS NOT NULL)",
+                "ALTER TABLE experiment_results DROP CONSTRAINT IF EXISTS candidate_restore_probe_ck"),
+                ('index',"CREATE INDEX candidate_restore_probe_idx ON experiment_results (epoch_id)",
+                "DROP INDEX IF EXISTS candidate_restore_probe_idx")]
+            for kind,alter,repair in probes:
+                probe_error=None
+                try:
+                    inner_journal.command(['docker','exec',restore_name,'psql','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1','-c',alter],kind='database_restore_probe',timeout=30)
+                    if restored_baseline==state(restore_name):raise RuntimeError('Altered '+kind+' escaped isolated restore schema verification')
+                except BaseException as error:probe_error=error;raise
+                finally:
+                    try:inner_journal.command(['docker','exec',restore_name,'psql','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1','-c',repair],kind='database_restore_probe_cleanup',timeout=30)
+                    except BaseException as error:
+                        if probe_error is None:raise
+                        probe_error.add_note('Independent restore probe cleanup failed: '+repr(error))
+                if restored_baseline!=state(restore_name):raise RuntimeError('Isolated restore probe repair did not recover exact schema/data')
             # Restart is explicitly recorded as restart, never mislabeled rollback.
             inner_journal.command(['docker','stop','--time','10',web],kind='application_stop',timeout=30)
             inner_journal.command(['docker','start',web],kind='application_start',timeout=30)
@@ -332,7 +362,7 @@ def application_rehearsal(journal,config,data,protocol,root,backend,cohort,candi
                 response=requests.get(base+'/api/v1/leaderboard?benchmark_version=0.6.0',headers=headers,timeout=10)
                 response.raise_for_status()
                 if response.json()!=candidate.json() or state(db,normalize_auth_timestamps=True)!=baseline_state:raise RuntimeError('Application forward switch changed accepted data or cohort')
-                owned_daemon.publish(root/'application-switch.json',dict(schema='mldsafail.private-candidate-switch.v1',
+                publish_verified_switch(root/'application-switch.json',dict(schema='mldsafail.private-candidate-switch.v1',
                     state='forward_verified',passed=True,forward_image=application_image,
                     rollback_image=rollback_artifact['image'],rollback_source_commit=rollback_artifact['source_commit'],
                     data_preserved=True,migrations_invoked=False,live_database_restored=False))
@@ -340,7 +370,7 @@ def application_rehearsal(journal,config,data,protocol,root,backend,cohort,candi
             application.update(native_executed=True,behavior_passed=True,application_image=application_image,
                 application_source_commit=config['source_commit'],actual_installed_cli=True,container_coordinator=True,
                 main_thread_host_evaluation=True,signed_result_verified=True,cohort_isolation=True,
-                disposable_database_restoration=True,application_restart=True,application_rollback_passed=rollback_passed,
+                disposable_database_restoration=True,restoration_constraint_probe=True,restoration_index_probe=True,application_restart=True,application_rollback_passed=rollback_passed,
                 independent_recovery_acceptance_passed=False,contract_adopted=False,default_changed=False,
                 participant_wheel_sha256=hashlib.sha256(wheels[0].read_bytes()).hexdigest(),
                 dump_sha256=hashlib.sha256(dump.read_bytes()).hexdigest(),submission_id=submission_id)

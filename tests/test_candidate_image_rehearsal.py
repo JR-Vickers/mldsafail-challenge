@@ -153,3 +153,42 @@ def test_rollback_admission_rejects_same_immutable_image(monkeypatch):
     journal=SimpleNamespace(path=__import__('pathlib').Path('/private/state/journal.json'))
     config={'source_commit':'a'*40,'image':'sha256:'+'c'*64,'image_archive_sha256':'e'*64,'supervisor_source_sha256':'f'*64}
     with pytest.raises(ValueError,match='distinct immutable'):rehearsal.callback(journal,config,{'loaded_images':[config['image']]})
+
+
+def test_ambiguous_positive_switch_publication_is_retracted(monkeypatch,tmp_path):
+    import json
+    from candidate_runtime import rehearsal
+    path=tmp_path/'switch.json';calls=[]
+    def publish(target,value):
+        calls.append(value)
+        target.write_text(json.dumps(value))
+        if len(calls)==1:raise OSError('directory fsync failed after rename')
+    monkeypatch.setattr(rehearsal.owned_daemon,'publish',publish)
+    with pytest.raises(OSError,match='directory fsync failed'):
+        rehearsal.publish_verified_switch(path,dict(passed=True,state='forward_verified'))
+    proof=json.loads(path.read_text())
+    assert proof['passed'] is False and proof['state']=='publication_failed'
+    assert proof['evidence_publication_failed'] is True and len(calls)==2
+
+
+def test_negative_switch_publication_failure_preserves_original(monkeypatch,tmp_path):
+    from candidate_runtime import rehearsal
+    failure=OSError('original postrename failure');calls=[]
+    def publish(target,value):
+        calls.append(value)
+        if len(calls)==1:raise failure
+        raise ValueError('negative publication failed')
+    monkeypatch.setattr(rehearsal.owned_daemon,'publish',publish)
+    with pytest.raises(OSError) as error:
+        rehearsal.publish_verified_switch(tmp_path/'switch.json',dict(passed=True))
+    assert error.value is failure and len(calls)==2
+    assert calls[1]['passed'] is False and any('Negative switch disposition' in note for note in failure.__notes__)
+
+
+def test_restore_schema_inventory_includes_constraint_and_index_definitions():
+    from candidate_runtime.rehearsal import restoration_query
+    query=restoration_query(['experiment_results'])
+    assert 'pg_get_constraintdef(c.oid,true)' in query
+    assert 'pg_constraint c JOIN pg_class' in query and "n.nspname='public'" in query
+    assert 'tablename,indexname,indexdef' in query and 'pg_indexes' in query
+    assert "schemaname='public'" in query
