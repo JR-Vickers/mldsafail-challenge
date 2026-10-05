@@ -4223,18 +4223,19 @@
       "criteria": [
         "Execute real synthetic repository check interruption, two fresh activations, exact reconciliation and complete independent cleanup"
       ],
-      "status": "running",
+      "status": "failed",
       "attempts": [
         {
           "source_commit": "843c5543bd7bf9cae45e0e7042f7ff053b91bb3c",
           "environment": "disposable native services; local synthetic TLS repository and independently owned activation units",
           "protocol": "Actual restic check SIGKILL with pidfd/birth proof; two fresh activation reconciliation and independent cleanup; no existing staging jobs or owner repository touched",
-          "result": "Original generationA executing"
+          "result": "Containerd ttrpc Unix socket path exceeded Linux length limit during fresh daemon startup",
+          "evidence": "docs/acceptance/public-launch/synthetic-interruption-native-a.json"
         }
       ],
       "evidence": [],
       "identities": {},
-      "next_action": "Observe original admitted attempt, preserve failures, prove whole and independent cleanup before other host operations",
+      "next_action": "Repair and independently reconcile failed startup cleanup before a new short-root native attempt",
       "checklist": []
     },
     {
@@ -4400,6 +4401,30 @@
       "evidence": [],
       "identities": {},
       "next_action": "Implement and review concrete corrective engineering; no unchanged favorable reruns",
+      "checklist": []
+    },
+    {
+      "id": "synthetic-startup-terminal-repair",
+      "requirement": "Reject excessive Unix paths before provisioning and independently retire exact never-admitted stale socket and empty worker after failed startup",
+      "sources": [
+        "user-plan",
+        "docs/acceptance/public-launch/synthetic-interruption-native-a.json"
+      ],
+      "dependencies": [],
+      "environment": "isolated source engineering then dedicated native cleanup controller",
+      "criteria": [
+        "Independent source review and focused/full tests; retained repaired source; original exact ownership cleanup positively verified without replaying failed gate"
+      ],
+      "status": "running",
+      "attempts": [
+        {
+          "source_commit": "843c5543bd7bf9cae45e0e7042f7ff053b91bb3c",
+          "result": "All conflicting native host operations paused; independent engineer implementing precise failed-startup retirement"
+        }
+      ],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Review and retain repair then cleanup original generationA; preserve original failure",
       "checklist": []
     }
   ],

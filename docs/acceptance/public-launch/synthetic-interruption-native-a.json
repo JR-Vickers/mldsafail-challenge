@@ -1,0 +1,19 @@
+{
+  "schema": "mldsafail.synthetic-interruption-native.v1",
+  "source_commit": "843c5543bd7bf9cae45e0e7042f7ff053b91bb3c",
+  "native_executed": true,
+  "passed": false,
+  "callback_started": false,
+  "images_admitted": false,
+  "failure": "Containerd ttrpc Unix socket path exceeded Linux length limit during fresh daemon startup",
+  "outer_cleanup_verified": true,
+  "whole_owned_cleanup_verified": false,
+  "daemon_domain_absent": true,
+  "worker_domain_absent": false,
+  "cleanup_blocker": "Same-birth empty worker remains fenced by dead fresh socket; independently reviewed terminal cleanup repair required",
+  "raw_sha256": {
+    "operator": "3a5fd2f3ae2068d69c12f036db27586cb4a735c929cbbaff45bad125900c1ef5",
+    "driver": "5d347951364e1effa760fa2ab501e33ac8b1a70b18ec00d7b37e6b9e84474512"
+  },
+  "evidence_reference": "protected original synthetic interruption generationA; later cleanup must retain original negative receipt"
+}
