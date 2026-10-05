@@ -1,0 +1,29 @@
+{
+  "schema": "mldsafail.source-verification.v1",
+  "source_commit": "d06fa75bb74ed90156d92cfe76c698fc5b682996",
+  "source_files_sha256": {
+    "scripts/native_recovery_rpc_loss.py": "5d41bbb25c085ac2a2b1d5792f2bd5f94037bfb296257957b274ac7d8f137faf",
+    "tests/test_native_recovery_rpc_loss.py": "4544f039dabdf0613b4f7860b4766578884671a8b12601c293fbac938f2f4bc9",
+    "docs/acceptance/NATIVE_RECOVERY_RPC_LOSS_PROTOCOL.md": "deaebf33ca471a5964027cafb539e1cde7c7b09749cbd9a85c58f52506dd7498"
+  },
+  "focused_tests_passed": 7,
+  "make_check": {
+    "passed": 763,
+    "skipped": 27
+  },
+  "independent_source_review": {
+    "reviewer": "accounting",
+    "source_review_passed": true,
+    "focused_tests_passed": 7
+  },
+  "native_executed": false,
+  "native_acceptance_passed": false,
+  "scope": "operational Journal create/start real response-loss repair; no CPU measurement or active-proxy owner-loss claim",
+  "remaining_native_criteria": [
+    "both approved immutable preloaded fixture probes observe actual201/204 without delivering response",
+    "proxy executor and all sockets quiescent before Journal cleanup",
+    "exact positive oldepoch daemon/worker barrier and healthy freshmanifest",
+    "repeated independently verified cleanup and outer driver terminal barrier"
+  ],
+  "no_default_staging_daemon_operations": true
+}
