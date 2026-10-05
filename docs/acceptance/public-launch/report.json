@@ -2722,13 +2722,14 @@
       "dependencies": [
         "production-templates",
         "owned-native-client-fencing",
-        "native-daemon-request-fencing"
+        "native-daemon-request-fencing",
+        "native-generation-i-cleanup-reconciliation"
       ],
       "environment": "disposable native services; no production activation",
       "criteria": [
         "Retained reviewed orchestrator passes source-bound native baseline rehearsal and final owned-resource cleanup"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3119,16 +3120,25 @@
       "criteria": [
         "Independent review and regression tests prove original errors and unreaped owners force false published outcome"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "protocol": "Prevent native recovery fault receipt publication from claiming success before owner exit and independent cleanup are proven",
           "result": "corrective source preparation and independent review in progress"
         }
       ],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Complete exact source verification; preserve earlier findings and failures",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/recovery-source-verification-20261005.json#/fault_receipt_publication_source_review_passed",
+          "criteria_met": [
+            "Independent review and regression tests prove original errors and unreaped owners force false published outcome"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "71e390c86ea8c10a948fbcf612710a2385f36f3f"
+      },
+      "next_action": "Execute separate current-source native service faults; source review does not replace native acceptance",
       "checklist": []
     },
     {
@@ -3279,13 +3289,14 @@
       ],
       "dependencies": [
         "postgres-native-admission",
-        "administrative-controls-source"
+        "administrative-controls-source",
+        "native-generation-i-cleanup-reconciliation"
       ],
       "environment": "disposable native PostgreSQL",
       "criteria": [
         "Native administrative admission controls and daily limits"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3300,13 +3311,14 @@
       ],
       "dependencies": [
         "postgres-native-admission",
-        "administrative-controls-source"
+        "administrative-controls-source",
+        "native-generation-i-cleanup-reconciliation"
       ],
       "environment": "disposable native PostgreSQL and owned evaluator",
       "criteria": [
         "Native database/evaluator cleanup ownership and fencing"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3369,7 +3381,9 @@
       "sources": [
         "user-plan"
       ],
-      "dependencies": [],
+      "dependencies": [
+        "native-generation-i-cleanup-reconciliation"
+      ],
       "environment": "isolated engineering or disposable native environment",
       "criteria": [
         "Build and retain reviewed version-specific prospective worker without frozen solver startup imports"
@@ -3398,7 +3412,8 @@
         "user-plan"
       ],
       "dependencies": [
-        "cpu-prospective-worker-artifact"
+        "cpu-prospective-worker-artifact",
+        "native-generation-i-cleanup-reconciliation"
       ],
       "environment": "isolated engineering or disposable native environment",
       "criteria": [
@@ -3570,13 +3585,14 @@
         "user-plan"
       ],
       "dependencies": [
-        "recovery-restoration-code"
+        "recovery-restoration-code",
+        "native-generation-i-cleanup-reconciliation"
       ],
       "environment": "isolated engineering or disposable native environment",
       "criteria": [
         "Full sealed local protected database, epoch and accepted-run evidence restoration"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3590,13 +3606,14 @@
         "user-plan"
       ],
       "dependencies": [
-        "recovery-restoration-code"
+        "recovery-restoration-code",
+        "native-generation-i-cleanup-reconciliation"
       ],
       "environment": "isolated engineering or disposable native environment",
       "criteria": [
         "Native journal service interruption, repeated cleanup and cleanup-failure fixture"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3637,13 +3654,14 @@
         "user-plan"
       ],
       "dependencies": [
-        "recovery-rpc-lost-ack-source"
+        "recovery-rpc-lost-ack-source",
+        "native-generation-i-cleanup-reconciliation"
       ],
       "environment": "isolated engineering or disposable native environment",
       "criteria": [
         "Execute recovery Journal lost acknowledgement faults with positive executor quiescence and cleanup"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3656,12 +3674,14 @@
       "sources": [
         "user-plan"
       ],
-      "dependencies": [],
+      "dependencies": [
+        "native-generation-i-cleanup-reconciliation"
+      ],
       "environment": "isolated engineering or disposable native environment",
       "criteria": [
         "Build retained official Python base and frozen scientific study image with approved native wheel provenance"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3675,7 +3695,8 @@
         "user-plan"
       ],
       "dependencies": [
-        "operator-repeat-activation-lifecycle"
+        "operator-repeat-activation-lifecycle",
+        "operator-real-check-observer-source"
       ],
       "environment": "isolated engineering or disposable native environment",
       "criteria": [
@@ -3694,12 +3715,14 @@
       "sources": [
         "user-plan"
       ],
-      "dependencies": [],
+      "dependencies": [
+        "native-generation-i-cleanup-reconciliation"
+      ],
       "environment": "isolated engineering or disposable native environment",
       "criteria": [
         "Install and exercise separately identified candidate participant artifact in native Linux"
       ],
-      "status": "ready",
+      "status": "waiting_dependency",
       "attempts": [],
       "evidence": [],
       "identities": {},
@@ -3813,6 +3836,59 @@
         "source_commit": "10da7cc6eaca95a3372edaf708f6b5c457f3321a"
       },
       "next_action": "Execute five actual native PostgreSQL tests on exact retained source",
+      "checklist": []
+    },
+    {
+      "id": "operator-real-check-observer-source",
+      "requirement": "Independent review and local tests prove exact admitted restic process observation, pidfd signal ownership and cleanup/publication fencing",
+      "sources": [
+        "user-plan",
+        "docs/acceptance/OPERATOR_INTERRUPTION_NATIVE_PROTOCOL.md"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Independent review and local tests prove exact admitted restic process observation, pidfd signal ownership and cleanup/publication fencing"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/recovery-source-verification-20261005.json#/real_check_observer_source_review_passed",
+          "criteria_met": [
+            "Independent review and local tests prove exact admitted restic process observation, pidfd signal ownership and cleanup/publication fencing"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "71e390c86ea8c10a948fbcf612710a2385f36f3f"
+      },
+      "next_action": "Finish synthetic backend orchestration and actual native interruption rehearsal",
+      "checklist": []
+    },
+    {
+      "id": "native-generation-i-cleanup-reconciliation",
+      "requirement": "Independently prove generationI operator daemon worker domains absent before another VPS native operation",
+      "sources": [
+        "docs/acceptance/public-launch/native-cpu-generation-i.json"
+      ],
+      "dependencies": [],
+      "environment": "read-only staging VPS ownership reconciliation",
+      "criteria": [
+        "Positive whole cleanup receipts and independent exact owned cgroup/process absence, with staging services preserved"
+      ],
+      "status": "ready",
+      "attempts": [
+        {
+          "protocol": "Established staging SSH read-only connection",
+          "result": "Current session connection timeout; owner separately confirms machine SSH works"
+        }
+      ],
+      "evidence": [],
+      "identities": {
+        "source_commit": "c431bbe13e1c74cf4d4239d896cda63afd4ca489"
+      },
+      "next_action": "Reconnect with established key; inspect exact protected private contexts without starting new host operations",
       "checklist": []
     }
   ],
