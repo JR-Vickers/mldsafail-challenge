@@ -63,6 +63,8 @@ def test_private_gateway_requires_durable_request_before_evaluation(tmp_path,mon
         assert not thread.is_alive() and not errors and len(observed)==1
         retained=json.loads((tmp_path/'gateway'/request/'journal.json').read_text())
         assert retained['state']=='evaluated' and retained['passed'] is False
+        value.close()
+        value=gateway.Gateway(root=tmp_path/'gateway',worker_domain={},authority=authority,evaluate_source=evaluate)
         thread=threading.Thread(target=serve);thread.start()
         with socket.socket(socket.AF_UNIX) as connection:
             connection.connect(str(value.socket_path))
