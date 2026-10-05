@@ -46,6 +46,12 @@ def evidence_kind(root,ref):
         value=value[int(part)] if isinstance(value,list) else value[part]
         ancestors.append(value)
     dictionaries=[item for item in ancestors if isinstance(item,dict)]
+    leaf=pointer.rsplit('/',1)[-1] if pointer else ''
+    scope=dictionaries[-1] if dictionaries else {}
+    source_outcome=lambda item:isinstance(item,str) and bool(re.search('source_review|source_and_local|isolated_source',item))
+    if (leaf in {'source_review_passed','source_work_completed','make_check_passed','local_tests_passed'}
+            or source_outcome(value) or source_outcome(scope.get('status'))):
+        return 'source_review_or_local'
     if any(item.get('native_executed') is True for item in dictionaries) and not any(item.get('native_executed') is False for item in dictionaries):
         return 'native_attested'
     if (isinstance(value,str) and 'source' in value or
@@ -143,7 +149,7 @@ def build_packet(report,*,root,source_commit,ledger_sha256,source_tree_clean=Fal
                 for part in pointer.split('/')[1:]:
                     part=part.replace('~1','/').replace('~0','~')
                     value=value[int(part)] if isinstance(value,list) else value[part]
-                state_refs_checked.append(launch_ledger.positive_evidence(value))
+                state_refs_checked.append(launch_ledger.positive_evidence(value) and evidence_kind(root,safe)=='native_attested')
             else:state_refs_checked.append(False)
         state_attested=(bool(state_refs_checked) and all(state_refs_checked) and launch_ledger.positive_evidence(state)
             and state.get('schema')=='mldsafail.launch-handoff-state.v1' and state.get('native_executed') is True

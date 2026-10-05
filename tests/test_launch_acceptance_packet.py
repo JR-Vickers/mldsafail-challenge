@@ -113,3 +113,29 @@ def test_snapshot_write_preserves_history_and_retracts_postwrite_failure(monkeyp
     assert negative['publication_failed'] is True
     with pytest.raises(FileExistsError):module.write_snapshot(path,result)
     assert json.loads(path.read_text())==negative
+
+
+@pytest.mark.parametrize('contradictory',[False,True])
+def test_handoff_wrapper_cannot_promote_source_only_or_contradictory_native_refs(tmp_path,contradictory):
+    report=setup_report(tmp_path,complete=True)
+    if contradictory:
+        proof={'native_executed':False,'scoped':{'native_executed':True,'passed':True}}
+        ref='docs/contradictory.json#/scoped/passed'
+        (tmp_path/'docs/contradictory.json').write_text(json.dumps(proof))
+    else:ref='docs/source.json#/passed'
+    state={'schema':'mldsafail.launch-handoff-state.v1','native_executed':True,'maintenance_reconciled':True,
+        'live_state_verified':True,'passed':True,'evidence_refs':[ref]}
+    (tmp_path/'docs/state.json').write_text(json.dumps(state))
+    result=packet(tmp_path,report,final=True,state_reference='docs/state.json')
+    assert result['final_ready'] is False and result['final_state_evidence']['native_state_attested'] is False
+    assert 'Native maintenance and live-state handoff evidence is incomplete' in result['readiness_rejections']
+
+
+@pytest.mark.parametrize('leaf,value',[('source_review_passed',True),('status','source_review_passed_native_gates_pending')])
+def test_source_outcome_pointer_remains_source_even_in_native_document(tmp_path,leaf,value):
+    report=setup_report(tmp_path,complete=True)
+    (tmp_path/'docs/mixed.json').write_text(json.dumps({'native_executed':True,leaf:value}))
+    state={'schema':'mldsafail.launch-handoff-state.v1','native_executed':True,'maintenance_reconciled':True,
+        'live_state_verified':True,'passed':True,'evidence_refs':['docs/mixed.json#/'+leaf]}
+    (tmp_path/'docs/state.json').write_text(json.dumps(state))
+    assert packet(tmp_path,report,final=True,state_reference='docs/state.json')['final_ready'] is False

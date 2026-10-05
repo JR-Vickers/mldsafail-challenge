@@ -48,7 +48,9 @@ Incomplete final readiness emits a rejected snapshot and exits with status 2.
 The state document must be a sanitized JSON record with schema
 `mldsafail.launch-handoff-state.v1`, positive `native_executed`, `passed`,
 `maintenance_reconciled` and `live_state_verified` fields, and nonempty
-`evidence_refs` resolving to positive JSON evidence. Those fields must come from
+`evidence_refs` resolving to positive, explicitly native-attested JSON evidence
+in the referenced scope. A positive source-review pointer or a contradictory
+`native_executed: false` ancestor cannot support this handoff attestation. Those fields must come from
 actual source-bound operator checks, including intended live service states and
 absence of unaccounted owned processes, attempts and incomplete cleanup. Source
 fixtures or configuration parsing never provide these attestations. The packet
