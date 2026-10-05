@@ -3433,7 +3433,7 @@
       "criteria": [
         "Complete accounting fault suite on exact prospective worker and current reviewed supervisor"
       ],
-      "status": "failed",
+      "status": "running",
       "attempts": [
         {
           "source_commit": "eedab6c3a553d9dea8058e1644b4671e4c92620f",
@@ -3450,6 +3450,12 @@
           "protocol": "Complete native accounting fault suite then exactly thirty sequential unchanged empty/child pairs only if faults pass",
           "result": "generationJ failed in lifecycle observer EAGAIN; eight prior faults passed, no pairs started; cleanup independently verified",
           "evidence": "docs/acceptance/public-launch/native-cpu-generation-j.json"
+        },
+        {
+          "source_commit": "6fcf6111178918e8d17dd494730bd55b4cb469e7",
+          "worker_source_commit": "e4b8669aa1eb1e242e1fda5a6564669054ebad9d",
+          "protocol": "Exact retained unchanged workerD plus reviewed EAGAIN supervisor correction; complete fault suite before thirty pairs; thresholds unchanged",
+          "result": "generationK started"
         }
       ],
       "evidence": [],
@@ -3458,7 +3464,7 @@
         "supervisor_source_sha256": "f3e7608cf7148891146b5b5ee80d282eab14a1789ef82b334b079539b9728369",
         "image": "sha256:c5c35eb224f77fe84caa977e18a73d10a710366090fa7ad88e9eb21cde9a74cc"
       },
-      "next_action": "Retain reviewed bounded EAGAIN correction; verify complete native faults on exact new supervisor source and unchanged retained worker before pair gate",
+      "next_action": "Observe original generationK to final fault/pair disposition and cleanup; no duplicate invocation",
       "checklist": []
     },
     {
