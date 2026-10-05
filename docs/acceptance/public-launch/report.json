@@ -1320,11 +1320,17 @@
           "source_commit": "8bfe1b5941d6d86f3a67681466eab6300ce013aa",
           "evidence": "docs/acceptance/public-launch/native-cpu-generation-g.json",
           "result": "All30pairs completed; CPUoverhead andCV thresholds failed; allownedcleanup independently verified"
+        },
+        {
+          "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+          "worker_source_commit": "e4b8669aa1eb1e242e1fda5a6564669054ebad9d",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-l.json",
+          "result": "Exactly thirty pairs completed; child CV and empty CPU overhead failed unchanged thresholds; cleanup independently verified"
         }
       ],
       "evidence": [],
       "identities": {},
-      "next_action": "Complete corrective engineering and independent review before a justified changed-artifact native protocol; thresholds unchanged",
+      "next_action": "Attribute whole lifecycle overhead and implement independently reviewed correction before changed-source measurements",
       "checklist": []
     },
     {
@@ -3449,7 +3455,7 @@
       "criteria": [
         "Complete accounting fault suite on exact prospective worker and current reviewed supervisor"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "source_commit": "eedab6c3a553d9dea8058e1644b4671e4c92620f",
@@ -3478,16 +3484,25 @@
           "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
           "worker_source_commit": "e4b8669aa1eb1e242e1fda5a6564669054ebad9d",
           "protocol": "Reviewed targeted owner-kill admission mode, exact unchanged workerD, full native faults before thirty paired measurements; scoring thresholds unchanged",
-          "result": "generationL started"
+          "result": "All thirteen native faults passed; thirty-pair performance failed separately; all owned cleanup independently verified",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-l.json"
         }
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/native-cpu-generation-l.json#/native_fault_suite_passed",
+          "criteria_met": [
+            "Complete accounting fault suite on exact prospective worker and current reviewed supervisor"
+          ]
+        }
+      ],
       "identities": {
-        "source_commit": "e4b8669aa1eb1e242e1fda5a6564669054ebad9d",
-        "supervisor_source_sha256": "f3e7608cf7148891146b5b5ee80d282eab14a1789ef82b334b079539b9728369",
-        "image": "sha256:c5c35eb224f77fe84caa977e18a73d10a710366090fa7ad88e9eb21cde9a74cc"
+        "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+        "supervisor_source_sha256": "68ce712d9e72be35900475074c7bc208d71611bd38af24fcb51d5aa1cc0a5af7",
+        "worker_source_commit": "e4b8669aa1eb1e242e1fda5a6564669054ebad9d",
+        "worker_image": "sha256:c5c35eb224f77fe84caa977e18a73d10a710366090fa7ad88e9eb21cde9a74cc"
       },
-      "next_action": "Observe original generationL; verify final cleanup; preserve exact negative evidence if any gate fails",
+      "next_action": "Retest affected native faults after substantive accounting corrections",
       "checklist": []
     },
     {
