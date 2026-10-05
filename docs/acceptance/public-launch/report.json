@@ -1308,7 +1308,8 @@
       ],
       "dependencies": [
         "cpu-fault-suite",
-        "cpu-current-native-faults"
+        "cpu-current-native-faults",
+        "cpu-lifecycle-overhead-repair"
       ],
       "environment": "isolated native host sequential",
       "criteria": [
@@ -1700,11 +1701,21 @@
       "criteria": [
         "Disposable native PostgreSQL admission idempotency serialized ownership stale lease cleanup fencing and administrative controls"
       ],
-      "status": "ready",
+      "status": "passed",
       "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Reviewed same-process source-bound application callback prepared at2b60eef; disposable exact PostgreSQL image after isolated daemon repair/native fencing",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/disposable-application-native-e.json#/postgres_native_passed",
+          "criteria_met": [
+            "Disposable native PostgreSQL admission idempotency serialized ownership stale lease cleanup fencing and administrative controls"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+        "database_image": "sha256:639ab7ceb90e13123085b741fb31ef493fba25463002f6da665352e7b534b652"
+      },
+      "next_action": "Preserve exact native five-test acceptance and cleanup evidence",
       "checklist": []
     },
     {
@@ -4212,11 +4223,18 @@
       "criteria": [
         "Execute real synthetic repository check interruption, two fresh activations, exact reconciliation and complete independent cleanup"
       ],
-      "status": "ready",
-      "attempts": [],
+      "status": "running",
+      "attempts": [
+        {
+          "source_commit": "843c5543bd7bf9cae45e0e7042f7ff053b91bb3c",
+          "environment": "disposable native services; local synthetic TLS repository and independently owned activation units",
+          "protocol": "Actual restic check SIGKILL with pidfd/birth proof; two fresh activation reconciliation and independent cleanup; no existing staging jobs or owner repository touched",
+          "result": "Original generationA executing"
+        }
+      ],
       "evidence": [],
       "identities": {},
-      "next_action": "Execute exact declared protocol and retain failure and cleanup evidence",
+      "next_action": "Observe original admitted attempt, preserve failures, prove whole and independent cleanup before other host operations",
       "checklist": []
     },
     {
@@ -4356,6 +4374,32 @@
         "source_commit": "358a75796990bd91ebbe7f767710584c698f9d2c"
       },
       "next_action": "Execute distinct forward and prior native artifact builds",
+      "checklist": []
+    },
+    {
+      "id": "cpu-lifecycle-overhead-repair",
+      "requirement": "Attribute and reduce whole owned OCI lifecycle overhead while preserving accounting window sandbox fixtures score and thresholds",
+      "sources": [
+        "user-plan",
+        "docs/acceptance/public-launch/native-cpu-generation-l.json"
+      ],
+      "dependencies": [
+        "cpu-current-native-faults"
+      ],
+      "environment": "isolated engineering; bounded declared native diagnostics serialized by primary",
+      "criteria": [
+        "Independent source and protocol review; meaningful focused tests and make check; exact retained corrected runtime/artifacts before new paired acceptance"
+      ],
+      "status": "running",
+      "attempts": [
+        {
+          "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+          "result": "Existing failed thirty-pair evidence shows median empty startup CPU238708.5us and remaining195080us; independent engineer investigating lifecycle costs without new measurements"
+        }
+      ],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Implement and review concrete corrective engineering; no unchanged favorable reruns",
       "checklist": []
     }
   ],
