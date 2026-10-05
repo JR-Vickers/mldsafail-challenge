@@ -14,6 +14,7 @@ import socket
 import struct
 import signal
 import time
+import uuid
 
 from research.cpu_measurement.harness import run
 from mldsafail.benchmark_v050.generator import generate_mlwe
@@ -22,6 +23,47 @@ from mldsafail.benchmark_v050.verify import verify_candidate
 MAX_REQUEST = 4096
 FIXTURES = frozenset({'empty', 'child', 'grandchild', 'clock_tampering', 'forged_timing',
                       'early_exit', 'malformed', 'output_flood', 'hang', 'descendant_hang', 'closed_stream_hang'})
+
+
+def dispatch(args, fixture):
+    """Keep bounded private dispatch evidence even when the client disconnects."""
+    if not isinstance(fixture, str) or fixture not in FIXTURES:
+        raise ValueError('Only approved fixed fixture names accepted')
+    from research.cpu_measurement.ownership import publish
+    receipt = args.socket.parent / 'last-dispatch.json'
+    record = dict(schema='mldsafail.cpu-supervisor-dispatch.v1',
+                  request_id=uuid.uuid4().hex, fixture=fixture, state='intent',
+                  started_monotonic=time.monotonic())
+    publish(receipt, record)
+    try:
+        instance = generate_mlwe('small', 0, 1).public
+        result = run(args.image, args.parent, args.cgroup_parent,
+                     Path(__file__).parent / 'fixtures' / fixture,
+                     instance.to_dict(), lambda public, candidate: verify_candidate(instance, candidate)['verified'],
+                     timeout=2 if fixture in {'hang', 'descendant_hang', 'closed_stream_hang'} else 60,
+                     ownership_directory=args.ownership_directory,
+                     evidence_metadata={'fixture': fixture}, epoch=args.epoch)
+    except BaseException as original:
+        record.update(state='failed', error_type=type(original).__name__,
+                      error=repr(original)[:4096], finished_monotonic=time.monotonic())
+        try:
+            publish(receipt, record)
+        except BaseException as publication:
+            original.add_note('Private dispatch failure evidence publication failed: '+repr(publication))
+        raise
+    record.update(state='complete', generation=result['generation'],
+                  finished_monotonic=time.monotonic())
+    try:
+        publish(receipt, record)
+    except BaseException as original:
+        record.update(state='failed', error_type=type(original).__name__,
+                      error=repr(original)[:4096])
+        try:
+            publish(receipt, record)
+        except BaseException as publication:
+            original.add_note('Negative dispatch publication failed: '+repr(publication))
+        raise
+    return result
 
 
 def read_request(connection, request_seconds=1):
@@ -41,6 +83,8 @@ def read_request(connection, request_seconds=1):
     if data.count(b'\n') != 1 or not data.endswith(b'\n'):
         raise ValueError('Exactly one request required')
     request = json.loads(data)
+    if isinstance(request, dict) and set(request)=={'inspect_dispatch'} and request['inspect_dispatch'] is True:
+        return request
     if set(request) != {'fixture'} or request['fixture'] not in FIXTURES:
         raise ValueError('Only approved fixed fixture names accepted')
     return request
@@ -58,6 +102,7 @@ def serve(args):
     def interrupted(signum, frame):
         raise KeyboardInterrupt('Supervisor shutdown requested')
     previous = {number: signal.signal(number, interrupted) for number in (signal.SIGTERM, signal.SIGINT)}
+    last_dispatch = None
     try:
         server.bind(str(args.socket))
         os.chmod(args.socket, 0o600)
@@ -67,22 +112,28 @@ def serve(args):
             connection, _ = server.accept()
             with connection:
                 connection.settimeout(1)
+                request = None
                 try:
                     _, uid, _ = struct.unpack('3i', connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))
                     if uid != os.getuid():
                         raise PermissionError('Peer is not the trusted supervisor owner')
                     request = read_request(connection)
-                    fixture = request['fixture']
-                    instance = generate_mlwe('small', 0, 1).public
-                    result = run(args.image, args.parent, args.cgroup_parent,
-                                 Path(__file__).parent / 'fixtures' / fixture,
-                                 instance.to_dict(), lambda public, candidate: verify_candidate(instance, candidate)['verified'],
-                                 timeout=2 if fixture in {'hang', 'descendant_hang', 'closed_stream_hang'} else 60,
-                                 ownership_directory=args.ownership_directory,
-                                 evidence_metadata={'fixture': fixture}, epoch=args.epoch)
-                    response = {'ok': True, 'result': {key: result[key] for key in
-                                ('status', 'authoritative_cpu_usec', 'wall_seconds', 'generation')}}
+                    if 'inspect_dispatch' in request:
+                        # Serial dispatch means this response can only follow
+                        # completed publication, including any negative retry.
+                        response = {'ok': True, 'dispatch': last_dispatch}
+                    else:
+                        fixture = request['fixture']
+                        last_dispatch = dict(state='intent', fixture=fixture)
+                        result = dispatch(args, fixture)
+                        last_dispatch = dict(state='complete', fixture=fixture,
+                                             generation=result['generation'])
+                        response = {'ok': True, 'result': {key: result[key] for key in
+                                    ('status', 'authoritative_cpu_usec', 'wall_seconds', 'generation')}}
                 except Exception as error:
+                    if isinstance(request, dict) and 'fixture' in request:
+                        last_dispatch = dict(state='failed', fixture=request['fixture'],
+                                             error_type=type(error).__name__)
                     response = {'ok': False, 'error_type': type(error).__name__}
                 try:
                     connection.sendall(json.dumps(response, allow_nan=False).encode() + b'\n')

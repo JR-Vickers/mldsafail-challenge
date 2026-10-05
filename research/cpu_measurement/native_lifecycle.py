@@ -27,6 +27,46 @@ def wait_for(predicate, seconds=30):
     raise TimeoutError('Native lifecycle transition deadline exceeded')
 
 
+def dispatch_status(socket_path):
+    """Read the owner's post-publication in-memory disposition, boundedly."""
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
+            connection.settimeout(.25)
+            connection.connect(str(socket_path))
+            connection.sendall(b'{"inspect_dispatch":true}\n')
+            data=bytearray()
+            deadline=time.monotonic()+.25
+            while not data.endswith(b'\n'):
+                remaining=deadline-time.monotonic()
+                if remaining<=0:return None
+                connection.settimeout(remaining)
+                block=connection.recv(min(1024,4097-len(data)))
+                if not block:return None
+                data.extend(block)
+                if len(data)>4096:raise RuntimeError('Supervisor status exceeds fixed bound')
+            response=json.loads(data)
+            if response.get('ok') is not True or set(response)!={'ok','dispatch'}:
+                raise RuntimeError('Exact supervisor status response required')
+            return response['dispatch']
+    except (TimeoutError, ConnectionRefusedError, FileNotFoundError):
+        return None
+
+
+def completed_dispatch(state, previous, socket_path):
+    disposition=dispatch_status(socket_path)
+    if not isinstance(disposition,dict) or disposition.get('fixture')!='child':return None
+    if disposition.get('state')=='failed':
+        raise RuntimeError('Native supervisor dispatch failed: '+disposition.get('error_type','unknown'))
+    if disposition.get('state')!='complete':return None
+    record=json.loads((state/'journal.json').read_text())
+    receipt=json.loads((socket_path.parent/'last-dispatch.json').read_text())
+    if (record['generation']!=previous and record['state']=='complete'
+            and receipt.get('state')=='complete' and receipt.get('fixture')=='child'
+            and receipt.get('generation')==record['generation']==disposition.get('generation')):
+        return record
+    return None
+
+
 def lifecycle(args, output):
     output = Path(output)
     output.mkdir(mode=0o700, parents=True, exist_ok=False)
@@ -42,6 +82,13 @@ def lifecycle(args, output):
     results = []
     connection = None
     socket_identity = None
+    def dispatch_failure(fixture):
+        receipt=output/'last-dispatch.json'
+        if receipt.exists():
+            record=json.loads(receipt.read_text())
+            if record.get('fixture')==fixture and record.get('state')=='failed':
+                raise RuntimeError('Native supervisor dispatch failed: '+record.get('error_type','unknown')+
+                                   '; bounded private dispatch evidence retained')
     try:
         wait_for(lambda: socket_path.exists() and server.poll() is None)
         socket_identity = socket_path.stat().st_ino
@@ -52,11 +99,12 @@ def lifecycle(args, output):
         connection.close()
         connection = None
         def disconnected_completed():
-            record = json.loads((state / 'journal.json').read_text())
-            return record if record['generation'] != previous and record['state'] == 'complete' else None
+            dispatch_failure('child')
+            return completed_dispatch(state, previous, socket_path)
         completed = wait_for(disconnected_completed)
         decision = audit_journal(state, completed['generation'])
         results.append(dict(fault='connection_loss', passed=decision['status'] == 'no_answer', generation=completed['generation']))
+        publish(output / 'connection_loss.json', results[-1])
         # A second request proves response loss did not poison dispatch. Use the
         # hanging reviewed fixture so SIGKILL occurs after proven input delivery.
         connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -64,6 +112,7 @@ def lifecycle(args, output):
         connection.connect(str(socket_path))
         connection.sendall(b'{"fixture":"hang"}\n')
         def active_input():
+            dispatch_failure('hang')
             record = json.loads((state / 'journal.json').read_text())
             return record if record['generation'] != completed['generation'] and any(
                 row['operation'] == 'input_delivered' for row in record['mutations']) else None
