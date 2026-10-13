@@ -35,7 +35,7 @@ def test_configuration_isolation_and_failure_diagnostics(tmp_path):
     assert all(production['POSTGRES_PASSWORD'] not in error for error in errors)
 
 
-@pytest.mark.parametrize('domain', ['localhost', '127.0.0.1', 'https://example.org', 'bad..example.org', '-bad.example.org', 'host.invalid'])
+@pytest.mark.parametrize('domain', ['localhost', '127.0.0.1', 'https://example.org', 'bad..example.org', '-bad.example.org', 'host.invalid', '224.0.0.1', '240.0.0.1'])
 def test_invalid_domain(tmp_path, domain):
     production, staging = environments(tmp_path)
     production['MLDSAFAIL_DOMAIN'] = domain

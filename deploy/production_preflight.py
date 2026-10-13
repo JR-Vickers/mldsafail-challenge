@@ -37,7 +37,8 @@ def check(environment, staging):
     domain = environment.get('MLDSAFAIL_DOMAIN', '')
     try:
         address = ipaddress.ip_address(domain)
-        valid_domain = address.version == 4 and address.is_global
+        valid_domain = (address.version == 4 and address.is_global
+                        and not address.is_multicast and not address.is_reserved)
     except ValueError:
         valid_domain = bool(re.fullmatch(r'(?=.{1,253}$)[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?', domain))
         valid_domain = valid_domain and '.' in domain and all(
