@@ -2,7 +2,7 @@
   "cleanup_executed": false,
   "policy": "Retain every original worktree, branch, artifact and all new successful/failed/partial evidence. No cleanup deletion is authorized.",
   "protected_manifest": "/Users/jarrett/dev/mldsafail-challenge/results/integration-evidence/20261013/cleanup.private.json",
-  "manifest_sha256": "2fe50741701fcffcd38132cad93d651a45683c3948bd0a8009ef05bb56af297b",
+  "manifest_sha256": "5e641e8ab70022909b863bd558220b2f7d39e26bbd07f1730be25698ffa14575",
   "new_local_images": [
     {
       "image": "sha256:9a19ce82c843aba6ba12d505273e595a0a9f4ca576002ae2783b534fc7822a59",
