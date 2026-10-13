@@ -46,6 +46,17 @@ def test_missing_source_explicitly_blocks_completion():
     assert ledger.validate(data, require_complete_mapping=True)
 
 
+def test_absent_historical_mapping_can_be_a_documented_traceability_limitation():
+    data = report()
+    data['tasks'][0]['checklist'] = []
+    data['checklist_source'] = {'status': 'traceability_limitation', 'required': False,
+                              'reason': 'Integration plan uses actual requirements; old checklist absent.'}
+    assert ledger.validate(data) == []
+    assert ledger.validate(data, require_complete_mapping=True)
+    del data['checklist_source']['reason']
+    assert ledger.validate(data)
+
+
 def test_secret_fields_and_values_rejected():
     data = report()
     data['password'] = 'redacted'

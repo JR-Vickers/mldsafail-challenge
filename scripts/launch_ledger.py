@@ -103,7 +103,10 @@ def validate(report, root=None, require_complete_mapping=False):
     absent = sorted(set(range(1, 79)) - set(mappings))
     if absent and (require_complete_mapping or report.get('checklist_source', {}).get('status') == 'available'):
         errors.append(f'missing checklist mappings: {absent}')
-    if absent and report.get('checklist_source', {}).get('status') != 'blocked_external':
+    traceability = report.get('checklist_source', {})
+    traceability_only = (traceability.get('status') == 'traceability_limitation'
+                         and traceability.get('required') is False and bool(traceability.get('reason')))
+    if absent and not traceability_only and traceability.get('status') != 'blocked_external':
         errors.append('missing checklist must be explicitly externally blocked')
     visiting, visited = set(), set()
     def visit(name):
