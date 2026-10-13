@@ -1,0 +1,15 @@
+{
+  "location": "/private/tmp/mldsafail-integration-preservation",
+  "artifacts": {
+    "source.bundle": {
+      "sha256": "8df855676558ee25ee3fd4da18d16daa874379f676dd552af5e3bee816b9a60e",
+      "bytes": 46322561
+    },
+    "inventory.private.json": {
+      "sha256": "9477a4fe63abc1d90bedf4121e3f98f85eb938348a73c72418a3d312782d3459",
+      "bytes": 10544470
+    }
+  },
+  "bundle_verified": true,
+  "private_inventory_contents_not_published": true
+}
