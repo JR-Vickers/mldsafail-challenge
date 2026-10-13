@@ -2,6 +2,7 @@
 import argparse
 import ipaddress
 import re
+from urllib.parse import urlsplit
 from pathlib import Path
 
 from deploy.validate_production import validate
@@ -11,6 +12,7 @@ SECRETS = ('POSTGRES_PASSWORD', 'MLDSAFAIL_SECRET_KEY', 'GITHUB_CLIENT_SECRET')
 IDENTITIES = ('MLDSAFAIL_MLWE_EPOCH_ID', 'MLDSAFAIL_HIDDEN_SUITE_VERSION')
 REQUIRED = IMAGES + SECRETS + IDENTITIES + (
     'GITHUB_CLIENT_ID', 'MLDSAFAIL_DOMAIN', 'ROOTLESS_DOCKER_SOCKET',
+    'PRODUCTION_TLS_ROOT', 'PRODUCTION_ACME_WEBROOT',
     'PRODUCTION_EVALUATOR_ROOT', 'MLDSAFAIL_EVALUATOR_FINGERPRINT', 'MLDSAFAIL_WORKER_CLASS',
 )
 
@@ -34,8 +36,8 @@ def check(environment, staging):
             errors.append('staging_reuse:' + key)
     domain = environment.get('MLDSAFAIL_DOMAIN', '')
     try:
-        ipaddress.ip_address(domain)
-        valid_domain = False
+        address = ipaddress.ip_address(domain)
+        valid_domain = address.version == 4 and address.is_global
     except ValueError:
         valid_domain = bool(re.fullmatch(r'(?=.{1,253}$)[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?', domain))
         valid_domain = valid_domain and '.' in domain and all(
@@ -43,7 +45,14 @@ def check(environment, staging):
             for label in domain.split('.')
         ) and not domain.endswith(('.localhost', '.invalid', '.example'))
     if not valid_domain:
-        errors.append('production_dns_name_required')
+        errors.append('production_origin_host_required')
+    origin = environment.get('PRODUCTION_ORIGIN', 'https://' + domain)
+    parsed = urlsplit(origin)
+    if (parsed.scheme != 'https' or parsed.netloc != domain or
+            parsed.path not in {'', '/'} or parsed.query or parsed.fragment):
+        errors.append('trusted_https_origin_required')
+    if environment.get('MLDSAFAIL_BENCHMARK_VERSION') not in {'0.5.0', '0.6.0'}:
+        errors.append('explicit_supported_benchmark_required')
     try:
         validate(environment.get('PRODUCTION_EVALUATOR_ROOT', ''),
                  staging.get('EVALUATOR_WORK_DIR', '/srv/mldsafail-evaluator'))

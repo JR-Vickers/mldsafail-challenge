@@ -1,0 +1,10 @@
+[Unit]
+Description=Renew short-lived production IP certificate and reload Caddy
+[Service]
+Type=oneshot
+User=mldsafail
+UMask=0077
+WorkingDirectory=/srv/mldsafail-production/current
+ExecStart=/srv/mldsafail-production/certbot/bin/certbot renew --config-dir /srv/mldsafail-production-tls --work-dir /srv/mldsafail-production/certbot-work --logs-dir /srv/mldsafail-production/certbot-logs --deploy-hook "/srv/mldsafail-production/current/.venv/bin/python -m deploy.reload_production_tls --env-file /srv/mldsafail-production/secrets/production.env --checkout /srv/mldsafail-production/current"
+TimeoutStartSec=10min
+NoNewPrivileges=true

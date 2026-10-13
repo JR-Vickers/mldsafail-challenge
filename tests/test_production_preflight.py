@@ -13,7 +13,8 @@ def environments(tmp_path):
     production.update({key: 'registry/image@sha256:' + 'a' * 64 for key in IMAGES})
     production.update(PRODUCTION_EVALUATOR_ROOT=str(tmp_path / 'production'),
                       ROOTLESS_DOCKER_SOCKET='/run/user/1000/docker.sock',
-                      MLDSAFAIL_DOMAIN='challenge.example.org')
+                      MLDSAFAIL_DOMAIN='challenge.example.org', MLDSAFAIL_BENCHMARK_VERSION='0.5.0',
+                      PRODUCTION_TLS_ROOT=str(tmp_path/'tls'), PRODUCTION_ACME_WEBROOT=str(tmp_path/'acme'))
     return production, {'EVALUATOR_WORK_DIR': str(tmp_path / 'staging')}
 
 
@@ -38,7 +39,17 @@ def test_configuration_isolation_and_failure_diagnostics(tmp_path):
 def test_invalid_domain(tmp_path, domain):
     production, staging = environments(tmp_path)
     production['MLDSAFAIL_DOMAIN'] = domain
-    assert 'production_dns_name_required' in check(production, staging)
+    assert 'production_origin_host_required' in check(production, staging)
+
+
+def test_public_ipv4_origin_and_callback(tmp_path):
+    production, staging = environments(tmp_path)
+    production.update(MLDSAFAIL_DOMAIN='178.128.17.58', PRODUCTION_ORIGIN='https://178.128.17.58')
+    assert check(production, staging) == []
+    for origin in ('http://178.128.17.58', 'https://other.example.org',
+                   'https://178.128.17.58/auth/callback', 'https://178.128.17.58?x=1'):
+        production['PRODUCTION_ORIGIN'] = origin
+        assert 'trusted_https_origin_required' in check(production, staging)
 
 
 def test_private_env_rejects_interpolation_permissions_and_duplicates(tmp_path):

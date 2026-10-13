@@ -88,6 +88,8 @@ with Session(engine) as session:
     except Exception:
         pass
     failures = evaluate(readiness, services, leases, verified_backup, failed_jobs)
+    from deploy.healthchecks import notify
+    notify(config, 'service', not failures)
     if config.get('alert_enabled'):
         credential = private_file(config['alert_token_file']).read_text().strip()
         deliver(config['alert_url'], credential, Path(config['alert_state']), failures)

@@ -162,11 +162,26 @@ def main():
         raise InterruptedError('Recovery interrupted')
     for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
         signal.signal(sig, interrupted)
+    config = json.loads(private_file(args.config).read_text())
+    from deploy.healthchecks import notify
     try:
-        print(json.dumps(run(json.loads(private_file(args.config).read_text()), args.cleanup)))
+        result = run(config, args.cleanup)
     except Exception:
+        try:
+            notify(config, 'recovery', False)
+        except Exception:
+            pass
         print(json.dumps({'daily_recovery_failed': True, 'private_evidence_retained': True}))
         raise SystemExit(1)
+    # Cleanup-only invocations never report backup success. run() returns this
+    # marker only after upload, restore/audit, independent cleanup and retention.
+    if result.get('daily_recovery_verified') is True:
+        try:
+            notify(config, 'recovery', True)
+        except Exception:
+            print(json.dumps({'daily_recovery_verified': True, 'heartbeat_delivery_failed': True}))
+            raise SystemExit(1)
+    print(json.dumps(result))
 
 
 if __name__ == '__main__':

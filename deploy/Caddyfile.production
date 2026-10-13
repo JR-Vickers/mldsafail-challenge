@@ -1,4 +1,5 @@
-{$MLDSAFAIL_DOMAIN} {
+https://{$MLDSAFAIL_DOMAIN} {
+    tls /etc/letsencrypt/live/{$MLDSAFAIL_DOMAIN}/fullchain.pem /etc/letsencrypt/live/{$MLDSAFAIL_DOMAIN}/privkey.pem
     encode zstd gzip
     header {
         Strict-Transport-Security "max-age=31536000; includeSubDomains"
@@ -10,4 +11,14 @@
     @operations path /health/* /metrics /admin/*
     respond @operations 404
     reverse_proxy web:8000
+}
+
+http://{$MLDSAFAIL_DOMAIN} {
+    handle /.well-known/acme-challenge/* {
+        root * /var/www/acme
+        file_server
+    }
+    handle {
+        redir https://{$MLDSAFAIL_DOMAIN}{uri} permanent
+    }
 }
