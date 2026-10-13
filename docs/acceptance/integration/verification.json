@@ -1,0 +1,153 @@
+{
+  "schema": "mldsafail.integration-local-verification.v1",
+  "engineering_passed": true,
+  "native_combined_acceptance": false,
+  "code_checkpoint": "26c5f2f4bc771b319ffccc2cdcb1c735eaab4176",
+  "checks": {
+    "make_check": {
+      "passed": true,
+      "tests_passed": 942,
+      "tests_skipped": 13,
+      "deterministic_mlwe_contract_checks": 8,
+      "log_sha256": "ae8599b2bbf48d80191251de60b3b43208337e561378377c895b0bd908121015"
+    },
+    "focused_imports": {
+      "passed": true,
+      "tests": 57
+    },
+    "ledger_validation": {
+      "passed": true,
+      "errors": []
+    }
+  },
+  "local_environment": {
+    "python": "3.12.10",
+    "platform": "macOS-15.7.7-arm64-arm-64bit",
+    "docker_architecture": "linux/arm64"
+  },
+  "participant_install": {
+    "passed": true,
+    "artifact_source_commit": "0375e1c5499fb173b80847fb7081fec5217bf88a",
+    "operator_source_commit": "e1061b2bd95fe165569103765422e773225909ee",
+    "wheel_sha256": "ed002b7b2440efdf99936a9eb81df3010fa5d1b3f77c25b7e546eb15f7d62194",
+    "starter_sha256": "4d8df806feb996e35f7d99db71d8aa86154c3901dde786edccc4d3f80b207ed7",
+    "installed_import_isolated": true,
+    "dependency_binding_sha256": "9521c8ecedd0f1adc6d4d80a51e91ef2efebbc01dd7de160369b13d6f5bf451d",
+    "receipt_sha256": "3e37fcde1962e6357d270c65d71890084a44e8362e6b243ef8138814d75afe45",
+    "final_artifact_source_commit": "26c5f2f4bc771b319ffccc2cdcb1c735eaab4176",
+    "final_wheel_byte_identical_to_tested_artifact": true
+  },
+  "public_development": {
+    "complete": true,
+    "eligible": true,
+    "cases": 50,
+    "warmup_successes": 50,
+    "measured_successes": 150,
+    "diagnostic_score": 1.0,
+    "official_ranking": false,
+    "solver_digest": "1057dc7a896dd0a8a1a6c66ef3cfa5dbfc743d822780ae77c29e9919223808fd",
+    "ledger_sha256": "e064d80a4290e3fa4e20e42f860f9146bcbe6e7e4dbe41f31f4d1cbae09781b1",
+    "worker_image": "sha256:7d52c66b05b7d007e93961512ed90319c1d20c21d73c8007ec8d0cc3ecc48865",
+    "trusted_fingerprint": "b6f92231843fcb90695669108f0cc02d747ae0614eb9b3d25cddae602e092eee",
+    "receipt_sha256": "e064d80a4290e3fa4e20e42f860f9146bcbe6e7e4dbe41f31f4d1cbae09781b1",
+    "independent_final_container_inventory_empty": true
+  },
+  "earlier_exact_artifacts": {
+    "mldsafail_challenge-0.5.1.tar.gz": {
+      "sha256": "8cde47b0bd442cb0f182259b3fb128c3152a5bbab5795493b3853228a4c19800",
+      "bytes": 44276397
+    },
+    ".gitignore": {
+      "sha256": "684888c0ebb17f374298b65ee2807526c066094c701bcc7ebbe1c1095f494fc1",
+      "bytes": 1
+    },
+    "mldsafail_challenge-0.5.1-py3-none-any.whl": {
+      "sha256": "ed002b7b2440efdf99936a9eb81df3010fa5d1b3f77c25b7e546eb15f7d62194",
+      "bytes": 184636
+    }
+  },
+  "earlier_exact_worker": {
+    "source_commit": "0375e1c5499fb173b80847fb7081fec5217bf88a",
+    "image": "sha256:6c9de8ef380b34088da304348e9b498461b14a7b021f7649bceb6baebd098dd3",
+    "architecture": "arm64",
+    "clean_build": true,
+    "starter_bytes_match": true
+  },
+  "preserved_failed_attempts": [
+    {
+      "operation": "isolated-install-probe",
+      "reason": "Python tuples passed directly to JSON-list verifier; corrected committed probe passed fresh installation"
+    },
+    {
+      "operation": "initial-image-source-label",
+      "reason": "Incorrect full commit label; excluded from acceptance and retained separately"
+    },
+    {
+      "operation": "first-source-distribution",
+      "reason": "Temporary source.tar entered build tree; retained but excluded from successor artifact selection"
+    }
+  ],
+  "native_access": {
+    "attempts": 2,
+    "result": "SSH connection timed out",
+    "ownership_inspected": false,
+    "remote_mutations": false,
+    "source_of_endpoint": "docs/OPERATIONS.md"
+  },
+  "limitations": [
+    "Local ARM64 build/install/development is not native Linux amd64 acceptance",
+    "Historical candidate installation protocol remains deferred",
+    "Scientific clean-build reproduction, recovery, rollback, load and native fault gates for combined source remain deferred",
+    "G and L measurement trials remain failed; no candidate adoption",
+    "Trusted IP TLS issuance/renewal and OAuth require owner inputs/activation",
+    "Real Healthchecks email/missed-heartbeat acceptance requires endpoints and authorization",
+    "Off-host storage/custody and pilot recruitment remain deferred"
+  ],
+  "protected_evidence_location": "/Users/jarrett/dev/mldsafail-challenge/results/integration-evidence/20261013",
+  "published": false,
+  "final_worker": {
+    "source_commit": "26c5f2f4bc771b319ffccc2cdcb1c735eaab4176",
+    "source_tree": "9fb903fe15d221aa0b84f1d5b5d76827c94ee402",
+    "image": "sha256:faefd625f39008de443692311d5dbfd662e2f52dd9d174c0c0444d057d365419",
+    "architecture": "arm64",
+    "clean_build": true,
+    "purpose": "Dockerfile.worker package-build regression proof; not the hosted MLWE measurement worker",
+    "starter_bytes_match": true,
+    "archive_sha256": "0765102f2722052e323f30eb15fa1d7f7d96c7f9c34ad11c7bd053b9d7571ad1",
+    "archive_bytes": 97854464
+  },
+  "final_package_artifacts": {
+    "mldsafail_challenge-0.5.1.tar.gz": {
+      "sha256": "d0a4c9afb946ae395090e8778efb09ed644ef8432a23c9b62fc105455643c1e8",
+      "bytes": 44276642,
+      "source_commit": "26c5f2f4bc771b319ffccc2cdcb1c735eaab4176"
+    },
+    ".gitignore": {
+      "sha256": "684888c0ebb17f374298b65ee2807526c066094c701bcc7ebbe1c1095f494fc1",
+      "bytes": 1,
+      "source_commit": "26c5f2f4bc771b319ffccc2cdcb1c735eaab4176"
+    },
+    "mldsafail_challenge-0.5.1-py3-none-any.whl": {
+      "sha256": "ed002b7b2440efdf99936a9eb81df3010fa5d1b3f77c25b7e546eb15f7d62194",
+      "bytes": 184636,
+      "source_commit": "26c5f2f4bc771b319ffccc2cdcb1c735eaab4176"
+    }
+  },
+  "unchanged_contract_paths": [
+    "config/",
+    "src/mldsafail/trusted/",
+    "src/mldsafail/benchmark/",
+    "src/mldsafail/benchmark_v050/",
+    "src/mldsafail/benchmark_v060/",
+    "uv.lock",
+    "deploy/worker-linux-amd64.requirements.txt"
+  ],
+  "prepared_native_identities": {
+    "source_commit": "26c5f2f4bc771b319ffccc2cdcb1c735eaab4176",
+    "aggregate_supervisor_helper_sha256": "85dc9b5955aa6d05be5ba4177aa71c65258e2d7569f3b4774c04ec5e1cf99037",
+    "diagnostic_callback_sha256": "a85afadb6029709dc803abc12e9afc7bb0e8e1b2aa1eced99802b66752d9e4bc",
+    "participant_install_callback_sha256": "826b60dc825b1d86fc0b1eae4e8be9397a4302057e3a23e27c873f5f775c4d90",
+    "native_execution": false,
+    "new_review_and_authority_required_before_execution": true
+  }
+}

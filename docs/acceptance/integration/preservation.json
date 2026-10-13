@@ -11,5 +11,7 @@
     }
   },
   "bundle_verified": true,
-  "private_inventory_contents_not_published": true
+  "private_inventory_contents_not_published": true,
+  "durable_location": "/Users/jarrett/dev/mldsafail-challenge/results/integration-preservation/20261013",
+  "original_inventory_sha256": "7f68c24e28ab508dc7ec2add95b9cf0987fdc78b285f74140da40e7585de4874"
 }

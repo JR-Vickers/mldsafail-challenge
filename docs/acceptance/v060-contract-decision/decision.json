@@ -26,7 +26,7 @@
     "fresh_epoch_id": null,
     "cohort_id": null,
     "reference_authority_sha256": null,
-    "contract_document_sha256": "303b47fcaee1e96b2a9f49e3de3ffce05e5a1abaa721e35ff64b3a6a94f05000",
+    "contract_document_sha256": "40b8f61b99430863ae5c90ec1eecbcb0d22b9846a8084bf164216c245a8fd3d0",
     "contract_source_files_sha256": {
       "src/mldsafail/benchmark_v060/backend.py": "65d77ade32d7d6c2b105d0798b22729a5adfdc39dcac8c1dd543aedc5a8f427a",
       "src/mldsafail/benchmark_v060/evaluation.py": "103ed484df1711d5d9845c8ae00900415993d002efd1da41e4734efe93bd72f8",
@@ -35,7 +35,10 @@
       "src/mldsafail/benchmark_v060/candidate_authority.py": "aed18a537839600d5255c20b462c05ed0cf24d0266b4db2c1df47d1f161dea01",
       "src/mldsafail/benchmark_versions.py": "c8268e561ff7fbaf3699f18c09ed9af0526ddb960a5aa9d0ab5b0e2a4f2b0000",
       "research/cpu_measurement/audit.py": "c534851a760e1d19140309f83642ec496720948ebc1a35ffc9d3bdf380814fbc"
-    }
+    },
+    "integration_application_checkpoint": "26c5f2f4bc771b319ffccc2cdcb1c735eaab4176",
+    "prepared_integration_helper_sha256": "85dc9b5955aa6d05be5ba4177aa71c65258e2d7569f3b4774c04ec5e1cf99037",
+    "prepared_integration_helpers_natively_accepted": false
   },
   "contract": {
     "version": "0.6.0",
@@ -69,7 +72,9 @@
     "empty_wall_p95_seconds": 2.893689,
     "reported_whole_cleanup_passed": true,
     "raw_evidence_retained": true,
-    "sanitized_evidence_refs": [],
+    "sanitized_evidence_refs": [
+      "docs/acceptance/public-launch/native-cpu-generation-g.json"
+    ],
     "source_of_metrics": "Parent operator report; attach retained sanitized receipt before owner review"
   },
   "evidence_slots": {
@@ -320,5 +325,40 @@
     "public_exposure_authorized": false,
     "publication_authorized": false,
     "recruitment_authorized": false
-  }
+  },
+  "historical_generation_L": {
+    "schema": "mldsafail.native-cpu-generation.v1",
+    "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+    "supervisor_source_sha256": "68ce712d9e72be35900475074c7bc208d71611bd38af24fcb51d5aa1cc0a5af7",
+    "worker_source_commit": "e4b8669aa1eb1e242e1fda5a6564669054ebad9d",
+    "worker_image": "sha256:c5c35eb224f77fe84caa977e18a73d10a710366090fa7ad88e9eb21cde9a74cc",
+    "native_executed": true,
+    "passed": false,
+    "native_fault_suite_passed": true,
+    "fault_cases": 13,
+    "pairs_completed": 30,
+    "whole_owned_cleanup_verified": true,
+    "independent_all_owned_domains_absent": true,
+    "thresholds_changed": false,
+    "metrics": {
+      "child_cpu_cv": 0.0969114654753043,
+      "empty_cpu_median_usec": 432285.5,
+      "empty_wall_p95_seconds": 3.171658131002914
+    },
+    "thresholds": {
+      "child_cpu_cv_max": 0.05,
+      "empty_cpu_median_usec_max": 250000,
+      "empty_wall_p95_seconds_max": 5
+    },
+    "raw_sha256": {
+      "operator": "eb9c1fe69f085a86f59d544aa20be4fa1a4cef5d29f5a57eeb2264c2f86611c7",
+      "driver": "1da05886bad22d27a1feb20c97d7d49715b88720c1ba8421639358fd0bd0e441",
+      "fault_report": "8f47d1004906c77b992276cf3583faac94c59704a81489415aa12abea6cbccda",
+      "pairs_report": "fb27661763a9dfec271c20dbd9791ef44f8ee7c6b480f1d2e412bc41ab582d34"
+    },
+    "evidence_reference": "protected native CPU generationL",
+    "next_action": "Attribute whole lifecycle overhead and implement independently reviewed correction before changed-source measurements",
+    "eligible_as_prospective_acceptance": false
+  },
+  "integration_native_disposition": "deferred: SSH timeout; current ownership unverified"
 }

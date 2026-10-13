@@ -5,212 +5,212 @@
       "audited_sha": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
       "current_sha": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "agent/benchmark",
       "audited_sha": "6b3095ee594ed1897a2064229591a3934c9dd4e8",
       "current_sha": "6b3095ee594ed1897a2064229591a3934c9dd4e8",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "agent/trusted",
       "audited_sha": "9f354b61246b4f8bc91861894802595fc8ee0b50",
       "current_sha": "9f354b61246b4f8bc91861894802595fc8ee0b50",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "agent/trusted-audit",
       "audited_sha": "289278a6a1eb3c11034fef9b49340d05c38f24e2",
       "current_sha": "289278a6a1eb3c11034fef9b49340d05c38f24e2",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "agent/trusted-port",
       "audited_sha": "e21b941ac2f77a6d3a93fe3805e4fec67a40640a",
       "current_sha": "e21b941ac2f77a6d3a93fe3805e4fec67a40640a",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "agent/web",
       "audited_sha": "1c86785624115442897fa7309430082b38c3c032",
       "current_sha": "1c86785624115442897fa7309430082b38c3c032",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "engineering/candidate-distribution",
       "audited_sha": "62c7e34381ecebd3fd7b402719363a9c47501a74",
       "current_sha": "62c7e34381ecebd3fd7b402719363a9c47501a74",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "engineering/candidate-runtime-continuation",
       "audited_sha": "d8a3ec749935498b8b7fcfab38c399e7f038fb3d",
       "current_sha": "d8a3ec749935498b8b7fcfab38c399e7f038fb3d",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "incorporated install tooling d8a3ec7; historical native protocol deferred"
     },
     {
       "branch": "engineering/launch-accounting",
       "audited_sha": "82d10cf61ba4fb53c9068406d9d7f91a8acebc43",
       "current_sha": "82d10cf61ba4fb53c9068406d9d7f91a8acebc43",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "engineering/launch-preparation",
       "audited_sha": "9c0b9ffa3094fa8aff7aa2f9ed851a4fe83fb740",
       "current_sha": "9c0b9ffa3094fa8aff7aa2f9ed851a4fe83fb740",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "selectively incorporated clock scope 2b69ba3; preserve dated differing reviews"
     },
     {
       "branch": "engineering/launch-recovery",
       "audited_sha": "17a419a6e41d8d3a1b6f6db10870aa83c68a7c97",
       "current_sha": "17a419a6e41d8d3a1b6f6db10870aa83c68a7c97",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "engineering/launch-v060-preparation",
       "audited_sha": "9ccaa5fd16fd8a75bcb925cd821d1c7114ccaa22",
       "current_sha": "9ccaa5fd16fd8a75bcb925cd821d1c7114ccaa22",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "engineering/measurement-performance",
       "audited_sha": "8d80137b538c26adc08a0b332b8c97d26d666d9d",
       "current_sha": "8d80137b538c26adc08a0b332b8c97d26d666d9d",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "incorporated diagnostic 8d80137; native execution deferred"
     },
     {
       "branch": "engineering/native-artifact-preparation",
       "audited_sha": "51d7b6e9fc620400cd4ea5ca6b1ed57d0307b977",
       "current_sha": "51d7b6e9fc620400cd4ea5ca6b1ed57d0307b977",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "engineering/native-baseline-preparation",
       "audited_sha": "47c104a24c0f7af0e6c68826ea2fcf7901fd1057",
       "current_sha": "47c104a24c0f7af0e6c68826ea2fcf7901fd1057",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "engineering/native-startup-socket-retirement",
       "audited_sha": "881d8972969cb6391cb6b786e001817e9b55f80e",
       "current_sha": "881d8972969cb6391cb6b786e001817e9b55f80e",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "incorporated exact startup safeguards 881d897; retain branch/worktree"
     },
     {
       "branch": "engineering/operator-activation",
       "audited_sha": "0349033b7c708ef39aea3115ce9a0f794523c24c",
       "current_sha": "0349033b7c708ef39aea3115ce9a0f794523c24c",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "engineering/operator-activation-coherent",
       "audited_sha": "7769f0b0026322b841669b67e8e8730174fc360e",
       "current_sha": "7769f0b0026322b841669b67e8e8730174fc360e",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "engineering/operator-completion",
       "audited_sha": "7c18cbc1cbced142068351e9616d35edfbd14354",
       "current_sha": "7c18cbc1cbced142068351e9616d35edfbd14354",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "engineering/private-candidate-runtime",
       "audited_sha": "ccc549932bd1d96f7a8468ae197465c845902e32",
       "current_sha": "ccc549932bd1d96f7a8468ae197465c845902e32",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "engineering/public-launch",
       "audited_sha": "6f60782cb7ddc7accc7cb325d1f0c8258082864b",
       "current_sha": "6f60782cb7ddc7accc7cb325d1f0c8258082864b",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "canonical base 6f60782; retain original branch/worktree"
     },
     {
       "branch": "engineering/recovery-import-0e0bc",
       "audited_sha": "95593b69f73afc73efabbad72521cfba0535c9e4",
       "current_sha": "95593b69f73afc73efabbad72521cfba0535c9e4",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "engineering/recovery-journal-rpc",
       "audited_sha": "33d8008a06e15f61740ca64f5f54b23b85e93500",
       "current_sha": "33d8008a06e15f61740ca64f5f54b23b85e93500",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "engineering/recovery-protected-local",
       "audited_sha": "4cff8f202913c8ba585d71a4976da196a3a4bd89",
       "current_sha": "4cff8f202913c8ba585d71a4976da196a3a4bd89",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "engineering/staging-load-orchestration",
       "audited_sha": "b85dc41f33a47ea09358bd4d6120e62b6ad14572",
       "current_sha": "b85dc41f33a47ea09358bd4d6120e62b6ad14572",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "engineering/v060-adoption-packet",
       "audited_sha": "2564a72c7f1c6ef5fd74e4ee079f90aead774ce1",
       "current_sha": "2564a72c7f1c6ef5fd74e4ee079f90aead774ce1",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "engineering/v060-coherent-import",
       "audited_sha": "b0421cdcda842e4dd6c4b43fafd90541a7ae0cd2",
       "current_sha": "b0421cdcda842e4dd6c4b43fafd90541a7ae0cd2",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "main",
       "audited_sha": "4602f455c7cc365b41d05bb0ef49f738dd6d9d2b",
       "current_sha": "4602f455c7cc365b41d05bb0ef49f738dd6d9d2b",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "incorporated package-build fix 4602f45; retain main unchanged"
     },
     {
       "branch": "origin",
       "audited_sha": "c84277bf5f6b896b9d148fc21ce7511dbb97d6bd",
       "current_sha": "c84277bf5f6b896b9d148fc21ce7511dbb97d6bd",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     },
     {
       "branch": "origin/main",
       "audited_sha": "c84277bf5f6b896b9d148fc21ce7511dbb97d6bd",
       "current_sha": "c84277bf5f6b896b9d148fc21ce7511dbb97d6bd",
       "moved": false,
-      "disposition": "retain; historical evidence/source, no wholesale merge"
+      "disposition": "retain branch, worktree and evidence; historical lineage or already integrated implementation, no wholesale merge"
     }
   ],
-  "private_inventory": "/private/tmp/mldsafail-integration-preservation/inventory.private.json",
+  "private_inventory": "/Users/jarrett/dev/mldsafail-challenge/results/integration-preservation/20261013/inventory.private.json",
   "cleanup": "Retain every existing worktree and artifact; no cleanup executed."
 }

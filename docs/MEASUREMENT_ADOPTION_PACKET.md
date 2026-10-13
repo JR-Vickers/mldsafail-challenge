@@ -2,12 +2,13 @@
 
 **No adoption or activation is approved.** This packet prepares two separate
 owner decisions. Current evidence does not support either activation: generation
-G failed the predeclared native measurement thresholds, and acceptance of the
-new prospective artifact remains pending. The machine-readable companion
+G and L failed the predeclared native measurement thresholds. L used the
+prospective worker and still failed child CV and empty CPU overhead. Adoption
+remains disabled; integration native diagnostics await current VPS ownership proof. The machine-readable companion
 [decision.json](acceptance/v060-contract-decision/decision.json) contains explicit evidence and decision slots.
 It is a review packet, not an evaluator authority or application configuration.
 
-The reviewed engineering checkpoint is
+The historical reviewed engineering checkpoint is
 `b0421cdcda842e4dd6c4b43fafd90541a7ae0cd2`, incorporating the approved offline
 native artifact preparation at `b232c544ff4823da13775eaa1e5bbbdf68500936`.
 The exact proposed CPU source family is
@@ -81,6 +82,28 @@ Reported whole-domain cleanup passed. These are historical outcomes on that
 artifact, not acceptance of the proposed worker. Raw evidence stays protected;
 operator-supplied sanitized references must fill the historical slot.
 
+Generation L used supervisor source `391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b`
+and worker source `e4b8669aa1eb1e242e1fda5a6564669054ebad9d`, with image
+`sha256:c5c35eb224f77fe84caa977e18a73d10a710366090fa7ad88e9eb21cde9a74cc`.
+All 13 faults and exactly 30 pairs completed. Child CV **0.0969114655 > 0.05**
+and empty CPU median **432,285.5 > 250,000 microseconds** failed; wall p95
+**3.171658 seconds** passed. Cleanup was independently reported complete.
+These receipts are historical, and establish no current resource absence.
+See [G](acceptance/public-launch/native-cpu-generation-g.json) and
+[L](acceptance/public-launch/native-cpu-generation-l.json).
+
+The integrated three-pair [lifecycle diagnostic](acceptance/measurement-phase-diagnostic/PROTOCOL.md)
+retains the original whole-lifecycle accounting and thresholds. Exact-source
+execution is deferred after two SSH connection timeouts on 2026-10-13. The
+current host ownership state could not be inspected. No diagnostic result or
+performance acceptance is fabricated from this absence. The concrete next
+investigation is startup/execution/cleanup attribution, followed, if supported,
+by a pinned lean OCI runtime proposal on a separately owned daemon. Review its
+binary/provenance/isolation checkpoint before execution, then rerun the complete
+fault suite and at least 30 pairs. Neither startup subtraction nor weaker gates
+is proposed. Candidate reference viability/audits and hosted acceptance remain
+pending and cannot be inferred from local installation tests.
+
 The prospective artifact removes an unnecessary import of the frozen timing
 adapter, retaining identical address-space/affinity limits and required solver
 modules. It uses a separately named AMD64 dependency lock, byte-identical to the
@@ -107,7 +130,7 @@ acceptance must then pass. No current evidence slot claims these passed.
 | Contract document SHA and source | Companion JSON binds this document and contract source files; native release binding remains pending |
 | Worker image/context SHA and approved AMD64 lock35890 | Separately reviewed candidate build/provenance; actual retained artifact receipt required |
 | Independent supervisor and auditor source receipts | Bind exact current CPU source digest; historical receipts do not cover later source changes |
-| Native fault suite and30 paired protocol/result | Earlier G failure retained; final changed-artifact acceptance pending |
+| Native fault suite and 30 paired protocol/result | G and L failures retained; corrected exact-source acceptance pending |
 | Fresh100-case reference table, independent audit and sealing authority | Inactive candidate tooling prepared; native source/image-bound evidence required |
 | Explicit CLI/API acknowledgement and idempotency | Separately reviewed candidate source; native acceptance required |
 | Separate evidence/cohort/default/privacy behavior | Native candidate application receipt required |

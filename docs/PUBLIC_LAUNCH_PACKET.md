@@ -1,6 +1,6 @@
 # Public launch preparation and owner decision packet
 
-Prepared 2026-10-04. This packet authorizes no publication, public network exposure,
+Updated 2026-10-13; historical 2026-10-04 scope preserved in source history. This packet authorizes no publication, public network exposure,
 production activation, spending, account provisioning or recruitment. Native
 acceptance and the canonical launch ledger determine readiness. Historical reports
 retain their dated outcomes; they do not establish current service state.
@@ -10,10 +10,10 @@ retain their dated outcomes; they do not establish current service state.
 | Decision/input | Supplier | Concrete requested action | Work that waits |
 | --- | --- | --- | --- |
 | Measurement contract adoption | Owner, after supervisor/auditor review | Approve or reject the separately versioned 0.6.0 contract with unchanged declared gates | Production cohort/default, final participant artifacts and score text |
-| Production account/domain/OAuth | Owner | Select isolated deployment account/host and DNS name; register production OAuth callback `https://DOMAIN/auth/callback`; supply scoped credentials privately | Real OAuth, TLS and DNS acceptance |
+| Production account/domain/OAuth | Owner | Use the existing VPS and origin `https://178.128.17.58`; register callback `https://178.128.17.58/auth/callback`; supply fresh scoped OAuth inputs privately | Real OAuth, TLS and DNS acceptance |
 | Recovery storage and independent custody | Owner | Supply separate scoped production/staging repository configurations; retain recovery passwords independently off host | Actual off-host restore, retention/freshness and timer activation |
-| Alert destination | Owner | Supply approved webhook URL/credential privately and authorize acceptance delivery | External delivery/recovery acceptance and monitoring activation |
-| Public activation/publication | Owner | Review exact commit/image/epoch identities and native evidence; approve activation and distribution channels explicitly | DNS/public ports, published release/downloads |
+| Alert destination | Owner | Create Healthchecks service/recovery checks, verify recipient email, supply private ping endpoints and authorize acceptance delivery | External delivery/recovery acceptance and monitoring activation |
+| Public activation/publication | Owner | Review exact commit/image/epoch identities and native evidence; approve activation and distribution channels explicitly | Public ports, published release/downloads |
 | Pilot recruitment | Owner | Approve invitations and choose consenting participants | External observations and pilot results |
 
 Missing credentials do not block disposable engineering or configuration parsing.
@@ -45,7 +45,7 @@ ASCII (`A-Z`, `a-z`, digits, `.`, `_`, `~`, `-`) because Compose embeds it in th
 connection URL.
 This gate checks placeholders, immutable image digests, selected staging reuse,
 rootless socket shape and path isolation. It does not prove credential scope,
-DNS ownership, image provenance, epoch audit, host resources or approval. Keep
+Trusted IP certificate, image provenance, epoch audit, host resources or approval. Keep
 `docker compose config` output private because it contains interpolated secrets.
 
 Fresh disposable/production setup uses the explicit `migrate` service once,
@@ -110,10 +110,12 @@ publishing them.
 For the current participant 0.5.1 wheel, install into a new directory with
 `sh scripts/install.sh RELEASE.whl VERIFIED_SHA256 NEW_DIRECTORY`. Verify
 `mldsafail --help`, default `mldsafail clone NEW_WORKSPACE`, byte equality of the
-installed MLWE starter with the approved source, explicit historical clone, and
-historical `mldsafail run --profile small --no-record`. `run`/`make bench` are
-0.4.0, not the MLWE score. The local MLWE workflow is in [MLWE_LOCAL.md](MLWE_LOCAL.md)
-and public development protocol in [MLWE_PILOT.md](MLWE_PILOT.md).
+installed MLWE starter with the approved source, `mldsafail run --help` metadata,
+installed dependency/interpreter bindings and public fixture verification. The
+successor `run`/`make bench` execute public MLWE development. The historical
+0.5.1 smoke is retained under `scripts/archive/` for its exact older artifacts;
+its clone/small-profile protocol must never be applied to the successor.
+See [MLWE_LOCAL.md](MLWE_LOCAL.md) and [MLWE_PILOT.md](MLWE_PILOT.md).
 
 Hosted 0.5.0 submission selects a Python-source directory exporting
 `solve(public_instance)`, an immutable public GitHub commit, explicit server and
@@ -205,3 +207,18 @@ After activation and recruitment approval, the owner may adapt this invitation:
 
 Record owner review, approved links/artifact hashes and recruitment authorization
 before delivery. The agent sends no invitations or external messages.
+
+
+## Integration update
+
+The integration branch retains newer recovery/publication/runtime implementations
+and the dated source reviews. Startup-retirement safeguards and the three-pair
+diagnostic are imported; combined local tests pass. Native acceptance for this
+combined source is deferred after two SSH timeouts; no current resource absence
+or staging health is inferred. Historical G and L measurement failures remain
+failed. See [the integration handoff](INTEGRATION_HANDOFF.md),
+[IP HTTPS configuration](IP_PRODUCTION.md) and [Healthchecks setup](HEALTHCHECKS.md).
+The absent numbered historical checklist is a traceability limitation; the
+integration ledger does not invent missing requirements or block independent work
+on their mapping. Production/default adoption, off-host custody, email delivery,
+public activation, publication and three-participant recruitment remain deferred.
