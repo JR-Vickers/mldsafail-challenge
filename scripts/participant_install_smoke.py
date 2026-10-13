@@ -70,13 +70,18 @@ def smoke(wheel, expected, destination, starter):
         raise RuntimeError('Approved starter bytes do not match installed clone')
     record['checks'].append({'check': 'approved-starter-bytes', 'passed': True})
     save()
-    run('historical-clone', [executable, 'clone', '--benchmark-version', '0.4.0',
-                             str(destination / 'historical-workspace')])
-    run('historical-small', [executable, 'run', '--profile', 'small', '--no-record'])
-    historical = json.loads((destination / 'historical-small.log').read_text())
-    if historical['score'] != 3901:
-        raise RuntimeError('Historical baseline smoke score changed')
-    record.update(complete=True, historical_small_score=historical['score'])
+    run('public-development-help', [executable, 'run', '--help'])
+    if '--ledger' not in (destination / 'public-development-help.log').read_text():
+        raise RuntimeError('Installed public development metadata contract is absent')
+    run('installed-dependencies', [str(install / 'bin/python'), '-m', 'pip', 'freeze', '--all'])
+    run('public-fixture-verification', [str(install / 'bin/python'), '-c',
+        "from mldsafail.benchmark_v050.generator import generate_mlwe; "
+        "from mldsafail.benchmark_v050.models import RecoveredSecret; "
+        "from mldsafail.benchmark_v050.verify import verify_candidate; "
+        "x=generate_mlwe('small',0,1); "
+        "assert verify_candidate(x.public,RecoveredSecret(x.planted_s1,x.planted_s2).to_dict())['verified']"])
+    record.update(complete=True, supported_workflow='public-mlwe-development',
+                  solver_execution_tested=False, native_acceptance=False)
     save()
     return record
 
