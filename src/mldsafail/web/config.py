@@ -19,7 +19,7 @@ class BaseConfig:
     GITHUB_CLIENT_ID: str | None = None
     GITHUB_CLIENT_SECRET: str | None = None
     ALLOW_DEV_AUTH: bool = False
-    BENCHMARK_VERSION: str = "0.4.0"
+    BENCHMARK_VERSION: str = "0.5.0"
     EVALUATOR_FINGERPRINT: str = "development"
     HIDDEN_SUITE_VERSION: str = "unconfigured"
     WORKER_CLASS: str = "rootless-docker-v1"
@@ -103,6 +103,8 @@ def load_config(name: str | None = None) -> dict[str, object]:
             raise ValueError('Admission switch requires 0 or 1')
         config['ADMISSION_LIMITS_ENABLED'] = value == '1'
     if environment in {"private-staging", "staging", "production"}:
+        if os.environ.get("MLDSAFAIL_BENCHMARK_VERSION") not in {"0.5.0", "0.6.0"}:
+            raise RuntimeError("An explicit supported MLDSAFAIL_BENCHMARK_VERSION is required")
         if config["BENCHMARK_VERSION"] == "0.5.0" and not config["MLWE_EPOCH_ID"]:
             raise RuntimeError("MLDSAFAIL_MLWE_EPOCH_ID is required for hosted MLWE")
         if config["SECRET_KEY"] == "local-development-only":

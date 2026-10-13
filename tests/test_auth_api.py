@@ -16,7 +16,7 @@ from mldsafail.web.services import create_api_token, sanitize_log, verify_api_to
 
 
 def hosted_app(tmp_path):
-    app = create_app(config_name="test", config={"DATABASE_URL": f"sqlite:///{tmp_path / 'test.db'}"})
+    app = create_app(config_name="test", config={"DATABASE_URL": f"sqlite:///{tmp_path / 'test.db'}", "MLWE_EPOCH_ID": "synthetic"})
     Base.metadata.create_all(app.extensions["mldsafail_engine"])
     return app
 

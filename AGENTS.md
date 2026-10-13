@@ -161,8 +161,8 @@ instance = generate_instance(
 ## Benchmark Versions and Optimization Workflow
 
 The current research challenge and private staging use MLWE benchmark 0.5.0.
-`make bench`, `mldsafail run`, and the development Compose stack retain historical
-0.4.0 behavior. Read [PLAN.md](docs/PLAN.md),
+`make bench` and `mldsafail run` execute the public MLWE development workflow;
+historical 0.4.0 execution is unsupported archival tooling. Read [PLAN.md](docs/PLAN.md),
 [MLWE_LOCAL.md](docs/MLWE_LOCAL.md), and
 [AGENT_WORKFLOW.md](docs/AGENT_WORKFLOW.md) before choosing a workflow.
 
@@ -188,7 +188,7 @@ For each experiment:
 2. Start from the selected baseline commit and record a falsifiable hypothesis,
    source identity, benchmark version, environment, and evaluation protocol.
 3. Run tests and establish a public baseline before editing. For 0.5.0 use the
-   development procedure in `docs/MLWE_PILOT.md`; `make bench` measures 0.4.0.
+   development procedure in `docs/MLWE_PILOT.md`; `make bench` requires the public development metadata and ledger.
 4. Make the smallest permitted contestant or historical solver/math change.
 5. Run focused tests and the matching public suite. Public development scores
    are diagnostic; do not tune against private feedback.

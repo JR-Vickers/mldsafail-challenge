@@ -58,8 +58,17 @@ def test_submit_and_status_use_bearer_without_printing_it(tmp_path, monkeypatch,
 
 def test_run_delegates_to_offline_benchmark(monkeypatch):
     seen = {}
-    monkeypatch.setattr("mldsafail.benchmark.runner.main", lambda args: seen.setdefault("args", args) or 0)
-    assert cli.main(["run", "--profile", "small", "--no-record"]) == ["--profile", "small", "--no-record"]
+    monkeypatch.setattr("mldsafail.development.main", lambda args: seen.setdefault("args", args) or 0)
+    assert cli.main(["run", "--profile", "small", "--no-record"]) == ["develop", "--profile", "small", "--no-record"]
+
+
+def test_supported_cli_rejects_legacy_and_requires_experiment_metadata():
+    with pytest.raises(SystemExit) as legacy:
+        cli.main(["clone", "--benchmark-version", "0.4.0"])
+    assert legacy.value.code == 2
+    with pytest.raises(SystemExit) as missing:
+        cli.main(["run", "--solver-dir", "solver"])
+    assert missing.value.code == 2
 
 
 def test_default_scaffold_uses_approved_starter(tmp_path, monkeypatch):
@@ -86,7 +95,7 @@ def test_fresh_home_scaffolds_without_git_identity_or_signing(tmp_path, monkeypa
     monkeypatch.setenv('GIT_CONFIG_VALUE_0', 'true')
     monkeypatch.setenv('GIT_CONFIG_KEY_1', 'gpg.program')
     monkeypatch.setenv('GIT_CONFIG_VALUE_1', '/nonexistent/scaffold-signing-program')
-    for version in ('0.5.0', '0.4.0'):
+    for version in ('0.5.0', '0.6.0'):
         workspace = tmp_path/('workspace-'+version)
         assert cli.main(['clone', '--benchmark-version', version, str(workspace)]) == 0
         identity = subprocess.check_output(['git', '-C', str(workspace), 'show', '-s', '--format=%an <%ae>|%cn <%ce>|%G?'], text=True).strip()

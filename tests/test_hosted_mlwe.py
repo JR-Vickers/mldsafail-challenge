@@ -40,6 +40,11 @@ def test_api_defaults_to_mlwe_and_rejects_incompatible_identity(tmp_path):
     response = client.post("/api/v1/submissions", headers=headers, json=request)
     assert response.status_code == 201
     assert response.json["submission"]["benchmark_version"] == "0.5.0"
+    legacy = client.post("/api/v1/submissions", headers=headers,
+                         json=request | {"benchmark_version": "0.4.0"})
+    assert legacy.status_code == 422
+    assert legacy.json["error"]["code"] == "unsupported_benchmark"
+    assert "0.4.0" not in client.get("/api/v1/capabilities", headers=headers).json["submission_versions"]
     assert all(response.json["submission"][k] == v for k, v in COHORT.items())
     assert client.post("/api/v1/submissions", headers=headers, json=request).status_code == 200
     for field in COHORT:
@@ -99,7 +104,7 @@ def test_mlwe_envelope_requires_epoch_and_preserves_fractional_score():
 
 def test_private_staging_requires_oauth_and_disables_development_login(monkeypatch):
     from mldsafail.web.config import load_config
-    for key, value in {"MLDSAFAIL_SECRET_KEY": "test", "MLDSAFAIL_DATABASE_URL": "sqlite://",
+    for key, value in {"MLDSAFAIL_BENCHMARK_VERSION": "0.5.0", "MLDSAFAIL_MLWE_EPOCH_ID": "synthetic", "MLDSAFAIL_SECRET_KEY": "test", "MLDSAFAIL_DATABASE_URL": "sqlite://",
                        "MLDSAFAIL_EVALUATOR_FINGERPRINT": "eval", "MLDSAFAIL_HIDDEN_SUITE_VERSION": "hidden"}.items():
         monkeypatch.setenv(key, value)
     monkeypatch.delenv("GITHUB_CLIENT_ID", raising=False)
@@ -119,7 +124,7 @@ def test_mlwe_pages_describe_native_score_without_changing_historical_pages():
     assert b"Reference-normalized CPU scoring" in client.get("/").data
     assert b"t = A" in client.get("/about").data
     assert b"60-second penalty" in client.get("/methodology").data
-    historical = create_app(config_name="test").test_client()
+    historical = create_app(config_name="test", config={"BENCHMARK_VERSION": "0.4.0"}).test_client()
     assert b"trusted abstract operation counts" in historical.get("/methodology").data
 
 
@@ -130,7 +135,9 @@ def test_queue_never_acquires_cancelled_or_other_version(tmp_path):
         user = User(display_name="researcher"); session.add(user); session.commit()
         submission, _ = create_submission(session, user, REQUEST, "mlwe", cohort=COHORT)
         cancel_submission(session, submission)
-        create_submission(session, user, REQUEST | {"benchmark_version": "0.4.0"}, "legacy")
+        legacy = Submission(user_id=user.id, **(REQUEST | {"benchmark_version": "0.4.0"}))
+        session.add(legacy); session.flush()
+        session.add(EvaluationJob(submission_id=legacy.id)); session.commit()
         assert claim_job(session, "mlwe-worker", benchmark_version="0.5.0") is None
         assert claim_job(session, "legacy-worker", benchmark_version="0.4.0") is not None
 
@@ -151,7 +158,7 @@ def test_coordinator_mlwe_states_and_safe_failure_logs(tmp_path, monkeypatch, ou
         identifier = submission.id
         if outcome == "incompatible":
             submission.epoch_id = "other"; session.commit()
-    source = tmp_path / "source" / "src/mldsafail/solver"
+    source = tmp_path / "source" / "solver"
     source.mkdir(parents=True)
     (source / "solver.py").write_text("def solve(x): return None\n")
     def acquire(*args, **kwargs):

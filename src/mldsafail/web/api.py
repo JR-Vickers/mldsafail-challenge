@@ -163,7 +163,7 @@ def init_api(app):
 @token_required("submission:write")
 def capabilities():
     versions = []
-    for version in ("0.4.0", "0.5.0", "0.6.0"):
+    for version in ("0.5.0", "0.6.0"):
         try:
             application_cohort(current_app.config, version)
         except UnsupportedBenchmark:

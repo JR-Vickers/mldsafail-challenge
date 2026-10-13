@@ -17,7 +17,7 @@ def exercise(engine):
             GithubIdentity(user_id=participant.id,github_subject='900002',login='participant')]);db.commit()
         credential,secret=create_api_token(db,participant,'synthetic administrative test')
         submission,_=create_submission(db,participant,dict(repository_url='https://github.com/example/synthetic',
-            commit_sha='a'*40,hypothesis='disposable control test',benchmark_version='0.4.0'),'admin-test')
+            commit_sha='a'*40,hypothesis='disposable control test',benchmark_version='0.5.0'),'admin-test', cohort=dict(epoch_id='synthetic', evaluator_fingerprint='synthetic', hidden_suite_version='synthetic', worker_class='synthetic'))
         with pytest.raises(DomainError) as denied:moderate(db,'900002','revoke-token',credential.id)
         assert denied.value.status==403;db.rollback()
         assert verify_api_token(db,secret) is not None

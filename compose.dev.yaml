@@ -6,6 +6,3 @@ services:
     environment:
       MLDSAFAIL_ENV: local
       MLDSAFAIL_SECRET_KEY: local-compose-development-only
-  coordinator:
-    volumes:
-      - ./deploy/dev-hidden-seeds.json:/srv/mldsafail-evaluator/secrets/hidden-seeds.json:ro

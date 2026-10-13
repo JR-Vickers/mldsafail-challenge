@@ -1,11 +1,11 @@
 # Local MLWE benchmark 0.5.0
 
 This local benchmark implements the [frozen MLWE contract](PRIMITIVE_SELECTION_SPEC.md).
-The participant package is 0.5.1; `mldsafail run`, `make bench`, and historical scores/fingerprints
-retain 0.4.0 behavior. Private staging now has hosted 0.5.0 submissions and a
-versioned leaderboard; see [HOSTED_V050.md](HOSTED_V050.md). Full staging acceptance
-and public launch remain pending, as recorded in
-[PRIVATE_STAGING_STATUS.md](PRIVATE_STAGING_STATUS.md).
+The participant package supports the MLWE public development procedure through
+`mldsafail run` and `make bench`; both require experiment metadata and a ledger.
+Private compatibility stays 0.5.0. Historical 0.4.0 execution is
+[unsupported archive tooling](archive/LEGACY_V040.md), with results preserved.
+Public activation and measurement adoption remain separate pending gates.
 
 Use evaluator Python **3.12.10** and Docker with a Linux **ARM64** worker. This initial artifact lock contains the reviewed ARM64 CPython wheels, their SHA-256 hashes, the pinned Python base-image digest, and exact GMP/MPFR package versions. The separately reviewed Linux amd64 lock is used by private staging; see
 [HOSTED_V050.md](HOSTED_V050.md). Each architecture/host requires its own compatible

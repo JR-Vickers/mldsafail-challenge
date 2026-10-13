@@ -247,7 +247,7 @@ def clone_workspace(args) -> int:
         (dir_path / "README.md").write_text(
             "# MLWE benchmark 0.5.0 workspace (participant package 0.5.1)\n\n"
             "Edit only solver/*.py. Use the repository's docs/MLWE_PILOT.md public development procedure "
-            "for local evaluation; mldsafail run measures historical 0.4.0.\n"
+            "for local evaluation with mldsafail run.\n"
             "Publish this workspace to a public GitHub repository and commit your solver.\n"
             'mldsafail submit --server "$STAGING_SERVER" --repo https://github.com/OWNER/REPO '
             '--commit FULL_SHA --solver-path solver --hypothesis "..."\n'
@@ -264,31 +264,7 @@ def clone_workspace(args) -> int:
         _scaffold_commit(dir_path, f"Scaffold MLWE {args.benchmark_version} solver")
         print(f"Workspace created at {dir_path}; publish a full commit to public GitHub before submitting.")
         return 0
-    solver_dir = dir_path / "src" / "mldsafail" / "solver"
-    math_dir = dir_path / "src" / "mldsafail" / "math"
-    solver_dir.mkdir(parents=True, exist_ok=True)
-    math_dir.mkdir(parents=True, exist_ok=True)
-    solver_init = solver_dir / "__init__.py"
-    math_init = math_dir / "__init__.py"
-    solver_init.write_text(
-        '"""Participant solver workspace."""\n'
-        "from mldsafail.solver.lazy import solve\n"
-        '\n'
-        '__all__ = ["solve"]\n'
-    )
-    math_init.write_text('"""Participant math primitives workspace."""\n')
-    try:
-        subprocess_run(["git", "-C", str(dir_path), "add", "."], check=True)
-        _scaffold_commit(dir_path, 'feat: scaffold participant workspace')
-    except Exception as exc:
-        raise CliError(f"git commit failed: {exc}") from exc
-    head = subprocess_run(
-        ["git", "-C", str(dir_path), "rev-parse", "HEAD"], check=True, capture_output=True, text=True
-    ).stdout.strip()
-    print(f"Workspace created at {dir_path}")
-    print(f"Commit {head}")
-    print(f"Submit with: mldsafail submit --benchmark-version 0.4.0 --server URL --repo https://github.com/OWNER/REPO --commit {head} --hypothesis \"...\"")
-    return 0
+    raise CliError("Historical 0.4.0 workspaces are unsupported; see docs/archive/LEGACY_V040.md.")
 
 
 def subprocess_run(*args, **kwargs):
@@ -310,7 +286,7 @@ def build_parser() -> argparse.ArgumentParser:
     submission = commands.add_parser("submit", help="submit an immutable public GitHub commit")
     submission.add_argument("--repo", required=True); submission.add_argument("--commit", required=True)
     submission.add_argument("--hypothesis", required=True); submission.add_argument("--notes", default="")
-    submission.add_argument("--tag", action="append"); submission.add_argument("--benchmark-version", default="0.5.0", choices=["0.4.0", "0.5.0", "0.6.0"])
+    submission.add_argument("--tag", action="append"); submission.add_argument("--benchmark-version", default="0.5.0", choices=["0.5.0", "0.6.0"])
     submission.add_argument("--epoch-id", help="require this immutable MLWE epoch identity")
     submission.add_argument("--solver-path", help="repository-relative MLWE solver directory containing solver.py")
     submission.add_argument("--idempotency-key"); submission.add_argument("--server"); submission.set_defaults(handler=submit)
@@ -319,7 +295,7 @@ def build_parser() -> argparse.ArgumentParser:
     state.add_argument("--interval", type=float, default=2.0); state.add_argument("--server"); state.set_defaults(handler=status)
     clone = commands.add_parser("clone", help="create a participant workspace with a baseline solver")
     clone.add_argument("dir", nargs="?", default="mldsafail-workspace", help="workspace directory")
-    clone.add_argument("--benchmark-version", default="0.5.0", choices=["0.4.0", "0.5.0", "0.6.0"])
+    clone.add_argument("--benchmark-version", default="0.5.0", choices=["0.5.0", "0.6.0"])
     clone.set_defaults(handler=clone_workspace)
     for name in ("logs", "cancel"):
         command = commands.add_parser(name)
@@ -333,8 +309,8 @@ def main(argv: list[str] | None = None) -> int:
     raw = list(sys.argv[1:] if argv is None else argv)
     # Benchmark options intentionally remain owned by the established runner.
     if raw and raw[0] == "run":
-        from mldsafail.benchmark.runner import main as benchmark_main
-        return benchmark_main(raw[1:])
+        from mldsafail.development import main as development_main
+        return development_main(["develop", *raw[1:]])
     args = build_parser().parse_args(raw)
     try:
         return args.handler(args)

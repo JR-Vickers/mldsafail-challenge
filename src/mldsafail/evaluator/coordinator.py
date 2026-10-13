@@ -251,7 +251,7 @@ def main(argv: list[str] | None = None) -> int:
         require_resource_floors=os.environ.get("MLDSAFAIL_REQUIRE_RESOURCE_FLOORS", "0") == "1",
         database_url=os.environ["MLDSAFAIL_DATABASE_URL"], trusted_checkout=Path(os.environ.get("MLDSAFAIL_TRUSTED_CHECKOUT", "/opt/mldsafail")),
         hidden_seeds=Path(os.environ.get("MLDSAFAIL_HIDDEN_SEEDS_PATH", "/nonexistent")), worker_image=os.environ["MLDSAFAIL_WORKER_IMAGE"],
-        benchmark_version=os.environ.get("MLDSAFAIL_BENCHMARK_VERSION", "0.4.0"), evaluator_fingerprint=os.environ["MLDSAFAIL_EVALUATOR_FINGERPRINT"],
+        benchmark_version=os.environ["MLDSAFAIL_BENCHMARK_VERSION"], evaluator_fingerprint=os.environ["MLDSAFAIL_EVALUATOR_FINGERPRINT"],
         hidden_suite_version=os.environ["MLDSAFAIL_HIDDEN_SUITE_VERSION"], worker_class=os.environ.get("MLDSAFAIL_WORKER_CLASS", "rootless-docker-v1"),
         work_root=Path(os.environ.get("MLDSAFAIL_EVALUATOR_WORK_ROOT", "/srv/mldsafail-evaluator")),
         epoch_path=Path(os.environ["MLDSAFAIL_MLWE_EPOCH_PATH"]) if "MLDSAFAIL_MLWE_EPOCH_PATH" in os.environ else None,

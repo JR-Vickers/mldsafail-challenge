@@ -1,10 +1,10 @@
 # Agent experiment workflow
 
-Participant package 0.5.1 defaults clone and submissions to benchmark 0.5.0.
-Choose the benchmark version before an experiment. Current research and private
-staging use MLWE 0.5.0; `make bench`, `mldsafail run`, and the development Compose
-stack retain historical 0.4.0 behavior. `make check` runs the test suite and a
-historical small-profile smoke. It does not measure a 0.5.0 improvement.
+Supported participants use Python-only `solver.py` with `solve(public_instance)`.
+`mldsafail run` and `make bench BENCH_ARGS="..."` execute the public MLWE 0.5.0
+development procedure with required ledger and hypothesis metadata. `make check`
+runs the suite and deterministic MLWE contract checks. Public CPU scores remain
+diagnostic; private staging uses frozen 0.5.0, and proposed 0.6.0 remains gated.
 
 Read [AGENTS.md](../AGENTS.md), [PLAN.md](PLAN.md), and the matching contract.
 Every experiment records a falsifiable hypothesis, baseline/parent identity,
@@ -22,9 +22,9 @@ pushing; the owner handles publication.
    contestant directory. Edit only that Python-only workspace, with `solver.py`
    exporting `solve(public_instance)`, no symlinks, and at most 2 MB of source.
 3. Run tests and establish the public development baseline before editing.
-   `scripts/mlwe_pilot.py develop` evaluates 50 fixed public cases, each with one
+   `mldsafail run` evaluates 50 fixed public cases, each with one
    warmup and three measurements, and requires a ledger, hypothesis, mechanism,
-   parent revision, and model. Consult `develop --help` for the exact arguments.
+   parent revision, and model. Consult `mldsafail run --help` for the exact arguments.
    Baseline development has no `--baseline-run`; later comparisons use the saved
    baseline run. Each output directory must be new.
 4. Record the hypothesis before making the smallest contestant change. Run
@@ -58,25 +58,13 @@ remaining [hosted gates](PLAN.md#21-development-plan).
 
 For hosted 0.5.0, submit a public GitHub full commit with
 `--benchmark-version 0.5.0 --solver-path PATH`, where PATH contains `solver.py`.
-`mldsafail clone` defaults to MLWE 0.5.0; use `--benchmark-version 0.4.0` for historical work. See
+`mldsafail clone` defaults to MLWE 0.5.0; historical clone/submission choices are unsupported. See
 [HOSTED_V050.md](HOSTED_V050.md) for cohort and source requirements.
 
 ## Historical 0.4.0
 
-1. Activate `.venv`, inspect the worktree, and run `make test` and `make bench` to
-   establish the public baseline. Record its parent experiment and hypothesis.
-2. Edit only the smallest relevant area in `src/mldsafail/solver/` or
-   `src/mldsafail/math/`. Preserve the trusted generator/verifier, profiles,
-   hidden seeds, cost model, scoring, fingerprints, and resource limits.
-3. Run focused tests, then `make test` and all public profiles. Invalid or over-limit
-   output cannot establish an improvement. Never fabricate operation counters.
-4. After a public gain, an authorized maintainer runs the full suite using
-   `MLDSAFAIL_HIDDEN_SEEDS_PATH`, a clean committed tree, and that release's reviewed
-   trusted fingerprint. Use `python -m mldsafail.benchmark.runner --suite full
-   --baseline-fingerprint REVIEWED_FINGERPRINT` with the usual experiment metadata.
-5. Keep code only if correctness/resource limits hold and the matching full-suite
-   operation-count score is lower. Preserve the failed experiment record when
-   reverting code. Run `make check` and commit the validated checkpoint.
+See the [unsupported archival workflow](archive/LEGACY_V040.md). Historical records
+and shared dependencies remain intact. New hosted 0.4.0 submissions are rejected.
 
 ## Shared safety boundary
 

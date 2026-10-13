@@ -38,13 +38,11 @@ NEW_INSTALL_DIRECTORY/bin/mldsafail clone NEW_SOLVER_DIRECTORY
 Replace `VERIFIED_WHEEL_SHA256` with the value in `SOURCE.json`, after independent
 checksum verification. Default clone creates a benchmark **0.5.0** MLWE scaffold.
 The package version **0.5.1** differs from its benchmark version. `mldsafail run`
-and `make bench` still measure historical **0.4.0**, not the MLWE score. For that
-historical smoke only:
-
-```sh
-NEW_INSTALL_DIRECTORY/bin/mldsafail clone --benchmark-version 0.4.0 NEW_HISTORICAL_DIRECTORY
-NEW_INSTALL_DIRECTORY/bin/mldsafail run --profile small --no-record
-```
+and `make bench` now execute public MLWE development with a required ledger,
+hypothesis, mechanism, parent revision and model. Run `mldsafail run --help`.
+Historical 0.4.0 execution is unsupported archival tooling; new submissions
+and clone choices exclude it. Previously retained archives still describe their
+original artifact and must not be relabeled with successor behavior.
 
 ## Contestant contract and scoring
 

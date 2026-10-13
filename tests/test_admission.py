@@ -11,7 +11,10 @@ from mldsafail.web.services import create_submission, cancel_submission, DomainE
 from mldsafail.evaluator.queue import claim_job
 
 PAYLOAD = dict(repository_url='https://github.com/example/solver', commit_sha='a' * 40,
-               hypothesis='bounded admission', benchmark_version='0.4.0')
+               hypothesis='bounded admission', benchmark_version='0.5.0')
+from functools import partial
+create_submission = partial(create_submission, cohort=dict(epoch_id="synthetic", evaluator_fingerprint="synthetic", hidden_suite_version="synthetic", worker_class="synthetic"))
+
 LIMITS = dict(outstanding_per_account=1, submissions_per_day=2, queued_globally=10)
 
 
