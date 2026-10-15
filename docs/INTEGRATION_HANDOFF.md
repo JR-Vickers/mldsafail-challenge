@@ -7,6 +7,26 @@ historical candidate-install tooling and precise cooperative clock wording.
 Newer public-launch recovery, publication and candidate-runtime implementations
 remain the basis. No push, merge into main, public activation or publication occurred.
 
+## Native continuation — 2026-10-15
+
+SSH access resumed. Source `0215c9c539825c1492a9129f93c55923bd42d51e`
+passed the [native startup matrix](acceptance/integration/native-startup-20261015.json),
+all 13 accounting faults and the single predeclared six-invocation
+[measurement investigation](acceptance/integration/measurement-investigation-20261015.json).
+The original synthetic-interruption generation was terminally reconciled using
+its unchanged authority; controller A's failed preflight and controller B's
+successful cleanup are retained. Independent current checks covered 20 historical
+driver generations and the new startup/fault/diagnostic domains and sockets.
+Failed startup A/B attempts remain negative evidence. The native systemd job
+interface correction was reviewed and tested before the successful fresh C run.
+
+The diagnostic empty CPU median was 450,899 microseconds. Its three pairs are
+observational only; G/L failures, the 30-pair requirement and all thresholds
+remain unchanged. No performance correction, measurement adoption, default
+activation, production change or publication occurred. The original integration
+handoff below remains dated historical context; the updated ledger and dated
+receipts govern current continuation status.
+
 ## Preservation and branch disposition
 
 [Refs and dispositions](acceptance/integration/refs.json) retain every original

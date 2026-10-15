@@ -1,0 +1,92 @@
+{
+  "schema": "mldsafail.native-startup-matrix.v1",
+  "passed": true,
+  "source_commit": "0215c9c539825c1492a9129f93c55923bd42d51e",
+  "startup_source_sha256": "c7d8bdf90d5b796e9718124c7727e55c33fc5a2587ab35663ee2d7d6cf62676b",
+  "endpoint_rejection_verified": true,
+  "cases": [
+    {
+      "case": "refused",
+      "passed": true,
+      "expected_fault_reached": true,
+      "cleanup_complete": true
+    },
+    {
+      "case": "live",
+      "passed": true,
+      "expected_fault_reached": true,
+      "cleanup_complete": true
+    },
+    {
+      "case": "replacement",
+      "passed": true,
+      "expected_fault_reached": true,
+      "cleanup_complete": true
+    },
+    {
+      "case": "worker",
+      "passed": true,
+      "expected_fault_reached": true,
+      "cleanup_complete": true
+    },
+    {
+      "case": "fragment",
+      "passed": true,
+      "expected_fault_reached": true,
+      "cleanup_complete": true
+    },
+    {
+      "case": "admitted",
+      "passed": true,
+      "expected_fault_reached": true,
+      "cleanup_complete": true
+    },
+    {
+      "case": "pending_job",
+      "passed": true,
+      "expected_fault_reached": true,
+      "cleanup_complete": true
+    },
+    {
+      "case": "intent_failure",
+      "passed": true,
+      "expected_fault_reached": true,
+      "cleanup_complete": true
+    },
+    {
+      "case": "after_unlink_failure",
+      "passed": true,
+      "expected_fault_reached": true,
+      "cleanup_complete": true
+    },
+    {
+      "case": "interrupted_cleanup",
+      "passed": true,
+      "expected_fault_reached": true,
+      "cleanup_complete": true
+    }
+  ],
+  "independent_cleanup_verified": true,
+  "operator_complete": true,
+  "operator_cleanup_complete": true,
+  "negative_attempts_preserved": [
+    {
+      "attempt": "a",
+      "failure": "private configuration file mode rejected before provisioning"
+    },
+    {
+      "attempt": "b",
+      "failure": "unsupported job JSON interface; six expected gates passed; seventh reached fixture but not proof; all case cleanup verified"
+    }
+  ],
+  "evidence_sha256": {
+    "startup-a-progress.txt": "400af2e54be09297721812337985d860452fe32cc3b26d14311e597cdb2c2a42",
+    "startup-b-progress.txt": "d7593091c6c76274fc74c691f620a5b3a1873e330f2f2c8f4be39bd52ef13aff",
+    "startup-b-independent-cleanup.json": "c8081b7d4608f4c78fa11ef28e1b072df29311aa23371e121ab75863400c329e",
+    "startup-c-progress.txt": "65aa23bdff9678d7635b116888c249a20612330b675f6bfd87fd508c0b2d4147",
+    "startup-c-independent-cleanup.json": "469b5f205b6b7bcb856e2b9a9222c742174e988549904fe64083d275cf48780e"
+  },
+  "limits": [
+    "Source-bound private operator acceptance only; no production, publication or measurement adoption approval."
+  ]
+}

@@ -4453,11 +4453,15 @@
         {
           "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
           "result": "Existing failed thirty-pair evidence shows median empty startup CPU238708.5us and remaining195080us; independent engineer investigating lifecycle costs without new measurements"
+        },
+        {
+          "date": "2026-10-15",
+          "result": "Single reviewed three-pair diagnostic completed; empty median450899us; no performance correction implemented or acceptance/adoption claim"
         }
       ],
       "evidence": [],
       "identities": {},
-      "next_action": "Implement and review concrete corrective engineering; no unchanged favorable reruns",
+      "next_action": "Separately freeze/review a performance correction, then full faults and >=30 sequential pairs with unchanged thresholds",
       "checklist": []
     },
     {
@@ -4521,13 +4525,126 @@
         {
           "date": "2026-10-15",
           "result": "SSH reachable; original synthetic cleanup reconciled, 20 driver domains/socket identities checked currently absent; remaining source-bound gates incomplete"
+        },
+        {
+          "date": "2026-10-15",
+          "result": "StartupC10cases, accounting13faults and diagnostic6invocations pass with independent cleanup; functional prerequisites still being reconciled"
         }
       ],
       "evidence": [],
       "identities": {
-        "application_source_commit": "26c5f2f4bc771b319ffccc2cdcb1c735eaab4176"
+        "application_source_commit": "26c5f2f4bc771b319ffccc2cdcb1c735eaab4176",
+        "native_tooling_source_commit": "0215c9c539825c1492a9129f93c55923bd42d51e"
       },
-      "next_action": "Freeze/review native startup harness, run separate fresh startup cases, accounting faults and bounded diagnostic, then independent functional protocols",
+      "next_action": "Continue independent functional gates only with exact retained artifacts, private protocols, matching source reviews and fresh synthetic fixtures",
+      "checklist": []
+    },
+    {
+      "id": "native-startup-matrix-20261015",
+      "requirement": "Accept startup safeguards on real native disposable domains",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "synthetic-startup-terminal-repair"
+      ],
+      "environment": "existing Linux amd64 VPS; fresh private delegated disposable domains",
+      "criteria": [
+        "All ten expected native startup cases, endpoint bounds and independent cleanup pass"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "date": "2026-10-15",
+          "source_commit": "0215c9c539825c1492a9129f93c55923bd42d51e",
+          "result": "Exact-source native execution and independent current resource absence verified; prior negative attempts retained"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/integration/native-startup-20261015.json#/passed",
+          "criteria_met": [
+            "All ten expected native startup cases, endpoint bounds and independent cleanup pass"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "0215c9c539825c1492a9129f93c55923bd42d51e",
+        "supervisor_source_sha256": "dc23d3f82de658e96dda68005abd78fdb31326bdaf636310041371ae172b620e"
+      },
+      "next_action": "Retain exact evidence; no production/publication/adoption approval",
+      "checklist": []
+    },
+    {
+      "id": "native-accounting-faults-20261015",
+      "requirement": "Run complete current-source accounting faults without default pairs",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "native-startup-matrix-20261015"
+      ],
+      "environment": "existing Linux amd64 VPS; fresh private delegated disposable domains",
+      "criteria": [
+        "All thirteen accounting faults pass with independently verified outer cleanup"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "date": "2026-10-15",
+          "source_commit": "0215c9c539825c1492a9129f93c55923bd42d51e",
+          "result": "Exact-source native execution and independent current resource absence verified; prior negative attempts retained"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/integration/measurement-investigation-20261015.json#/fault_suite/passed",
+          "criteria_met": [
+            "All thirteen accounting faults pass with independently verified outer cleanup"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "0215c9c539825c1492a9129f93c55923bd42d51e",
+        "supervisor_source_sha256": "dc23d3f82de658e96dda68005abd78fdb31326bdaf636310041371ae172b620e"
+      },
+      "next_action": "Retain exact evidence; no production/publication/adoption approval",
+      "checklist": []
+    },
+    {
+      "id": "native-phase-diagnostic-20261015",
+      "requirement": "Execute one bounded lifecycle measurement investigation",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "native-accounting-faults-20261015"
+      ],
+      "environment": "existing Linux amd64 VPS; fresh private delegated disposable domains",
+      "criteria": [
+        "Exactly three ordered empty/child pairs complete with authoritative totals and independent cleanup"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "date": "2026-10-15",
+          "source_commit": "0215c9c539825c1492a9129f93c55923bd42d51e",
+          "result": "Exact-source native execution and independent current resource absence verified; prior negative attempts retained"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/integration/measurement-investigation-20261015.json#/diagnostic_completed",
+          "criteria_met": [
+            "Exactly three ordered empty/child pairs complete with authoritative totals and independent cleanup"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "0215c9c539825c1492a9129f93c55923bd42d51e",
+        "supervisor_source_sha256": "dc23d3f82de658e96dda68005abd78fdb31326bdaf636310041371ae172b620e"
+      },
+      "next_action": "Retain exact evidence; no production/publication/adoption approval",
       "checklist": []
     }
   ],

@@ -4,7 +4,7 @@
 owner decisions. Current evidence does not support either activation: generation
 G and L failed the predeclared native measurement thresholds. L used the
 prospective worker and still failed child CV and empty CPU overhead. Adoption
-remains disabled; integration native diagnostics await current VPS ownership proof. The machine-readable companion
+remains disabled; the 2026-10-15 [native investigation](acceptance/integration/measurement-investigation-20261015.json) completed three ordered pairs after startup/fault acceptance and independent cleanup. This diagnostic does not satisfy the 30-pair adoption gate. The machine-readable companion
 [decision.json](acceptance/v060-contract-decision/decision.json) contains explicit evidence and decision slots.
 It is a review packet, not an evaluator authority or application configuration.
 
