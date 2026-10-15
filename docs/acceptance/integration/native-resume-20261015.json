@@ -1,0 +1,157 @@
+{
+  "schema": "mldsafail.native-resume.v1",
+  "date": "2026-10-15",
+  "source_commit": "25f68abd726e1b010b45ce1c36020bc6ed934186",
+  "ownership_reconciliation_passed": true,
+  "combined_native_acceptance_passed": false,
+  "environment": {
+    "architecture": "x86_64",
+    "kernel": "6.8.0-142-generic",
+    "docker": "29.8.1",
+    "docker_git_commit": "4a63305",
+    "operator_python": "3.12.10",
+    "system_python": "3.12.3",
+    "boot_id": "ec0420a7-8f96-49a7-a5ea-98e28ac8d52b"
+  },
+  "generation_count": 20,
+  "generations": [
+    {
+      "id": "69fbd682d42544d3b76da8e7555483ea",
+      "journal_sha256": "5888fcd3dc7f5869d642299663438f4b9b39e075778eda59d9a08362b46b9722",
+      "disposition": "recorded domains and socket currently absent; historical gate outcome unchanged"
+    },
+    {
+      "id": "5af42d15af9048f4b2b1bec6b19494bf",
+      "journal_sha256": "219d49cc2d08b09b9a177935a0cb461b12e1a8af78d35c3663813bc04d269513",
+      "disposition": "recorded domains and socket currently absent; historical gate outcome unchanged"
+    },
+    {
+      "id": "c9317af83c924ca3abb3391846f9a097",
+      "journal_sha256": "0d1372a227fc72d0d7e0f62af83a273c90dffb801f0fd82c0387e8a67ad0dfcd",
+      "disposition": "recorded domains and socket currently absent; historical gate outcome unchanged"
+    },
+    {
+      "id": "e8926e1a948c439ba2b76ed4b9dfe29d",
+      "journal_sha256": "2a3fa21d7275b313603c04a3ba47c5fe51e9f2379dbfc1f172d6a513c66f2a9c",
+      "disposition": "recorded domains and socket currently absent; historical gate outcome unchanged"
+    },
+    {
+      "id": "be374cab1ee44b569a6cd83c5858083d",
+      "journal_sha256": "550716261e24cc5becb47c9e89b3bfe535437fb614fbd7bd908083a5816ace8e",
+      "disposition": "recorded domains and socket currently absent; historical gate outcome unchanged"
+    },
+    {
+      "id": "92c0740a2dda49bd8589c5374acbcb18",
+      "journal_sha256": "73b0d0a0412bd8cf230eb69724e6242510ae51c94834483323507329bca26224",
+      "disposition": "recorded domains and socket currently absent; historical gate outcome unchanged"
+    },
+    {
+      "id": "04c5fe53667641a198a5c3c905f46932",
+      "journal_sha256": "1ce695e64bde8d538c35b301e0e57e3a6c02154bd9645abaf7364d761aff84d4",
+      "disposition": "recorded domains and socket currently absent; historical gate outcome unchanged"
+    },
+    {
+      "id": "90130cbbecda47fb8ea62784554ba56d",
+      "journal_sha256": "6bc33ce8327850472ed6b85bec920fcdee5f5a71824453f566bbb2293e7c1753",
+      "disposition": "recorded domains and socket currently absent; historical gate outcome unchanged"
+    },
+    {
+      "id": "db5b48d8ab7d4c9d85cffd169cede6af",
+      "journal_sha256": "228f869c02713ba492f4018f889e08607ab0f22d87f4b71491663978e88e373f",
+      "disposition": "recorded domains and socket currently absent; historical gate outcome unchanged"
+    },
+    {
+      "id": "ee668be1d7854b9da6656132f4dd804a",
+      "journal_sha256": "ceebbdc778e7abbe35bc177b7218668ffe1b62b470d07a7ee325808eddc69941",
+      "disposition": "recorded domains and socket currently absent; historical gate outcome unchanged"
+    },
+    {
+      "id": "4c034c97b6fe40608de6d15b97b0ca72",
+      "journal_sha256": "374fe70c5be4d200a2d4cbb941f84573186e9618051c0e549921895726745232",
+      "disposition": "recorded domains and socket currently absent; historical gate outcome unchanged"
+    },
+    {
+      "id": "d9134c2a27ed4565acab7f3019fa291c",
+      "journal_sha256": "518399777015936e57ea9db5c7694377e2dd9bf3984b2faa5146399b59140c37",
+      "disposition": "recorded domains and socket currently absent; historical gate outcome unchanged"
+    },
+    {
+      "id": "55b3978b419849eab5d165f32ccdcf40",
+      "journal_sha256": "f1cc1b7d80618cf3c92571e97572b0e475abc5dda16f17f2a5fadc2237f5a1f2",
+      "disposition": "recorded domains and socket currently absent; historical gate outcome unchanged"
+    },
+    {
+      "id": "5aefcce328104ae0ad7ff9e7e016f643",
+      "journal_sha256": "b74145611275d762c612a87e63215544f9d5ae142b8a40d6219e9eb0a6d23839",
+      "disposition": "recorded domains and socket currently absent; historical gate outcome unchanged"
+    },
+    {
+      "id": "d1d790a987444b3a91096bce225d55f0",
+      "journal_sha256": "1da05886bad22d27a1feb20c97d7d49715b88720c1ba8421639358fd0bd0e441",
+      "disposition": "recorded domains and socket currently absent; historical gate outcome unchanged"
+    },
+    {
+      "id": "590a2dad238843f7b309a1e7d08b6217",
+      "journal_sha256": "507396dcd8371b70cd0035179f37a731f004269e2c963618435e777b94bbb4a6",
+      "disposition": "recorded domains and socket currently absent; historical gate outcome unchanged"
+    },
+    {
+      "id": "a3142d7c826742dab06691645e7bc557",
+      "journal_sha256": "225c79352ae73ca8923937ce7844509e0af22cc0df3cdee6d215e3efae53fa23",
+      "disposition": "recorded domains and socket currently absent; historical gate outcome unchanged"
+    },
+    {
+      "id": "52c343941cde4e15a89e706184c4e2b5",
+      "journal_sha256": "3de5b98fce3315539389efb97c4a5b193e995ac54ef486635dca88f44ae06e16",
+      "disposition": "recorded domains and socket currently absent; historical gate outcome unchanged"
+    },
+    {
+      "id": "32456a10b57848c3abe0b33a327ea785",
+      "journal_sha256": "73d6bcd725ec5c1eb744a512abfb1a130f2de7966b58d55f3502350b4529d987",
+      "disposition": "recorded domains and socket currently absent; historical gate outcome unchanged"
+    },
+    {
+      "id": "674df43ab7954789bfd31eb7a25f5fb6",
+      "journal_sha256": "ae8bd041cdc75e175237fa77b662bd09031332936a444a9b8624d2fe8dac423c",
+      "disposition": "recorded domains and socket currently absent; historical gate outcome unchanged"
+    }
+  ],
+  "original_synthetic_generation": {
+    "id": "590a2dad238843f7b309a1e7d08b6217",
+    "original_sha256": "5d347951364e1effa760fa2ab501e33ac8b1a70b18ec00d7b37e6b9e84474512",
+    "terminal_cleanup_complete": true,
+    "startup_shutdown_proven": true,
+    "socket_retirement_intent_sha256": "61b59ab498bc6f603da361ad653816071db7001b3401a6ace55dd24b0430f408",
+    "operator_cleanup_complete": true,
+    "failed_attempt_a_preserved": true,
+    "successful_attempt": "b"
+  },
+  "checks": {
+    "focused": {
+      "passed": true,
+      "log_sha256": "a5bad37fc2190bed21c8f7befa636dc4fbe8b2f6206048cff2d3378a016c4864"
+    },
+    "make_check": {
+      "passed": true,
+      "tests_passed": 942,
+      "tests_skipped": 13,
+      "contract_checks_passed": 8,
+      "log_sha256": "81dc904ccaa3ee9ca174517860ce40aad7cc45e01812c0958c0b0259ccb0e90b"
+    }
+  },
+  "raw_evidence": {
+    "authority-detail.json": "af0d4aeb688af12bde31902aa73398ee624c2cb3d4b027a9422f694516394e93",
+    "cleanup-b-outcome.txt": "f5f4c3863a9ffa8843449a13501c4488acf32c83048b5a4143bdf5408251f023",
+    "ownership-inventory.json": "8c48eb20b344b163ee25ef9070daf49e23b70eab173ad95503863d8bd4264c40",
+    "prerequisites.json": "5cf5f0656c45850d66260d55ccd085d1b9ae11fc6447c6e2e03e6b14c62ac554",
+    "post-cleanup-inventory.json": "131276b77e21c195d481d64f2e17c7da64d32e417d160260b5ea55ca36ca5471",
+    "host-inventory.txt": "b7050b62eef04b9cd9c9303e9718c66930fa484ebedc56a1846d72aaaf15e87a"
+  },
+  "limitations": [
+    "Inventory covers 20 discovered .mlf native driver journals; other recovery/load journals require separate scoped acceptance.",
+    "Independent post-cleanup read-only inspection observed domain/socket absence and protected-container continuity; historical completion was not used as absence proof.",
+    "Attempt A failed preflight before original authority mutation; B used independently reviewed corrected preflight.",
+    "Current startup matrix, accounting, diagnostic and independent functional gates remain incomplete.",
+    "No production/publication/adoption activation; G/L measurement failures and thresholds unchanged."
+  ]
+}

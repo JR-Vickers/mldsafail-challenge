@@ -4472,16 +4472,31 @@
       "criteria": [
         "Independent source review and focused/full tests; retained repaired source; original exact ownership cleanup positively verified without replaying failed gate"
       ],
-      "status": "running",
+      "status": "passed",
       "attempts": [
         {
           "source_commit": "843c5543bd7bf9cae45e0e7042f7ff053b91bb3c",
           "result": "All conflicting native host operations paused; independent engineer implementing precise failed-startup retirement"
+        },
+        {
+          "date": "2026-10-15",
+          "result": "Controller A failed preflight before original mutation; controller B terminal cleanup and independent absence checks passed; original negative evidence preserved"
         }
       ],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Review and retain repair then cleanup original generationA; preserve original failure",
+      "evidence": [
+        {
+          "reference": "docs/acceptance/integration/native-resume-20261015.json#/ownership_reconciliation_passed",
+          "criteria_met": [
+            "Independent source review and focused/full tests; retained repaired source; original exact ownership cleanup positively verified without replaying failed gate"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "25f68abd726e1b010b45ce1c36020bc6ed934186",
+        "review": "docs/acceptance/integration/native-resume-review.json",
+        "generation": "590a2dad238843f7b309a1e7d08b6217"
+      },
+      "next_action": "Retain original failure, both controller attempts and independent absence receipt; separate fresh startup matrix remains required",
       "checklist": []
     },
     {
@@ -4496,25 +4511,24 @@
         "Inspect current exact ownership authority before provisioning",
         "Complete exact-source native protocols and independent final cleanup"
       ],
-      "status": "blocked_external",
+      "status": "running",
       "attempts": [
         {
           "date": "2026-10-13",
           "operation": "read-only SSH inventory and connectivity retry",
           "result": "two connection timeouts; no remote operation acknowledged"
+        },
+        {
+          "date": "2026-10-15",
+          "result": "SSH reachable; original synthetic cleanup reconciled, 20 driver domains/socket identities checked currently absent; remaining source-bound gates incomplete"
         }
       ],
       "evidence": [],
       "identities": {
         "application_source_commit": "26c5f2f4bc771b319ffccc2cdcb1c735eaab4176"
       },
-      "next_action": "Restore documented SSH access; inspect and reconcile exact original generation ownership before disposable acceptance",
-      "checklist": [],
-      "blocker": {
-        "input": "Reachable documented VPS SSH endpoint and current ownership journals",
-        "owner": "repository owner or host operator",
-        "requested_action": "Restore SSH allowlist/access; identify exact owned generation authority without changing live services"
-      }
+      "next_action": "Freeze/review native startup harness, run separate fresh startup cases, accounting faults and bounded diagnostic, then independent functional protocols",
+      "checklist": []
     }
   ],
   "operating_rules": {

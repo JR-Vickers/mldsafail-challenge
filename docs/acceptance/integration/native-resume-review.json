@@ -1,0 +1,124 @@
+{
+  "auditor_review_passed": true,
+  "author": "Independent delegated reviewer /root/native_review",
+  "blockers_outside_scope": [
+    "Missing-manifest terminal path does not itself include the daemon domain in initial new-controller disjointness. Approval is restricted to the identified never-admitted generation with the documented external preflight; all other missing-manifest paths remain unapproved.",
+    "Native startup acceptance harness and its callback are not reviewed or authorized by this packet.",
+    "No native execution performed by this reviewer; kernel behavior and review receipt deployment remain unverified."
+  ],
+  "evidence_refs": [
+    "research/cpu_measurement/native_driver.py:validate,cleanup_state,_cleanup_state,cleanup",
+    "deploy/owned_daemon.py:load_manifest,shutdown_barrier,failed_startup_barrier",
+    "deploy/owned_client.py:verify_domain,stop,run",
+    "deploy/recovery_daemon.py:provision_lock",
+    "research/cpu_measurement/supervisor.py:dispatch,read_request,serve",
+    "research/cpu_measurement/audit.py:audit,audit_journal"
+  ],
+  "external_preflight_script_review": {
+    "findings": [
+      "owned_daemon._disjoint checks both equality and ancestor relationships among controller, derived daemon and worker and against protected domains. Actual nonempty daemon ControlGroup also checked.",
+      "owned_client.domain_identity exists in reviewed source and binds device, inode, boot ID, owner and mode.",
+      "Review correction holds provision_lock across external preflight and nested cleanup_state, with original bytes re-read under lease. Existing process-local nested lease handling permits cleanup_state reentry.",
+      "Review correction requires actual systemd unit fragment digest equal recorded daemon fragment, in addition to checking retained file bytes.",
+      "Assertions explicitly require non-optimized interpreter. Script reaches cleanup only after positive external source/ownership preflight. No evaluation/image loading/restart path invoked.",
+      "Attempt B controller is canonical environment-declared parent, checked against expected B unit basename, with current process membership required in that parent or descendant. All overlap checks use full controller parent, and receipt records both domain identities."
+    ],
+    "limitations": [
+      "Existing operator wrapper, new controller live state and deployment byte equality must still be verified by operator.",
+      "This source review does not establish cleanup success; independent post-cleanup inventory remains required."
+    ],
+    "native_execution_verified_by_reviewer": false,
+    "path": "/private/tmp/native-resume-cleanup.py",
+    "review_passed": true,
+    "revision_history": [
+      {
+        "correction": "Attempt B uses canonical MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT as declared controller and verifies current process domain equals or descends from it; native_driver.validate independently verifies controller unit ControlGroup. B unit/root are distinct from A.",
+        "disposition": "Native attempt A preflight failed before original authority mutation. Earlier review incorrectly required actual process cgroup basename to equal controller unit although owned wrapper executes script in a child domain. Retain all A evidence.",
+        "prior_script_sha256": "e4aa6fbb4cf565dad4591dabd89b1a658e7b78c788fc6ca91d8f6323f3c71923",
+        "scope": "This correction only; no remote execution by reviewer."
+      }
+    ],
+    "scope": "Only exact frozen 25f68ab cleanup_state for original synthetic interruption driver hash 5d347951364e1effa760fa2ab501e33ac8b1a70b18ec00d7b37e6b9e84474512 under new sibling delegated controller. Existing cleanup and failed-startup fences remain mandatory.",
+    "sha256": "cabddd5a52c98df64631e62dd6cd94ad067c86a6c406f44add6495bf1d6e0bb0"
+  },
+  "file_sha256": {
+    "audit.py": "c534851a760e1d19140309f83642ec496720948ebc1a35ffc9d3bdf380814fbc",
+    "client.py": "e2053a3ee33c263c4e3ff842e870f6b699e36fde6db6be966dd3a89736af8f93",
+    "daemon.py": "9e81859dc5af5371596041230ae9ac34ca1446f96e1308e617d5dd4e7271089d",
+    "deploy/owned_client.py": "7a95b247a63ae25b6cba9cb798aa0f7104584306a86a4ad94838ff130a4d8d50",
+    "deploy/owned_daemon.py": "76c0deab32f63c2b09333575bcd68139d894c1a5b50523b687f76ada1d5fe575",
+    "deploy/recovery_daemon.py": "bfcc4057dec8658fd4918db878a42e1fa1146f783957826d1348a98407d77331",
+    "guardian.py": "cd689f596d3740e986d349cd74f34f2b099fac33ee0ad965095f8970f5c21846",
+    "harness.py": "646abe28e7e6359983ac9565a42aabfbfb1fd642f97a9eaea59936b939f24ef1",
+    "mutations.py": "f03087a87159dae49790e5a4b0e2dcbfdc25a01effc6d2e6937fbff2668875b9",
+    "native_birth.py": "112dc66495fa27c3046c7ccdf8c77a82f94ac304baf3f5f31f725726054b74bf",
+    "native_driver.py": "2b7e20bf2a4319379a1c2ddc9695c23e5f06db194404a24916ce83fbcb2b1292",
+    "native_fault_suite.py": "d0c2c1055b633abfc87adc6e4719a91ff2af077861cc02db45d6083e9d1a35a3",
+    "native_lifecycle.py": "e62687cead8c7bd8aa88160abe57834c1bec7f21c53c72a13320ebda87b6be1b",
+    "native_loss.py": "34893ac35a1407e8e56505a66a636b1241d166d12139b187e44a745151eec05d",
+    "native_suite.py": "cc08fc2062eaf4a3fd3b4032db34ba571a9a9d45089c3fae7d6ac7c710edbf00",
+    "native_transport.py": "cad75e1176ab638586c88e891f6cd3566a42fc265cf6e39306cbeb07beb25075",
+    "ownership.py": "3df6a5d1bb1ab8bb510e019030e5108f84c568a8046942dfaf232d18b3ea926e",
+    "phase_diagnostics.py": "420244118276e3d52c5e3e24d7ffc0473828555264c0bea46cdd2600241191af",
+    "reconcile.py": "555fee8812acf31c65650808949ed37f41a1d82f1dfb34dbd2da7a35dc739dcb",
+    "supervisor.py": "0b2a6091f646c607ee5a9583f207a60a27f625ddfbac37d33287d5f3a7f4458f"
+  },
+  "findings": {
+    "auditor": [
+      "Independent output verification, exact counter delta, bounded capture and generation/source bindings are checked. Interrupted or aborted journals cannot become scores.",
+      "Terminal cleanup marks authoritative_result_available false, preserves interrupted measurement and uses a distinct terminal receipt; review does not certify any existing score."
+    ],
+    "callback": [
+      "Not applicable: cleanup_state has no callback admission and cannot restart the old daemon. No acceptance_source_sha256 approved by this receipt."
+    ],
+    "native_protocol": [
+      "Provision lease serializes terminal mutation and re-read detects driver journal changes before cleanup. Prior driver journal is copied before replacement.",
+      "Existing-manifest cleanup proves exact fragment/leader authority before daemon control, then exact daemon and complete worker domains before uncertain client cancellation. Identity mismatches remain negative fences.",
+      "Independent live process/cgroup/socket/container inventory remains required after cleanup; journal completion alone is insufficient."
+    ],
+    "supervisor": [
+      "Fixed fixture allowlist, same-UID Unix peer gate, absolute request deadline, serial execution and durable dispatch receipts constrain experimental dispatch.",
+      "Terminal cleanup never calls execute or supervisor dispatch; validate requires clean commit/hash, reviewed packet and same dedicated delegated operator unit."
+    ]
+  },
+  "independent_authorship": true,
+  "mandatory_preconditions": [
+    "Before mutation preserve original journals, provisioning, manifest, controller identities and unit fragments with hashes.",
+    "For manifest-backed generations independently verify current controller, daemon, worker and protected-domain disjointness. For the specifically identified never-admitted generation also fulfill missing_manifest_review.external_preflight immediately before cleanup under exclusive maintenance.",
+    "Use exact unchanged authority; malformed authority requires repair proposal. Reconcile all generations and independently inspect current resources before new provisioning."
+  ],
+  "missing_manifest_review": {
+    "approved_conditionally": true,
+    "boot_id": "ec0420a7-8f96-49a7-a5ea-98e28ac8d52b",
+    "external_preflight": [
+      "Preserve and hash original authority and units before mutation; verify driver bytes match the recorded original hash and provisioning bytes remain identical.",
+      "Run only one native maintenance controller; no concurrent creators, activation or unit configuration changes. Acquire existing provision lease via cleanup_state and do not bypass its fences.",
+      "Confirm new controller current /proc/self/cgroup equals its declared canonical dedicated delegated operator parent (or its descendant), with unit Restart=no and UMask=0077 as validate requires.",
+      "Derive user@1000.service from retained original operator path and exact daemon path as its app.slice/mldsafail-owned-daemon-590a2dad238843f7b309a1e7d08b6217.service. Confirm neither path is ancestor/equal/descendant of new controller; independently check current systemctl daemon ControlGroup if nonempty against same disjointness. Also check exact worker and protected domains.",
+      "Immediately before invocation verify daemon remains failed/inactive with MainPID zero, no pending jobs, unchanged unit fragment, absent derived daemon cgroup, same boot, exact retained worker birth inode 369046 and empty domain. Any mismatch blocks this conditional approval.",
+      "Keep existing failed_startup_barrier checks and negative evidence intact. If any fence fails retain failure and stop; do not rewrite ownership or substitute external preflight for the positive barrier.",
+      "After successful cleanup independently inspect process/cgroup/socket/container absence before any new provisioning."
+    ],
+    "findings": [
+      "Retained commands contain only passed setup mutations; no image_load_intent or registered_manifest is recorded. This permits existing startup-only authority rather than borrowed evaluation authority.",
+      "Inventory reports daemon failed with MainPID zero, empty ControlGroup and no jobs, unchanged daemon fragment 7d19d5362d63dffef65b2cf3d4495dab661101f5dd411cc849c2bf1f6c0cfd04; these are observations in parent-collected inventory, not independently executed native checks by reviewer.",
+      "When registration fails due to absent rootless_state, existing cleanup performs exact unchanged-fragment service stop, then failed_startup_barrier. Startup barrier rechecks same-boot private provisioning, no admission, exact worker birth/emptiness, no jobs, absent daemon cgroups and refused socket before durable socket-retirement intent. Positive proof must precede uncertain client cancellation.",
+      "A new delegated controller under app.slice as a distinct sibling service can satisfy required disjointness without source changes. External preflight fills the missing initial new-controller/daemon overlap check for this bounded maintenance operation."
+    ],
+    "generation": "590a2dad238843f7b309a1e7d08b6217",
+    "native_execution_verified_by_reviewer": false,
+    "no_code_repair_required_for_this_conditional_operation": true,
+    "original_driver_sha256": "5d347951364e1effa760fa2ab501e33ac8b1a70b18ec00d7b37e6b9e84474512",
+    "reviewed_inventory": {
+      "results/native-resume/20261015/authority-detail.json": "af0d4aeb688af12bde31902aa73398ee624c2cb3d4b027a9422f694516394e93",
+      "results/native-resume/20261015/ownership-inventory.json": "8c48eb20b344b163ee25ef9070daf49e23b70eab173ad95503863d8bd4264c40"
+    }
+  },
+  "native_acceptance_passed": false,
+  "native_protocol_review_passed": true,
+  "schema": "mldsafail.cpu-native-review.v1",
+  "scope": "Read-only source review for terminal cleanup_state of existing manifest-backed generations, plus the specifically identified never-admitted synthetic-interruption generation under the additional external preflight below. No provisioning, callbacks, measurement adoption, or native acceptance.",
+  "source_commit": "25f68abd726e1b010b45ce1c36020bc6ed934186",
+  "supervisor_review_passed": true,
+  "supervisor_source_sha256": "85dc9b5955aa6d05be5ba4177aa71c65258e2d7569f3b4774c04ec5e1cf99037"
+}
