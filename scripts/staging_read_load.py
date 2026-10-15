@@ -13,9 +13,10 @@ def percentile(values, quantile):
     return sorted(values)[max(0, math.ceil(len(values) * quantile) - 1)]
 
 
-def run(server, token, health, duration=300, progress=None):
+def run(server, token, health, duration=300, progress=None, request_open=None):
     if not 0 < duration <= 300:
         raise ValueError('Maximum load duration is five minutes')
+    request_open = urllib.request.urlopen if request_open is None else request_open
     latencies, failures, floors = [], [], []
     lock = threading.Lock()
     def read(path, authenticated=False):
@@ -24,7 +25,7 @@ def run(server, token, health, duration=300, progress=None):
         request = urllib.request.Request(server.rstrip('/') + path,
             headers={'Authorization': 'Bearer ' + token} if authenticated else {})
         try:
-            with urllib.request.urlopen(request, timeout=2) as response:
+            with request_open(request, timeout=2) as response:
                 response.read(1024 * 1024)
                 if response.status != 200:
                     raise RuntimeError()
