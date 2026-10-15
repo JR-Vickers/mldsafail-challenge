@@ -449,6 +449,30 @@ def restart_and_refresh(manifest, shutdown_receipt, *, manifest_path, client_ent
     return refreshed
 
 
+JOB_QUERY = ['systemctl', '--user', 'list-jobs', '--no-legend', '--no-pager', '--plain', '--full']
+
+
+def _parse_jobs(raw):
+    """Parse systemctl's header-free job table; --output=json is not a job API.
+
+    Unknown/malformed output remains a fence, never an empty inventory.
+    """
+    if isinstance(raw, bytes):
+        raw = raw.decode('utf-8', errors='strict')
+    rows = []
+    for line in raw.splitlines():
+        if not line.strip():
+            continue
+        fields = line.split()
+        if (len(fields) != 4 or not fields[0].isascii() or not fields[0].isdigit()
+                or int(fields[0]) <= 0 or fields[3] not in {'waiting', 'running'}):
+            raise RuntimeError('Malformed system manager job inventory remains fenced')
+        rows.append(dict(id=int(fields[0]), unit=fields[1], type=fields[2], state=fields[3]))
+    if len({row['id'] for row in rows}) != len(rows):
+        raise RuntimeError('Duplicate system manager jobs remain fenced')
+    return rows
+
+
 def _failed_startup_authority(state):
     if state.get('image_load_intent') or state.get('registered_manifest') or Path(state['manifest_path']).exists():
         raise RuntimeError('Never-admitted startup proof cannot replace registered daemon barrier')
@@ -470,9 +494,8 @@ def _failed_startup_authority(state):
         raise RuntimeError('Fresh unit fragment identity changed')
     if unit['ActiveState'] not in {'inactive','failed'} or int(unit['MainPID'])!=0:
         raise RuntimeError('Never-admitted daemon must be inactive with no leader')
-    raw_jobs=subprocess.check_output(['systemctl','--user','list-jobs','--output=json'],timeout=15)
-    jobs=[] if not raw_jobs.strip() else json.loads(raw_jobs)
-    if not isinstance(jobs,list) or any(row.get('unit')==state['daemon_unit'] for row in jobs):
+    jobs=_parse_jobs(subprocess.check_output(JOB_QUERY,timeout=15))
+    if any(row['unit']==state['daemon_unit'] for row in jobs):
         raise RuntimeError('Fresh daemon startup jobs remain pending')
     group=unit.get('ControlGroup','')
     if group and (Path('/sys/fs/cgroup')/group.lstrip('/')).exists():

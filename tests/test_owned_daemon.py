@@ -205,7 +205,7 @@ def test_docker_data_710_preserves_birth_identity_and_private_parent(tmp_path,mo
     with pytest.raises(RuntimeError,match='roots differ'):owned_daemon._provisioning(provision,provision['unit'],roots)
 
 
-@pytest.mark.parametrize('job_output',[b'[]',b''])
+@pytest.mark.parametrize('job_output',[b'12 unrelated.service start waiting\n',b''])
 def test_failed_startup_proof_is_distinct_and_rejects_uncertain_manager_request(tmp_path,monkeypatch,job_output):
     from deploy import owned_client
     monkeypatch.setattr(owned_client,'boot_id',lambda:'synthetic-boot')
@@ -284,7 +284,7 @@ def _startup_socket_fixture(tmp_path,monkeypatch):
     owned_daemon.publish(Path(provision['base']['path'])/'provision.json',provision)
     state=dict(worker_slice=worker.name,commands=[dict(kind='daemon_start',state='passed',argv=['systemctl'])],provisioning=provision,daemon_unit=provision['unit'],manifest_path=str(tmp_path/'absent-manifest'),socket=str(tmp_path/'owned/docker.sock'),units=[dict(path=provision['unit'],sha256='a'*64)])
     monkeypatch.setattr(owned_daemon,'_unit',lambda unit:dict(unit_fragment_sha256='a'*64,ActiveState='failed',MainPID='0',ControlGroup=''))
-    monkeypatch.setattr(owned_daemon.subprocess,'check_output',lambda *a,**kw:b'[]')
+    monkeypatch.setattr(owned_daemon.subprocess,'check_output',lambda *a,**kw:b'')
     monkeypatch.setattr(owned_client,'verify_domain',lambda entry:worker)
     monkeypatch.setattr(owned_client,'populated',lambda domain:False)
     return state,worker
@@ -299,6 +299,22 @@ def test_native_endpoint_preflight_accounts_for_internal_suffix_before_mkdir(tmp
     owned_daemon._native_endpoint_preflight(Path('/a'))
     with pytest.raises(RuntimeError,match='104-byte'):
         owned_daemon._native_endpoint_preflight(Path('/'+'é'*40))
+
+
+def test_systemd_job_inventory_parses_native_table_and_preserves_unit_identity():
+    raw = b'  807 mldsafail-owned-daemon-example.service start waiting\n808 unrelated.service stop running\n'
+    rows = owned_daemon._parse_jobs(raw)
+    assert rows[0] == dict(id=807, unit='mldsafail-owned-daemon-example.service', type='start', state='waiting')
+    assert len(rows) == 2
+    assert owned_daemon._parse_jobs(b'\n') == []
+
+
+@pytest.mark.parametrize('raw', [b'[]', b'JOB UNIT TYPE STATE', b'0 x start waiting',
+                                     b'1 x start unknown', b'1 x start waiting extra',
+                                     b'1 x start waiting\n1 y stop running'])
+def test_malformed_systemd_job_inventory_is_never_absence(raw):
+    with pytest.raises(RuntimeError, match='fenced'):
+        owned_daemon._parse_jobs(raw)
 
 
 @pytest.mark.parametrize('fence',['live','worker','job','fragment','admitted','replacement','intent_failure'])
@@ -316,7 +332,7 @@ def test_stale_socket_retirement_fences_all_authority_before_unlink(monkeypatch,
             path.unlink();listener=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);listener.bind(str(path));listener.listen(1)
         else: listener=None
         if fence=='worker': (worker/'cgroup.procs').write_text('123')
-        if fence=='job': monkeypatch.setattr(owned_daemon.subprocess,'check_output',lambda *a,**kw:__import__('json').dumps([dict(unit=state['daemon_unit'])]).encode())
+        if fence=='job': monkeypatch.setattr(owned_daemon.subprocess,'check_output',lambda *a,**kw:('12 '+state['daemon_unit']+' start waiting\n').encode())
         if fence=='fragment': state['units'][0]['sha256']='b'*64
         if fence=='admitted': state['image_load_intent']=True
         original=owned_daemon.publish

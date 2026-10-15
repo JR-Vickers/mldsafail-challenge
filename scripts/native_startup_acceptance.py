@@ -174,10 +174,10 @@ def execute(config, repository, output):
                     journal.command(['systemctl', '--user', 'start', '--no-block', unit], kind='daemon_start')
                     deadline = time.monotonic() + 10
                     while True:
-                        import json
-                        raw_jobs = journal.command(['systemctl', '--user', 'list-jobs', '--output=json']).stdout
-                        jobs = json.loads(raw_jobs) if raw_jobs.strip() else []
+                        raw_jobs = journal.command(owned_daemon.JOB_QUERY).stdout
+                        jobs = owned_daemon._parse_jobs(raw_jobs)
                         if any(job.get('unit') == unit for job in jobs):
+                            owned_daemon.publish(root / 'pending-jobs.json', dict(jobs=jobs))
                             break
                         require(time.monotonic() < deadline, 'Pending daemon job fault not reached')
                         time.sleep(.05)
@@ -208,6 +208,9 @@ def execute(config, repository, output):
                             raise OSError('Injected post-unlink receipt publication failure')
                         return publish(path, value)
                     owned_daemon.publish = inject
+                publish(root / 'fault-state.json', state)
+                if case == 'fragment':
+                    publish(root / 'changed-fragment.json', dict(text=(units / unit).read_text()))
                 if case == 'interrupted_cleanup':
                     reader, writer = os.pipe()
                     child = os.fork()
@@ -279,6 +282,7 @@ def execute(config, repository, output):
                 if case not in {'refused', 'after_unlink_failure'}:
                     require(owned_daemon._socket_identity(Path(state['socket'])) == identity,
                             'Fenced socket changed')
+                    row['fenced_socket_identity'] = identity
                 row['expected_fault_reached'] = True
                 row['passed'] = True
             finally:
