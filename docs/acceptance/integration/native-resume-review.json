@@ -6,6 +6,55 @@
     "Native startup acceptance harness and its callback are not reviewed or authorized by this packet.",
     "No native execution performed by this reviewer; kernel behavior and review receipt deployment remain unverified."
   ],
+  "callback_source_reviews": {
+    "native_accounting_faults.py": {
+      "conditions": [
+        "Frozen clean checkpoint and independent packet must bind exact acceptance_source_sha256 before execution.",
+        "Verify retained amd64 image archive, immutable worker digest/provenance and current host isolation separately.",
+        "Require independently checked outer cleanup; retain all partial/failure evidence and do not repeat unchanged diagnostic."
+      ],
+      "findings": [
+        "Explicit acceptance=callback,daemon_kind=owned prevents default CPU driver branch and its 30-pair suite.",
+        "Callback invokes only complete native_fault_suite, requires contract_fault_gate_passed, then verifies refreshed owned daemon environment.",
+        "Returned callback completion receipt cannot alone pass native driver acceptance: outer cleanup and durable finalize_acceptance remain required."
+      ],
+      "frozen_commit_binding_pending": true,
+      "native_execution_verified": false,
+      "source_review_passed": true,
+      "source_sha256": "72da580aa07c48271d585a60f5daeff4efbdb4b7a2c0a0764b0ffe35bf71c6e4"
+    },
+    "native_cpu_phase_diagnostic.py": {
+      "conditions": [
+        "Frozen clean checkpoint and independent packet must bind exact acceptance_source_sha256 before execution.",
+        "Verify retained amd64 image archive, immutable worker digest/provenance and current host isolation separately.",
+        "Require independently checked outer cleanup; retain all partial/failure evidence and do not repeat unchanged diagnostic."
+      ],
+      "findings": [
+        "Exactly range(3) with ordered empty,child inner loop gives six invocations; any error aborts rather than replacement measurement.",
+        "Existing harness.run, verifier, 60-second timeout, canonical ownership and fixed sampler preserve full lifecycle accounting.",
+        "Per-invocation evidence retains sampler result/errors and authoritative harness measurement, including partial failed observations.",
+        "Sampler has fixed interval and sample/process caps; reports attribution_complete=false and authoritative_cpu_replacement=false.",
+        "Callback requires fixture no_answer and per-run cleanup; outer daemon driver cleanup still independently required.",
+        "Diagnostic report sets adoption_gates_passed=false and is not a 30-pair CV/overhead adoption gate."
+      ],
+      "frozen_commit_binding_pending": true,
+      "native_execution_verified": false,
+      "source_review_passed": true,
+      "source_sha256": "a85afadb6029709dc803abc12e9afc7bb0e8e1b2aa1eced99802b66752d9e4bc"
+    }
+  },
+  "cleanup_b_evidence_interpretation": {
+    "observations": [
+      "Parent-collected B receipt reports positive startup shutdown barrier, socket retirement and operator cleanup success/returncode zero.",
+      "Parent-collected post-cleanup inventory records 20 generations, no existing recorded domains or sockets, and empty systemd jobs.",
+      "Staging containers remain present; absence claims apply only to recorded owned generations, not host-wide inactivity."
+    ],
+    "refs": {
+      "results/native-resume/20261015/cleanup-b-outcome.txt": "f5f4c3863a9ffa8843449a13501c4488acf32c83048b5a4143bdf5408251f023",
+      "results/native-resume/20261015/post-cleanup-inventory.json": "131276b77e21c195d481d64f2e17c7da64d32e417d160260b5ea55ca36ca5471"
+    },
+    "reviewer_executed_native_checks": false
+  },
   "evidence_refs": [
     "research/cpu_measurement/native_driver.py:validate,cleanup_state,_cleanup_state,cleanup",
     "deploy/owned_daemon.py:load_manifest,shutdown_barrier,failed_startup_barrier",
@@ -119,6 +168,28 @@
   "schema": "mldsafail.cpu-native-review.v1",
   "scope": "Read-only source review for terminal cleanup_state of existing manifest-backed generations, plus the specifically identified never-admitted synthetic-interruption generation under the additional external preflight below. No provisioning, callbacks, measurement adoption, or native acceptance.",
   "source_commit": "25f68abd726e1b010b45ce1c36020bc6ed934186",
+  "startup_source_review": {
+    "findings": [
+      "Real disposable failed service, cgroup/slice and Unix sockets use production provision/bind/startup-barrier and cleanup primitives. Endpoint preflight exercises encoded byte and internal suffix length without resource creation.",
+      "Corrected missing Delegate=yes and require native shared authority preconditions before each injection.",
+      "Corrected negative assertions to require specific expected fence error; post-unlink case explicitly proves injection reached and socket absent.",
+      "Verified whole-controller/worker/protected disjointness before securing the created worker domain; expected nonce worker basename required.",
+      "Replacement inode retained across rebind, live listener stays open through negative check; both sockets must remain unchanged during fence.",
+      "Interrupted child must publish intent, notify parent, retain same process identity and be killed/reaped before independent cleanup retry.",
+      "Independent cleanup actions collect failures while still attempting native cleanup. Any cleanup failure stops suite with negative report.",
+      "Pending-job fixture relies on real systemd dependency job ordering and must independently reach inactive/failed MainPID0 with pending exact daemon job; native failure remains a failed gate, not permission to weaken checks."
+    ],
+    "freeze_pending": true,
+    "limitations": [
+      "Source review only; real systemd behavior and all expected fault reachability require native evidence.",
+      "Failed native case remains evidence and must be reconciled before next provisioning.",
+      "Review receipt clean frozen checkpoint binding must be finalized before executing changed tooling."
+    ],
+    "native_acceptance_passed": false,
+    "scope": "Direct native never-admitted startup acceptance harness only; approve matching bytes after clean source checkpoint is frozen and source/config identities updated. No image load or evaluation callback.",
+    "source_review_passed": true
+  },
+  "startup_source_sha256": "224effcaa5649763e218460b5f2575882ef831efbeb630ea8920fe791cc2af51",
   "supervisor_review_passed": true,
   "supervisor_source_sha256": "85dc9b5955aa6d05be5ba4177aa71c65258e2d7569f3b4774c04ec5e1cf99037"
 }
