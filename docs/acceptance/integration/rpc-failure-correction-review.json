@@ -1,0 +1,46 @@
+{
+  "adoption_gates_passed": false,
+  "author": "Independent reviewer /root/functional_audit",
+  "base_head": "62552d31a356cb3ac41512cccbf011c265a0b365",
+  "blocking_source_findings": [],
+  "conditions": [
+    "Freeze new clean commit containing exact corrected bytes and update source-bound native-driver packet only after independently verifying frozen blobs and unchanged helperdc23 family.",
+    "Prior native-functional-review.json remains bound to62552d31 and old RPC hash; it does not authorize corrected callback execution.",
+    "Retain original failed A evidence. A fresh corrected source run must still prove actual create201/start204 ACK loss, independent whole-daemon/worker repair, proxy quiescence and outer cleanup plus current resource inventory.",
+    "No baseline/load/production/publication/measurement-adoption approval."
+  ],
+  "evidence_refs": [
+    "docs/acceptance/integration/native-functional-review.json",
+    "results/native-resume/20261015/rpc-a-failure-and-cleanup.txt",
+    "scripts/native_recovery_rpc_loss.py",
+    "tests/test_native_recovery_rpc_loss.py",
+    "scripts/native_functional_acceptance.py",
+    "deploy/owned_client.py",
+    "deploy/recovery_journal.py",
+    "deploy/recovery_daemon.py",
+    "research/cpu_measurement/native_transport.py"
+  ],
+  "file_sha256": {
+    "deploy/owned_client.py": "7a95b247a63ae25b6cba9cb798aa0f7104584306a86a4ad94838ff130a4d8d50",
+    "deploy/recovery_daemon.py": "bfcc4057dec8658fd4918db878a42e1fa1146f783957826d1348a98407d77331",
+    "deploy/recovery_journal.py": "1e8fb228c4412952b3b37ed0a8f2fdd026519fa25619a4e844a23674e4638180",
+    "research/cpu_measurement/native_transport.py": "cad75e1176ab638586c88e891f6cd3566a42fc265cf6e39306cbeb07beb25075",
+    "scripts/native_functional_acceptance.py": "0cd6b0ae541891dac520678d3205e0e0b40dd0c530c266857eed3d59333c6557",
+    "scripts/native_recovery_rpc_loss.py": "611c28ba068c893a89fbff126788414817e4a3f5c1565f5b0b02303309fc2866",
+    "tests/test_native_recovery_rpc_loss.py": "2806efa3cec0cc24c0cc056d80795fe725d6d901b916f65dc84a415b070ecbff"
+  },
+  "findings": [
+    "Inspected exact diff: only RPC client-failure exception handling expands from CalledProcessError to (CalledProcessError, RuntimeError), recording failure class. Neither exception independently marks reach or acceptance.",
+    "owned_client.run actually raises RuntimeError on failed checked subprocess; failed native A traceback confirms the mismatch with old callback catch. Stored A evidence continues to report RuntimeError and complete operation cleanup, absent daemon/worker/operator domains and absent socket/jobs; no conversion of A into passed suite.",
+    "Corrected probe still requires proxy.close successful, actual successful matching create201/start204 daemon response, response_delivered false, independent Journal cleanup, exact validate_repair proof, and repeated cleanup/repair validation before passed/native_executed.",
+    "Negative paths still retain result passed false and retry Journal cleanup only after proxy executor/socket quiescence. Catch does not cover arbitrary ValueError, TimeoutExpired or BaseException.",
+    "New parameterized regression asserts RuntimeError+201 reaches repeated repair validation; 500 or missing response fails before repair validation and retains negative result. This unit test mocks repair and cannot prove a native daemon barrier.",
+    "Ran .venv/bin/python -m pytest -q tests/test_native_recovery_rpc_loss.py: ten tests passed; no VPS/native execution performed by reviewer."
+  ],
+  "frozen_checkpoint_pending": true,
+  "native_acceptance_passed": false,
+  "native_execution_approved": false,
+  "observed_native_failure_evidence_sha256": "cdc60ec0e9ae1212ce0103fc9b0e54ac4b684d1870845d57690716ca22195547",
+  "schema": "mldsafail.rpc-failure-correction-source-review.v1",
+  "source_review_passed": true
+}

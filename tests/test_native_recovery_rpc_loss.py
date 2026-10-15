@@ -89,3 +89,40 @@ def test_proxy_error_with_proven_quiescence_still_attempts_journal_cleanup(tmp_p
     result=json.loads((tmp_path/'probe/result.json').read_text())
     assert result['passed'] is False and result['cleanup_complete'] is True
     assert result['proxy_executor_quiescent'] is True
+
+
+@pytest.mark.parametrize('response_code', [201, 500, None])
+def test_owned_client_runtime_failure_requires_actual_successful_daemon_ack(tmp_path, monkeypatch, response_code):
+    calls = []
+    class Journal:
+        def __init__(self, path, config): self.path=path;self.data={}
+        def container(self, *a, **kw): pass
+        def command(self, argv, **kw): raise RuntimeError('Owned native command failed; logs retained')
+        def cleanup(self): calls.append('cleanup');self.data['cleanup_complete']=True
+    class Proxy:
+        def __init__(self, root, upstream, kind):
+            self.path=root/'proxy.sock';self.receipt=root/'transport.json'
+            runner.atomic_json(self.receipt, dict(operation='create',
+                actual_mutation_response_observed=response_code is not None,
+                response_delivered=False, daemon_response_code=response_code))
+        def close(self): calls.append('proxy_closed')
+        def quiescent(self): return True
+    monkeypatch.setattr(runner,'Journal',Journal)
+    monkeypatch.setattr(runner,'LostAcknowledgement',Proxy)
+    monkeypatch.setattr(runner.owned_daemon,'load_manifest',lambda _:dict(epoch='old',socket='/owned/socket'))
+    def validate(*args):
+        assert calls[-1]=='cleanup'
+        calls.append('validated');return dict(whole_barrier_verified=True)
+    monkeypatch.setattr(runner,'validate_repair',validate)
+    monkeypatch.setenv('MLDSAFAIL_OPERATOR_DAEMON_MANIFEST','/owned/manifest')
+    if response_code == 201:
+        result=runner.probe(tmp_path/'probe',dict(image='sha256:'+'a'*64,api_version='1.56'),'create')
+        assert result['passed'] and result['native_executed']
+        assert result['lost_ack_client_failure_class']=='RuntimeError'
+        assert calls.count('validated')==2
+    else:
+        with pytest.raises(ValueError,match='successful daemon response loss'):
+            runner.probe(tmp_path/'probe',dict(image='sha256:'+'a'*64,api_version='1.56'),'create')
+        assert 'validated' not in calls
+        assert json.loads((tmp_path/'probe/result.json').read_text())['passed'] is False
+    assert calls[0]=='proxy_closed' and calls[-1]=='cleanup'

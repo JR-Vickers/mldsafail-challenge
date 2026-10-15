@@ -129,8 +129,11 @@ def probe(root, config, kind):
         try:
             operation.command(argv, daemon_manifest_path=manifest_path, env=environment,
                 capture_output=True, check=True, timeout=65)
-        except subprocess.CalledProcessError:
-            pass  # Only the independently retained real daemon ACK proves this fault.
+        except (subprocess.CalledProcessError, RuntimeError) as error:
+            # The owned command boundary retains bounded logs and raises
+            # RuntimeError for a failed client. Neither exception proves loss:
+            # require the independently observed successful daemon ACK below.
+            result['lost_ack_client_failure_class'] = type(error).__name__
         else: raise RuntimeError('Diagnostic client unexpectedly received mutation acknowledgement')
         proxy.close(); quiescent = True
         transport = owned_daemon.read_private_json(proxy.receipt)
