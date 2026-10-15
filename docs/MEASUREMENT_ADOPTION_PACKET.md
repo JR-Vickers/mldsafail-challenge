@@ -94,13 +94,14 @@ See [G](acceptance/public-launch/native-cpu-generation-g.json) and
 
 The integrated three-pair [lifecycle diagnostic](acceptance/measurement-phase-diagnostic/PROTOCOL.md)
 retains the original whole-lifecycle accounting and thresholds. Exact-source
-execution is deferred after two SSH connection timeouts on 2026-10-13. The
-current host ownership state could not be inspected. No diagnostic result or
-performance acceptance is fabricated from this absence. The concrete next
-investigation is startup/execution/cleanup attribution, followed, if supported,
-by a pinned lean OCI runtime proposal on a separately owned daemon. Review its
-binary/provenance/isolation checkpoint before execution, then rerun the complete
-fault suite and at least 30 pairs. Neither startup subtraction nor weaker gates
+execution was initially deferred after two SSH connection timeouts on 2026-10-13.
+Ownership was reconciled on 2026-10-15 and the single declared diagnostic completed;
+see the [investigation packet](acceptance/integration/measurement-investigation-20261015.json).
+These six observations do not pass performance acceptance. The next step is a
+separately reviewed performance correction supported by the investigation. A
+pinned lean OCI runtime on a separately owned daemon remains only a proposal.
+Review any new binary/provenance/isolation checkpoint before execution, then run
+the complete fault suite and at least 30 pairs. Neither startup subtraction nor weaker gates
 is proposed. Candidate reference viability/audits and hosted acceptance remain
 pending and cannot be inferred from local installation tests.
 

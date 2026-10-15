@@ -27,6 +27,56 @@ activation, production change or publication occurred. The original integration
 handoff below remains dated historical context; the updated ledger and dated
 receipts govern current continuation status.
 
+### Functional dispositions and final resource check
+
+Frozen source `451943ae3d7cc511ed077ad79e27db256da75617` passed
+[actual admitted-daemon retirement rejection and RPC loss/repair](acceptance/integration/native-rpc-20261015.json)
+and [local synthetic encrypted recovery](acceptance/integration/native-encrypted-20261015.json).
+The original RPC A run observed a real 201 response but failed its exception-class
+handling; its failure and cleanup remain retained. Reviewed B corrected the
+harness and observed actual 201/create and 204/start losses with exact daemon
+repair and repeated cleanup. Encrypted recovery used the retained amd64 binaries,
+a cleared inherited environment, six real fault/restore stages and a separate
+fresh cleanup controller. It does not accept a full protected application set,
+real off-host storage or owner key custody.
+
+The [final disposition](acceptance/integration/native-resume-final-20261015.json)
+records current absence for 41 driver generations and 28 encrypted fixture clients,
+with both encrypted controller domains absent and the four protected container
+identities unchanged. Evidence and daemon stores remain retained; no native
+operation remains running. `make check` passed 968 tests with 13 skips and all eight
+contract checks; focused ownership/RPC/encrypted/load checks also passed.
+
+**Combined native acceptance remains incomplete.** The
+[functional prerequisite packet](acceptance/integration/functional-prerequisites-20261015.json)
+separates these remaining outcomes:
+
+- Historical b042/c67/570 candidate installation: exact original archive/wheel
+  not located in bounded approved retained locations; do not regenerate substitutes.
+- Supported successor installation: wheel retained, complete locked native offline
+  dependency inventory still unverified. Existing operator environments do not
+  establish fresh installed import/dependency isolation.
+- Rollback rehearsal: [independent source audit](acceptance/integration/baseline-independent-audit.json)
+  withheld execution. Cleanup can cancel uncertain creators after a failed daemon
+  barrier, and post-switch checks do not re-audit full epoch/result contents.
+  Direct retained-source inspection also could not find the required compose file;
+  the original source archive remains available for future exact restoration and review.
+- Full protected-set restoration, admitted-job interrupted/repeated activation,
+  application failure matrix and two 300-second load phases: deferred with the
+  fresh audited application fixture and source gate. The new disposable load
+  adapter has source/tests only; the historical staging orchestrator was not invoked.
+- Scientific reproduction: original reviewed primitive-study worker and exact
+  Python registry-base archive/provenance not found in the declared inventory;
+  inventoried MLWE workers cannot substitute for them.
+
+Before admitting rollback, freeze/review a separate repair that stops cleanup
+when a positive whole-daemon/worker barrier is unavailable, independently
+re-audits the complete sealed epoch and accepted evidence after each switch, and
+binds the exact retained compose/backup/recovery helper bytes. Then construct
+fresh reviewed application/recovery/load protocols. No failed epoch may be
+replaced automatically. Measurement correction remains a separate reviewed source
+checkpoint followed by the complete fault suite and at least 30 sequential pairs.
+
 ## Preservation and branch disposition
 
 [Refs and dispositions](acceptance/integration/refs.json) retain every original
@@ -145,7 +195,7 @@ production cryptographic hardness or relax any correctness/accounting gate.
 
 ## Remaining owner inputs
 
-- Restore existing VPS SSH access so current ownership can be inspected.
+- Identify exact original candidate/reproduction artifact locations and a complete verified native offline dependency wheelhouse; see the dated prerequisite packet. SSH was restored and ownership reconciled on 2026-10-15.
 - Review a completed measurement packet later; contract adoption and default
   activation are separate decisions and remain deferred after G/L failures.
 - Supply fresh production GitHub OAuth inputs for the selected IP callback.

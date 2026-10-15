@@ -1,0 +1,60 @@
+{
+  "schema": "mldsafail.functional-prerequisites.v1",
+  "date": "2026-10-15",
+  "scope": "Bounded metadata-only inventories of named retained artifact/source locations; no private evaluator or live service configuration read",
+  "inventory_sha256": {
+    "functional-prerequisite-inventory.json": "cbe1b2faeede0a094dc93e5eb6c5d0561d81774b961eed159693a870e0c592b4",
+    "functional-exact-prerequisite-checks.json": "9774054e6412a4489d6a1212f33ca58264990065a9faee7e7e7f6a91c0dac41f",
+    "local-participant-artifacts.json": "5c1af285acea8bd73895e2dbe23d8e34779feda607c037ae13b04659009ae8fd",
+    "rollback-local-retained-identities.json": "3385825433dbcffe4ebd4021d09c7c66bad291952d3175f3fe46de1ade42c02c"
+  },
+  "dispositions": {
+    "historical_candidate_install": {
+      "status": "deferred_missing_prerequisite",
+      "required_archive_sha256": "c67bf7ada203a15196a25e9bd5e1638299f08c94b954e609785933e5b77a0883",
+      "required_wheel_sha256": "570386753f38982f5a637280ba6218e0a930313c75ffc45ee2c7b1ad697985e7",
+      "source_commit": "b0421cdcda842e4dd6c4b43fafd90541a7ae0cd2",
+      "reason": "Exact archive and wheel not found in bounded approved retained locations; original source bundle and source review remain available. No regeneration/substitution admitted."
+    },
+    "successor_install": {
+      "status": "deferred_missing_prerequisite",
+      "wheel_sha256": "ed002b7b2440efdf99936a9eb81df3010fa5d1b3f77c25b7e546eb15f7d62194",
+      "reason": "Successor wheel retained locally; inventoried amd64 offline wheelhouse contains only fpylll/cysignals, not complete locked alembic/argon2/authlib/flask/gunicorn/keyring/psycopg/requests/sqlalchemy transitive distributions. Fresh offline installation cannot be certified from existing operator venv."
+    },
+    "rollback_baseline": {
+      "status": "failed_source_review",
+      "reason": "Independent audit withholds execution: uncertain client cancellation after failed daemon barrier; missing full epoch/result re-audit after both application switches; retained backup/compose bytes require separate inspection. Original rollback metadata was found locally; do not label it absent.",
+      "review": "docs/acceptance/integration/baseline-independent-audit.json"
+    },
+    "protected_set_restore": {
+      "status": "deferred_dependency",
+      "reason": "Fresh sealed synthetic application recovery set with independently audited accepted result remains unavailable; baseline application source gate failed. Old staging recovery inputs are excluded."
+    },
+    "activation_interruption_repeat": {
+      "status": "deferred_dependency",
+      "reason": "Actual admitted recovery job and fresh audited synthetic recovery set plus two reviewed separate activation protocols required. Startup interruption is not a substitute."
+    },
+    "reproduction": {
+      "status": "deferred_missing_prerequisite",
+      "reason": "Named archive inventory contains MLWE0.5/0.6 workers, not the required original reviewed primitive-study worker plus exact Python registry base/provenance. Do not prepare replacements under missing-prerequisite authority."
+    },
+    "failure_and_load": {
+      "status": "deferred_dependency",
+      "reason": "Full disposable audited application fixture/phase caller remains blocked by failed baseline source gate. Guarded load adapter implemented and locally tested; no staging-targeted orchestrator used; no native300-second idle/evaluation phases claimed."
+    },
+    "rpc_loss": {
+      "status": "passed",
+      "evidence": "docs/acceptance/integration/native-rpc-20261015.json",
+      "source_commit": "451943ae3d7cc511ed077ad79e27db256da75617"
+    },
+    "encrypted_local": {
+      "status": "passed",
+      "evidence": "docs/acceptance/integration/native-encrypted-20261015.json",
+      "scope": "Fresh local synthetic encrypted fixture only; separate cleanup and current resource absence verified; no protected-set/offhost/custody claim"
+    }
+  },
+  "limitations": [
+    "Searches are bounded to declared retained locations; supply exact original artifact paths if retained elsewhere.",
+    "Deferral is not native acceptance; no candidate/protocol/artifact substituted and no fresh failed epoch replaced."
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "schema": "mldsafail.native-functional-rpc.v1",
+  "passed": true,
+  "source_commit": "451943ae3d7cc511ed077ad79e27db256da75617",
+  "wrapper_source_sha256": "0cd6b0ae541891dac520678d3205e0e0b40dd0c530c266857eed3d59333c6557",
+  "rpc_source_sha256": "611c28ba068c893a89fbff126788414817e4a3f5c1565f5b0b02303309fc2866",
+  "supervisor_source_sha256": "dc23d3f82de658e96dda68005abd78fdb31326bdaf636310041371ae172b620e",
+  "actual_admitted_startup_retirement_fenced": true,
+  "probes": {
+    "create": {
+      "passed": true,
+      "actual_mutation_response_observed": true,
+      "daemon_response_code": 201,
+      "response_delivered": false,
+      "whole_barrier_verified": true,
+      "proxy_executor_quiescent": true,
+      "cleanup_complete": true,
+      "old_epoch": "e05f42f6212849bf845d4f41a5f9785d",
+      "new_epoch": "7579423ef7ba4e5a987ea0cab7eb3822"
+    },
+    "start": {
+      "passed": true,
+      "actual_mutation_response_observed": true,
+      "daemon_response_code": 204,
+      "response_delivered": false,
+      "whole_barrier_verified": true,
+      "proxy_executor_quiescent": true,
+      "cleanup_complete": true,
+      "old_epoch": "7579423ef7ba4e5a987ea0cab7eb3822",
+      "new_epoch": "d3838ae534c3484fa06881e45fe1bbb0"
+    }
+  },
+  "operator_complete": true,
+  "operator_cleanup_complete": true,
+  "independent_cleanup_passed": true,
+  "original_failure_preserved": {
+    "source_commit": "62552d31a356cb3ac41512cccbf011c265a0b365",
+    "actual_create_ack_observed": true,
+    "response_code": 201,
+    "reason": "Owned command RuntimeError escaped exception-class-specific harness catch; no false pass; exact cleanup succeeded"
+  },
+  "evidence_sha256": {
+    "rpc-outcome.json": "843e5d728aef61b99246ce9dbb45113444ed7b76f247f33d6896b25979518d10",
+    "rpc-a-failure-and-cleanup.txt": "cdc60ec0e9ae1212ce0103fc9b0e54ac4b684d1870845d57690716ca22195547",
+    "rpc-b-final.json": "e94d4fce3636ab91ba1255244cb84d21958248a07907f2adb40bf1a34f5f5130"
+  },
+  "limits": [
+    "Operational RPC loss and actual admitted retirement fence only; not baseline rollback, activation, protected-set restoration or measurement adoption."
+  ]
+}

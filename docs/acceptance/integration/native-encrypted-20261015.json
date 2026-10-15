@@ -1,0 +1,49 @@
+{
+  "schema": "mldsafail.native-encrypted-local.v1",
+  "passed": true,
+  "source_commit": "451943ae3d7cc511ed077ad79e27db256da75617",
+  "script_sha256": "beba36a9f633814f717ffdd29e57a36bdb2178506c217a24de6a0ae83375bf7c",
+  "owned_client_sha256": "7a95b247a63ae25b6cba9cb798aa0f7104584306a86a4ad94838ff130a4d8d50",
+  "artifact_archive_sha256": "08c9955f61a885a5fdb707036c560670790ba7b3bef6dca025c51de418a4bfea",
+  "restic_version": "restic 0.17.3 compiled with go1.23.3 on linux/amd64",
+  "minio_version": "minio version DEVELOPMENT.GOGET (commit-id=DEVELOPMENT.GOGET)\nRuntime: go1.26.1 linux/amd64\nLicense: GNU AGPLv3 - https://www.gnu.org/licenses/agpl-3.0.html\nCopyright: 2015-0000 MinIO, Inc.",
+  "minio_provenance": "Retained development build; source release and build dependencies bound by original independent artifact review and exact binary hash; runtime version string is not a release-tag assertion",
+  "stages": [
+    {
+      "name": "HTTPS S3 init",
+      "passed": true
+    },
+    {
+      "name": "three snapshots/full check",
+      "passed": true
+    },
+    {
+      "name": "wrong recovery/storage key and untrusted TLS rejected",
+      "passed": true
+    },
+    {
+      "name": "real upload interrupted/retried and bytes restored",
+      "passed": true
+    },
+    {
+      "name": "retention after byte-verified synthetic restore",
+      "passed": true
+    },
+    {
+      "name": "corrupted encrypted S3 pack rejected and original repaired",
+      "passed": true
+    }
+  ],
+  "standalone_cleanup_retry_passed": true,
+  "independent_cleanup_passed": true,
+  "owned_clients_checked": 28,
+  "operator_complete": true,
+  "cleanup_operator_complete": true,
+  "controlled_environment": "env -i; explicit owner HOME/PATH/locale/DBus/runtime directory and exact delegated operator root; no inherited proxy/RESTIC/AWS/MINIO overrides",
+  "raw_evidence_sha256": "4e2b6286496d0d34a5d1ec3f016d53e552aeacc2e241da4fae048ea9c92e1794",
+  "raw_report_sha256": "f3ac06650f66716f55c20ddd9b3abe3727a2fc289d8cc91b8d7a17b877de75c6",
+  "protected_application_recovery_set_verified": false,
+  "actual_offhost_storage_accepted": false,
+  "owner_custody_verified": false,
+  "production_activation": false
+}

@@ -1,6 +1,6 @@
 # MLWE competition implementation and acceptance plan
 
-Updated 2026-10-13. This is the current authoritative implementation plan.
+Updated 2026-10-15. This is the current authoritative implementation plan.
 The [pre-integration plan](archive/PLAN_PRE_INTEGRATION_20261013.md) preserves
 historical 0.4.0 contracts and dated agendas. Frozen scientific requirements
 remain in [PRIMITIVE_SELECTION_SPEC.md](PRIMITIVE_SELECTION_SPEC.md); this
@@ -137,7 +137,7 @@ They do not pass the separate native amd64, scientific reproduction, measurement
 production or external delivery gates. Historical native passes remain tied to
 their original source/artifact; later integration changes need matching receipts.
 
-The existing VPS SSH endpoint timed out twice during integration. Current ownership
+At the initial 2026-10-13 integration, the existing VPS SSH endpoint timed out twice. Ownership
 journals, live services and resource absence could not be inspected. No VPS mutation
 or native acceptance was performed. The historical numbered checklist is absent;
 this is a traceability limitation, not an invented gating requirement.
@@ -157,9 +157,11 @@ CPU overhead. G: CV 0.1164559302, empty median 395,795 microseconds. L: CV
 and 250,000 microseconds; their empty wall p95 passed the five-second limit.
 Historical cleanup was reported verified; those receipts prove no current absence.
 
-The next operation is the predeclared three-pair lifecycle diagnostic after current
-ownership/cleanup acceptance, using fresh exact source/helper identities. It attributes
-startup/execution/cleanup without altering accounting or gates. Any corrective
+The predeclared three-pair lifecycle diagnostic completed once on 2026-10-15 after
+current ownership, ten-case startup and thirteen-fault accounting acceptance. Its
+[packet](acceptance/integration/measurement-investigation-20261015.json) retains six
+authoritative totals and sampled phase observations, with independently verified
+cleanup and no accounting/window/threshold changes. It does not pass adoption. Any corrective
 performance proposal needs a separately reviewed retained checkpoint before
 execution, then the complete fault suite and at least 30 sequential pairs with
 child CV ≤5%, empty median CPU ≤250,000 microseconds and empty wall p95 ≤5 seconds.
@@ -169,8 +171,9 @@ separate contract-adoption and production-default decisions; both remain deferre
 
 ## 9. Native continuation
 
-Reuse the existing Linux VPS; no additional host purchase is assumed. Restore SSH
-access, inspect exact recorded authority and reconcile unresolved generations before
+Reuse the existing Linux VPS; no additional host purchase is assumed. SSH access
+and original ownership reconciliation succeeded on 2026-10-15; inspect current
+exact recorded authority and reconcile unresolved generations before
 dependent provisioning. Validate short socket roots before provisioning. Serialize
 evaluation, maintenance, load and diagnostics with isolated disposable databases,
 daemon/worker/operator domains, synthetic credentials and private evidence paths.
@@ -217,8 +220,8 @@ owner decisions. Pilot usability observations cannot adopt a measurement contrac
 
 ## 21. Development plan
 
-1. Complete the remaining source-bound native gates when existing VPS access returns.
-2. Run the diagnostic and review a corrective proposal; retain G/L failed evidence.
+1. Resolve the failed baseline cleanup/post-switch audit source gate and missing exact retained installation/reproduction prerequisites; see [current handoff](INTEGRATION_HANDOFF.md). Scoped startup, faults, bounded diagnostics, RPC loss and local encrypted recovery passed; combined acceptance remains incomplete.
+2. Review a separately frozen corrective performance proposal; the single diagnostic completed and G/L failures remain unchanged.
 3. Produce passing exact-source measurement/reference/hosted proof before asking
    for contract adoption, followed separately by any default activation decision.
 4. Accept owner-supplied off-host custody and email delivery, privately rehearse

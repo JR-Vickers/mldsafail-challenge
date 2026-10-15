@@ -2789,17 +2789,23 @@
         "owned-native-client-fencing",
         "native-daemon-request-fencing",
         "native-generation-i-cleanup-reconciliation",
-        "synthetic-startup-terminal-repair"
+        "synthetic-startup-terminal-repair",
+        "baseline-safe-native-review-20261015"
       ],
       "environment": "disposable native services; no production activation",
       "criteria": [
         "Retained reviewed orchestrator passes source-bound native baseline rehearsal and final owned-resource cleanup"
       ],
       "status": "waiting_dependency",
-      "attempts": [],
+      "attempts": [
+        {
+          "date": "2026-10-15",
+          "result": "Failed independent source gate; no native epoch, migration or application rollback attempted"
+        }
+      ],
       "evidence": [],
       "identities": {},
-      "next_action": "Freeze reviewed orchestrator; execute after serialized staging gates",
+      "next_action": "Resolve failed source review and exact retained-input binding before creating any fresh baseline epoch",
       "checklist": []
     },
     {
@@ -3137,11 +3143,15 @@
         {
           "protocol": "Fresh daemon, worker and operator registration per activation; teardown before exit; no reuse of previous vanished parent inode",
           "result": "shared provisioning callback API preparation in progress"
+        },
+        {
+          "date": "2026-10-15",
+          "result": "Deferred: fresh audited protected application recovery set/admitted recovery job unavailable; failed baseline source gate retained. Tiny encrypted upload interruption does not substitute."
         }
       ],
       "evidence": [],
       "identities": {},
-      "next_action": "Complete source-bound isolated verification; keep real timers inactive",
+      "next_action": "Resolve baseline source gate and create separately reviewed fresh synthetic accepted-result recovery/activation fixtures",
       "checklist": []
     },
     {
@@ -3753,17 +3763,23 @@
       "dependencies": [
         "recovery-restoration-code",
         "native-generation-i-cleanup-reconciliation",
-        "synthetic-startup-terminal-repair"
+        "synthetic-startup-terminal-repair",
+        "baseline-safe-native-review-20261015"
       ],
       "environment": "isolated engineering or disposable native environment",
       "criteria": [
         "Full sealed local protected database, epoch and accepted-run evidence restoration"
       ],
       "status": "waiting_dependency",
-      "attempts": [],
+      "attempts": [
+        {
+          "date": "2026-10-15",
+          "result": "Deferred: fresh audited protected application recovery set/admitted recovery job unavailable; failed baseline source gate retained. Tiny encrypted upload interruption does not substitute."
+        }
+      ],
       "evidence": [],
       "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "next_action": "Resolve baseline source gate and create separately reviewed fresh synthetic accepted-result recovery/activation fixtures",
       "checklist": []
     },
     {
@@ -3775,17 +3791,23 @@
       "dependencies": [
         "recovery-restoration-code",
         "native-generation-i-cleanup-reconciliation",
-        "synthetic-startup-terminal-repair"
+        "synthetic-startup-terminal-repair",
+        "baseline-safe-native-review-20261015"
       ],
       "environment": "isolated engineering or disposable native environment",
       "criteria": [
         "Native journal service interruption, repeated cleanup and cleanup-failure fixture"
       ],
       "status": "waiting_dependency",
-      "attempts": [],
+      "attempts": [
+        {
+          "date": "2026-10-15",
+          "result": "Deferred: fresh audited protected application recovery set/admitted recovery job unavailable; failed baseline source gate retained. Tiny encrypted upload interruption does not substitute."
+        }
+      ],
       "evidence": [],
       "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "next_action": "Resolve baseline source gate and create separately reviewed fresh synthetic accepted-result recovery/activation fixtures",
       "checklist": []
     },
     {
@@ -3831,11 +3853,30 @@
       "criteria": [
         "Execute recovery Journal lost acknowledgement faults with positive executor quiescence and cleanup"
       ],
-      "status": "waiting_dependency",
-      "attempts": [],
-      "evidence": [],
-      "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
+      "status": "passed",
+      "attempts": [
+        {
+          "date": "2026-10-15",
+          "result": "A reached actual201 loss but exception handling failed; cleanup passed and original negative evidence retained"
+        },
+        {
+          "date": "2026-10-15",
+          "result": "Reviewed source451943 B passed actual201/204 loss, exact old/new epoch repair, repeat cleanup and independent absence"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/integration/native-rpc-20261015.json#/passed",
+          "criteria_met": [
+            "Execute recovery Journal lost acknowledgement faults with positive executor quiescence and cleanup"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "451943ae3d7cc511ed077ad79e27db256da75617",
+        "review": "docs/acceptance/integration/native-functional-review.json"
+      },
+      "next_action": "Retain original A failure and exact B positive/independent cleanup receipts; no other functional gate inferred",
       "checklist": []
     },
     {
@@ -3852,12 +3893,22 @@
       "criteria": [
         "Build retained official Python base and frozen scientific study image with approved native wheel provenance"
       ],
-      "status": "waiting_dependency",
-      "attempts": [],
+      "status": "blocked_external",
+      "attempts": [
+        {
+          "date": "2026-10-15",
+          "result": "Bounded source/artifact inventories found MLWE workers and two approved wheels, not required original scientific worker/base provenance"
+        }
+      ],
       "evidence": [],
       "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
-      "checklist": []
+      "next_action": "Supply exact retained original reproduction artifact references before two clean builds and36-case matrix",
+      "checklist": [],
+      "blocker": {
+        "input": "Original reviewed primitive-study worker archive/provenance and exact pinned Python base registry mapping/archive",
+        "owner": "repository artifact custodian",
+        "requested_action": "Identify original retained prerequisites; do not substitute inventoried MLWE0.5/0.6 workers or pull/build replacements under this gate"
+      }
     },
     {
       "id": "operator-interrupted-job-native",
@@ -3895,12 +3946,22 @@
       "criteria": [
         "Install and exercise separately identified candidate participant artifact in native Linux"
       ],
-      "status": "waiting_dependency",
-      "attempts": [],
+      "status": "blocked_external",
+      "attempts": [
+        {
+          "date": "2026-10-15",
+          "result": "Bounded approved local/VPS inventories did not locate exact candidate archive/wheel; original source/review retained; native protocol deferred"
+        }
+      ],
       "evidence": [],
       "identities": {},
-      "next_action": "Execute declared criteria and preserve evidence",
-      "checklist": []
+      "next_action": "Provide original retained artifact paths described in functional-prerequisites-20261015.json",
+      "checklist": [],
+      "blocker": {
+        "input": "Exact c67bf7ada203a15196a25e9bd5e1638299f08c94b954e609785933e5b77a0883 candidate archive,570386753f38982f5a637280ba6218e0a930313c75ffc45ee2c7b1ad697985e7 wheel and complete sealed native offline dependencies",
+        "owner": "repository artifact custodian",
+        "requested_action": "Identify retained original artifact paths and verified offline wheelhouse; do not regenerate or substitute candidate artifacts"
+      }
     },
     {
       "id": "candidate-participant-source-review",
@@ -4509,13 +4570,19 @@
       "sources": [
         "docs/INTEGRATION_HANDOFF.md"
       ],
-      "dependencies": [],
+      "dependencies": [
+        "baseline-safe-native-review-20261015",
+        "candidate-participant-native-install",
+        "successor-native-install-20261015",
+        "reproduction-native-prerequisites",
+        "disposable-load-evaluation-20261015"
+      ],
       "environment": "existing Linux amd64 VPS, sequential disposable domains",
       "criteria": [
         "Inspect current exact ownership authority before provisioning",
         "Complete exact-source native protocols and independent final cleanup"
       ],
-      "status": "running",
+      "status": "waiting_dependency",
       "attempts": [
         {
           "date": "2026-10-13",
@@ -4529,14 +4596,19 @@
         {
           "date": "2026-10-15",
           "result": "StartupC10cases, accounting13faults and diagnostic6invocations pass with independent cleanup; functional prerequisites still being reconciled"
+        },
+        {
+          "date": "2026-10-15",
+          "result": "Scoped startup/accounting/diagnostic/RPC/encrypted gates pass; final41driver domains/socket absence and28encrypted client absences verified; protected4container IDs unchanged. Combined acceptance incomplete: failed baseline source review and missing retained prerequisites."
         }
       ],
       "evidence": [],
       "identities": {
         "application_source_commit": "26c5f2f4bc771b319ffccc2cdcb1c735eaab4176",
-        "native_tooling_source_commit": "0215c9c539825c1492a9129f93c55923bd42d51e"
+        "native_tooling_source_commit": "0215c9c539825c1492a9129f93c55923bd42d51e",
+        "functional_source_commit": "451943ae3d7cc511ed077ad79e27db256da75617"
       },
-      "next_action": "Continue independent functional gates only with exact retained artifacts, private protocols, matching source reviews and fresh synthetic fixtures",
+      "next_action": "Follow exact failed/deferred dispositions in functional-prerequisites-20261015.json; no native operation left running and no activation/publication/adoption approved",
       "checklist": []
     },
     {
@@ -4645,6 +4717,189 @@
         "supervisor_source_sha256": "dc23d3f82de658e96dda68005abd78fdb31326bdaf636310041371ae172b620e"
       },
       "next_action": "Retain exact evidence; no production/publication/adoption approval",
+      "checklist": []
+    },
+    {
+      "id": "baseline-safe-native-review-20261015",
+      "requirement": "Review rollback rehearsal before native provisioning",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "existing Linux amd64 VPS / source-bound private engineering",
+      "criteria": [
+        "Positive daemon barrier before uncertain client cancellation and complete epoch/result audits after both switches"
+      ],
+      "status": "failed",
+      "attempts": [
+        {
+          "date": "2026-10-15",
+          "result": "Native execution withheld. Repair/review cleanup ordering and full post-switch audits in a separate checkpoint; inspect exact retained backup/compose sources without substituting archived inputs."
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/integration/baseline-independent-audit.json#/callback_review_passed",
+          "criteria_met": []
+        }
+      ],
+      "identities": {
+        "source_commit": "451943ae3d7cc511ed077ad79e27db256da75617"
+      },
+      "next_action": "Native execution withheld. Repair/review cleanup ordering and full post-switch audits in a separate checkpoint; inspect exact retained backup/compose sources without substituting archived inputs.",
+      "checklist": []
+    },
+    {
+      "id": "successor-native-install-20261015",
+      "requirement": "Install integrated supported MLWE participant workflow separately from historical candidate",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "existing Linux amd64 VPS / source-bound private engineering",
+      "criteria": [
+        "Fresh offline install with exact retained wheel, interpreter/dependency bindings, import isolation, starter and public fixtures"
+      ],
+      "status": "blocked_external",
+      "attempts": [
+        {
+          "date": "2026-10-15",
+          "result": "Retained successor wheel ed002b7b is available locally; complete locked native offline dependency artifact inventory remains unverified in declared retained locations."
+        }
+      ],
+      "evidence": [],
+      "identities": {
+        "source_commit": "451943ae3d7cc511ed077ad79e27db256da75617"
+      },
+      "next_action": "Retained successor wheel ed002b7b is available locally; complete locked native offline dependency artifact inventory remains unverified in declared retained locations.",
+      "checklist": [],
+      "blocker": {
+        "input": "Complete verified amd64 Python3.12.10 offline dependency wheelhouse for retained successor wheel ed002b7b2440efdf99936a9eb81df3010fa5d1b3f77c25b7e546eb15f7d62194",
+        "owner": "repository artifact custodian",
+        "requested_action": "Identify exact retained offline dependency inventory and provenance; existing operator venv cannot substitute for a fresh install"
+      }
+    },
+    {
+      "id": "disposable-load-adapter-source-20261015",
+      "requirement": "Provide a disposable application load adapter without staging orchestrator",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "existing Linux amd64 VPS / source-bound private engineering",
+      "criteria": [
+        "Independent source review and focused tests preserve300-second schedule and floors while restricting origin/container bindings and redirects/proxies"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "date": "2026-10-15",
+          "result": "Adapter source tested and retained. Native300-second phases still require separately reviewed synthetic application setup and phase caller."
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/integration/functional-independent-audit.json#/source_review_passed",
+          "criteria_met": [
+            "Independent source review and focused tests preserve300-second schedule and floors while restricting origin/container bindings and redirects/proxies"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "62552d31a356cb3ac41512cccbf011c265a0b365",
+        "source_sha256": "3ecef42e27561082044814c11a93010f665be50f3bf57a61ee40b7b86e75673b"
+      },
+      "next_action": "Adapter source tested and retained. Native300-second phases still require separately reviewed synthetic application setup and phase caller.",
+      "checklist": []
+    },
+    {
+      "id": "disposable-load-idle-20261015",
+      "requirement": "Run fresh disposable idle load phase",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "baseline-safe-native-review-20261015",
+        "disposable-load-adapter-source-20261015"
+      ],
+      "environment": "existing Linux amd64 VPS / source-bound private engineering",
+      "criteria": [
+        "Exactly300seconds at fixed schedule; p95<1s,p99<2s,zero reads/floor failures; independent cleanup"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [
+        {
+          "date": "2026-10-15",
+          "result": "Deferred: failed baseline source gate prevents admission of the required audited disposable application fixture/phase caller. Historical staging-targeted orchestrator not invoked."
+        }
+      ],
+      "evidence": [],
+      "identities": {
+        "source_commit": "451943ae3d7cc511ed077ad79e27db256da75617"
+      },
+      "next_action": "Deferred: failed baseline source gate prevents admission of the required audited disposable application fixture/phase caller. Historical staging-targeted orchestrator not invoked.",
+      "checklist": []
+    },
+    {
+      "id": "disposable-load-evaluation-20261015",
+      "requirement": "Run fresh disposable evaluation load phase",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "baseline-safe-native-review-20261015",
+        "disposable-load-adapter-source-20261015"
+      ],
+      "environment": "existing Linux amd64 VPS / source-bound private engineering",
+      "criteria": [
+        "Exactly300seconds at fixed schedule; p95<1s,p99<2s,zero reads/floor failures; independent cleanup"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [
+        {
+          "date": "2026-10-15",
+          "result": "Deferred: failed baseline source gate prevents admission of the required audited disposable application fixture/phase caller. Historical staging-targeted orchestrator not invoked."
+        }
+      ],
+      "evidence": [],
+      "identities": {
+        "source_commit": "451943ae3d7cc511ed077ad79e27db256da75617"
+      },
+      "next_action": "Deferred: failed baseline source gate prevents admission of the required audited disposable application fixture/phase caller. Historical staging-targeted orchestrator not invoked.",
+      "checklist": []
+    },
+    {
+      "id": "native-encrypted-local-20261015",
+      "requirement": "Accept encrypted local synthetic recovery independently of protected-set and owner custody gates",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "synthetic-startup-terminal-repair"
+      ],
+      "environment": "existing Linux amd64 VPS / source-bound private engineering",
+      "criteria": [
+        "Six native synthetic encrypted stages, actual versions, standalone cleanup retry, both outer controllers and independent current absence pass"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "date": "2026-10-15",
+          "result": "Retain exact amd64 artifact/provenance and independent cleanup. Does not accept full protected application set, offhost storage or owner custody."
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/integration/native-encrypted-20261015.json#/passed",
+          "criteria_met": [
+            "Six native synthetic encrypted stages, actual versions, standalone cleanup retry, both outer controllers and independent current absence pass"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "451943ae3d7cc511ed077ad79e27db256da75617"
+      },
+      "next_action": "Retain exact amd64 artifact/provenance and independent cleanup. Does not accept full protected application set, offhost storage or owner custody.",
       "checklist": []
     }
   ],
