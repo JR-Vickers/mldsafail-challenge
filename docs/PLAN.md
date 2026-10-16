@@ -1,6 +1,6 @@
 # MLWE competition implementation and acceptance plan
 
-Updated 2026-10-15. This is the current authoritative implementation plan.
+Updated 2026-10-16. This is the current authoritative implementation plan.
 The [pre-integration plan](archive/PLAN_PRE_INTEGRATION_20261013.md) preserves
 historical 0.4.0 contracts and dated agendas. Frozen scientific requirements
 remain in [PRIMITIVE_SELECTION_SPEC.md](PRIMITIVE_SELECTION_SPEC.md); this
@@ -220,7 +220,7 @@ owner decisions. Pilot usability observations cannot adopt a measurement contrac
 
 ## 21. Development plan
 
-1. Local baseline cleanup ordering and full post-switch epoch/result audits are repaired and focused/full checks pass; independent review and exact retained compose/backup/recovery helper inspection remain gates before native rollback acceptance. Exact installation/reproduction prerequisites also remain unresolved; see [current handoff](INTEGRATION_HANDOFF.md). Scoped startup, faults, bounded diagnostics, RPC loss and local encrypted recovery passed; combined acceptance remains incomplete.
+1. Local baseline cleanup ordering and full post-switch epoch/result audits were repaired in source checkpoint `063ab091480df5cd3eda564bedfb31edc303371e`; ledger and disposition updates were committed as `09245fc`. Focused lifecycle/baseline/reproduction tests passed, and `make check` passed with 969 tests, 13 skipped, plus 8 MLWE contract checks. Native rollback acceptance remains deferred pending independent review and exact retained compose/backup/recovery helper inspection; no native operation was run. Exact installation/reproduction prerequisites also remain unresolved; see [current handoff](INTEGRATION_HANDOFF.md). Scoped startup, faults, bounded diagnostics, RPC loss and local encrypted recovery passed; combined acceptance remains incomplete.
 2. Review a separately frozen corrective performance proposal; the single diagnostic completed and G/L failures remain unchanged.
 3. Produce passing exact-source measurement/reference/hosted proof before asking
    for contract adoption, followed separately by any default activation decision.
