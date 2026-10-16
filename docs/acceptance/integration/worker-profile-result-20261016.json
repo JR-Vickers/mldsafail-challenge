@@ -1,0 +1,80 @@
+{
+  "schema": "mldsafail.worker-profile-result.v1",
+  "date": "2026-10-16",
+  "source_commit": "2fe0c2c178a3d6d169618aee6d51099d2ca93a88",
+  "image": "sha256:c5c35eb224f77fe84caa977e18a73d10a710366090fa7ad88e9eb21cde9a74cc",
+  "callback_completed": true,
+  "score_evidence": false,
+  "measurement_adoption": false,
+  "invocations": [
+    {
+      "cpu_usec": 809675,
+      "mode": "control",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "af6c7fb881a23139f78554fd9fa58f3e162cd5aa23ee4448386f20d5d6f89a70",
+      "wall_seconds": 2.6871352000162005
+    },
+    {
+      "cpu_usec": 634739,
+      "mode": "profile",
+      "stderr_sha256": "501a842f60f80a5537bf446fe46fb3a03fc3cf9840793def8a88ce77d5480b27",
+      "stdout_sha256": "af6c7fb881a23139f78554fd9fa58f3e162cd5aa23ee4448386f20d5d6f89a70",
+      "wall_seconds": 1.8317769230343401
+    }
+  ],
+  "profile_observations": {
+    "worker_module_cprofile_elapsed_seconds": 0.081,
+    "worker_main_cprofile_cumulative_elapsed_seconds": 0.003,
+    "profile_process_cpu_seconds": 0.47149535499999995,
+    "source_compile_calls_after_profiler_imports": 13,
+    "source_compile_cprofile_elapsed_seconds": 0.028,
+    "pstats_cumulative_import_elapsed_usec": 449239
+  },
+  "bytecode_inventory": {
+    "schema": "mldsafail.worker-bytecode-inventory.v1",
+    "selected": {
+      "typing": [
+        "usr/local/lib/python3.12/typing.py"
+      ],
+      "dataclasses": [
+        "usr/local/lib/python3.12/dataclasses.py"
+      ],
+      "inspect": [
+        "usr/local/lib/python3.12/inspect.py",
+        "usr/local/lib/python3.12/site-packages/pip/_internal/commands/inspect.py"
+      ],
+      "enum": [
+        "usr/local/lib/python3.12/enum.py"
+      ],
+      "worker": [
+        "worker/mldsafail/benchmark_v060/worker.py"
+      ],
+      "models": [
+        "usr/local/lib/python3.12/site-packages/pip/_vendor/requests/models.py",
+        "worker/mldsafail/benchmark_v050/models.py"
+      ]
+    },
+    "stdlib_pyc_count": 18,
+    "worker_pyc_count": 0
+  },
+  "raw_sha256": {
+    "bytecode-inventory.json": "ae8529054b3b8a3f32ef5fe3087775d2f2cb9bd6c666f4e4cd145d724c43214d",
+    "config.json": "ab596f7f7a47652fe49f5902c99c621a18751d6da1e60c8dce5a2cb976d6545d",
+    "driver.json": "f65769c00d9a2f50016bd472398f27a8a054f040a5f2f19181966c3cbc9cfd2a",
+    "independent-postflight-private.json": "bb8e74a143079da151e6baf873cd3db3be71402ce53861a381414f972eb4b191",
+    "operator.json": "549d5663a0c0a44e1c6706fc183543a0e965c51a88948a5fbb7a72c29ac106c4",
+    "preflight.json": "e944b5c6e3fc5af24299f94889ffa70ac9d5ce37813bf688754c285bdf4cb4d4",
+    "worker-profile/control.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "worker-profile/control.stdout": "af6c7fb881a23139f78554fd9fa58f3e162cd5aa23ee4448386f20d5d6f89a70",
+    "worker-profile/profile.stderr": "501a842f60f80a5537bf446fe46fb3a03fc3cf9840793def8a88ce77d5480b27",
+    "worker-profile/profile.stdout": "af6c7fb881a23139f78554fd9fa58f3e162cd5aa23ee4448386f20d5d6f89a70",
+    "worker-profile/report.json": "342e72e2017605290232d16208dcc60250c35d9785612e5f0b3143c7c7ac88fc",
+    "worker-profile/solver/solver.py": "84a2a3ed812befbc4053110f4c92ebffaca889bb9fd750e2c9e5707346b69773"
+  },
+  "limitations": [
+    "One control then one instrumented probe; not the official invocation/attach procedure or stability protocol.",
+    "cProfile reports elapsed function times; process_time delta excludes interpreter startup and includes profiler imports.",
+    "pstats preloads dataclasses/typing/inspect before worker profiling; no exact uninstrumented CPU attribution or speedup established.",
+    "Cache presence inventory identifies missing files, not their isolated performance effect."
+  ]
+}
