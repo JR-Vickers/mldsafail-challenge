@@ -25,6 +25,7 @@ from scripts import operator_daemon_lifecycle
 
 LABEL = 'org.mldsafail.disposable-rehearsal'
 ROLE = 'org.mldsafail.disposable-role'
+RETAINED_BACKUP_SHA256 = 'd18afe91ab255a0c3601e519f2e4f05d4798a57cadcb5075af1be9892c65b6fa'
 
 
 def wait_database(compose, env, record):
@@ -57,6 +58,14 @@ def validate(config):
     if not re.fullmatch(r'[a-f0-9]{40}', metadata.get('source_commit', '')):
         raise ValueError('Full retained source identity required')
     files = metadata.get('source_files_sha256', {})
+    # This historical rehearsal requires the original restore-capable helper.
+    # Current helpers deliberately retire that interface. Reject incompatible
+    # source before provisioning, rather than failing after application startup.
+    backup = source / 'deploy/backup_postgres.py'
+    if (not backup.is_file()
+            or files.get('deploy/backup_postgres.py') != RETAINED_BACKUP_SHA256
+            or hashlib.sha256(backup.read_bytes()).hexdigest() != RETAINED_BACKUP_SHA256):
+        raise ValueError('Historical rehearsal requires the manifest-bound retained restore-capable backup helper; current backup helpers are unsupported')
     benchmark = source / 'src/mldsafail/benchmark_v050'
     if not all((benchmark / (name + '.py')).is_file() for name in ('execution', 'generator', 'scoring', 'evidence')):
         raise ValueError('Retained frozen benchmark source required')

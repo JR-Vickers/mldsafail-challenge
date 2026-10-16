@@ -13,6 +13,9 @@ def config(tmp_path):
     source = tmp_path / 'source'
     source.mkdir()
     (source / 'compose.production.yaml').write_text('services: {}')
+    (source / 'deploy').mkdir()
+    backup = source / 'deploy/backup_postgres.py'
+    backup.write_bytes((Path(__file__).parent / 'fixtures/retained_backup/backup_postgres.py').read_bytes())
     benchmark = source / 'src/mldsafail/benchmark_v050'
     benchmark.mkdir(parents=True)
     for name in ('execution', 'generator', 'scoring', 'evidence'):
@@ -20,7 +23,7 @@ def config(tmp_path):
     manifest = tmp_path / 'manifest.json'
     manifest.write_text(json.dumps({'source_commit': 'a' * 40, 'source_files_sha256':
         {str(path.relative_to(source)): hashlib.sha256(path.read_bytes()).hexdigest()
-         for path in [source / 'compose.production.yaml', *benchmark.glob('*.py')]}}))
+         for path in [source / 'compose.production.yaml', backup, *benchmark.glob('*.py')]}}))
     release = tmp_path / 'release.json'
     rollback = tmp_path / 'rollback.json'
     release_data = {'source_commit': 'a' * 40, 'images':
@@ -44,6 +47,22 @@ def test_disposable_rehearsal_rejects_staging_and_mutable_images(tmp_path):
             validate({**value, 'run_directory': root})
     value['images']['web'] = 'mutable:tag'
     with pytest.raises(ValueError, match='Immutable'):
+        validate(value)
+
+
+def test_rehearsal_rejects_retired_or_unbound_backup_before_execution(tmp_path):
+    value = config(tmp_path)
+    helper = Path(value['operator_source']) / 'deploy/backup_postgres.py'
+    helper.write_bytes((Path(__file__).resolve().parents[1] / 'deploy/backup_postgres.py').read_bytes())
+    with pytest.raises(ValueError, match='restore-capable'):
+        execute(value)
+    assert not Path(value['run_directory']).exists()
+    helper.write_bytes((Path(__file__).parent / 'fixtures/retained_backup/backup_postgres.py').read_bytes())
+    manifest = Path(value['source_manifest'])
+    data = json.loads(manifest.read_text())
+    data['source_files_sha256'].pop('deploy/backup_postgres.py')
+    manifest.write_text(json.dumps(data))
+    with pytest.raises(ValueError, match='manifest-bound'):
         validate(value)
 
 

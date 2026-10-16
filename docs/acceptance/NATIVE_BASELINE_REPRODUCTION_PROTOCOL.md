@@ -1,5 +1,14 @@
 # Isolated frozen baseline and worker reproduction
 
+The historical baseline requires `deploy/backup_postgres.py` with SHA256
+`d18afe91ab255a0c3601e519f2e4f05d4798a57cadcb5075af1be9892c65b6fa`
+in both the retained source and its `source_files_sha256` manifest. Preflight
+rejects missing, modified or current retired-interface helpers before creating
+the rehearsal root. This pins the original helper, not approval of the complete
+historical source/configuration: exact Compose and transitive helper review
+remain prerequisites. Current operational restore verification uses the durable
+dedicated-daemon recovery workflow documented in OPERATIONS.md.
+
 This source prepares two separately invoked, reviewed same-process callbacks for `research.cpu_measurement.native_driver`. The sole native operator supplies the private driver configuration and actual combined independent review packet; the callback source SHA must equal that of `scripts/native_baseline_acceptance.py`. Use `python -m scripts.native_baseline_acceptance --gate baseline|reproduction --config PRIVATE_CONFIG`. Each run provisions its own daemon and worker slice, holds the shared provision lease, and ends only after consumer cleanup and the driver's terminal whole-daemon/whole-worker proof. Failed runs retain their journals and require the driver's independent cleanup entrypoint.
 
 Place `baseline-protocol.json` beside the new driver state directory with schema `mldsafail.baseline-native-protocol.v1` and `rehearsal` containing the existing baseline rehearsal configuration. The callback overrides only the new private run directory and exact newly provisioned socket. Supply all seven baseline/rollback images as pinned driver artifacts, including exact retained compatible application release and b4d212d rollback manifests. The baseline tool checks frozen source hashes and release compatibility, generates a fresh synthetic epoch, exercises submission and application-only rollback/forward, and verifies final cleanup. This establishes frozen 0.5.0 baseline behavior only; approved-design production acceptance remains separate.

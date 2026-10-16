@@ -1,5 +1,21 @@
 # Review of integration into main — 2026-10-16
 
+## Resolution and owner-authorized integration
+
+After this review, the owner explicitly requested the workflow fix and local
+merge. OPERATIONS.md now documents dump-only behavior and directs actual restore
+acceptance to the durable dedicated-daemon workflow. Historical rehearsal
+preflight pins and manifest-checks the original restore-capable helper before
+resource creation; a regression check rejects the current retired helper and
+missing manifest binding. The exact historical helper is retained as a test
+fixture. Full historical Compose/transitive-source acceptance remains open.
+
+Focused checks passed (20 tests); `make check` passed with 970 tests, 13 skipped
+and eight contract checks. A fresh `git fetch origin` confirmed local main and
+origin/main both at `4602f45`. The earlier conditional recommendation is satisfied
+for source integration; native acceptance and public activation remain separate.
+The original review below is retained as dated evidence.
+
 Reviewed local `main` at `4602f45` against `engineering/integration` at `c33f322`.
 This is a source integration/readiness review, not production acceptance or an
 exhaustive security audit of every new operator utility. No branches were merged,

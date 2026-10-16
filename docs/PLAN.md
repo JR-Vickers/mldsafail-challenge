@@ -105,7 +105,8 @@ sanitized aggregate summaries and non-secret identities enter public artifacts.
 
 ## 6. Implemented engineering
 
-The canonical branch is `engineering/integration`, based on audited public-launch
+The canonical development branch is `main` following the owner-authorized local
+integration merge on 2026-10-16. The retained `engineering/integration` branch is based on audited public-launch
 commit `6f60782cb7ddc7accc7cb325d1f0c8258082864b`. It selectively incorporates:
 
 - `4602f45`: worker package-build starter preservation;
