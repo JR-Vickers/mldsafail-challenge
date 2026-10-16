@@ -13,9 +13,23 @@ precompilation and its unchanged measurement gates.
 
 ## Current position
 
-Production preparation is ready to begin; no storage provider, recovery custody,
-Healthchecks account/recipients or fresh production OAuth inputs have been accepted
-in this setup sequence. No production provisioning or public activation is claimed.
+The owner created a Healthchecks notification-test check and confirmed both actual
+missed-heartbeat failure and recovery emails on 2026-10-16. The permanent service
+check URL is saved and validated privately; it is not yet connected to a VPS
+monitor. Pausing the disposable test check has been requested but not confirmed.
+Fresh production OAuth fields are populated and privately stored; live OAuth
+login and registration configuration have not been independently verified.
+A private draft production environment has fresh database/session secrets and
+the supplied OAuth fields. Immutable image and audited epoch/cohort identities
+remain pending; the draft is not deployable. Credentials and detailed progress
+receipts live outside Git in the owner's private configuration directory.
+
+The current host monitor includes mandatory backup freshness checks. Before
+connecting the permanent service endpoint, prepare an explicit service-only
+monitoring scope consistent with the indefinite backup deferral; do not fabricate
+backup freshness or treat a service heartbeat as production-readiness acceptance.
+No storage provider or recovery custody has been configured. No production
+provisioning or public activation is claimed.
 Use the existing VPS; no additional host purchase is assumed.
 
 The owner has authorized native acceptance protocols on that VPS and a separate
@@ -74,8 +88,10 @@ Production preparation can advance while those gates remain open.
 ## Resume in a new session
 
 Read [PLAN.md](PLAN.md), this document and the current integration handoff. The next
-owner-facing task is monitoring/email setup in step 2. Backup setup is indefinitely
-deferred by owner decision.
+engineering tasks are service-only monitoring preparation, exact immutable release
+and fresh audited epoch configuration, and private rehearsal. Account inputs for
+Healthchecks and OAuth have been supplied locally; request more only for a concrete
+missing requirement. Backup setup is indefinitely deferred by owner decision.
 First check for newer committed receipts or owner decisions; do not ask the owner
 to repeat authorization already recorded here. Record each choice, scoped result
 and remaining dependency without committing credentials. Commit validated
