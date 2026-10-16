@@ -11,7 +11,8 @@ remain the basis. No push, merge into main, public activation or publication occ
 
 The owner is ready to begin guided production setup, superseding the earlier
 setup deferral. Follow [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md), beginning with
-off-host storage and owner recovery-credential custody. Native acceptance on the
+monitoring/email setup. The owner subsequently deferred backups indefinitely;
+recovery acceptance remains open. Native acceptance on the
 existing VPS is authorized; measurement and operational gates remain open.
 Production activation, publication and recruitment remain separate decisions.
 

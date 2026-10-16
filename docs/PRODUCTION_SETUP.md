@@ -4,6 +4,13 @@ Updated 2026-10-16. The owner is ready to begin production preparation and wants
 a guided walkthrough. This supersedes the earlier request to defer that setup.
 The authoritative project plan remains [PLAN.md](PLAN.md).
 
+Owner update, 2026-10-16: backup setup is deferred indefinitely. Do not resume
+storage selection, backup provisioning or the credential-custody walkthrough
+unless the owner reopens it. The existing production recovery acceptance gate
+remains open. Next setup work is monitoring/email, followed by OAuth and private
+production configuration. The next engineering experiment is worker bytecode
+precompilation and its unchanged measurement gates.
+
 ## Current position
 
 Production preparation is ready to begin; no storage provider, recovery custody,
@@ -19,7 +26,7 @@ default activation still require their applicable evidence and separate decision
 
 ## Work sequence
 
-1. **Off-host backups and owner credential custody — start here.** Walk the owner
+1. **Off-host backups and owner credential custody — indefinitely deferred.** Walk the owner
    through choosing storage and supplying narrowly scoped access. Keep production
    storage/repository credentials separate from staging. Establish independently
    retained recovery credentials and repository/configuration identifiers outside
@@ -67,7 +74,8 @@ Production preparation can advance while those gates remain open.
 ## Resume in a new session
 
 Read [PLAN.md](PLAN.md), this document and the current integration handoff. The next
-owner-facing task is the storage and credential-custody walkthrough in step 1.
+owner-facing task is monitoring/email setup in step 2. Backup setup is indefinitely
+deferred by owner decision.
 First check for newer committed receipts or owner decisions; do not ask the owner
 to repeat authorization already recorded here. Record each choice, scoped result
 and remaining dependency without committing credentials. Commit validated

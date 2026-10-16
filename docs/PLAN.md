@@ -196,8 +196,8 @@ manufacture a score to compensate for infrastructure failure.
 
 On 2026-10-16 the owner confirmed readiness to begin guided production preparation,
 superseding the earlier setup deferral. The [production setup handoff](PRODUCTION_SETUP.md)
-records the sequence, current decisions and next-session starting point: off-host
-storage and owner recovery-credential custody. Preparation can proceed alongside
+records the sequence, current decisions and next-session starting point: monitoring and email setup. The owner subsequently deferred backup
+setup indefinitely; the production recovery acceptance gate remains open. Preparation can proceed alongside
 measurement and native acceptance; public activation remains separately gated.
 
 The prepared production origin is `https://178.128.17.58`, with GitHub callback
