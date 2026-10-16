@@ -142,6 +142,13 @@ def retire(protocol_path):
     protocol = owned_daemon.read_private_json(protocol_path)
     if protocol.get('schema') != 'mldsafail.build-cache-retirement.v1' or not protocol.get('builds'):
         raise ValueError('Explicit reviewed cache retirement protocol required')
+    review = owned_daemon.read_private_json(protocol['review_packet'])
+    if (review.get('schema') != 'mldsafail.build-cache-retirement-review.v1'
+            or review.get('cache_retirement_review_passed') is not True
+            or review.get('protocol_sha256') != digest(protocol_path)
+            or review.get('source_commit') != protocol['source_commit']
+            or review.get('helper_sha256') != protocol['helper_sha256']):
+        raise ValueError('Exact independent cache retirement review required')
     repository = Path(__file__).resolve().parents[1]
     if subprocess.check_output(['git', '-C', str(repository), 'status', '--porcelain'], timeout=15):
         raise ValueError('Clean frozen retirement source required')
