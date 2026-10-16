@@ -11,7 +11,7 @@ def pair(tmp_path, name, commit):
     context.mkdir()
     files = {}
     for relative in ('Dockerfile', 'Dockerfile.coordinator', 'uv.lock', 'pyproject.toml', '.dockerignore',
-                     'src/mldsafail/benchmark_v050/worker.py', 'migrations/schema.py',
+                     'src/mldsafail/benchmark_v050/worker.py', 'src/mldsafail/evaluator/coordinator.py', 'migrations/schema.py',
                      'deploy/worker-linux-amd64.requirements.txt'):
         path = context / relative
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -26,7 +26,7 @@ def test_exact_new_context_and_rollback_compatibility(tmp_path):
                                rollback=pair(tmp_path, 'rollback', ROLLBACK)))
     assert validate_protocol(protocol) == protocol['pairs']
     protocol['pairs']['rollback']['manifest']['source_commit'] = 'b' * 40
-    with pytest.raises(ValueError, match='4602f45'):
+    with pytest.raises(ValueError, match='selected source'):
         validate_protocol(protocol)
 
 

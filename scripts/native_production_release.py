@@ -13,7 +13,7 @@ import re
 from deploy import owned_daemon
 from research.cpu_measurement import native_driver
 
-ROLLBACK = '4602f455c7cc365b41d05bb0ef49f738dd6d9d2b'
+ROLLBACK = '26c5f2f4bc771b319ffccc2cdcb1c735eaab4176'
 
 
 def digest(path):
@@ -47,15 +47,19 @@ def validate_protocol(protocol):
     pairs = protocol['pairs']
     for pair in pairs.values():
         inspect_context(pair['context'], pair['manifest'])
-    if pairs['rollback']['manifest']['source_commit'] != ROLLBACK:
-        raise ValueError('Rollback must be newly built from source 4602f45')
+    expected = protocol.get('rollback_source', ROLLBACK)
+    if not re.fullmatch('[0-9a-f]{40}', expected) or pairs['rollback']['manifest']['source_commit'] != expected:
+        raise ValueError('Rollback must match its explicitly selected source')
+    selected = protocol.get('build_pairs', ['candidate', 'rollback'])
+    if not isinstance(selected, list) or not selected or len(set(selected)) != len(selected) or not set(selected) <= pairs.keys():
+        raise ValueError('Explicit unique build pair selection required')
     candidate = pairs['candidate']['manifest']
     rollback = pairs['rollback']['manifest']
     # Compare the actual frozen benchmark, lock and schema bytes before builds.
-    for prefix in ('src/mldsafail/benchmark_v050/', 'migrations/'):
+    for prefix in ('src/mldsafail/benchmark_v050/', 'src/mldsafail/evaluator/', 'migrations/'):
         subset = lambda value: {k: v for k, v in value['source_files_sha256'].items() if k.startswith(prefix)}
         if not subset(candidate) or subset(candidate) != subset(rollback):
-            raise ValueError('Candidate/rollback frozen benchmark or schema incompatibility')
+            raise ValueError('Candidate/rollback frozen benchmark, evaluator or schema incompatibility')
     for name in ('uv.lock', 'deploy/worker-linux-amd64.requirements.txt'):
         if candidate['source_files_sha256'][name] != rollback['source_files_sha256'][name]:
             raise ValueError('Candidate/rollback dependency lock incompatibility')
@@ -82,7 +86,8 @@ def callback(journal, config, data):
         inventory_code = ('import json,platform,importlib.metadata as m; '
                           'print(json.dumps(dict(python=platform.python_version(),'
                           'packages=sorted((d.metadata["Name"],d.version) for d in m.distributions()))))')
-        for name, pair in pairs.items():
+        for name in protocol.get('build_pairs', ['candidate', 'rollback']):
+            pair = pairs[name]
             context = inspect_context(pair['context'], pair['manifest'])
             result = dict(source_commit=pair['manifest']['source_commit'],
                           source_files_sha256=pair['manifest']['source_files_sha256'], images={})

@@ -16,7 +16,8 @@ def validate_config(config):
         if not isinstance(value, str) or not Path(value).is_absolute():
             raise ValueError('Absolute monitoring configuration paths required')
     url = urlsplit(config.get('readiness_url', ''))
-    if url.scheme not in {'http', 'https'} or not url.hostname or url.username or url.password:
+    if (url.scheme not in {'http', 'https'} or not url.hostname or url.username or url.password
+            or url.fragment or (url.port is not None and not 1 <= url.port <= 65535)):
         raise ValueError('Invalid readiness URL')
     if 'daemon_manifest' in config and (not isinstance(config['daemon_manifest'], str) or not Path(config['daemon_manifest']).is_absolute()):
         raise ValueError('Absolute daemon manifest required')

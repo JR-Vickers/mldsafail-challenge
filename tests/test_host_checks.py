@@ -48,7 +48,8 @@ def test_monitor_configuration_validation():
     for changes in ({'scope': 'unknown'}, {'scheduled_units': 'backup.service'},
                     {'service_scheduled_units': ['--help']}, {'env_file': 'relative'},
                     {'healthchecks': {'enabled': 'false'}}, {'alert_enabled': 'false'},
-                    {'readiness_url': 'file:///private/file'}):
+                    {'readiness_url': 'file:///private/file'},
+                    {'readiness_url': 'http://127.0.0.1:invalid/ready'}):
         with pytest.raises(ValueError):
             host_checks.validate_config({**config, **changes})
 
