@@ -12,7 +12,7 @@ No push or publication is authorized by this receipt.
 | Service-only monitoring | Implemented and locally tested; native delivery/rehearsal outcome pending below. |
 | Immutable releases and private configuration | Native images retained and independently checksum-verified; production cohort remains pending a future activation epoch. |
 | Fresh audited rehearsal epoch | Passed the single-attempt frozen viability workflow, sealing and separate audit; rehearsal-only. |
-| Disposable rehearsal and cleanup | Running after the audited epoch; final behavior, delivery and cleanup pending. |
+| Disposable rehearsal and cleanup | Submission/audit, cohort filtering, rollback and forward repair passed; reachability lost during fault scenarios. Remaining phases and final cleanup unverified. |
 
 ## Frozen source and artifacts
 
@@ -88,6 +88,24 @@ notification, load and terminal cleanup requirements.
 
 The one fresh epoch completed all 1,200 frozen baseline invocation records, passed
 viability and sealing, and passed the separate audit. Fresh database initialization,
-explicit migration and synthetic token authentication completed. Reference
-submission behavior and final independent cleanup remain pending. No delivery or
-production acceptance is claimed by these scoped passes.
+explicit migration and synthetic token authentication passed. The first full
+400-invocation reference submission was accepted, appeared on the leaderboard and
+passed independent database/result/evidence audit. All four cohort-filter dimensions
+passed. Application rollback and forward repair passed with independent database,
+epoch, accepted-result and worker-identity checks after each switch.
+
+The last verified state was the cancellation fault scenario with 401 total
+application invocation records. After an owner interruption/resume, both root and
+independent reviewer SSH attempts timed out before connection. Current fault/load/
+notification outcomes and final daemon/worker/operator/client/socket cleanup are
+**unverified**. Do not infer completion from the declared runtime limit, start a
+new driver, replace the epoch or overwrite the retained journals. Reconcile exact
+current ownership and terminal evidence when connectivity returns. The source-bound
+nested terminal-cleanup entrypoint is available if reconciliation requires it.
+
+The permanent endpoint had not been connected at the last verified state. Its
+current activation state is unknown while SSH is unavailable. Owner delivery
+confirmation and end-of-rehearsal check pausing remain pending. No delivery or
+production acceptance is claimed. The 901-second missed-heartbeat gap, if reached,
+exceeds the local deadline but may not outlast backend polling; actual owner email
+confirmation remains required regardless of automated report completion.
