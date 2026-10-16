@@ -45,6 +45,50 @@ def validate_config(config):
     return config.get('scope', 'full')
 
 
+def verify_monitor_daemon(manifest):
+    """Identity inspection without acquiring lifecycle authority.
+
+    A separately scheduled monitor is outside the registered operator domain.
+    Verify that domain's birth identity without pretending to be its controller.
+    """
+    from deploy import owned_daemon, owned_client
+    if manifest.get('terminal_only') is True:
+        raise RuntimeError('Terminal daemon cannot be monitored as healthy')
+    owned_daemon._endpoint(manifest['socket'])
+    state = owned_daemon._unit(manifest['unit'])
+    if (state['ActiveState'] != 'active' or int(state['MainPID']) != manifest['leader']['pid']
+            or state['domain_path'] != manifest['domain']['path']
+            or state['unit_fragment_sha256'] != manifest['unit_fragment_sha256']):
+        raise RuntimeError('Monitor daemon unit identity changed')
+    for field in ('domain', 'worker_domain'):
+        if owned_client.domain_identity(manifest[field]['path']) != manifest[field]:
+            raise RuntimeError('Monitor daemon domain identity changed')
+    for field in ('leader', 'daemon_process'):
+        if owned_client.identity(manifest[field]['pid']) != manifest[field]:
+            raise RuntimeError('Monitor daemon process identity changed')
+    if owned_daemon._hash_executable(manifest['daemon_process']['pid']) != manifest['daemon_executable_sha256']:
+        raise RuntimeError('Monitor daemon executable identity changed')
+    owned_daemon._provisioning(manifest['provisioning'], manifest['unit'], manifest['roots'])
+    owned_daemon._worker_binding(manifest['provisioning'], manifest['worker_domain'],
+        manifest['worker_cgroup_parent'], manifest['domain'], teardown_only=True)
+    operator = manifest['provisioning']['operator_domain']
+    if owned_client.domain_identity(operator['path']) != operator:
+        raise RuntimeError('Monitor operator domain identity changed')
+    monitor = os.environ.get('MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT')
+    if not monitor:
+        raise RuntimeError('Explicit monitor domain required')
+    monitor_path = owned_daemon._canonical(monitor)
+    current = [line.split(':', 2)[2] for line in Path('/proc/self/cgroup').read_text().splitlines()
+               if line.startswith('0::')]
+    if len(current) != 1 or Path('/sys/fs/cgroup') / current[0].lstrip('/') != monitor_path:
+        raise RuntimeError('Monitor process is outside its declared domain')
+    owned_client.domain_identity(monitor_path)
+    protected = [Path(value) for value in manifest['provisioning']['protected_domains']]
+    owned_daemon._disjoint([monitor_path], protected + [Path(operator['path'])] +
+                          [Path(manifest[field]['path']) for field in ('domain', 'worker_domain')])
+    owned_daemon.verify_root_identities(manifest)
+
+
 def evaluate(readiness, services, leases, verified_backup, failed_jobs, now=None, *, scope='full'):
     if scope not in {'full', 'service'}:
         raise ValueError('Unknown monitoring scope')
@@ -100,7 +144,7 @@ def main():
             manifest = owned_daemon.load_manifest(config['daemon_manifest'])
             if os.environ.get('DOCKER_HOST') != 'unix://' + manifest['socket']:
                 raise ValueError('Monitor socket differs from owned daemon')
-            owned_daemon.verify_environment(manifest)
+            verify_monitor_daemon(manifest)
         except Exception:
             daemon_ok = False
     services = {}
