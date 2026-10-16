@@ -193,6 +193,12 @@ manufacture a score to compensate for infrastructure failure.
 
 ## 10. Production, recovery, notifications and pilot
 
+On 2026-10-16 the owner confirmed readiness to begin guided production preparation,
+superseding the earlier setup deferral. The [production setup handoff](PRODUCTION_SETUP.md)
+records the sequence, current decisions and next-session starting point: off-host
+storage and owner recovery-credential custody. Preparation can proceed alongside
+measurement and native acceptance; public activation remains separately gated.
+
 The prepared production origin is `https://178.128.17.58`, with GitHub callback
 `https://178.128.17.58/auth/callback`. [IP production](IP_PRODUCTION.md) describes
 Certbot 5.4+ webroot IP issuance, the shortlived certificate profile, read-only
@@ -221,7 +227,7 @@ owner decisions. Pilot usability observations cannot adopt a measurement contrac
 ## 21. Development plan
 
 1. Local baseline cleanup ordering and full post-switch epoch/result audits were repaired in source checkpoint `063ab091480df5cd3eda564bedfb31edc303371e`; ledger and disposition updates were committed as `09245fc`. Focused lifecycle/baseline/reproduction tests passed, and `make check` passed with 969 tests, 13 skipped, plus 8 MLWE contract checks. Native rollback acceptance remains deferred pending independent review and exact retained compose/backup/recovery helper inspection; no native operation was run. Exact installation/reproduction prerequisites also remain unresolved; see [current handoff](INTEGRATION_HANDOFF.md). Scoped startup, faults, bounded diagnostics, RPC loss and local encrypted recovery passed; combined acceptance remains incomplete.
-2. Review a separately frozen corrective performance proposal; the single diagnostic completed and G/L failures remain unchanged. The [2026-10-16 in-container profile](acceptance/integration/worker-profile-result-20261016.md) completed its control and instrumented probes and found missing bytecode caches plus repeated source compilation, motivating an independently reviewed build-time bytecode proposal. These observations do not pass measurement acceptance. The owner authorized native acceptance on the existing VPS; production setup remains deferred. Exact-source reviews and ownership checks remain prerequisites.
+2. Review a separately frozen corrective performance proposal; the single diagnostic completed and G/L failures remain unchanged. The [2026-10-16 in-container profile](acceptance/integration/worker-profile-result-20261016.md) completed its control and instrumented probes and found missing bytecode caches plus repeated source compilation, motivating an independently reviewed build-time bytecode proposal. These observations do not pass measurement acceptance. The owner authorized native acceptance on the existing VPS and is ready to begin guided [production preparation](PRODUCTION_SETUP.md). Exact-source reviews and ownership checks remain prerequisites.
 3. Produce passing exact-source measurement/reference/hosted proof before asking
    for contract adoption, followed separately by any default activation decision.
 4. Accept owner-supplied off-host custody and email delivery, privately rehearse

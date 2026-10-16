@@ -7,6 +7,14 @@ historical candidate-install tooling and precise cooperative clock wording.
 Newer public-launch recovery, publication and candidate-runtime implementations
 remain the basis. No push, merge into main, public activation or publication occurred.
 
+## Production preparation update — 2026-10-16
+
+The owner is ready to begin guided production setup, superseding the earlier
+setup deferral. Follow [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md), beginning with
+off-host storage and owner recovery-credential custody. Native acceptance on the
+existing VPS is authorized; measurement and operational gates remain open.
+Production activation, publication and recruitment remain separate decisions.
+
 ## Native continuation — 2026-10-15
 
 SSH access resumed. Source `0215c9c539825c1492a9129f93c55923bd42d51e`
