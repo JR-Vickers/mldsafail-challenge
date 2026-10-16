@@ -34,3 +34,15 @@ Independently inspect final cache absence, namespace/operator/client cleanup,
 retained archive checksums and protected service identities. Observe the existing
 5-GiB disk floor before any subsequent benchmark or rehearsal. Do not substitute
 cache retirement for failed epoch or application acceptance.
+
+The first native retirement attempt refused during complete traversal, before any
+removal, because a special cache entry was present. Preserve that failure. A new
+`action: "inspect"` protocol performs only mapped, no-follow classification and
+publishes each special node's relative path, device, inode, full mode and `rdev`.
+It removes nothing and cannot publish a retirement marker. Obtain independent
+classification before a new `action: "retire"` protocol declares the complete
+exact `special_entries` set for each root. Equality is checked during traversal
+and again immediately before removal. Reject duplicate, absolute or escaping
+paths, changed identities, new nodes, mounts, cross-device entries and unreadable
+traversal. Special entries are never opened; only the safe tree-removal routine
+may unlink individually reviewed entries. There is no automatic type-wide exception.

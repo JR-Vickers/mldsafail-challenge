@@ -57,31 +57,58 @@ def mount_inspection(root):
     return dict(process_mount_tables=inspected, inaccessible_process_mount_tables=inaccessible)
 
 
-def delete_tree(root, expected):
-    """No-follow, one-filesystem preflight followed by descriptor-safe removal."""
+def inspect_tree(root, expected):
+    """Classify every node without following links or opening special entries."""
     root = owned_daemon._canonical(root)
-    if root_identity(root) != expected or not shutil.rmtree.avoids_symlink_attacks:
-        raise ValueError('Exact cache directory identity and safe removal required')
-    count = 0
+    if root_identity(root) != expected:
+        raise ValueError('Exact cache directory identity required')
+    count, special = 0, []
     def walk_error(error):
         raise error
     for directory, directories, files in os.walk(root, followlinks=False, onerror=walk_error):
         for name in [*directories, *files]:
-            info = (Path(directory) / name).lstat()
-            if info.st_dev != expected['device'] or not (
-                    stat.S_ISDIR(info.st_mode) or stat.S_ISREG(info.st_mode) or stat.S_ISLNK(info.st_mode)):
-                raise ValueError('Unexpected cache device or special entry')
+            path = Path(directory) / name
+            info = path.lstat()
+            if info.st_dev != expected['device']:
+                raise ValueError('Unexpected cache filesystem')
+            if not (stat.S_ISDIR(info.st_mode) or stat.S_ISREG(info.st_mode) or stat.S_ISLNK(info.st_mode)):
+                special.append(dict(path=str(path.relative_to(root)), device=info.st_dev,
+                                    inode=info.st_ino, mode=info.st_mode, rdev=info.st_rdev))
             count += 1
+    if root_identity(root) != expected:
+        raise ValueError('Cache directory changed during inspection')
+    return dict(entries=count, special_entries=sorted(special, key=lambda value: value['path']))
+
+
+def delete_tree(root, expected, *, special_entries=()):
+    """Remove only an exactly inspected tree, unlinking approved nodes unopened."""
+    root = owned_daemon._canonical(root)
+    if not shutil.rmtree.avoids_symlink_attacks:
+        raise ValueError('Descriptor-safe removal required')
+    names = set()
+    for item in special_entries:
+        if not isinstance(item, dict) or set(item) != {'path', 'device', 'inode', 'mode', 'rdev'}:
+            raise ValueError('Exact special-node declaration required')
+        path = Path(item['path'])
+        if (path.is_absolute() or '..' in path.parts or str(path) != item['path'] or str(path) == '.'
+                or item['path'] in names or any(type(item[key]) is not int for key in ('device', 'inode', 'mode', 'rdev'))):
+            raise ValueError('Unique relative special-node identities required')
+        names.add(item['path'])
+    inventory = inspect_tree(root, expected)
+    if inventory['special_entries'] != sorted(special_entries, key=lambda value: value['path']):
+        raise ValueError('Unexpected or changed special cache entry; separate review required')
     descriptor = os.open(root.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
         if root_identity(root) != expected:
             raise ValueError('Cache directory changed before retirement')
+        if inspect_tree(root, expected)['special_entries'] != inventory['special_entries']:
+            raise ValueError('Special cache entries changed immediately before removal')
         shutil.rmtree(root.name, dir_fd=descriptor)
     finally:
         os.close(descriptor)
     if root.exists() or root.is_symlink():
         raise RuntimeError('Cache retirement incomplete')
-    return count
+    return inventory['entries']
 
 
 def terminal_proof(driver, operator):
@@ -132,9 +159,14 @@ def child(intent_path):
     root = Path(intent['root'])
     mounts = mount_inspection(root)
     identity = dict(intent['root_identity'], uid=0)
-    count = delete_tree(root, identity)
+    action = intent.get('action', 'retire')
+    if action not in {'inspect', 'retire'}:
+        raise ValueError('Exact cache operation required')
+    inventory = inspect_tree(root, identity)
+    count = (delete_tree(root, identity, special_entries=intent.get('special_entries', []))
+             if action == 'retire' else 0)
     owned_daemon.publish(Path(intent_path).with_suffix('.complete.json'),
-                         dict(complete=True, removed_entries=count, mount_inspection=mounts,
+                         dict(complete=True, action=action, inventory=inventory, removed_entries=count, mount_inspection=mounts,
                               intent_sha256=digest(intent_path)))
 
 
@@ -157,9 +189,12 @@ def retire(protocol_path):
     rootlesskit = owned_daemon._canonical(protocol['rootlesskit'])
     if digest(rootlesskit) != protocol['rootlesskit_sha256'] or digest(__file__) != protocol['helper_sha256']:
         raise ValueError('Reviewed retirement executable/source required')
+    action = protocol.get('action', 'retire')
+    if action not in {'inspect', 'retire'}:
+        raise ValueError('Exact inspected/retired cache operation required')
     output = owned_daemon._canonical(protocol['output'])
     output.mkdir(mode=0o700)
-    report = dict(complete=False, protocol_sha256=digest(protocol_path), builds=[], clients=[])
+    report = dict(complete=False, action=action, protocol_sha256=digest(protocol_path), builds=[], clients=[])
     publish = lambda: owned_daemon.publish(output / 'report.json', report)
     publish()
     try:
@@ -209,9 +244,10 @@ def retire(protocol_path):
                 if not inventories:
                     raise ValueError('Retained artifacts required before retiring cache')
                 mounts = mount_inspection(root)
-                intent = dict(root=str(root), root_identity=expected, owner_uid=os.getuid(),
+                intent = dict(root=str(root), root_identity=expected, owner_uid=os.getuid(), action=action,
+                    special_entries=item.get('special_entries', []),
                     parent_user_namespace=os.readlink('/proc/self/ns/user'), terminal_proof=proof,
-                    mount_inspection=mounts, retained_artifacts=inventories, permanently_retired=True,
+                    mount_inspection=mounts, retained_artifacts=inventories, permanently_retired=action == 'retire',
                     source_commit=protocol['source_commit'])
                 intent_path = output / ('cache-' + str(number) + '.json')
                 owned_daemon.publish(intent_path, intent)
@@ -219,11 +255,16 @@ def retire(protocol_path):
                 argv = [str(rootlesskit), '--state-dir=' + str(output / ('namespace-' + str(number))),
                         str(Path(sys.executable)), '-m', 'scripts.retire_build_cache', '--child', str(intent_path)]
                 owned_client.run(argv, report['clients'], publish, output, timeout=900, capture_output=True)
-                completed = owned_daemon.read_private_json(intent_path.with_suffix('.complete.json'))
-                if completed.get('complete') is not True or root.exists() or root.is_symlink():
-                    raise RuntimeError('Cache retirement lacks completion proof')
-                owned_daemon.publish(root.parent / 'CACHE_RETIRED.json', dict(intent_sha256=digest(intent_path),
-                    completion_sha256=digest(intent_path.with_suffix('.complete.json')), restart_prohibited=True))
+                completed = owned_daemon.read_private_json(intent_path.with_suffix('.complete.json'), cap=4*1024*1024)
+                if completed.get('complete') is not True or completed.get('action') != action:
+                    raise RuntimeError('Cache operation lacks completion proof')
+                if action == 'retire':
+                    if root.exists() or root.is_symlink():
+                        raise RuntimeError('Cache retirement incomplete')
+                    owned_daemon.publish(root.parent / 'CACHE_RETIRED.json', dict(intent_sha256=digest(intent_path),
+                        completion_sha256=digest(intent_path.with_suffix('.complete.json')), restart_prohibited=True))
+                elif root_identity(root) != expected:
+                    raise RuntimeError('Read-only cache inspection changed its root')
                 report['builds'][-1]['complete'] = True; publish()
         report['complete'] = True
     finally:

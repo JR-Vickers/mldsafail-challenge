@@ -62,3 +62,31 @@ def test_unreviewed_retirement_cannot_create_output(tmp_path, changes):
     with pytest.raises(ValueError, match='review required'):
         retire(path)
     assert not output.exists()
+
+
+def test_special_nodes_require_exact_separately_declared_inventory(tmp_path):
+    from scripts.retire_build_cache import inspect_tree
+    cache = tmp_path / 'cache'
+    cache.mkdir()
+    os.mkfifo(cache / 'fifo')
+    expected = root_identity(cache)
+    inventory = inspect_tree(cache, expected)
+    assert (cache / 'fifo').exists()  # Inspection alone never removes it.
+    assert len(inventory['special_entries']) == 1
+    with pytest.raises(ValueError, match='review required'):
+        delete_tree(cache, expected)
+    changed = [dict(inventory['special_entries'][0], inode=-1)]
+    with pytest.raises(ValueError, match='review required'):
+        delete_tree(cache, expected, special_entries=changed)
+    assert cache.exists()
+    assert delete_tree(cache, expected, special_entries=inventory['special_entries']) == 1
+    assert not cache.exists()
+
+
+@pytest.mark.parametrize('path', ['/outside', '../outside', '.', 'layer/../outside'])
+def test_special_node_declarations_cannot_escape_root(tmp_path, path):
+    cache = tmp_path / 'cache'
+    cache.mkdir()
+    with pytest.raises(ValueError):
+        delete_tree(cache, root_identity(cache), special_entries=[dict(path=path, device=1, inode=1, mode=1, rdev=0)])
+    assert cache.exists()
