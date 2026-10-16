@@ -194,6 +194,13 @@ manufacture a score to compensate for infrastructure failure.
 
 ## 10. Production, recovery, notifications and pilot
 
+The [2026-10-16 disposable production receipt](acceptance/integration/production-rehearsal-20261016.md)
+tracks service-only monitoring, immutable release/configuration, one fresh epoch
+and disposable rehearsal/cleanup separately. Operator source `822ba91` is frozen
+and independently reviewed. Native builds and exact artifact retention passed;
+rehearsal execution remains subject to its recorded runtime outcome. Backups stay
+indefinitely deferred and successful service heartbeats cannot imply production acceptance.
+
 On 2026-10-16 the owner confirmed readiness to begin guided production preparation,
 superseding the earlier setup deferral. The [production setup handoff](PRODUCTION_SETUP.md)
 records the sequence, current decisions and next-session starting point: monitoring and email setup. The owner subsequently deferred backup

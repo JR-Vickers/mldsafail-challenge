@@ -87,6 +87,12 @@ Production preparation can advance while those gates remain open.
 
 ## Resume in a new session
 
+Start with the [dated disposable rehearsal receipt](acceptance/integration/production-rehearsal-20261016.md)
+and [new protocol](PRODUCTION_REHEARSAL.md). The owner selected compatible rollback
+source `26c5f2f` after exact `4602f45` proved evaluator-incompatible. Monitoring
+scopes and native release artifacts are implemented; do not repeat completed builds
+or silently replace a failed fresh epoch. Historical acceptance remains separate.
+
 Read [PLAN.md](PLAN.md), this document and the current integration handoff. The next
 engineering tasks are service-only monitoring preparation, exact immutable release
 and fresh audited epoch configuration, and private rehearsal. Account inputs for

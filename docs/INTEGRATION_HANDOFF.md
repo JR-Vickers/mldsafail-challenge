@@ -9,6 +9,11 @@ remain the basis. No push, merge into main, public activation or publication occ
 
 ## Production preparation update — 2026-10-16
 
+See the [new disposable production integration receipt](acceptance/integration/production-rehearsal-20261016.md)
+for independently tracked monitoring, immutable artifacts/configuration, fresh epoch
+and rehearsal/cleanup outcomes. The selected rollback is matching-evaluator source
+`26c5f2f`; original `4602f45` artifacts and incompatibility remain retained.
+
 The owner is ready to begin guided production setup, superseding the earlier
 setup deferral. Follow [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md), beginning with
 monitoring/email setup. The owner subsequently deferred backups indefinitely;
@@ -211,10 +216,9 @@ production cryptographic hardness or relax any correctness/accounting gate.
 - Identify exact original candidate/reproduction artifact locations and a complete verified native offline dependency wheelhouse; see the dated prerequisite packet. SSH was restored and ownership reconciled on 2026-10-15.
 - Review a completed measurement packet later; contract adoption and default
   activation are separate decisions and remain deferred after G/L failures.
-- Supply fresh production GitHub OAuth inputs for the selected IP callback.
-- Supply scoped off-host storage and independently retain recovery credentials.
-- Create Healthchecks checks, verify email recipients and authorize real delivery
-  and missed-heartbeat tests; see [setup](HEALTHCHECKS.md).
+- Production GitHub OAuth inputs have been supplied privately; real login remains unverified.
+- Off-host storage and independent recovery custody remain indefinitely deferred by owner decision.
+- Healthchecks endpoints and delivery-test authority have been supplied privately; the owner confirmed a five-minute period and ten-minute grace. Actual rehearsal delivery confirmation and end-of-rehearsal pausing remain separately recorded requirements.
 - Review native receipts and exact release/configuration before public listeners,
   trusted certificate issuance, production activation or publication.
 - Authorize recruitment only after applicable gates; no additional VPS is assumed.
