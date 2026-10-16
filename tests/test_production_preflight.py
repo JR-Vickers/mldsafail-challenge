@@ -88,3 +88,18 @@ def test_password_url_delimiters_rejected(tmp_path, password):
     production, staging = environments(tmp_path)
     production['POSTGRES_PASSWORD'] = password
     assert 'url_safe_database_password_required' in check(production, staging)
+
+
+@pytest.mark.parametrize('image', ['sha256:' + 'b' * 64, 'registry/image@sha256:' + 'c' * 64])
+def test_immutable_local_and_registry_images(tmp_path, image):
+    production, staging = environments(tmp_path)
+    production.update({key: image for key in IMAGES})
+    assert check(production, staging) == []
+
+
+@pytest.mark.parametrize('image', ['image:latest', 'sha256:abc', 'sha256:' + 'A' * 64,
+                                   'image@sha256:' + 'a' * 63, ' sha256:' + 'a' * 64])
+def test_mutable_or_malformed_image_rejected(tmp_path, image):
+    production, staging = environments(tmp_path)
+    production['WEB_IMAGE'] = image
+    assert 'immutable_image_required:WEB_IMAGE' in check(production, staging)

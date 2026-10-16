@@ -10,14 +10,23 @@ from deploy.recovery import private_file
 CHECKS = {'service', 'recovery'}
 
 
-def ping(endpoint, check, healthy, *, opener=None, sleep=time.sleep):
+def validate_endpoint(endpoint, check, healthy):
     parsed = urlsplit(endpoint)
     if (parsed.scheme != 'https' or parsed.netloc != 'hc-ping.com' or
             not re.fullmatch(r'/[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}', parsed.path) or
             parsed.query or parsed.fragment or check not in CHECKS or type(healthy) is not bool):
         raise ValueError('Invalid private Healthchecks configuration')
+
+
+def ping(endpoint, check, healthy, *, opener=None, sleep=time.sleep, scope=None):
+    validate_endpoint(endpoint, check, healthy)
+    if scope not in {None, 'full', 'service'} or (scope is not None and check != 'service'):
+        raise ValueError('Invalid heartbeat scope')
+    body = f'{check}:{"healthy" if healthy else "failure"}'
+    if scope is not None:
+        body += f' scope={scope} backup_status={"deferred" if scope == "service" else "separately_checked"} production_acceptance=not_established'
     request = urllib.request.Request(endpoint + ('' if healthy else '/fail'),
-                                     data=f'{check}:{"healthy" if healthy else "failure"}'.encode(),
+                                     data=body.encode(),
                                      headers={'Content-Type': 'text/plain'})
     opener = opener or urllib.request.build_opener(NoRedirect())
     for attempt in range(3):
@@ -40,4 +49,6 @@ def notify(config, check, healthy):
     if check not in CHECKS:
         raise ValueError('Unknown heartbeat check')
     endpoint = private_file(settings[check + '_endpoint_file']).read_text().strip()
+    if check == 'service':
+        return ping(endpoint, check, healthy, scope=config.get('scope', 'full'))
     return ping(endpoint, check, healthy)

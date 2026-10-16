@@ -1,4 +1,5 @@
 {
+  "scope": "full",
   "env_file": "/CHANGE_ME_PRIVATE_ROOT/staging.env",
   "compose": "/CHANGE_ME_RELEASE_ROOT/compose.private.yaml",
   "readiness_url": "http://127.0.0.1:8080/health/ready",
@@ -17,5 +18,6 @@
     "enabled": false,
     "service_endpoint_file": "/CHANGE_ME_PRIVATE_ROOT/healthchecks-service-url",
     "recovery_endpoint_file": "/CHANGE_ME_PRIVATE_ROOT/healthchecks-recovery-url"
-  }
+  },
+  "service_scheduled_units": []
 }

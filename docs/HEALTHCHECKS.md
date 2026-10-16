@@ -33,3 +33,24 @@ and explicit delivery authorization: on separate disposable checks, stop pings
 for period plus grace, confirm email, send a recovery ping and confirm recovery
 email. Repeat with an unreachable endpoint and inspect fixed local errors. Keep
 timestamped delivery receipts private and publish only pass/fail/check names.
+
+## Service scope with deferred backups
+
+`deploy.host_checks` defaults to `scope: "full"`, retaining mandatory verified
+backup freshness and `scheduled_units` checks. Explicit `scope: "service"` skips
+backup verification and that backup-job list, and checks only the separately
+configured `service_scheduled_units`. Readiness, all four application roles,
+evaluation leases, disk and available RAM remain mandatory. Inspection failures
+are failures. Unknown scopes or malformed configuration abort before heartbeats.
+The JSON report and service heartbeat identify the scope; service scope reports
+`backup_status=deferred` and never establishes production acceptance.
+
+Start from `deploy/templates/monitor-service.json`. Keep configurations and
+endpoint files private. Set `daemon_manifest` to the disposable owned daemon's
+current manifest and render with `--monitor-only --docker-socket /EXACT/SOCKET`
+to avoid the default staging socket. Manifest/socket/process/domain inspection
+must pass before Docker inspection. Monitor-only rendering requires only a
+`monitor` configuration entry and produces an inactive service and five-minute
+timer. Configure the permanent Healthchecks service check with ten-minute grace.
+Review exact configuration and daemon identity before enabling delivery; stop the
+monitor when rehearsal ends and have the owner pause the permanent check.

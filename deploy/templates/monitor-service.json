@@ -1,0 +1,13 @@
+{
+  "scope": "service",
+  "env_file": "/CHANGE_ME_PRIVATE_ROOT/synthetic.env",
+  "compose": "/CHANGE_ME_PRIVATE_ROOT/compose.json",
+  "readiness_url": "http://127.0.0.1:CHANGE_ME_PORT/health/ready",
+  "daemon_manifest": "/CHANGE_ME_PRIVATE_ROOT/daemon-manifest.json",
+  "service_scheduled_units": [],
+  "alert_enabled": false,
+  "healthchecks": {
+    "enabled": false,
+    "service_endpoint_file": "/CHANGE_ME_PRIVATE_ROOT/healthchecks-service-url"
+  }
+}

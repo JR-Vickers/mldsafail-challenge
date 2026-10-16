@@ -25,7 +25,7 @@ def check(environment, staging):
         if not value or any(marker in value.upper() for marker in ('CHANGE_ME', 'PLACEHOLDER')):
             errors.append('missing_or_placeholder:' + key)
     for key in IMAGES:
-        if not re.fullmatch(r'[^\s@]+@sha256:[a-f0-9]{64}', environment.get(key, '')):
+        if not re.fullmatch(r'(?:sha256:[a-f0-9]{64}|[^\s@]+@sha256:[a-f0-9]{64})', environment.get(key, '')):
             errors.append('immutable_image_required:' + key)
     # Compose embeds the password directly in a PostgreSQL URL. Require
     # unreserved ASCII rather than allowing delimiter/interpolation ambiguity.

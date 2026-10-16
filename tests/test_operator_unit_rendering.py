@@ -64,3 +64,22 @@ def test_unit_render_rejects_root_user_and_command_injection(tmp_path):
     configs['monitor'] += ';command'
     with pytest.raises(ValueError):
         render(str(source), sys.executable, metadata, configs, 'mldsafail', 1001, str(tmp_path / 'units'))
+
+
+def test_monitor_only_needs_no_recovery_configuration(tmp_path):
+    source, metadata, configs = inputs(tmp_path)
+    output = tmp_path / 'monitor-units'
+    result = render(str(source), sys.executable, metadata, {'monitor': configs['monitor']},
+                    'mldsafail', 1001, str(output), monitor_only=True)
+    assert set(result['unit_sha256']) == {'mldsafail-monitor.service', 'mldsafail-monitor.timer'}
+    assert set(result['configuration']) == {'monitor'}
+    assert 'OnUnitActiveSec=5min' in (output / 'mldsafail-monitor.timer').read_text()
+    assert not (output / 'mldsafail-offhost-backup.service').exists()
+
+
+def test_monitor_socket_is_explicit_and_private(tmp_path):
+    source, metadata, configs = inputs(tmp_path)
+    output = tmp_path / 'monitor-units'
+    render(str(source), sys.executable, metadata, {'monitor': configs['monitor']},
+           'mldsafail', 1001, str(output), monitor_only=True, docker_socket='/tmp/rehearsal/docker.sock')
+    assert 'Environment=DOCKER_HOST=unix:///tmp/rehearsal/docker.sock' in (output / 'mldsafail-monitor.service').read_text()

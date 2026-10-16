@@ -21,7 +21,9 @@ def literal_path(value):
     return path
 
 
-def render(source, interpreter, metadata, configuration, user, uid, output):
+def render(source, interpreter, metadata, configuration, user, uid, output, *, monitor_only=False, docker_socket=None):
+    if docker_socket is not None:
+        docker_socket = str(literal_path(docker_socket))
     source, interpreter, output = map(literal_path, (source, interpreter, output))
     if user == 'root' or not re.fullmatch(r'[a-z_][a-z0-9_-]*', user) or type(uid) is not int or uid < 1:
         raise ValueError('Non-root deployment user and UID required')
@@ -42,7 +44,8 @@ def render(source, interpreter, metadata, configuration, user, uid, output):
         relative = str(path.relative_to(source))
         if path.is_symlink() or hashlib.sha256(path.read_bytes()).hexdigest() != sources.get(relative):
             raise ValueError('Operator module does not match retained source metadata')
-    if set(configuration) != {'daily-recovery', 'recovery', 'monitor'}:
+    selected = {name: value for name, value in SERVICES.items() if not monitor_only or value[1] == 'monitor'}
+    if set(configuration) != {value[1] for value in selected.values()}:
         raise ValueError('Explicit private configuration paths required')
     configurations = {name: literal_path(path) for name, path in configuration.items()}
     config_status = {}
@@ -60,7 +63,7 @@ def render(source, interpreter, metadata, configuration, user, uid, output):
     # checkout an editable interpreter installation happens to point to.
     code = ('import importlib,json,sys; print(json.dumps({name:importlib.import_module(name).__file__ '
             'for name in sys.argv[1:]}))')
-    module_names = [value[0] for value in SERVICES.values()]
+    module_names = [value[0] for value in selected.values()]
     resolved = json.loads(subprocess.check_output([str(interpreter), '-c', code, *module_names],
                          cwd=source, env={**os.environ, 'PYTHONPATH': str(source)}, timeout=30))
     for module in module_names:
@@ -68,11 +71,11 @@ def render(source, interpreter, metadata, configuration, user, uid, output):
             raise ValueError('Interpreter imports an unexpected operator source')
     output.mkdir(mode=0o700, parents=True)
     checksums = {}
-    for name, (module, config_name, timeout) in SERVICES.items():
+    for name, (module, config_name, timeout) in selected.items():
         text = ('[Unit]\nDescription=Inactive reviewed MLDSAFAIL operator unit\n'
                 '[Service]\nType=oneshot\nDelegate=yes\nUser=' + user + '\nUMask=0077\n'
                 'WorkingDirectory=' + str(source) + '\n'
-                'Environment=DOCKER_HOST=unix:///run/user/' + str(uid) + '/docker.sock\n'
+                'Environment=DOCKER_HOST=unix://' + (docker_socket or '/run/user/' + str(uid) + '/docker.sock') + '\n'
                 'Environment=XDG_RUNTIME_DIR=/run/user/' + str(uid) + '\n'
                 'Environment=MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT=/sys/fs/cgroup/system.slice/%n\n'
                 'ExecStart=' + str(interpreter) + ' -m ' + module +
@@ -84,6 +87,11 @@ def render(source, interpreter, metadata, configuration, user, uid, output):
         path.write_text(text)
         path.chmod(0o600)
         checksums[name] = hashlib.sha256(path.read_bytes()).hexdigest()
+    if monitor_only:
+        timer = output / 'mldsafail-monitor.timer'
+        timer.write_text('[Unit]\nDescription=Check service health every five minutes\n[Timer]\nOnBootSec=2min\nOnUnitActiveSec=5min\n[Install]\nWantedBy=timers.target\n')
+        timer.chmod(0o600)
+        checksums[timer.name] = hashlib.sha256(timer.read_bytes()).hexdigest()
     report = dict(source_commit=metadata['source_commit'], source_directory=str(source),
                   interpreter=str(interpreter), interpreter_version=version, interpreter_sha256=hashlib.sha256(interpreter.read_bytes()).hexdigest(),
                   module_source_verified=True, configuration=config_status, unit_sha256=checksums,
@@ -105,10 +113,12 @@ if __name__ == '__main__':
     parser.add_argument('--user', required=True)
     parser.add_argument('--uid', type=int, required=True)
     parser.add_argument('--output', required=True)
+    parser.add_argument('--monitor-only', action='store_true')
+    parser.add_argument('--docker-socket')
     args = parser.parse_args()
     try:
         result = render(args.source, args.interpreter, json.loads(args.metadata.read_text()),
-                        json.loads(args.configs.read_text()), args.user, args.uid, args.output)
+                        json.loads(args.configs.read_text()), args.user, args.uid, args.output, monitor_only=args.monitor_only, docker_socket=args.docker_socket)
         print(json.dumps({'operator_units_rendered': True, 'activated': False}))
     except Exception:
         print(json.dumps({'operator_units_render_failed': True}))

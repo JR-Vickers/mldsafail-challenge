@@ -86,3 +86,10 @@ def test_failed_recovery_signals_failure_and_keeps_nonzero_exit(tmp_path, monkey
     monkeypatch.setattr('deploy.healthchecks.notify', lambda config, check, healthy: calls.append((check, healthy)))
     with pytest.raises(SystemExit) as error: daily.main()
     assert error.value.code == 1 and calls == [('recovery', False)]
+
+
+def test_service_heartbeat_explicitly_defers_backup_acceptance():
+    calls = []
+    opener = SimpleNamespace(open=lambda req, **kw: calls.append(req) or Response())
+    assert ping(ENDPOINT, 'service', True, scope='service', opener=opener)
+    assert b'scope=service backup_status=deferred production_acceptance=not_established' in calls[0].data
