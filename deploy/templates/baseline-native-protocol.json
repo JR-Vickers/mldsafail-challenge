@@ -1,0 +1,29 @@
+{
+  "schema": "mldsafail.baseline-native-protocol.v1",
+  "rehearsal": {
+    "run_directory": "OVERRIDDEN_BY_CALLBACK",
+    "docker_socket": "OVERRIDDEN_BY_CALLBACK",
+    "operator_source": "/PRIVATE/RETAINED_COMPATIBLE_V050_SOURCE",
+    "source_manifest": "/PRIVATE/RETAINED_V050_SOURCE_MANIFEST.json",
+    "release_manifest": "/PRIVATE/RETAINED_V050_RELEASE_MANIFEST.json",
+    "rollback_manifest": "/PRIVATE/RETAINED_B4D212D_RELEASE_MANIFEST.json",
+    "fixture_repository": "https://github.com/OWNER/REVIEWED_FIXTURES",
+    "fixture_commit": "REVIEWED_FULL_FIXTURE_COMMIT",
+    "fixture_solver_path": "REVIEWED_SOLVER_PATH",
+    "images": {
+      "web": "RETAINED_IMMUTABLE_IMAGE_ID",
+      "coordinator": "RETAINED_IMMUTABLE_IMAGE_ID",
+      "worker": "RETAINED_IMMUTABLE_IMAGE_ID",
+      "postgres": "RETAINED_IMMUTABLE_IMAGE_ID",
+      "caddy": "RETAINED_IMMUTABLE_IMAGE_ID",
+      "rollback_web": "RETAINED_IMMUTABLE_IMAGE_ID",
+      "rollback_coordinator": "RETAINED_IMMUTABLE_IMAGE_ID"
+    },
+    "protected_roots": [
+      "/srv/mldsafail",
+      "/srv/mldsafail-evaluator",
+      "/etc/mldsafail"
+    ],
+    "python": "/PRIVATE/RETAINED_V050_SOURCE/.venv/bin/python"
+  }
+}

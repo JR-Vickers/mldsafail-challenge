@@ -1,0 +1,23 @@
+{
+  "schema": "mldsafail.native-isolated-startup-acceptance.v1",
+  "passed": true,
+  "native_executed": true,
+  "source_commit": "e24b1c3db88d3307a1a2f1f78185c3fb8d1cc136",
+  "healthy_daemon_registered": true,
+  "exact_isolated_pidfile_argv_verified": true,
+  "original_root_inode_and_private_parent_verified": true,
+  "image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe",
+  "cleanup_complete": true,
+  "canonical_whole_daemon_worker_barrier_proven": true,
+  "owned_resource_absence_independently_verified": true,
+  "fault_suite_passed": false,
+  "pairs_executed": false,
+  "failure": "Fault baseline refused missing CPU controller before worker creation; separate delegation configuration repair required",
+  "evidence_refs": [
+    "private generation e driver.json",
+    "private generation e daemon-manifest.json",
+    "private generation e canonical whole-daemon barrier",
+    "private generation e bounded fault stderr log"
+  ],
+  "scope": "Healthy isolated startup and terminal cleanup only; no accounting/fault/performance acceptance claimed"
+}

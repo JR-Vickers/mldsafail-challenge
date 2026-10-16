@@ -23,7 +23,8 @@ dev = ["pytest>=8.3,<9"]
 mldsafail-mlwe = "mldsafail.benchmark_v050.cli:main"
 mldsafail = "mldsafail.cli:main"
 mldsafail-admin = "mldsafail.admin:main"
-mldsafail-bench = "mldsafail.benchmark.runner:main"
+mldsafail-bench = "mldsafail.development:public_main"
+mldsafail-legacy-bench = "mldsafail.benchmark.runner:main"
 mldsafail-web = "mldsafail.web.app:main"
 
 [build-system]

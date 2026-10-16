@@ -1,0 +1,29 @@
+{
+  "schema": "mldsafail.cpu-native-review.v1",
+  "status": "source_review_passed",
+  "reviewer": "preparation agent; independent supervisor and native protocol source review",
+  "source_commit": "49526eca147d4516f490e872b4e42a0af8701434",
+  "supervisor_source_sha256": "26ef6d2e6116fb6e39b8c14ddce4279592db9787387384ef593c16f0a67ced35",
+  "driver_sha256": "3ad3a108d2921cdb1c6d4d603d4b3f5a80222354889196bd9b1718ef80eabad6",
+  "owned_daemon_sha256": "ba9059ea6c1ed037d3160929c634829805a135a8b9c62d3eeb7c230acfc1ddda",
+  "supervisor_review_passed": true,
+  "native_protocol_review_passed": true,
+  "auditor_review": "Use the separate actual independent auditor receipt in the combined private native review packet.",
+  "checkpoints": ["f4c792451dad05660dce95147d09e8dc044b8c1a", "703ee858f4a104ecbe5b78ec18eb8ffe84c9c5e2", "49526eca147d4516f490e872b4e42a0af8701434"],
+  "corrections": [
+    "Every dedicated daemon has an explicit PID file inside its private provisioned base; ordinary registration verifies the exact command-line value.",
+    "Docker's data-root traversal adjustment accepts only 0700 or 0710 for the exact original inode and UID beneath an unchanged 0700 base. Other roots remain strict private directories.",
+    "A never-admitted failed startup has a separate typed terminal proof requiring acknowledged setup, no Docker/image/healthy registration admission, exact inactive unit with no pending job/leader/cgroup/socket, and exact empty worker birth. It supplies no healthy daemon or measurement evidence.",
+    "Original operator birth and environment binding are required before any restart control, including crash resumption; borrowed terminal authority cannot restart.",
+    "Numeric API version validation occurs before host operations.",
+    "Failed startup proof or publication cannot abort remaining safe cleanup phases. Unknown creator authority stays fenced; already finished exact clients are independently cleaned and final cleanup evidence is attempted."
+  ],
+  "findings_preserved": ["Normal manifests previously allowed restart control before old operator binding was checked.", "Failed-startup proof publication could previously skip subsequent independent cleanup."],
+  "verification": {"focused_tests_passed": 58, "interpreter": "exact accounting worktree Python and local package imports"},
+  "native_executed_by_reviewer": false,
+  "native_accounting_gate": "pending",
+  "prior_failed_native_generations": "Retain original failure and cleanup evidence; this source review does not relabel them as successful measurement runs.",
+  "activation_approved": false,
+  "contract_adoption_approved": false,
+  "evidence_refs": ["docs/acceptance/production-preparation/native-startup-corrective-source-review.json"]
+}

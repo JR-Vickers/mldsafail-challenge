@@ -1,0 +1,27 @@
+{
+  "schema": "mldsafail.cpu-native-review.v1",
+  "status": "source_review_passed",
+  "source_commit": "02902b0c665b46850f2a4dfb0ec9ded02bb9b605",
+  "reviewer": "independent preparation supervisor and native protocol reviewer",
+  "supervisor_source_sha256": "d0ca17d2e7f1353c1c352c059971291f9137a769024407d25e55bb563b406b15",
+  "acceptance_source_sha256": "a4f04c1caec566b47e3ee81b2e7ea05eb92ab97c8d4f6149a5625a6d7dacdab2",
+  "supervisor_review_passed": true,
+  "native_protocol_review_passed": true,
+  "auditor_review": "Separate actual independent auditor receipt required.",
+  "scope": [
+    "Earlier reviewed accounting proxy/helper source retained; recovery scope blob is byte-identical root dd9ccc7, source identity changes without policy changes.",
+    "Lean proposed worker uses identical native resource caps without importing frozen timing adapter; context retains approved solver dependencies.",
+    "Prospective build/export validates clean source, immutable worker identity/configuration and descriptor-bound owned regular archive.",
+    "Artifact is a preparation receipt only; outer driver cleanup remains mandatory and no epoch/reference/native fault/pair/adoption/default gate passes."
+  ],
+  "verification": {
+    "worker_preparation_focused_tests_passed": 4,
+    "worker_backend_focused_tests_passed": 11,
+    "coherent_import_focused_tests_passed": 35
+  },
+  "native_executed_by_reviewer": false,
+  "native_gate": "pending",
+  "evidence_refs": [
+    "docs/acceptance/production-preparation/prospective-worker-source-review.json"
+  ]
+}

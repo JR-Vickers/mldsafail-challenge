@@ -1,0 +1,4447 @@
+{
+  "schema_version": 1,
+  "scope": "Agent-executable public launch preparation; public launch not approved",
+  "base_commit": "c84277b",
+  "checklist_source": {
+    "status": "blocked_external",
+    "expected_entries": 78,
+    "reason": "Owner supplied remediation report; no numbered 78-item checklist present. Actual requirements imported without fabricated mappings.",
+    "task": "checklist-source",
+    "provided_source": "docs/acceptance/compose-switch-remediation-20261003/report.json"
+  },
+  "tasks": [
+    {
+      "id": "checklist-source",
+      "requirement": "Obtain original numbered 78-item checklist",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Obtain original numbered 78-item checklist"
+      ],
+      "status": "blocked_external",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Provide checklist path or original text",
+      "checklist": [],
+      "blocker": {
+        "input": "Original numbered checklist absent from repository and acceptance worktree",
+        "owner": "repository owner",
+        "requested_action": "Provide checklist path or original text"
+      }
+    },
+    {
+      "id": "ledger-validation",
+      "requirement": "Validate task dependency graph, evidence and exact checklist coverage",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "checklist-source"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Validate task dependency graph, evidence and exact checklist coverage"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "queue-repair",
+      "requirement": "Reconcile cancelled queued rows idempotently",
+      "sources": [
+        "docs/acceptance/compatible-v050/report.json#/gates/queue_reconciliation"
+      ],
+      "dependencies": [],
+      "environment": "private staging / disposable native services",
+      "criteria": [
+        "Reconcile cancelled queued rows idempotently"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "result": "Historical positive prerequisite explicitly normalized; original human-readable outcome retained",
+          "historical_evidence_reference": "docs/acceptance/compatible-v050/report.json#/gates/queue_reconciliation"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/prerequisite-evidence-reconciliation.json#/queue_repair/passed",
+          "criteria_met": [
+            "Reconcile cancelled queued rows idempotently"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "fd4be66575ae6dbef9785321a79a687f418df0b8"
+      },
+      "next_action": "Preserve historical evidence; revalidate when consumed",
+      "checklist": []
+    },
+    {
+      "id": "host-environment",
+      "requirement": "Provision frozen Python 3.12.10 operator environment",
+      "sources": [
+        "docs/acceptance/compatible-v050/report.json#/gates/operator_environment"
+      ],
+      "dependencies": [],
+      "environment": "private staging / disposable native services",
+      "criteria": [
+        "Provision frozen Python 3.12.10 operator environment"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "result": "Historical positive prerequisite explicitly normalized; original human-readable outcome retained",
+          "historical_evidence_reference": "docs/acceptance/compatible-v050/report.json#/gates/operator_environment"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/prerequisite-evidence-reconciliation.json#/host_environment/passed",
+          "criteria_met": [
+            "Provision frozen Python 3.12.10 operator environment"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "fd4be66575ae6dbef9785321a79a687f418df0b8"
+      },
+      "next_action": "Preserve historical evidence; revalidate when consumed",
+      "checklist": []
+    },
+    {
+      "id": "switch-remediation",
+      "requirement": "Prove migration-free disposable forward rollback and restoration",
+      "sources": [
+        "docs/acceptance/compose-switch-remediation-20261003/report.json#/native"
+      ],
+      "dependencies": [],
+      "environment": "private staging / disposable native services",
+      "criteria": [
+        "Prove migration-free disposable forward rollback and restoration"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "result": "historical prerequisite evidence explicitly reconciled; source outcome preserved",
+          "historical_evidence_reference": "docs/acceptance/compose-switch-remediation-20261003/report.json#/native"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/prerequisite-evidence-reconciliation.json#/switch_remediation/passed",
+          "criteria_met": [
+            "Prove migration-free disposable forward rollback and restoration"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "fd4be66575ae6dbef9785321a79a687f418df0b8"
+      },
+      "next_action": "Preserve historical evidence; revalidate when consumed",
+      "checklist": []
+    },
+    {
+      "id": "retained-compatible-release",
+      "requirement": "Retain and independently verify compatible fd4be66 images and source",
+      "sources": [
+        "docs/acceptance/compose-switch-remediation-20261003/report.json#/verification"
+      ],
+      "dependencies": [],
+      "environment": "private staging / disposable native services",
+      "criteria": [
+        "Retain and independently verify compatible fd4be66 images and source"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "result": "historical prerequisite evidence explicitly reconciled; source outcome preserved",
+          "historical_evidence_reference": "docs/acceptance/compose-switch-remediation-20261003/report.json#/verification"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/prerequisite-evidence-reconciliation.json#/retained_compatible_release/passed",
+          "criteria_met": [
+            "Retain and independently verify compatible fd4be66 images and source"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "fd4be66575ae6dbef9785321a79a687f418df0b8"
+      },
+      "next_action": "Preserve historical evidence; revalidate when consumed",
+      "checklist": []
+    },
+    {
+      "id": "staging-preflight",
+      "requirement": "Revalidate SSH rootless Docker loopback resource floors queue credentials lifetime and immutable identities",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "queue-repair",
+        "host-environment",
+        "retained-compatible-release"
+      ],
+      "environment": "private staging",
+      "criteria": [
+        "Revalidate SSH rootless Docker loopback resource floors queue credentials lifetime and immutable identities"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "id": "launch-prepare-fd4be66-20261004",
+          "source": "fd4be66575ae6dbef9785321a79a687f418df0b8",
+          "operator_sha256": "8624d2a5d142c2c3b84c2b0e3d2b4938dec6f14af8bead7db8a808793d30a03c",
+          "protocol": "Frozen fingerprints and images; idle queue; active/revoked auth; rollback journal/watchdog before direct stop; quiescent dump and disposable restore; !reset application-only switches; immutable snapshot/epoch; restore original service states on exit",
+          "environment": "private staging rootless Docker; raw evidence protected on host"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-deployment.json",
+          "criteria_met": [
+            "Revalidate SSH rootless Docker loopback resource floors queue credentials lifetime and immutable identities"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "fd4be66575ae6dbef9785321a79a687f418df0b8"
+      },
+      "next_action": "Retain evidence; revalidate when consumed",
+      "checklist": []
+    },
+    {
+      "id": "safe-deployment-tool",
+      "requirement": "Install migration-safe restoration before service mutations",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "switch-remediation"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Install migration-safe restoration before service mutations"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "id": "launch-prepare-fd4be66-20261004",
+          "source": "fd4be66575ae6dbef9785321a79a687f418df0b8",
+          "operator_sha256": "8624d2a5d142c2c3b84c2b0e3d2b4938dec6f14af8bead7db8a808793d30a03c",
+          "protocol": "Frozen fingerprints and images; idle queue; active/revoked auth; rollback journal/watchdog before direct stop; quiescent dump and disposable restore; !reset application-only switches; immutable snapshot/epoch; restore original service states on exit",
+          "environment": "private staging rootless Docker; raw evidence protected on host"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-deployment.json",
+          "criteria_met": [
+            "Install migration-safe restoration before service mutations"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "fd4be66575ae6dbef9785321a79a687f418df0b8"
+      },
+      "next_action": "Retain evidence; revalidate when consumed",
+      "checklist": []
+    },
+    {
+      "id": "compatible-deployment",
+      "requirement": "Protected backup and application-only deployment with health authentication immutable results and epoch compatibility",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "staging-preflight",
+        "safe-deployment-tool"
+      ],
+      "environment": "private staging",
+      "criteria": [
+        "Protected backup and application-only deployment with health authentication immutable results and epoch compatibility"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "id": "launch-prepare-fd4be66-20261004",
+          "source": "fd4be66575ae6dbef9785321a79a687f418df0b8",
+          "operator_sha256": "8624d2a5d142c2c3b84c2b0e3d2b4938dec6f14af8bead7db8a808793d30a03c",
+          "protocol": "Frozen fingerprints and images; idle queue; active/revoked auth; rollback journal/watchdog before direct stop; quiescent dump and disposable restore; !reset application-only switches; immutable snapshot/epoch; restore original service states on exit",
+          "environment": "private staging rootless Docker; raw evidence protected on host"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-deployment.json",
+          "criteria_met": [
+            "Protected backup and application-only deployment with health authentication immutable results and epoch compatibility"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "fd4be66575ae6dbef9785321a79a687f418df0b8"
+      },
+      "next_action": "Retain evidence; revalidate when consumed",
+      "checklist": []
+    },
+    {
+      "id": "scenario-running-cancellation",
+      "requirement": "Verify running-cancellation transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "compatible-deployment",
+        "inventory-race-repair"
+      ],
+      "environment": "private staging sequential",
+      "criteria": [
+        "Verify running-cancellation transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "id": "public-launch-scenarios-20261004",
+          "source": "fd4be66575ae6dbef9785321a79a687f418df0b8",
+          "fixture": "e547caffb06ced2e82f28cf1c130c8131613384d",
+          "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
+          "environment": "private staging; raw journal and evidence protected on VPS",
+          "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys",
+          "scenario_verification": "passed; final run cleanup/rollback remains pending"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
+          "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "generation": 2,
+          "outcome": "passed; exact journal resumed, completed submissions reverified without POST; final independent cleanup passed"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Verify running-cancellation transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
+          ]
+        }
+      ],
+      "identities": {
+        "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "operator_source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "fixture_source_commit": "e547caffb06ced2e82f28cf1c130c8131613384d",
+        "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe",
+        "evaluator_fingerprint": "a5cad96917636a4d32da9bbf217e3c38253cb7e211cc030f9cc63f9d6d7eba54"
+      },
+      "next_action": "Retain native evidence and preserved failures; continue separately tracked launch gates",
+      "checklist": []
+    },
+    {
+      "id": "scenario-real-timeout-cancellation",
+      "requirement": "Verify real-timeout-cancellation transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "compatible-deployment",
+        "inventory-race-repair"
+      ],
+      "environment": "private staging sequential",
+      "criteria": [
+        "Verify real-timeout-cancellation transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "id": "public-launch-scenarios-20261004",
+          "source": "fd4be66575ae6dbef9785321a79a687f418df0b8",
+          "fixture": "e547caffb06ced2e82f28cf1c130c8131613384d",
+          "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
+          "environment": "private staging; raw journal and evidence protected on VPS",
+          "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys",
+          "scenario_verification": "passed; final run cleanup/rollback remains pending"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
+          "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "generation": 2,
+          "outcome": "passed; exact journal resumed, completed submissions reverified without POST; final independent cleanup passed"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Verify real-timeout-cancellation transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
+          ]
+        }
+      ],
+      "identities": {
+        "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "operator_source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "fixture_source_commit": "e547caffb06ced2e82f28cf1c130c8131613384d",
+        "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe",
+        "evaluator_fingerprint": "a5cad96917636a4d32da9bbf217e3c38253cb7e211cc030f9cc63f9d6d7eba54"
+      },
+      "next_action": "Retain native evidence and preserved failures; continue separately tracked launch gates",
+      "checklist": []
+    },
+    {
+      "id": "scenario-invalid-answer",
+      "requirement": "Verify invalid-answer transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "compatible-deployment",
+        "inventory-race-repair"
+      ],
+      "environment": "private staging sequential",
+      "criteria": [
+        "Verify invalid-answer transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "id": "public-launch-scenarios-20261004",
+          "source": "fd4be66575ae6dbef9785321a79a687f418df0b8",
+          "fixture": "e547caffb06ced2e82f28cf1c130c8131613384d",
+          "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
+          "environment": "private staging; raw journal and evidence protected on VPS",
+          "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys",
+          "scenario_verification": "passed; final run cleanup/rollback remains pending"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
+          "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "generation": 2,
+          "outcome": "passed; exact journal resumed, completed submissions reverified without POST; final independent cleanup passed"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Verify invalid-answer transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
+          ]
+        }
+      ],
+      "identities": {
+        "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "operator_source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "fixture_source_commit": "e547caffb06ced2e82f28cf1c130c8131613384d",
+        "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe",
+        "evaluator_fingerprint": "a5cad96917636a4d32da9bbf217e3c38253cb7e211cc030f9cc63f9d6d7eba54"
+      },
+      "next_action": "Retain native evidence and preserved failures; continue separately tracked launch gates",
+      "checklist": []
+    },
+    {
+      "id": "scenario-immediate-crash",
+      "requirement": "Verify immediate-crash transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "compatible-deployment",
+        "inventory-race-repair"
+      ],
+      "environment": "private staging sequential",
+      "criteria": [
+        "Verify immediate-crash transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "id": "public-launch-scenarios-20261004",
+          "source": "fd4be66575ae6dbef9785321a79a687f418df0b8",
+          "fixture": "e547caffb06ced2e82f28cf1c130c8131613384d",
+          "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
+          "environment": "private staging; raw journal and evidence protected on VPS",
+          "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys",
+          "scenario_verification": "passed; final run cleanup/rollback remains pending"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
+          "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "generation": 2,
+          "outcome": "passed; exact journal resumed, completed submissions reverified without POST; final independent cleanup passed"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Verify immediate-crash transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
+          ]
+        }
+      ],
+      "identities": {
+        "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "operator_source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "fixture_source_commit": "e547caffb06ced2e82f28cf1c130c8131613384d",
+        "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe",
+        "evaluator_fingerprint": "a5cad96917636a4d32da9bbf217e3c38253cb7e211cc030f9cc63f9d6d7eba54"
+      },
+      "next_action": "Retain native evidence and preserved failures; continue separately tracked launch gates",
+      "checklist": []
+    },
+    {
+      "id": "scenario-recoverable-infrastructure-failure",
+      "requirement": "Verify recoverable-infrastructure-failure transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "compatible-deployment",
+        "inventory-race-repair"
+      ],
+      "environment": "private staging sequential",
+      "criteria": [
+        "Verify recoverable-infrastructure-failure transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "id": "public-launch-scenarios-20261004",
+          "source": "fd4be66575ae6dbef9785321a79a687f418df0b8",
+          "fixture": "e547caffb06ced2e82f28cf1c130c8131613384d",
+          "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
+          "environment": "private staging; raw journal and evidence protected on VPS",
+          "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys",
+          "scenario_verification": "passed; final run cleanup/rollback remains pending"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
+          "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "generation": 2,
+          "outcome": "passed; exact journal resumed, completed submissions reverified without POST; final independent cleanup passed"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Verify recoverable-infrastructure-failure transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
+          ]
+        }
+      ],
+      "identities": {
+        "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "operator_source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "fixture_source_commit": "e547caffb06ced2e82f28cf1c130c8131613384d",
+        "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe",
+        "evaluator_fingerprint": "a5cad96917636a4d32da9bbf217e3c38253cb7e211cc030f9cc63f9d6d7eba54"
+      },
+      "next_action": "Retain native evidence and preserved failures; continue separately tracked launch gates",
+      "checklist": []
+    },
+    {
+      "id": "scenario-three-attempt-exhaustion",
+      "requirement": "Verify three-attempt-exhaustion transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "compatible-deployment",
+        "inventory-race-repair"
+      ],
+      "environment": "private staging sequential",
+      "criteria": [
+        "Verify three-attempt-exhaustion transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "id": "public-launch-scenarios-20261004",
+          "source": "fd4be66575ae6dbef9785321a79a687f418df0b8",
+          "fixture": "e547caffb06ced2e82f28cf1c130c8131613384d",
+          "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
+          "environment": "private staging; raw journal and evidence protected on VPS",
+          "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
+          "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "generation": 2,
+          "outcome": "passed; exact journal resumed, completed submissions reverified without POST; final independent cleanup passed"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Verify three-attempt-exhaustion transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
+          ]
+        }
+      ],
+      "identities": {
+        "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "operator_source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "fixture_source_commit": "e547caffb06ced2e82f28cf1c130c8131613384d",
+        "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe",
+        "evaluator_fingerprint": "a5cad96917636a4d32da9bbf217e3c38253cb7e211cc030f9cc63f9d6d7eba54"
+      },
+      "next_action": "Retain native evidence and preserved failures; continue separately tracked launch gates",
+      "checklist": []
+    },
+    {
+      "id": "scenario-expired-lease-recovery",
+      "requirement": "Verify expired-lease-recovery transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "compatible-deployment",
+        "inventory-race-repair"
+      ],
+      "environment": "private staging sequential",
+      "criteria": [
+        "Verify expired-lease-recovery transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "id": "public-launch-scenarios-20261004",
+          "source": "fd4be66575ae6dbef9785321a79a687f418df0b8",
+          "fixture": "e547caffb06ced2e82f28cf1c130c8131613384d",
+          "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
+          "environment": "private staging; raw journal and evidence protected on VPS",
+          "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+          "protocol": "Reviewed pinned fixtures; frozen 60-second penalty, 90-second cancellation, 150-second timeout probe, 20-minute complete evaluation; preserve original failed run and use fresh idempotency keys"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
+          "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "generation": 2,
+          "outcome": "passed; exact journal resumed, completed submissions reverified without POST; final independent cleanup passed"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Verify expired-lease-recovery transitions attempts backoff audit privacy leaderboard and cleanup within frozen deadlines"
+          ]
+        }
+      ],
+      "identities": {
+        "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "operator_source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "fixture_source_commit": "e547caffb06ced2e82f28cf1c130c8131613384d",
+        "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe",
+        "evaluator_fingerprint": "a5cad96917636a4d32da9bbf217e3c38253cb7e211cc030f9cc63f9d6d7eba54"
+      },
+      "next_action": "Retain native evidence and preserved failures; continue separately tracked launch gates",
+      "checklist": []
+    },
+    {
+      "id": "live-rollback-forward",
+      "requirement": "Quiescent disposable restore and actual exact b4d212d application rollback/forward preserving immutable state without migration",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "scenario-running-cancellation",
+        "scenario-real-timeout-cancellation",
+        "scenario-invalid-answer",
+        "scenario-immediate-crash",
+        "scenario-recoverable-infrastructure-failure",
+        "scenario-three-attempt-exhaustion",
+        "scenario-expired-lease-recovery",
+        "inventory-race-repair"
+      ],
+      "environment": "private staging",
+      "criteria": [
+        "Quiescent disposable restore and actual exact b4d212d application rollback/forward preserving immutable state without migration"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "id": "public-launch-scenarios-20261004",
+          "source": "fd4be66575ae6dbef9785321a79a687f418df0b8",
+          "fixture": "e547caffb06ced2e82f28cf1c130c8131613384d",
+          "protocol": "Sequential reviewed driver; 60s frozen penalty; 90s cancellation; 150s timeout probe; 20-minute complete evaluation; independent probe checks all transitions attempts backoff audit privacy rank; application-only b4d212d rollback and forward after quiescent backup/disposable restore",
+          "environment": "private staging; raw journal and evidence protected on VPS",
+          "outcome": "stopped after proven inventory race; cleanup complete; partial evidence preserved"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "outcome": "All seven scenarios verified; combined acceptance failed at final privacy probe; cleanup verified; failed evidence retained",
+          "evidence_reference": "docs/acceptance/public-launch/staging-postscenario-failure.json"
+        },
+        {
+          "run_id": "launch-scenarios-6b332cd-20261004",
+          "generation": 2,
+          "outcome": "passed; exact journal resumed, completed submissions reverified without POST; final independent cleanup passed"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Quiescent disposable restore and actual exact b4d212d application rollback/forward preserving immutable state without migration"
+          ]
+        }
+      ],
+      "identities": {
+        "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "operator_source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "fixture_source_commit": "e547caffb06ced2e82f28cf1c130c8131613384d",
+        "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe",
+        "evaluator_fingerprint": "a5cad96917636a4d32da9bbf217e3c38253cb7e211cc030f9cc63f9d6d7eba54"
+      },
+      "next_action": "Retain native evidence and preserved failures; continue separately tracked launch gates",
+      "checklist": []
+    },
+    {
+      "id": "staging-acceptance",
+      "requirement": "Complete compatible native seven-scenario and rollback acceptance",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "live-rollback-forward",
+        "expired-token-ui-native"
+      ],
+      "environment": "private staging",
+      "criteria": [
+        "Complete compatible native seven-scenario and rollback acceptance"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Complete compatible native seven-scenario and rollback acceptance"
+          ]
+        }
+      ],
+      "identities": {
+        "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "operator_source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "fixture_source_commit": "e547caffb06ced2e82f28cf1c130c8131613384d",
+        "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe",
+        "evaluator_fingerprint": "a5cad96917636a4d32da9bbf217e3c38253cb7e211cc030f9cc63f9d6d7eba54"
+      },
+      "next_action": "Complete within declared evidence scope",
+      "checklist": []
+    },
+    {
+      "id": "cpu-finding-2",
+      "requirement": "Implement and independently review source resolution of CPU review finding 2: durable ownership and fencing",
+      "sources": [
+        "docs/acceptance/operational-followup/CPU_REVIEW.md"
+      ],
+      "dependencies": [
+        "cpu-client-birth-source-review"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Implement and independently review source resolution of CPU review finding 2: durable ownership and fencing; focused tests and make check pass; separate native gates remain required"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
+          "result": "passed"
+        },
+        {
+          "protocol": "Broader birth-window audit",
+          "result": "corrective child cpu-client-birth-fencing required"
+        },
+        {
+          "result": "Separate source-only correction review from required native client and daemon fault execution; earlier source and runtime tasks retained"
+        },
+        {
+          "source_commit": "b0a2cdd",
+          "result": "Current corrected component identities reconciled to independent supervisor/auditor and followup reviews; full root checks passed",
+          "prior_evidence": [
+            {
+              "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+              "criteria_met": [
+                "Implement and independently review source resolution of CPU review finding 2: durable ownership and fencing; focused tests and make check pass; separate native gates remain required"
+              ]
+            }
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/accounting-current-source-review.json#/source_review_passed",
+          "criteria_met": [
+            "Implement and independently review source resolution of CPU review finding 2: durable ownership and fencing; focused tests and make check pass; separate native gates remain required"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
+        "source_aggregate_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
+      },
+      "next_action": "Execute separately declared native gates; source review grants no native acceptance",
+      "checklist": []
+    },
+    {
+      "id": "cpu-finding-3",
+      "requirement": "Implement and independently review source resolution of CPU review finding 3: ownership through synchronized evidence publication",
+      "sources": [
+        "docs/acceptance/operational-followup/CPU_REVIEW.md"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Implement and independently review source resolution of CPU review finding 3: ownership through synchronized evidence publication; focused tests and make check pass; separate native gates remain required"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
+          "result": "passed"
+        },
+        {
+          "source_commit": "b0a2cdd",
+          "result": "Current corrected component identities reconciled to independent supervisor/auditor and followup reviews; full root checks passed",
+          "prior_evidence": [
+            {
+              "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+              "criteria_met": [
+                "Implement and independently review source resolution of CPU review finding 3: ownership through synchronized evidence publication; focused tests and make check pass; separate native gates remain required"
+              ]
+            }
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/accounting-current-source-review.json#/source_review_passed",
+          "criteria_met": [
+            "Implement and independently review source resolution of CPU review finding 3: ownership through synchronized evidence publication; focused tests and make check pass; separate native gates remain required"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
+        "source_aggregate_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
+      },
+      "next_action": "Execute separately declared native gates; source review grants no native acceptance",
+      "checklist": []
+    },
+    {
+      "id": "cpu-finding-4",
+      "requirement": "Implement and independently review source resolution of CPU review finding 4: bounded streaming",
+      "sources": [
+        "docs/acceptance/operational-followup/CPU_REVIEW.md"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Implement and independently review source resolution of CPU review finding 4: bounded streaming; focused tests and make check pass; separate native gates remain required"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
+          "result": "passed"
+        },
+        {
+          "source_commit": "b0a2cdd",
+          "result": "Current corrected component identities reconciled to independent supervisor/auditor and followup reviews; full root checks passed",
+          "prior_evidence": [
+            {
+              "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+              "criteria_met": [
+                "Implement and independently review source resolution of CPU review finding 4: bounded streaming; focused tests and make check pass; separate native gates remain required"
+              ]
+            }
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/accounting-current-source-review.json#/source_review_passed",
+          "criteria_met": [
+            "Implement and independently review source resolution of CPU review finding 4: bounded streaming; focused tests and make check pass; separate native gates remain required"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
+        "source_aggregate_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
+      },
+      "next_action": "Execute separately declared native gates; source review grants no native acceptance",
+      "checklist": []
+    },
+    {
+      "id": "cpu-finding-5",
+      "requirement": "Implement and independently review source resolution of CPU review finding 5: continuous accounting exclusivity",
+      "sources": [
+        "docs/acceptance/operational-followup/CPU_REVIEW.md"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Implement and independently review source resolution of CPU review finding 5: continuous accounting exclusivity; focused tests and make check pass; separate native gates remain required"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
+          "result": "passed"
+        },
+        {
+          "source_commit": "b0a2cdd",
+          "result": "Current corrected component identities reconciled to independent supervisor/auditor and followup reviews; full root checks passed",
+          "prior_evidence": [
+            {
+              "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+              "criteria_met": [
+                "Implement and independently review source resolution of CPU review finding 5: continuous accounting exclusivity; focused tests and make check pass; separate native gates remain required"
+              ]
+            }
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/accounting-current-source-review.json#/source_review_passed",
+          "criteria_met": [
+            "Implement and independently review source resolution of CPU review finding 5: continuous accounting exclusivity; focused tests and make check pass; separate native gates remain required"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
+        "source_aggregate_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
+      },
+      "next_action": "Execute separately declared native gates; source review grants no native acceptance",
+      "checklist": []
+    },
+    {
+      "id": "cpu-finding-6",
+      "requirement": "Implement and independently review source resolution of CPU review finding 6: independently retryable cleanup",
+      "sources": [
+        "docs/acceptance/operational-followup/CPU_REVIEW.md"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Implement and independently review source resolution of CPU review finding 6: independently retryable cleanup; focused tests and make check pass; separate native gates remain required"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
+          "result": "passed"
+        },
+        {
+          "source_commit": "b0a2cdd",
+          "result": "Current corrected component identities reconciled to independent supervisor/auditor and followup reviews; full root checks passed",
+          "prior_evidence": [
+            {
+              "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+              "criteria_met": [
+                "Implement and independently review source resolution of CPU review finding 6: independently retryable cleanup; focused tests and make check pass; separate native gates remain required"
+              ]
+            }
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/accounting-current-source-review.json#/source_review_passed",
+          "criteria_met": [
+            "Implement and independently review source resolution of CPU review finding 6: independently retryable cleanup; focused tests and make check pass; separate native gates remain required"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
+        "source_aggregate_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
+      },
+      "next_action": "Execute separately declared native gates; source review grants no native acceptance",
+      "checklist": []
+    },
+    {
+      "id": "cpu-finding-7",
+      "requirement": "Implement and independently review source resolution of CPU review finding 7: strict paired-measurement validation",
+      "sources": [
+        "docs/acceptance/operational-followup/CPU_REVIEW.md"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Implement and independently review source resolution of CPU review finding 7: strict paired-measurement validation; focused tests and make check pass; separate native gates remain required"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
+          "result": "passed"
+        },
+        {
+          "source_commit": "b0a2cdd",
+          "result": "Current corrected component identities reconciled to independent supervisor/auditor and followup reviews; full root checks passed",
+          "prior_evidence": [
+            {
+              "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+              "criteria_met": [
+                "Implement and independently review source resolution of CPU review finding 7: strict paired-measurement validation; focused tests and make check pass; separate native gates remain required"
+              ]
+            }
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/accounting-current-source-review.json#/source_review_passed",
+          "criteria_met": [
+            "Implement and independently review source resolution of CPU review finding 7: strict paired-measurement validation; focused tests and make check pass; separate native gates remain required"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
+        "source_aggregate_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
+      },
+      "next_action": "Execute separately declared native gates; source review grants no native acceptance",
+      "checklist": []
+    },
+    {
+      "id": "cpu-finding-8",
+      "requirement": "Implement and independently review source resolution of CPU review finding 8: versioned independently audited evidence",
+      "sources": [
+        "docs/acceptance/operational-followup/CPU_REVIEW.md"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Implement and independently review source resolution of CPU review finding 8: versioned independently audited evidence; focused tests and make check pass; separate native gates remain required"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
+          "result": "passed"
+        },
+        {
+          "source_commit": "b0a2cdd",
+          "result": "Current corrected component identities reconciled to independent supervisor/auditor and followup reviews; full root checks passed",
+          "prior_evidence": [
+            {
+              "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+              "criteria_met": [
+                "Implement and independently review source resolution of CPU review finding 8: versioned independently audited evidence; focused tests and make check pass; separate native gates remain required"
+              ]
+            }
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/accounting-current-source-review.json#/source_review_passed",
+          "criteria_met": [
+            "Implement and independently review source resolution of CPU review finding 8: versioned independently audited evidence; focused tests and make check pass; separate native gates remain required"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
+        "source_aggregate_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
+      },
+      "next_action": "Execute separately declared native gates; source review grants no native acceptance",
+      "checklist": []
+    },
+    {
+      "id": "cpu-supervisor-review",
+      "requirement": "Independent supervisor review with every finding resolved",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "cpu-finding-2",
+        "cpu-finding-3",
+        "cpu-finding-4",
+        "cpu-finding-5",
+        "cpu-finding-6",
+        "cpu-finding-7",
+        "cpu-finding-8"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Independent supervisor review with every finding resolved"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
+          "result": "passed"
+        },
+        {
+          "source_commit": "b0a2cdd",
+          "result": "Current corrected component identities reconciled to independent supervisor/auditor and followup reviews; full root checks passed",
+          "prior_evidence": [
+            {
+              "reference": "docs/acceptance/production-preparation/supervisor-review.json#/result",
+              "criteria_met": [
+                "Independent supervisor review with every finding resolved"
+              ]
+            }
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/accounting-current-source-review.json#/source_review_passed",
+          "criteria_met": [
+            "Independent supervisor review with every finding resolved"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
+        "source_aggregate_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
+      },
+      "next_action": "Execute separately declared native gates; source review grants no native acceptance",
+      "checklist": []
+    },
+    {
+      "id": "cpu-auditor-review",
+      "requirement": "Independent evidence auditor review with every finding resolved",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "cpu-supervisor-review"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Independent evidence auditor review with every finding resolved"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Independent source review and focused regression suite, integrated make check; native acceptance remains separate",
+          "result": "passed"
+        },
+        {
+          "source_commit": "b0a2cdd",
+          "result": "Current corrected component identities reconciled to independent supervisor/auditor and followup reviews; full root checks passed",
+          "prior_evidence": [
+            {
+              "reference": "docs/acceptance/public-launch/accounting-auditor-review.json#/source_review_passed",
+              "criteria_met": [
+                "Independent evidence auditor review with every finding resolved"
+              ]
+            }
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/accounting-current-source-review.json#/source_review_passed",
+          "criteria_met": [
+            "Independent evidence auditor review with every finding resolved"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
+        "source_aggregate_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
+      },
+      "next_action": "Execute separately declared native gates; source review grants no native acceptance",
+      "checklist": []
+    },
+    {
+      "id": "cpu-native-delegation",
+      "requirement": "Establish exclusive host-supervised native delegation",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "cpu-auditor-review"
+      ],
+      "environment": "isolated native host",
+      "criteria": [
+        "Establish exclusive host-supervised native delegation"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "source_commit": "e24b1c3db88d3307a1a2f1f78185c3fb8d1cc136",
+          "result": "Fresh exact daemon and whole cleanup passed; native fault baseline rejected missing CPU controller before worker creation. Source b290 adds neutral CPUWeight and admission proof.",
+          "evidence": "docs/acceptance/public-launch/native-isolated-startup-report.json"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/native-cpu-generation-f.json#/delegation_passed",
+          "criteria_met": [
+            "Establish exclusive host-supervised native delegation"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "60ce7e8f2be8f94d3b2b7647d4cf6a6af8c7f2da",
+        "supervisor_source_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
+      },
+      "next_action": "Complete separately tracked full fault suite and paired measurement gates",
+      "checklist": []
+    },
+    {
+      "id": "cpu-fault-suite",
+      "requirement": "Complete native accounting fault suite including ownership loss descendants stream caps and cleanup failures",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "cpu-native-delegation"
+      ],
+      "environment": "isolated native host sequential",
+      "criteria": [
+        "Complete native accounting faults including ownership loss before client exec release and after input delivery, descendants, stream caps, counter/delegation/contamination failures and independently retryable cleanup"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "source_commit": "60ce7e8f2be8f94d3b2b7647d4cf6a6af8c7f2da",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-f.json",
+          "result": "Partial native faults passed; declared mutation injection not reached; no performance pairs ran; cleanup verified"
+        },
+        {
+          "source_commit": "8bfe1b5941d6d86f3a67681466eab6300ce013aa",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-g.json",
+          "result": "Native declared interruption faults and canonical whole cleanup passed; paired gate remains separately failed"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/native-cpu-generation-g.json#/fault_suite_passed",
+          "criteria_met": [
+            "Complete native accounting faults including ownership loss before client exec release and after input delivery, descendants, stream caps, counter/delegation/contamination failures and independently retryable cleanup"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "8bfe1b5941d6d86f3a67681466eab6300ce013aa",
+        "supervisor_source_sha256": "f7ad12e9442708824282e28f61954916aeea7a4d908914d55b639b865808323b"
+      },
+      "next_action": "Retain scoped native fault pass; performance/adoption remain separately gated",
+      "checklist": []
+    },
+    {
+      "id": "cpu-30-pairs",
+      "requirement": "Predeclare and run 30 sequential empty/deterministic pairs with unchanged CV CPU overhead and wall thresholds",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "cpu-fault-suite",
+        "cpu-current-native-faults",
+        "cpu-lifecycle-overhead-repair",
+        "synthetic-startup-terminal-repair"
+      ],
+      "environment": "isolated native host sequential",
+      "criteria": [
+        "Predeclare and run 30 sequential empty/deterministic pairs with unchanged CV CPU overhead and wall thresholds"
+      ],
+      "status": "failed",
+      "attempts": [
+        {
+          "source_commit": "8bfe1b5941d6d86f3a67681466eab6300ce013aa",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-g.json",
+          "result": "All30pairs completed; CPUoverhead andCV thresholds failed; allownedcleanup independently verified"
+        },
+        {
+          "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+          "worker_source_commit": "e4b8669aa1eb1e242e1fda5a6564669054ebad9d",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-l.json",
+          "result": "Exactly thirty pairs completed; child CV and empty CPU overhead failed unchanged thresholds; cleanup independently verified"
+        }
+      ],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Attribute whole lifecycle overhead and implement independently reviewed correction before changed-source measurements",
+      "checklist": []
+    },
+    {
+      "id": "v060-versions",
+      "requirement": "Explicit 0.6.0 version selection and API CLI compatibility",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "cpu-30-pairs",
+        "v060-versions-source",
+        "v060-native-application"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Explicit 0.6.0 version selection and API CLI compatibility"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "v060-evidence",
+      "requirement": "Separate 0.6.0 independently audited evidence",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "cpu-30-pairs",
+        "v060-evidence-source",
+        "v060-native-application"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Separate 0.6.0 independently audited evidence"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "v060-cohorts",
+      "requirement": "Separate leaderboard cohorts and worker participant artifacts",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "cpu-30-pairs",
+        "v060-cohorts-source",
+        "v060-native-application"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Separate leaderboard cohorts and worker participant artifacts"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "v060-epochs",
+      "requirement": "Fresh isolated 0.6.0 epochs and reference costs",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "cpu-30-pairs",
+        "v060-reference-identity-repair",
+        "v060-epochs-source",
+        "v060-native-references"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Fresh isolated 0.6.0 epochs and reference costs"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "v060-acceptance",
+      "requirement": "Native 0.6.0 hosted acceptance",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "cpu-30-pairs",
+        "v060-cli-capability-preflight"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Native 0.6.0 hosted acceptance"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "measurement-decision-packet",
+      "requirement": "Prepare score-contract adoption and default activation review packet",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "v060-versions",
+        "v060-evidence",
+        "v060-cohorts",
+        "v060-epochs",
+        "v060-acceptance",
+        "measurement-decision-draft"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Prepare score-contract adoption and default activation review packet"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "measurement-adoption",
+      "requirement": "Approve production/default measurement contract",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "measurement-decision-packet"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Approve production/default measurement contract"
+      ],
+      "status": "blocked_external",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Review completed measurement packet and explicitly approve adoption",
+      "checklist": [],
+      "blocker": {
+        "input": "Explicit owner contract adoption and default activation decision",
+        "owner": "repository owner",
+        "requested_action": "Review completed measurement packet and explicitly approve adoption"
+      }
+    },
+    {
+      "id": "recovery-restoration-code",
+      "requirement": "Correct migration-sensitive service restoration in assembly journal and operator paths",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Correct migration-sensitive service restoration in assembly journal and operator paths"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "result": "Initial restoration implementation preserved; later exact-source independent review covers corrected isolated daemon integration and independent cleanup. Native acceptance remains separately required.",
+          "historical_evidence_reference": "docs/acceptance/recovery-service-restoration/report.json"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/recovery-isolated-daemon-integration-review.json#/status",
+          "criteria_met": [
+            "Correct migration-sensitive service restoration in assembly journal and operator paths"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "6819132b6e2b2d3b91f3c9764ab33dbecc69c59e"
+      },
+      "next_action": "Retain evidence; revalidate when consumed",
+      "checklist": []
+    },
+    {
+      "id": "recovery-native-restoration",
+      "requirement": "Verify corrected restoration against disposable native services",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "recovery-restoration-code",
+        "native-daemon-request-fencing",
+        "recovery-protected-local-native"
+      ],
+      "environment": "disposable native services",
+      "criteria": [
+        "Verify corrected restoration against disposable native services"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "recovery-native-faults",
+      "requirement": "Native synthetic signals SIGKILL SSH loss races restart independent retry and repeat cleanup",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "recovery-native-restoration",
+        "recovery-fault-report-publication",
+        "recovery-service-native-faults",
+        "recovery-rpc-lost-ack-native",
+        "recovery-actual-ssh-transport-native"
+      ],
+      "environment": "disposable native services",
+      "criteria": [
+        "Native synthetic signals SIGKILL SSH loss races restart independent retry and repeat cleanup"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "recovery-power-loss",
+      "requirement": "Power-loss drill isolated from staging",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "recovery-restoration-code"
+      ],
+      "environment": "disposable environment",
+      "criteria": [
+        "Power-loss drill isolated from staging"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "source_commit": "5af49e9",
+          "result": "Separate disposable native hard power-loss drill executed after own fresh context admission; earlier VM startup/network/evidence-export failures retained; service-fault suite remains independently required",
+          "evidence": "docs/acceptance/public-launch/isolated-recovery-powerloss-native-pass.json"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/isolated-recovery-powerloss-native-pass.json#/passed",
+          "criteria_met": [
+            "Power-loss drill isolated from staging"
+          ]
+        },
+        {
+          "reference": "docs/acceptance/production-preparation/modern-powerloss-native-independent-audit.json#/status",
+          "criteria_met": [
+            "Power-loss drill isolated from staging"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "5af49e9b94a460d4de86584fc31ef4b8049dd210",
+        "evidence": "private VM4 archive/dump/native controller retained; explicit synthetic tiny logical scope"
+      },
+      "next_action": "Keep actual staging untouched; independently complete service recovery fault and off-host gates",
+      "checklist": []
+    },
+    {
+      "id": "recovery-storage-input",
+      "requirement": "Supply approved storage configuration and independently retained recovery key",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Supply approved storage configuration and independently retained recovery key"
+      ],
+      "status": "blocked_external",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Supply private storage config and confirm off-host recovery key custody",
+      "checklist": [],
+      "blocker": {
+        "input": "Scoped off-host storage configuration and independently confirmed recovery key custody",
+        "owner": "repository owner",
+        "requested_action": "Supply private storage config and confirm off-host recovery key custody"
+      }
+    },
+    {
+      "id": "recovery-templates",
+      "requirement": "Complete recovery templates local retention safe pruning and runbooks",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Complete recovery templates local retention safe pruning and runbooks"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/OWNER_OPERATIONAL_SETUP.md",
+          "criteria_met": [
+            "Complete recovery templates local retention safe pruning and runbooks"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "899c5ee"
+      },
+      "next_action": "Retain; consume at native/owner acceptance",
+      "checklist": []
+    },
+    {
+      "id": "recovery-offhost",
+      "requirement": "Encrypted upload checks interruption corruption isolated restoration retention freshness and four-hour restore gate",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "recovery-native-faults",
+        "recovery-storage-input",
+        "recovery-templates"
+      ],
+      "environment": "approved protected off-host storage",
+      "criteria": [
+        "Encrypted upload checks interruption corruption isolated restoration retention freshness and four-hour restore gate"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "postgres-native-capacity",
+      "requirement": "Disposable native PostgreSQL admission idempotency serialized ownership stale lease cleanup fencing and administrative controls",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "postgres-native-admission",
+        "postgres-native-admin",
+        "postgres-native-cleanup"
+      ],
+      "environment": "disposable native database",
+      "criteria": [
+        "Disposable native PostgreSQL admission idempotency serialized ownership stale lease cleanup fencing and administrative controls"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/disposable-application-native-e.json#/postgres_native_passed",
+          "criteria_met": [
+            "Disposable native PostgreSQL admission idempotency serialized ownership stale lease cleanup fencing and administrative controls"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+        "database_image": "sha256:639ab7ceb90e13123085b741fb31ef493fba25463002f6da665352e7b534b652"
+      },
+      "next_action": "Preserve exact native five-test acceptance and cleanup evidence",
+      "checklist": []
+    },
+    {
+      "id": "load-idle",
+      "requirement": "Predeclare and execute five-minute documented idle read-load gate",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "staging-acceptance",
+        "postgres-native-capacity",
+        "staging-access-input"
+      ],
+      "environment": "private staging sequential",
+      "criteria": [
+        "Predeclare and execute five-minute documented idle read-load gate"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [
+        {
+          "source_commit": "0e0bc13b1f17bb7da7e85609c302ef22bca7ec1c",
+          "result": "Failed before any measurement/submission; independently reconciled cleanup",
+          "evidence": "docs/acceptance/public-launch/staging-load-preflight-reconciliation.json"
+        }
+      ],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Retain corrected source and use renewed established access for new predeclared gate; preserve failed preflight",
+      "checklist": []
+    },
+    {
+      "id": "load-evaluation",
+      "requirement": "Identical five-minute read-load gate during one controlled reference evaluation",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "load-idle"
+      ],
+      "environment": "private staging sequential",
+      "criteria": [
+        "Identical five-minute read-load gate during one controlled reference evaluation"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "monitor-native",
+      "requirement": "Native retries dedup recovery notices freshness expired leases failed jobs and privacy acceptance",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "owned-native-client-fencing"
+      ],
+      "environment": "disposable native services",
+      "criteria": [
+        "Native retries dedup recovery notices freshness expired leases failed jobs and privacy acceptance"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
+          "protocol": "Native Linux resource floors; synthetic readiness/service/lease/backup/job decisions and strict actual shared backup receipt validator; loopback 503/503/204 delivery retries, deduplication, recovery and privacy. Own delegated unit with verified generic helper; no external receiver or scheduler activation.",
+          "result": "passed 20 checks; final owned process/domain absence verified"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/monitoring-native-report.json#/passed",
+          "criteria_met": [
+            "Native retries dedup recovery notices freshness expired leases failed jobs and privacy acceptance"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7"
+      },
+      "next_action": "Complete separate live read-only wiring and external receiver gates",
+      "checklist": []
+    },
+    {
+      "id": "webhook-input",
+      "requirement": "Supply approved external webhook configuration",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Supply approved external webhook configuration"
+      ],
+      "status": "blocked_external",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Supply private webhook configuration",
+      "checklist": [],
+      "blocker": {
+        "input": "Approved webhook destination and scoped authentication configuration",
+        "owner": "repository owner",
+        "requested_action": "Supply private webhook configuration"
+      }
+    },
+    {
+      "id": "webhook-acceptance",
+      "requirement": "Verify actual external webhook delivery retry dedup and recovery",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "monitor-native",
+        "webhook-input"
+      ],
+      "environment": "approved external alert destination",
+      "criteria": [
+        "Verify actual external webhook delivery retry dedup and recovery"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "timer-activation",
+      "requirement": "Align installed environment and activate private timers after manual recovery monitoring acceptance",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "recovery-offhost",
+        "webhook-acceptance",
+        "monitor-live-readonly-wiring",
+        "operator-unit-native-verification",
+        "operator-repeat-activation-lifecycle",
+        "operator-interrupted-job-native"
+      ],
+      "environment": "private staging",
+      "criteria": [
+        "Align installed environment and activate private timers after manual recovery monitoring acceptance"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "production-templates",
+      "requirement": "Separate production volumes roots repositories secrets OAuth cookies TLS headers private endpoints and explicit migrations",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Separate production volumes roots repositories secrets OAuth cookies TLS headers private endpoints and explicit migrations"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "result": "historical prerequisite evidence explicitly reconciled; source outcome preserved",
+          "historical_evidence_reference": "docs/acceptance/production-preparation/report.json#/review"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/prerequisite-evidence-reconciliation.json#/production_templates/passed",
+          "criteria_met": [
+            "Separate production volumes roots repositories secrets OAuth cookies TLS headers private endpoints and explicit migrations"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "caf040f"
+      },
+      "next_action": "Retain; consume at native/owner acceptance",
+      "checklist": []
+    },
+    {
+      "id": "production-rehearsal",
+      "requirement": "Disposable fresh production deployment restore rollback isolation auth submission leaderboard rehearsals",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "production-templates",
+        "production-baseline-rehearsal",
+        "candidate-production-native"
+      ],
+      "environment": "disposable production-like environment",
+      "criteria": [
+        "Disposable fresh production deployment restore rollback isolation auth submission leaderboard rehearsals"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "participant-artifacts",
+      "requirement": "Version-correct participant artifacts installation smoke checksums reproducibility downloads and documentation",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "participant-archive-review",
+        "participant-native-install",
+        "participant-native-reproduction",
+        "candidate-participant-local",
+        "candidate-participant-source-review",
+        "candidate-participant-native-install"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Version-correct participant artifacts installation smoke checksums reproducibility downloads and documentation"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "incident-runbooks",
+      "requirement": "Complete incident response rollback recovery and sanitized acceptance packet",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Complete incident response rollback recovery and sanitized acceptance packet"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/INCIDENT_RUNBOOK.md",
+          "criteria_met": [
+            "Complete incident response rollback recovery and sanitized acceptance packet"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "899c5ee"
+      },
+      "next_action": "Retain; consume at native/owner acceptance",
+      "checklist": []
+    },
+    {
+      "id": "pilot-protocol",
+      "requirement": "Prepare publication activation pilot observation forms success criteria and go/no-go packet",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Prepare publication activation pilot observation forms success criteria and go/no-go packet"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/PUBLIC_LAUNCH_PACKET.md",
+          "criteria_met": [
+            "Prepare publication activation pilot observation forms success criteria and go/no-go packet"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "899c5ee"
+      },
+      "next_action": "Retain; consume at native/owner acceptance",
+      "checklist": []
+    },
+    {
+      "id": "production-owner-input",
+      "requirement": "Provide production domain accounts OAuth scoped credentials and activation publication exposure decisions",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Provide production domain accounts OAuth scoped credentials and activation publication exposure decisions"
+      ],
+      "status": "blocked_external",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Provision production inputs and approve activation only after completed gate packet",
+      "checklist": [],
+      "blocker": {
+        "input": "Owner-provisioned production domain accounts OAuth and explicit publication/exposure/activation approval",
+        "owner": "repository owner",
+        "requested_action": "Provision production inputs and approve activation only after completed gate packet"
+      }
+    },
+    {
+      "id": "public-activation",
+      "requirement": "Activate production publish and expose approved release",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "production-owner-input",
+        "production-rehearsal",
+        "participant-artifacts",
+        "incident-runbooks",
+        "pilot-protocol",
+        "load-evaluation",
+        "timer-activation",
+        "measurement-adoption",
+        "ledger-exact-checklist-validation",
+        "final-sanitized-acceptance-packet"
+      ],
+      "environment": "owner-approved production",
+      "criteria": [
+        "Activate production publish and expose approved release"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "pilot-participants",
+      "requirement": "Owner recruitment and participant-dependent external pilot results",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "public-activation"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Owner recruitment and participant-dependent external pilot results"
+      ],
+      "status": "blocked_external",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Recruit approved participants and supply observations using pilot protocol",
+      "checklist": [],
+      "blocker": {
+        "input": "Owner-authorized recruitment and external participant observations",
+        "owner": "repository owner and pilot participants",
+        "requested_action": "Recruit approved participants and supply observations using pilot protocol"
+      }
+    },
+    {
+      "id": "historical-operational-followup-host_environment",
+      "requirement": "Reconcile historical unresolved gate host_environment",
+      "sources": [
+        "docs/acceptance/operational-followup/report.json#/gates/host_environment"
+      ],
+      "dependencies": [
+        "host-environment"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate host_environment"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "result": "Historical positive prerequisite explicitly normalized; original human-readable outcome retained",
+          "historical_evidence_reference": "docs/acceptance/compatible-v050/report.json#/gates/operator_environment"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/prerequisite-evidence-reconciliation.json#/host_environment/passed",
+          "criteria_met": [
+            "Reconcile historical unresolved gate host_environment"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "fd4be66575ae6dbef9785321a79a687f418df0b8"
+      },
+      "next_action": "Historical report preserved; superseded by cited acceptance",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-followup-native_queue_reconciliation",
+      "requirement": "Reconcile historical unresolved gate native_queue_reconciliation",
+      "sources": [
+        "docs/acceptance/operational-followup/report.json#/gates/native_queue_reconciliation"
+      ],
+      "dependencies": [
+        "queue-repair"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate native_queue_reconciliation"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "result": "Historical positive prerequisite explicitly normalized; original human-readable outcome retained",
+          "historical_evidence_reference": "docs/acceptance/compatible-v050/report.json#/gates/queue_reconciliation"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/prerequisite-evidence-reconciliation.json#/queue_repair/passed",
+          "criteria_met": [
+            "Reconcile historical unresolved gate native_queue_reconciliation"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "fd4be66575ae6dbef9785321a79a687f418df0b8"
+      },
+      "next_action": "Historical report preserved; superseded by cited acceptance",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-followup-staging_deployment",
+      "requirement": "Reconcile historical unresolved gate staging_deployment",
+      "sources": [
+        "docs/acceptance/operational-followup/report.json#/gates/staging_deployment"
+      ],
+      "dependencies": [
+        "compatible-deployment"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate staging_deployment"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-deployment.json",
+          "criteria_met": [
+            "Reconcile historical unresolved gate staging_deployment"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "fd4be66575ae6dbef9785321a79a687f418df0b8"
+      },
+      "next_action": "Historical report preserved; superseded by cited acceptance",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-followup-seven_scenarios_and_rollback",
+      "requirement": "Reconcile historical unresolved gate seven_scenarios_and_rollback",
+      "sources": [
+        "docs/acceptance/operational-followup/report.json#/gates/seven_scenarios_and_rollback"
+      ],
+      "dependencies": [
+        "staging-acceptance"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate seven_scenarios_and_rollback"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Reconcile historical unresolved gate seven_scenarios_and_rollback"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "release_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "rollback_commit": "b4d212da3109b7716eb41553986848e377fb5b3d"
+      },
+      "next_action": "Historical negative reports remain unchanged; current scoped acceptance reconciled",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-followup-native_cleanup_faults",
+      "requirement": "Reconcile historical unresolved gate native_cleanup_faults",
+      "sources": [
+        "docs/acceptance/operational-followup/report.json#/gates/native_cleanup_faults"
+      ],
+      "dependencies": [
+        "recovery-native-faults"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate native_cleanup_faults"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-followup-offhost_recovery",
+      "requirement": "Reconcile historical unresolved gate offhost_recovery",
+      "sources": [
+        "docs/acceptance/operational-followup/report.json#/gates/offhost_recovery"
+      ],
+      "dependencies": [
+        "recovery-offhost"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate offhost_recovery"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-followup-alerts_and_schedulers",
+      "requirement": "Reconcile historical unresolved gate alerts_and_schedulers",
+      "sources": [
+        "docs/acceptance/operational-followup/report.json#/gates/alerts_and_schedulers"
+      ],
+      "dependencies": [
+        "timer-activation"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate alerts_and_schedulers"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-followup-cpu_contract_review",
+      "requirement": "Reconcile historical unresolved gate cpu_contract_review",
+      "sources": [
+        "docs/acceptance/operational-followup/report.json#/gates/cpu_contract_review"
+      ],
+      "dependencies": [
+        "cpu-auditor-review"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate cpu_contract_review"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "result": "Historical cooperative measurement concern reconciled by separately reviewed proposed host-supervised source; native gates remain independent and pending"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/production-preparation/native-transport-cleanup-source-review.json#/status",
+          "criteria_met": [
+            "Reconcile historical unresolved gate cpu_contract_review"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "8bfe1b5941d6d86f3a67681466eab6300ce013aa",
+        "supervisor_source_sha256": "f7ad12e9442708824282e28f61954916aeea7a4d908914d55b639b865808323b"
+      },
+      "next_action": "Owner measurement adoption remains separately blocked until native and candidate gates and decision packet pass",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-followup-cpu_native_measurement",
+      "requirement": "Reconcile historical unresolved gate cpu_native_measurement",
+      "sources": [
+        "docs/acceptance/operational-followup/report.json#/gates/cpu_native_measurement"
+      ],
+      "dependencies": [
+        "cpu-30-pairs"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate cpu_native_measurement"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-followup-v060_integration_and_hosted_acceptance",
+      "requirement": "Reconcile historical unresolved gate v060_integration_and_hosted_acceptance",
+      "sources": [
+        "docs/acceptance/operational-followup/report.json#/gates/v060_integration_and_hosted_acceptance"
+      ],
+      "dependencies": [
+        "v060-acceptance"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate v060_integration_and_hosted_acceptance"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-followup-native_capacity_fencing_and_load",
+      "requirement": "Reconcile historical unresolved gate native_capacity_fencing_and_load",
+      "sources": [
+        "docs/acceptance/operational-followup/report.json#/gates/native_capacity_fencing_and_load"
+      ],
+      "dependencies": [
+        "load-evaluation"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate native_capacity_fencing_and_load"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-followup-production_rehearsal_and_packet",
+      "requirement": "Reconcile historical unresolved gate production_rehearsal_and_packet",
+      "sources": [
+        "docs/acceptance/operational-followup/report.json#/gates/production_rehearsal_and_packet"
+      ],
+      "dependencies": [
+        "production-rehearsal"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate production_rehearsal_and_packet"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-followup-production_deployment_and_external_pilot",
+      "requirement": "Reconcile historical unresolved gate production_deployment_and_external_pilot",
+      "sources": [
+        "docs/acceptance/operational-followup/report.json#/gates/production_deployment_and_external_pilot"
+      ],
+      "dependencies": [
+        "pilot-participants"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate production_deployment_and_external_pilot"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-acceptance-20261003-alerts_and_schedulers",
+      "requirement": "Reconcile historical unresolved gate alerts_and_schedulers",
+      "sources": [
+        "docs/acceptance/operational-acceptance-20261003/report.json#/gates/alerts_and_schedulers"
+      ],
+      "dependencies": [
+        "timer-activation"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate alerts_and_schedulers"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-acceptance-20261003-application_rollback_forward",
+      "requirement": "Reconcile historical unresolved gate application_rollback_forward",
+      "sources": [
+        "docs/acceptance/operational-acceptance-20261003/report.json#/gates/application_rollback_forward"
+      ],
+      "dependencies": [
+        "live-rollback-forward"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate application_rollback_forward"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Reconcile historical unresolved gate application_rollback_forward"
+          ]
+        }
+      ],
+      "identities": {
+        "operator_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "application_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf"
+      },
+      "next_action": "None; historical outcome retained and reconciled against later native acceptance",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-acceptance-20261003-cpu_v060",
+      "requirement": "Reconcile historical unresolved gate cpu_v060",
+      "sources": [
+        "docs/acceptance/operational-acceptance-20261003/report.json#/gates/cpu_v060"
+      ],
+      "dependencies": [
+        "v060-acceptance"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate cpu_v060"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-acceptance-20261003-external_pilot",
+      "requirement": "Reconcile historical unresolved gate external_pilot",
+      "sources": [
+        "docs/acceptance/operational-acceptance-20261003/report.json#/gates/external_pilot"
+      ],
+      "dependencies": [
+        "pilot-participants"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate external_pilot"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-acceptance-20261003-native_admission_and_load",
+      "requirement": "Reconcile historical unresolved gate native_admission_and_load",
+      "sources": [
+        "docs/acceptance/operational-acceptance-20261003/report.json#/gates/native_admission_and_load"
+      ],
+      "dependencies": [
+        "load-evaluation"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate native_admission_and_load"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-acceptance-20261003-native_interruption_recovery",
+      "requirement": "Reconcile historical unresolved gate native_interruption_recovery",
+      "sources": [
+        "docs/acceptance/operational-acceptance-20261003/report.json#/gates/native_interruption_recovery"
+      ],
+      "dependencies": [
+        "recovery-native-faults"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate native_interruption_recovery"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-acceptance-20261003-offhost_recovery",
+      "requirement": "Reconcile historical unresolved gate offhost_recovery",
+      "sources": [
+        "docs/acceptance/operational-acceptance-20261003/report.json#/gates/offhost_recovery"
+      ],
+      "dependencies": [
+        "recovery-offhost"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate offhost_recovery"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-acceptance-20261003-production",
+      "requirement": "Reconcile historical unresolved gate production",
+      "sources": [
+        "docs/acceptance/operational-acceptance-20261003/report.json#/gates/production"
+      ],
+      "dependencies": [
+        "public-activation"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate production"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-acceptance-20261003-seven_scenario_acceptance",
+      "requirement": "Reconcile historical unresolved gate seven_scenario_acceptance",
+      "sources": [
+        "docs/acceptance/operational-acceptance-20261003/report.json#/gates/seven_scenario_acceptance"
+      ],
+      "dependencies": [
+        "staging-acceptance"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate seven_scenario_acceptance"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-seven-scenario-rollback.json#/passed",
+          "criteria_met": [
+            "Reconcile historical unresolved gate seven_scenario_acceptance"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+        "release_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "rollback_commit": "b4d212da3109b7716eb41553986848e377fb5b3d"
+      },
+      "next_action": "Historical negative reports remain unchanged; current scoped acceptance reconciled",
+      "checklist": []
+    },
+    {
+      "id": "historical-operational-acceptance-20261003-staging_deployment",
+      "requirement": "Reconcile historical unresolved gate staging_deployment",
+      "sources": [
+        "docs/acceptance/operational-acceptance-20261003/report.json#/gates/staging_deployment"
+      ],
+      "dependencies": [
+        "compatible-deployment"
+      ],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reconcile historical unresolved gate staging_deployment"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-deployment.json",
+          "criteria_met": [
+            "Reconcile historical unresolved gate staging_deployment"
+          ]
+        }
+      ],
+      "identities": {
+        "source": "fd4be66575ae6dbef9785321a79a687f418df0b8"
+      },
+      "next_action": "Historical report preserved; superseded by cited acceptance",
+      "checklist": []
+    },
+    {
+      "id": "expired-token-ui-native",
+      "requirement": "Verify expired token UI behavior in exact deployed web image",
+      "sources": [
+        "docs/acceptance/compatible-v050/report.json#/gates/expired_token_ui"
+      ],
+      "dependencies": [
+        "compatible-deployment",
+        "native-daemon-request-fencing"
+      ],
+      "environment": "disposable exact deployed web image",
+      "criteria": [
+        "Expired status rendered; expired credentials cannot authenticate"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/disposable-application-native-d.json#/expired_token_passed",
+          "criteria_met": [
+            "Expired status rendered; expired credentials cannot authenticate"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "0e0bc13b1f17bb7da7e85609c302ef22bca7ec1c"
+      },
+      "next_action": "Complete within declared evidence scope",
+      "checklist": []
+    },
+    {
+      "id": "participant-archive-review",
+      "requirement": "Independent allowlist checksum privacy and usable install review of retained public participant archive",
+      "sources": [
+        "docs/acceptance/production-preparation/report.json#/participant_artifacts"
+      ],
+      "dependencies": [],
+      "environment": "isolated local unpublished artifacts",
+      "criteria": [
+        "Archive contains only approved public material; checksums and installation work"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "source_commit": "a4f1f273b1294c94b73e3d2c789f41d0e953300f",
+          "result": "corrected CLI candidate independently reviewed; earlier artifacts/reviews preserved"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/participant-archive-review.json#/passed",
+          "criteria_met": [
+            "Archive contains only approved public material; checksums and installation work"
+          ]
+        },
+        {
+          "reference": "docs/acceptance/public-launch/participant-archive-corrective-review.json#/passed",
+          "criteria_met": [
+            "Archive contains only approved public material; checksums and installation work"
+          ]
+        }
+      ],
+      "identities": {
+        "archive_documentation_source_commit": "a4f1f273b1294c94b73e3d2c789f41d0e953300f",
+        "wheel_source_commit": "a4f1f273b1294c94b73e3d2c789f41d0e953300f",
+        "archive_sha256": "b3ff543af250bb96b6dc098c9f0bad900fdc6d3edb097a1ab2e94ddf9a7d3dd8",
+        "wheel_sha256": "47b1bc54fcee977665dad922df4b633d9e81762a36802b6e279d5dcb062b0bbb"
+      },
+      "next_action": "Retain unpublished; complete separate native install/reproduction gates",
+      "checklist": []
+    },
+    {
+      "id": "inventory-race-repair",
+      "requirement": "Correct proven snapshot disappearance race and retain source-bound compatible release before acceptance resumes",
+      "sources": [
+        "docs/acceptance/inventory-race-20261004/report.json"
+      ],
+      "dependencies": [],
+      "environment": "compatible acceptance worktree and private staging",
+      "criteria": [
+        "Focused tests and make check pass; compatible immutable source/images retained; native inventory probe passes"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "source": "71f5ff2",
+          "protocol": "Reject unknown missing IDs/daemon errors; tolerate only exact disappeared IDs with complete retained JSON inventory"
+        },
+        {
+          "source": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+          "protocol": "Native Docker snapshot disappearance probe; then compatible application-only switch with quiescent protected backup and exact rollback installed before stopping services",
+          "result": "passed with protected backup/disposable restoration and maintenance cleanup",
+          "private_evidence": "/home/mldsafail/inventory-probe-a668b9fa4a9a4f068a6553679350be32",
+          "run_id": "launch-prepare-6b332cd-20261004"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/inventory-repair.json#/passed",
+          "criteria_met": [
+            "Focused tests and make check pass; compatible immutable source/images retained; native inventory probe passes"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+        "worker_image": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe"
+      },
+      "next_action": "Complete fresh seven scenarios and rollback/forward",
+      "checklist": []
+    },
+    {
+      "id": "production-baseline-rehearsal",
+      "requirement": "Execute disposable frozen0.5 production-like fresh epoch deployment restoration rollback isolation synthetic auth submission and leaderboard before owner adoption",
+      "sources": [
+        "user-plan",
+        "docs/NATIVE_PREPARATION_GATES.md"
+      ],
+      "dependencies": [
+        "production-templates",
+        "owned-native-client-fencing",
+        "native-daemon-request-fencing",
+        "native-generation-i-cleanup-reconciliation",
+        "synthetic-startup-terminal-repair"
+      ],
+      "environment": "disposable native services; no production activation",
+      "criteria": [
+        "Retained reviewed orchestrator passes source-bound native baseline rehearsal and final owned-resource cleanup"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Freeze reviewed orchestrator; execute after serialized staging gates",
+      "checklist": []
+    },
+    {
+      "id": "participant-native-install",
+      "requirement": "Run retained participant wheel installation smoke on isolated native Linux installation",
+      "sources": [
+        "user-plan",
+        "docs/NATIVE_PREPARATION_GATES.md"
+      ],
+      "dependencies": [
+        "participant-archive-review",
+        "owned-native-client-fencing"
+      ],
+      "environment": "isolated native host sequential",
+      "criteria": [
+        "Run retained participant wheel installation smoke on isolated native Linux installation; preserve failures and prove owned cleanup"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
+          "artifact_commit": "4a9d82d666dea328286631a5ffe62f19a1c985b3",
+          "artifact_sha256": "3c2490de73a99d31f57e9cadcd6fd9eb5a30540511d485b475a9330b76c008b5",
+          "protocol": "New native Linux install under own delegated service with verified helper; sanitize import environment; prove installed package path and prefix; exercise CLI and approved tiny starter; retain failure logs and prove final controller/cgroup absence.",
+          "result": "mlwe-clone failed on fresh account; installation/import/help passed, exact cleanup verified",
+          "evidence_reference": "docs/acceptance/public-launch/participant-native-install-failure.json"
+        },
+        {
+          "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
+          "artifact_commit": "a4f1f273b1294c94b73e3d2c789f41d0e953300f",
+          "artifact_sha256": "47b1bc54fcee977665dad922df4b633d9e81762a36802b6e279d5dcb062b0bbb",
+          "protocol": "Preserve failed generation1; new native fresh-account installation using independently reviewed synthetic initial commit identity; same verified helper and installed-import identity protocol. No Git account configuration changes.",
+          "result": "passed all native fresh-account installation/scaffolding checks; exact owned cleanup verified"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/participant-native-install-report.json#/passed",
+          "criteria_met": [
+            "Run retained participant wheel installation smoke on isolated native Linux installation; preserve failures and prove owned cleanup"
+          ]
+        }
+      ],
+      "identities": {
+        "operator_source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
+        "artifact_source_commit": "a4f1f273b1294c94b73e3d2c789f41d0e953300f",
+        "artifact_sha256": "47b1bc54fcee977665dad922df4b633d9e81762a36802b6e279d5dcb062b0bbb"
+      },
+      "next_action": "None; complete separate reproducibility gate before publication decision",
+      "checklist": []
+    },
+    {
+      "id": "participant-native-reproduction",
+      "requirement": "Run hardened owned worker reproducibility protocol on two fresh retained clean builds and exact frozen reference image",
+      "sources": [
+        "user-plan",
+        "docs/NATIVE_PREPARATION_GATES.md"
+      ],
+      "dependencies": [
+        "participant-archive-review",
+        "owned-native-client-fencing",
+        "native-daemon-request-fencing",
+        "reproduction-native-prerequisites"
+      ],
+      "environment": "isolated native host sequential",
+      "criteria": [
+        "Run hardened owned worker reproducibility protocol on two fresh retained clean builds and exact frozen reference image; preserve failures and prove owned cleanup"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Review/freeze tooling; execute after serialized staging acceptance",
+      "checklist": []
+    },
+    {
+      "id": "owned-native-client-fencing",
+      "requirement": "Durably bind and gate Docker/upload client execution before mutations, cancel exact interrupted clients before retry cleanup",
+      "sources": [
+        "user-plan",
+        "independent review of native PostgreSQL/reproduction/recovery upload paths"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering and disposable native faults",
+      "criteria": [
+        "Independent review focused interruption tests and native owned-client fault acceptance pass; original failed/partial evidence retained"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Pre-exec release gate with durable PID/start/UID/boot/cmdline identities; independent cleanup and bounded failure logs",
+          "result": "implementation and review in progress"
+        },
+        {
+          "source_commit": "9703f2eeacc5efb7387332c8090863dbe44d0283",
+          "result": "failed before command spawn; cleanup verified",
+          "evidence_reference": "docs/acceptance/public-launch/native-client-permission-failure.json"
+        },
+        {
+          "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
+          "protocol": "Actual non-root Linux UID1000 delegated service, owner termination before release and after descendant birth, inode mismatch refusal, prior-boot no-signal and repeated exact cleanup. Newly owned child permissions restricted before process admission.",
+          "result": "passed; independent terminal resource verification complete",
+          "evidence_reference": "protected native operator acceptance attempt 20261004, generation 2"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/native-client-fencing-report.json#/passed",
+          "criteria_met": [
+            "Independent review focused interruption tests and native owned-client fault acceptance pass; original failed/partial evidence retained"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
+        "helper_sha256": "7a95b247a63ae25b6cba9cb798aa0f7104584306a86a4ad94838ff130a4d8d50"
+      },
+      "next_action": "None; separately prove daemon RPC fencing before container-mutating acceptance",
+      "checklist": []
+    },
+    {
+      "id": "v060-reference-identity-repair",
+      "requirement": "Bind proposed0.6 reference table to trusted exact worker image reference source measurement contract and cohort, rejecting substituted identities",
+      "sources": [
+        "docs/acceptance/production-preparation/v060-adapter-review.json"
+      ],
+      "dependencies": [],
+      "environment": "isolated inactive0.6 development worktree",
+      "criteria": [
+        "Tampered worker/source/reference identities rejected; independent re-review and focused tests pass"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "source_commit": "6f24d40e10a11d3af6f0e98b6990199e5df02077",
+          "protocol": "Independent source review and identity substitution regression",
+          "result": "Reference image/source equality finding requires repair"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/operator-source-reconciliation/report.json#/source_assertions/reference_identity_repair_passed",
+          "criteria_met": [
+            "Tampered worker/source/reference identities rejected; independent re-review and focused tests pass"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "f97f147b728b460884bfefa17e3aebd7d4b87a47"
+      },
+      "next_action": "Source complete; execute independently tracked native descendants",
+      "checklist": []
+    },
+    {
+      "id": "cpu-client-birth-fencing",
+      "requirement": "Prevent unacknowledged Docker client from creating measured workers after interrupted accounting reconciliation",
+      "sources": [
+        "research/cpu_measurement/harness.py Popen before host_client_spawned durable mutation",
+        "user-plan durable ownership/fencing"
+      ],
+      "dependencies": [
+        "native-daemon-request-fencing"
+      ],
+      "environment": "isolated accounting development; source-bound native fault suite",
+      "criteria": [
+        "Client mutation is gated until durable identity/domain receipt; independent source reviews and focused tests pass; separate native fault suite must cover before-release owner loss; worker CPU parent and thresholds unchanged"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "source_commit": "d9b2f69761b5c1bee355b5db53f3e37ce8432c9f",
+          "protocol": "Broader interruption-path source audit",
+          "result": "Popen-before-receipt window requires birth gate correction; existing post-input SIGKILL acceptance does not cover it"
+        },
+        {
+          "source_commit": "8bfe1b5941d6d86f3a67681466eab6300ce013aa",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-g.json",
+          "result": "Native declared interruption faults and canonical whole cleanup passed; paired gate remains separately failed"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/native-cpu-generation-g.json#/before_exec_owner_loss_passed",
+          "criteria_met": [
+            "Client mutation is gated until durable identity/domain receipt; independent source reviews and focused tests pass; separate native fault suite must cover before-release owner loss; worker CPU parent and thresholds unchanged"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "8bfe1b5941d6d86f3a67681466eab6300ce013aa",
+        "supervisor_source_sha256": "f7ad12e9442708824282e28f61954916aeea7a4d908914d55b639b865808323b"
+      },
+      "next_action": "Retain scoped native fault pass; performance/adoption remain separately gated",
+      "checklist": []
+    },
+    {
+      "id": "native-daemon-request-fencing",
+      "requirement": "Fence daemon-accepted Docker mutations through durable create/start acknowledgements or positive shutdown of an exactly owned isolated daemon epoch before claiming resource cleanup",
+      "sources": [
+        "independent accounting/recovery/operator review",
+        "user-plan"
+      ],
+      "dependencies": [
+        "isolated-daemon-startup-repair"
+      ],
+      "environment": "isolated engineering and disposable native rootless daemon; staging daemon excluded from automatic barriers",
+      "criteria": [
+        "Independent review and native mid-create/mid-start owner-loss/transport-loss faults prove daemon quiescence and owned cleanup; preserved failed evidence; healthy measurement protocol and frozen thresholds unchanged"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Dedicated rootless daemon with exact socket/data-root/unit/boot/PID/start/cgroup/binary identity, fsynced guardian mutation receipts, split create/start then read-only attach; ambiguous mutation requires verified owned daemon/worker shutdown before restart and reconciliation",
+          "outcome": "Implementation in separate worktrees; no native pass claimed"
+        },
+        {
+          "source_commit": "cc1f09a61e4fca26b64104ada8b25c7ca47db35a",
+          "evidence": "docs/acceptance/public-launch/accounting-native-provisioning-failure.json",
+          "result": "No measurement ran; startup contract repairs required; all actual owned processes and cgroup resources reconciled"
+        },
+        {
+          "source_commit": "60ce7e8f2be8f94d3b2b7647d4cf6a6af8c7f2da",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-f.json",
+          "result": "Actual lost-create probe failed before mutation; whole owned cleanup verified"
+        },
+        {
+          "source_commit": "8bfe1b5941d6d86f3a67681466eab6300ce013aa",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-g.json",
+          "result": "Native declared interruption faults and canonical whole cleanup passed; paired gate remains separately failed"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/native-cpu-generation-g.json#/lost_create_ack_passed",
+          "criteria_met": [
+            "Independent review and native mid-create/mid-start owner-loss/transport-loss faults prove daemon quiescence and owned cleanup; preserved failed evidence; healthy measurement protocol and frozen thresholds unchanged"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "8bfe1b5941d6d86f3a67681466eab6300ce013aa",
+        "supervisor_source_sha256": "f7ad12e9442708824282e28f61954916aeea7a4d908914d55b639b865808323b"
+      },
+      "next_action": "Retain scoped native fault pass; performance/adoption remain separately gated",
+      "checklist": []
+    },
+    {
+      "id": "monitor-live-readonly-wiring",
+      "requirement": "Verify installed native monitoring read-only health and lease inspection against exact private staging services",
+      "sources": [
+        "user-plan",
+        "deploy/host_checks.py"
+      ],
+      "dependencies": [
+        "monitor-native"
+      ],
+      "environment": "private staging read-only, sequential",
+      "criteria": [
+        "Native host checks reach readiness, service and lease inspection; absent approved backup is reported as backup failure; alerts remain disabled and cleanup proven"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
+          "protocol": "Protected disposable config references live services and missing approved backup state, alert_enabled false, no scheduled jobs; expect exactly backup failure. Own delegated unit, final controller/domain absence.",
+          "result": "passed; actual monitoring reported exactly missing backup; native terminal state reconciled"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/monitor-live-readonly-report.json#/passed",
+          "criteria_met": [
+            "Native host checks reach readiness, service and lease inspection; absent approved backup is reported as backup failure; alerts remain disabled and cleanup proven"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7"
+      },
+      "next_action": "None; real backup freshness and approved receiver remain external dependent gates",
+      "checklist": []
+    },
+    {
+      "id": "operator-unit-native-verification",
+      "requirement": "Verify inactive retained operator unit executable paths, module inventories and systemd parsing on native Linux",
+      "sources": [
+        "user-plan",
+        "docs/INACTIVE_OPERATOR_UNIT_VERIFICATION.md"
+      ],
+      "dependencies": [
+        "owned-native-client-fencing"
+      ],
+      "environment": "isolated native Linux read-only",
+      "criteria": [
+        "Exact retained module and interpreter identities and inactive unit hashes verified; native systemd-analyze verify passes; no installation or activation; owned cleanup proven"
+      ],
+      "status": "running",
+      "attempts": [
+        {
+          "protocol": "Verify inactive retained operator unit executable paths, module inventories and systemd parsing on native Linux",
+          "result": "source preparation and independent review in progress"
+        }
+      ],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Complete source-bound isolated verification; keep real timers inactive",
+      "checklist": []
+    },
+    {
+      "id": "operator-repeat-activation-lifecycle",
+      "requirement": "Implement and verify repeat operator activation without reusing a vanished or replaced manifest-bound parent inode",
+      "sources": [
+        "user-plan",
+        "docs/INACTIVE_OPERATOR_UNIT_VERIFICATION.md"
+      ],
+      "dependencies": [
+        "operator-synthetic-check-interruption-native"
+      ],
+      "environment": "isolated engineering and disposable native user services",
+      "criteria": [
+        "Independent source review and two disposable native activations prove fresh exact daemon/operator/worker identities, serialized activation and independent cleanup"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [
+        {
+          "protocol": "Implement and verify repeat operator activation without reusing a vanished or replaced manifest-bound parent inode",
+          "result": "source preparation and independent review in progress"
+        },
+        {
+          "protocol": "Fresh daemon, worker and operator registration per activation; teardown before exit; no reuse of previous vanished parent inode",
+          "result": "shared provisioning callback API preparation in progress"
+        }
+      ],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Complete source-bound isolated verification; keep real timers inactive",
+      "checklist": []
+    },
+    {
+      "id": "cpu-client-birth-source-review",
+      "requirement": "Independently review corrected source for durable client admission and daemon mutation fencing",
+      "sources": [
+        "user-plan",
+        "independent corrective review"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Exact corrected source has independent reviews, focused tests and full source-bound checks; native fault outcomes remain separately gated"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Independently review corrected source for durable client admission and daemon mutation fencing",
+          "result": "corrective source preparation and independent review in progress"
+        },
+        {
+          "source_commit": "b0a2cdd",
+          "result": "Current corrected component identities reconciled to independent supervisor/auditor and followup reviews; full root checks passed",
+          "prior_evidence": []
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/accounting-current-source-review.json#/source_review_passed",
+          "criteria_met": [
+            "Exact corrected source has independent reviews, focused tests and full source-bound checks; native fault outcomes remain separately gated"
+          ]
+        }
+      ],
+      "identities": {
+        "source_aggregate_sha256": "b0c0d9b6d22af98a53a0ce15a536de20152cbea29011369915500ca831b7e602"
+      },
+      "next_action": "Execute separately declared native gates; source review grants no native acceptance",
+      "checklist": []
+    },
+    {
+      "id": "recovery-fault-report-publication",
+      "requirement": "Prevent native recovery fault receipt publication from claiming success before owner exit and independent cleanup are proven",
+      "sources": [
+        "user-plan",
+        "independent corrective review"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Independent review and regression tests prove original errors and unreaped owners force false published outcome"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Prevent native recovery fault receipt publication from claiming success before owner exit and independent cleanup are proven",
+          "result": "corrective source preparation and independent review in progress"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/recovery-source-verification-20261005.json#/fault_receipt_publication_source_review_passed",
+          "criteria_met": [
+            "Independent review and regression tests prove original errors and unreaped owners force false published outcome"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "71e390c86ea8c10a948fbcf612710a2385f36f3f"
+      },
+      "next_action": "Execute separate current-source native service faults; source review does not replace native acceptance",
+      "checklist": []
+    },
+    {
+      "id": "v060-cli-capability-preflight",
+      "requirement": "Prevent explicit proposed0.6 submission from silently queuing legacy0.5 work on an old server",
+      "sources": [
+        "user-plan",
+        "independent corrective review"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Source-bound compatibility test proves unsupported0.6 rejected before POST, with zero legacy jobs created"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Prevent explicit proposed0.6 submission from silently queuing legacy0.5 work on an old server",
+          "result": "corrective source preparation and independent review in progress"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/integrated-candidate-source-review.json#/cli_capability_preflight_passed",
+          "criteria_met": [
+            "Source-bound compatibility test proves unsupported0.6 rejected before POST, with zero legacy jobs created"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "cda2f27c249a05e79307771ef3a763cda10f099e"
+      },
+      "next_action": "Reviewed source complete; execute separately tracked exact native gates",
+      "checklist": []
+    },
+    {
+      "id": "isolated-daemon-startup-repair",
+      "requirement": "Repair source-bound isolated daemon startup and independently retryable never-admitted startup cleanup",
+      "sources": [
+        "docs/acceptance/public-launch/accounting-native-provisioning-failure.json"
+      ],
+      "dependencies": [
+        "failed-native-startup-terminal-cleanup"
+      ],
+      "environment": "isolated engineering; disposable native dedicated daemon only",
+      "criteria": [
+        "Explicit fresh isolated pidfile verified in actual daemon argv; protected staging pidfile untouched",
+        "Daemon-managed data root permissions and restart lifecycle remain bound to original private parent and inode identities",
+        "Failed startup before registration has exact unit/worker authority and positive terminal cleanup; no invented daemon barrier or old-authority reuse",
+        "Independent source review and disposable native startup failure cleanup verification pass"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "source_commit": "cc1f09a61e4fca26b64104ada8b25c7ca47db35a",
+          "result": "native startup failed before image load; actual resources independently reconciled, driver journal remains fenced"
+        },
+        {
+          "source_commit": "534b589d8ad16038636ce652705b4acdd534aa71",
+          "evidence": "docs/acceptance/public-launch/native-failed-startup-terminal-cleanup.json",
+          "result": "Native terminal cleanup passed; healthy isolated startup remains pending"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/native-isolated-startup-report.json#/passed",
+          "criteria_met": [
+            "Explicit fresh isolated pidfile verified in actual daemon argv; protected staging pidfile untouched",
+            "Daemon-managed data root permissions and restart lifecycle remain bound to original private parent and inode identities",
+            "Failed startup before registration has exact unit/worker authority and positive terminal cleanup; no invented daemon barrier or old-authority reuse",
+            "Independent source review and disposable native startup failure cleanup verification pass"
+          ]
+        }
+      ],
+      "identities": {
+        "retained_source_commit": "cc1f09a61e4fca26b64104ada8b25c7ca47db35a"
+      },
+      "next_action": "Startup and terminal cleanup complete; repair CPU-controller admission and execute separate native accounting gates",
+      "checklist": []
+    },
+    {
+      "id": "failed-native-startup-terminal-cleanup",
+      "requirement": "Native terminal controller reconciles exact never-admitted failed startup journal with predecessor archive, no registered daemon claim, and independently absent owned resources",
+      "sources": [
+        "docs/acceptance/public-launch/accounting-native-provisioning-failure.json"
+      ],
+      "dependencies": [],
+      "environment": "native dedicated terminal controller; protected staging unchanged",
+      "criteria": [
+        "Native terminal controller reconciles exact never-admitted failed startup journal with predecessor archive, no registered daemon claim, and independently absent owned resources"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "source_commit": "534b589d8ad16038636ce652705b4acdd534aa71",
+          "result": "Native cleanup and independent resource absence passed; earlier failed cleanup attempts retained"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/native-failed-startup-terminal-cleanup.json#/passed",
+          "criteria_met": [
+            "Native terminal controller reconciles exact never-admitted failed startup journal with predecessor archive, no registered daemon claim, and independently absent owned resources"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "534b589d8ad16038636ce652705b4acdd534aa71"
+      },
+      "next_action": "Complete healthy isolated startup and accounting fault prerequisites; this receipt grants no measurement or restart authority",
+      "checklist": []
+    },
+    {
+      "id": "postgres-native-admission",
+      "requirement": "Native concurrent account/global admission, idempotent replay, serialized claim and stale-owner heartbeat fencing",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "owned-native-client-fencing",
+        "native-daemon-request-fencing"
+      ],
+      "environment": "disposable native PostgreSQL",
+      "criteria": [
+        "Native concurrent account/global admission, idempotent replay, serialized claim and stale-owner heartbeat fencing"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/disposable-application-native-d.json#/postgres_admission_passed",
+          "criteria_met": [
+            "Native concurrent account/global admission, idempotent replay, serialized claim and stale-owner heartbeat fencing"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "0e0bc13b1f17bb7da7e85609c302ef22bca7ec1c"
+      },
+      "next_action": "Complete within declared evidence scope",
+      "checklist": []
+    },
+    {
+      "id": "postgres-native-admin",
+      "requirement": "Native administrative admission controls and daily limits",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "postgres-native-admission",
+        "administrative-controls-source",
+        "native-generation-i-cleanup-reconciliation"
+      ],
+      "environment": "disposable native PostgreSQL",
+      "criteria": [
+        "Native administrative admission controls and daily limits"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+          "evidence": "docs/acceptance/public-launch/disposable-application-native-e.json",
+          "result": "Five actual native PostgreSQL tests passed; subsequent independent application fixture permission failure retained; whole owned cleanup verified"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/disposable-application-native-e.json#/postgres_native_passed",
+          "criteria_met": [
+            "Native administrative admission controls and daily limits"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+        "database_image": "sha256:639ab7ceb90e13123085b741fb31ef493fba25463002f6da665352e7b534b652",
+        "postgres_version": "17.11"
+      },
+      "next_action": "Preserve scoped native acceptance; rerun affected gates after substantive source changes",
+      "checklist": []
+    },
+    {
+      "id": "postgres-native-cleanup",
+      "requirement": "Native database/evaluator cleanup ownership and fencing",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "postgres-native-admission",
+        "administrative-controls-source",
+        "native-generation-i-cleanup-reconciliation"
+      ],
+      "environment": "disposable native PostgreSQL and owned evaluator",
+      "criteria": [
+        "Native database/evaluator cleanup ownership and fencing"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+          "evidence": "docs/acceptance/public-launch/disposable-application-native-e.json",
+          "result": "Five actual native PostgreSQL tests passed; subsequent independent application fixture permission failure retained; whole owned cleanup verified"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/disposable-application-native-e.json#/postgres_native_passed",
+          "criteria_met": [
+            "Native database/evaluator cleanup ownership and fencing"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+        "database_image": "sha256:639ab7ceb90e13123085b741fb31ef493fba25463002f6da665352e7b534b652",
+        "postgres_version": "17.11"
+      },
+      "next_action": "Preserve scoped native acceptance; rerun affected gates after substantive source changes",
+      "checklist": []
+    },
+    {
+      "id": "staging-access-input",
+      "requirement": "Renew expired established private-staging acceptance access",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "owner input",
+      "criteria": [
+        "Renew expired established private-staging acceptance access"
+      ],
+      "status": "blocked_external",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Await replacement while continuing all independent work",
+      "checklist": [],
+      "blocker": {
+        "input": "Existing acceptance authorization expired; no replacement supplied",
+        "owner": "repository owner",
+        "requested_action": "Save replacement of same scope to established private owner-held file; never paste its value"
+      }
+    },
+    {
+      "id": "staging-load-preflight-repair",
+      "requirement": "Correct native retained-manifest admission and reconcile pre-admission interruption",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering and private staging",
+      "criteria": [
+        "Correct native retained-manifest admission and reconcile pre-admission interruption"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/staging-load-preflight-reconciliation.json#/cleanup_verified",
+          "criteria_met": [
+            "Correct native retained-manifest admission and reconcile pre-admission interruption"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "eedab6c3a553d9dea8058e1644b4671e4c92620f"
+      },
+      "next_action": "Complete within declared evidence scope",
+      "checklist": []
+    },
+    {
+      "id": "cpu-prospective-worker-artifact",
+      "requirement": "Build and retain reviewed version-specific prospective worker without frozen solver startup imports",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "native-generation-i-cleanup-reconciliation"
+      ],
+      "environment": "isolated engineering or disposable native environment",
+      "criteria": [
+        "Build and retain reviewed version-specific prospective worker without frozen solver startup imports"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "source_commit": "eedab6c3a553d9dea8058e1644b4671e4c92620f",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-h.json",
+          "result": "Initial accounting baseline failed before any pairs; owned cleanup independently proven"
+        },
+        {
+          "source_commit": "e4b8669aa1eb1e242e1fda5a6564669054ebad9d",
+          "protocol": "Reviewed native worker buildD, exact startup65534 smoke, private image export and whole cleanup",
+          "result": "running after interruption reconciled; no duplicate invocation"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/native-worker-generation-d.json#/passed",
+          "criteria_met": [
+            "Build and retain reviewed version-specific prospective worker without frozen solver startup imports"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "e4b8669aa1eb1e242e1fda5a6564669054ebad9d",
+        "supervisor_source_sha256": "f3e7608cf7148891146b5b5ee80d282eab14a1789ef82b334b079539b9728369",
+        "image": "sha256:c5c35eb224f77fe84caa977e18a73d10a710366090fa7ad88e9eb21cde9a74cc",
+        "image_archive_sha256": "d2bba48a2307a11dcdb229fc09f2a2c52f8117d59d5e00c55334acffa7422741",
+        "source_context_sha256": "a46451848fc82ba3f3cac43e29f11152a9e01fe4b5f985053ecc20a688552126"
+      },
+      "next_action": "Exact retained worker supplied to corrected native fault/pair gate",
+      "checklist": []
+    },
+    {
+      "id": "cpu-current-native-faults",
+      "requirement": "Complete accounting fault suite on exact prospective worker and current reviewed supervisor",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "cpu-prospective-worker-artifact",
+        "native-generation-i-cleanup-reconciliation"
+      ],
+      "environment": "isolated engineering or disposable native environment",
+      "criteria": [
+        "Complete accounting fault suite on exact prospective worker and current reviewed supervisor"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "source_commit": "eedab6c3a553d9dea8058e1644b4671e4c92620f",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-h.json",
+          "result": "Initial accounting baseline failed before any pairs; owned cleanup independently proven"
+        },
+        {
+          "source_commit": "c431bbe13e1c74cf4d4239d896cda63afd4ca489",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-i.json",
+          "result": "Native startup and baseline pass; eight faults completed then lifecycle deadline failure; pairs not started"
+        },
+        {
+          "source_commit": "e4b8669aa1eb1e242e1fda5a6564669054ebad9d",
+          "protocol": "Complete native accounting fault suite then exactly thirty sequential unchanged empty/child pairs only if faults pass",
+          "result": "generationJ failed in lifecycle observer EAGAIN; eight prior faults passed, no pairs started; cleanup independently verified",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-j.json"
+        },
+        {
+          "source_commit": "6fcf6111178918e8d17dd494730bd55b4cb469e7",
+          "worker_source_commit": "e4b8669aa1eb1e242e1fda5a6564669054ebad9d",
+          "protocol": "Exact retained unchanged workerD plus reviewed EAGAIN supervisor correction; complete fault suite before thirty pairs; thresholds unchanged",
+          "result": "generationK owner-kill admission failed; cleanup independently verified; no pairs started",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-k.json"
+        },
+        {
+          "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+          "worker_source_commit": "e4b8669aa1eb1e242e1fda5a6564669054ebad9d",
+          "protocol": "Reviewed targeted owner-kill admission mode, exact unchanged workerD, full native faults before thirty paired measurements; scoring thresholds unchanged",
+          "result": "All thirteen native faults passed; thirty-pair performance failed separately; all owned cleanup independently verified",
+          "evidence": "docs/acceptance/public-launch/native-cpu-generation-l.json"
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/native-cpu-generation-l.json#/native_fault_suite_passed",
+          "criteria_met": [
+            "Complete accounting fault suite on exact prospective worker and current reviewed supervisor"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+        "supervisor_source_sha256": "68ce712d9e72be35900475074c7bc208d71611bd38af24fcb51d5aa1cc0a5af7",
+        "worker_source_commit": "e4b8669aa1eb1e242e1fda5a6564669054ebad9d",
+        "worker_image": "sha256:c5c35eb224f77fe84caa977e18a73d10a710366090fa7ad88e9eb21cde9a74cc"
+      },
+      "next_action": "Retest affected native faults after substantive accounting corrections",
+      "checklist": []
+    },
+    {
+      "id": "v060-native-references",
+      "requirement": "Fresh 0.6 epoch and full independently audited and sealed native reference costs",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "cpu-30-pairs"
+      ],
+      "environment": "isolated engineering or disposable native environment",
+      "criteria": [
+        "Fresh 0.6 epoch and full independently audited and sealed native reference costs"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "v060-native-application",
+      "requirement": "Native selected version, evidence, API CLI compatibility and separate cohort acceptance",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "v060-native-references"
+      ],
+      "environment": "isolated engineering or disposable native environment",
+      "criteria": [
+        "Native selected version, evidence, API CLI compatibility and separate cohort acceptance"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "candidate-runtime-source",
+      "requirement": "Private application-to-host runtime with durable registration, lost-response reconciliation and restart fencing",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering or disposable native environment",
+      "criteria": [
+        "Private application-to-host runtime with durable registration, lost-response reconciliation and restart fencing"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/private-candidate-source-review.json#/source_review_passed",
+          "criteria_met": [
+            "Private application-to-host runtime with durable registration, lost-response reconciliation and restart fencing"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "cda2f27c249a05e79307771ef3a763cda10f099e"
+      },
+      "next_action": "Execute separate image deployment and native acceptance; rollback/recovery engineering continues independently",
+      "checklist": []
+    },
+    {
+      "id": "candidate-runtime-review",
+      "requirement": "Independent private runtime and image boundary review",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "candidate-runtime-source"
+      ],
+      "environment": "isolated engineering or disposable native environment",
+      "criteria": [
+        "Independent private runtime and image boundary review"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/integrated-candidate-source-review.json#/candidate_runtime_review_passed",
+          "criteria_met": [
+            "Independent private runtime and image boundary review"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "cda2f27c249a05e79307771ef3a763cda10f099e"
+      },
+      "next_action": "Reviewed source complete; execute separately tracked exact native gates",
+      "checklist": []
+    },
+    {
+      "id": "candidate-application-images",
+      "requirement": "Build retained private candidate web and coordinator images from reviewed runtime",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "candidate-runtime-review",
+        "candidate-forward-artifact-native",
+        "candidate-prior-artifact-native"
+      ],
+      "environment": "isolated engineering or disposable native environment",
+      "criteria": [
+        "Build retained private candidate web and coordinator images from reviewed runtime"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "candidate-production-native",
+      "requirement": "Full private candidate image deployment, restore, rollback, authentication and submission leaderboard rehearsal",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "candidate-application-images",
+        "v060-native-application",
+        "candidate-private-protocol-assembly"
+      ],
+      "environment": "isolated engineering or disposable native environment",
+      "criteria": [
+        "Full private candidate image deployment, restore, rollback, authentication and submission leaderboard rehearsal"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "recovery-protected-local-native",
+      "requirement": "Full sealed local protected database, epoch and accepted-run evidence restoration",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "recovery-restoration-code",
+        "native-generation-i-cleanup-reconciliation",
+        "synthetic-startup-terminal-repair"
+      ],
+      "environment": "isolated engineering or disposable native environment",
+      "criteria": [
+        "Full sealed local protected database, epoch and accepted-run evidence restoration"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "recovery-service-native-faults",
+      "requirement": "Native journal service interruption, repeated cleanup and cleanup-failure fixture",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "recovery-restoration-code",
+        "native-generation-i-cleanup-reconciliation",
+        "synthetic-startup-terminal-repair"
+      ],
+      "environment": "isolated engineering or disposable native environment",
+      "criteria": [
+        "Native journal service interruption, repeated cleanup and cleanup-failure fixture"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "recovery-rpc-lost-ack-source",
+      "requirement": "Native recovery Journal lost Docker create/start acknowledgement quiescence and reconciliation tooling",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering or disposable native environment",
+      "criteria": [
+        "Native recovery Journal lost Docker create/start acknowledgement quiescence and reconciliation tooling"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/operator-source-reconciliation/report.json#/source_assertions/recovery_rpc_lost_ack_tooling_passed",
+          "criteria_met": [
+            "Native recovery Journal lost Docker create/start acknowledgement quiescence and reconciliation tooling"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "f97f147b728b460884bfefa17e3aebd7d4b87a47"
+      },
+      "next_action": "Source complete; execute independently tracked native descendants",
+      "checklist": []
+    },
+    {
+      "id": "recovery-rpc-lost-ack-native",
+      "requirement": "Execute recovery Journal lost acknowledgement faults with positive executor quiescence and cleanup",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "recovery-rpc-lost-ack-source",
+        "native-generation-i-cleanup-reconciliation",
+        "synthetic-startup-terminal-repair"
+      ],
+      "environment": "isolated engineering or disposable native environment",
+      "criteria": [
+        "Execute recovery Journal lost acknowledgement faults with positive executor quiescence and cleanup"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "reproduction-native-prerequisites",
+      "requirement": "Build retained official Python base and frozen scientific study image with approved native wheel provenance",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "native-generation-i-cleanup-reconciliation",
+        "synthetic-startup-terminal-repair"
+      ],
+      "environment": "isolated engineering or disposable native environment",
+      "criteria": [
+        "Build retained official Python base and frozen scientific study image with approved native wheel provenance"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "operator-interrupted-job-native",
+      "requirement": "Reconcile interrupted actual disposable scheduled job under next fresh activation",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "operator-repeat-activation-lifecycle",
+        "operator-real-check-observer-source",
+        "operator-synthetic-check-interruption-native"
+      ],
+      "environment": "isolated engineering or disposable native environment",
+      "criteria": [
+        "Reconcile interrupted actual disposable scheduled job under next fresh activation"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "candidate-participant-native-install",
+      "requirement": "Install and exercise separately identified candidate participant artifact in native Linux",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "native-generation-i-cleanup-reconciliation",
+        "synthetic-startup-terminal-repair"
+      ],
+      "environment": "isolated engineering or disposable native environment",
+      "criteria": [
+        "Install and exercise separately identified candidate participant artifact in native Linux"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute declared criteria and preserve evidence",
+      "checklist": []
+    },
+    {
+      "id": "candidate-participant-source-review",
+      "requirement": "Independent privacy and inventory review of retained candidate participant archive",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering or disposable native environment",
+      "criteria": [
+        "Independent privacy and inventory review of retained candidate participant archive"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/recovery-remediation/v060-candidate-c67-independent-review.json#/source_review_passed",
+          "criteria_met": [
+            "Independent privacy and inventory review of retained candidate participant archive"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "b0421cdcda842e4dd6c4b43fafd90541a7ae0cd2"
+      },
+      "next_action": "Complete within declared scope; native acceptance remains separately pending",
+      "checklist": []
+    },
+    {
+      "id": "measurement-decision-draft",
+      "requirement": "Prepare source-bound candidate contract/default decision packet preserving native failures and pending approvals",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering or disposable native environment",
+      "criteria": [
+        "Prepare source-bound candidate contract/default decision packet preserving native failures and pending approvals"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/recovery-remediation/v060-decision-2564-independent-review.json#/source_review_passed",
+          "criteria_met": [
+            "Prepare source-bound candidate contract/default decision packet preserving native failures and pending approvals"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "2564a72c7f1c6ef5fd74e4ee079f90aead774ce1"
+      },
+      "next_action": "Complete within declared scope; native acceptance remains separately pending",
+      "checklist": []
+    },
+    {
+      "id": "candidate-participant-local",
+      "requirement": "Build separately identified unapproved participant archive and verify local installed CLI identity",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated macOS",
+      "criteria": [
+        "Build separately identified unapproved participant archive and verify local installed CLI identity"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/candidate-distribution/report.json#/local_install_smoke/status",
+          "criteria_met": [
+            "Build separately identified unapproved participant archive and verify local installed CLI identity"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "b0421cdcda842e4dd6c4b43fafd90541a7ae0cd2"
+      },
+      "next_action": "Complete within declared evidence scope",
+      "checklist": []
+    },
+    {
+      "id": "administrative-controls-source",
+      "requirement": "Audited privileged local operator token revocation and queued/running cancellation with daily admission and cleanup fencing tests",
+      "sources": [
+        "user-plan",
+        "docs/ADMINISTRATIVE_CONTROLS.md"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Independent source review and local verification of administrative controls and declared native five-test protocol"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/source-verification-20261005.json#/source_review_passed",
+          "criteria_met": [
+            "Independent source review and local verification of administrative controls and declared native five-test protocol"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "10da7cc6eaca95a3372edaf708f6b5c457f3321a"
+      },
+      "next_action": "Execute five actual native PostgreSQL tests on exact retained source",
+      "checklist": []
+    },
+    {
+      "id": "operator-real-check-observer-source",
+      "requirement": "Independent review and local tests prove exact admitted restic process observation, pidfd signal ownership and cleanup/publication fencing",
+      "sources": [
+        "user-plan",
+        "docs/acceptance/OPERATOR_INTERRUPTION_NATIVE_PROTOCOL.md"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Independent review and local tests prove exact admitted restic process observation, pidfd signal ownership and cleanup/publication fencing"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/recovery-source-verification-20261005.json#/real_check_observer_source_review_passed",
+          "criteria_met": [
+            "Independent review and local tests prove exact admitted restic process observation, pidfd signal ownership and cleanup/publication fencing"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "71e390c86ea8c10a948fbcf612710a2385f36f3f"
+      },
+      "next_action": "Finish synthetic backend orchestration and actual native interruption rehearsal",
+      "checklist": []
+    },
+    {
+      "id": "native-generation-i-cleanup-reconciliation",
+      "requirement": "Independently prove generationI operator daemon worker domains absent before another VPS native operation",
+      "sources": [
+        "docs/acceptance/public-launch/native-cpu-generation-i.json"
+      ],
+      "dependencies": [],
+      "environment": "read-only staging VPS ownership reconciliation",
+      "criteria": [
+        "Positive whole cleanup receipts and independent exact owned cgroup/process absence, with staging services preserved"
+      ],
+      "status": "passed",
+      "attempts": [
+        {
+          "protocol": "Established staging SSH read-only connection",
+          "result": "Current session connection timeout; owner separately confirms machine SSH works"
+        },
+        {
+          "protocol": "Clarify port and existing staging access",
+          "result": "Owner clarified they meant localhost8080 website; prior yes-it-works answer does not establish staging SSH. This session still times out on established server connection."
+        }
+      ],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/native-cleanup-reconciliation-20261005.json#/passed",
+          "criteria_met": [
+            "Positive whole cleanup receipts and independent exact owned cgroup/process absence, with staging services preserved"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "c431bbe13e1c74cf4d4239d896cda63afd4ca489"
+      },
+      "next_action": "Cleanup verified; serialize next owned native operation",
+      "checklist": []
+    },
+    {
+      "id": "v060-versions-source",
+      "requirement": "Independently reviewed source implementation for Explicit 0.6.0 version selection and API CLI compatibility",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Independently reviewed source implementation for Explicit 0.6.0 version selection and API CLI compatibility"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/v060-source-components-review.json#/version_source_passed",
+          "criteria_met": [
+            "Independently reviewed source implementation for Explicit 0.6.0 version selection and API CLI compatibility"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b"
+      },
+      "next_action": "Source verified; execute distinct native descendants",
+      "checklist": []
+    },
+    {
+      "id": "v060-evidence-source",
+      "requirement": "Independently reviewed source implementation for Separate 0.6.0 independently audited evidence",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Independently reviewed source implementation for Separate 0.6.0 independently audited evidence"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/v060-source-components-review.json#/evidence_source_passed",
+          "criteria_met": [
+            "Independently reviewed source implementation for Separate 0.6.0 independently audited evidence"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b"
+      },
+      "next_action": "Source verified; execute distinct native descendants",
+      "checklist": []
+    },
+    {
+      "id": "v060-cohorts-source",
+      "requirement": "Independently reviewed source implementation for Separate leaderboard cohorts and worker participant artifacts",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Independently reviewed source implementation for Separate leaderboard cohorts and worker participant artifacts"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/v060-source-components-review.json#/cohort_source_passed",
+          "criteria_met": [
+            "Independently reviewed source implementation for Separate leaderboard cohorts and worker participant artifacts"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b"
+      },
+      "next_action": "Source verified; execute distinct native descendants",
+      "checklist": []
+    },
+    {
+      "id": "v060-epochs-source",
+      "requirement": "Independently reviewed source implementation for Fresh isolated 0.6.0 epochs and reference costs",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Independently reviewed source implementation for Fresh isolated 0.6.0 epochs and reference costs"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/v060-source-components-review.json#/fresh_epoch_source_passed",
+          "criteria_met": [
+            "Independently reviewed source implementation for Fresh isolated 0.6.0 epochs and reference costs"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b"
+      },
+      "next_action": "Source verified; execute distinct native descendants",
+      "checklist": []
+    },
+    {
+      "id": "recovery-actual-ssh-transport-native",
+      "requirement": "Actual transport SSH loss preserves owned recovery birth and tiny synthetic data with repeated independent cleanup",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "disposable native Linux VM",
+      "criteria": [
+        "Actual transport SSH loss preserves owned recovery birth and tiny synthetic data with repeated independent cleanup"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/isolated-ssh-transport-native-pass.json#/passed",
+          "criteria_met": [
+            "Actual transport SSH loss preserves owned recovery birth and tiny synthetic data with repeated independent cleanup"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "805d9c886529e41056202184dc3f96500a2c1d8a"
+      },
+      "next_action": "Source verified; execute distinct native descendants",
+      "checklist": []
+    },
+    {
+      "id": "operator-synthetic-interruption-source",
+      "requirement": "Reviewed bounded actual synthetic repository interruption orchestration with independently retryable cleanup",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Reviewed bounded actual synthetic repository interruption orchestration with independently retryable cleanup"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/operator-source-reconciliation/synthetic-interruption-source-review.json#/source_review_passed",
+          "criteria_met": [
+            "Reviewed bounded actual synthetic repository interruption orchestration with independently retryable cleanup"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "69f9e3800c1033c48f832c547718f072ab92901a"
+      },
+      "next_action": "Source verified; execute distinct native descendants",
+      "checklist": []
+    },
+    {
+      "id": "synthetic-restic-minio-artifact-retention",
+      "requirement": "Retain version-preserving pinned Linuxamd64 synthetic restic and MinIO binaries with independent provenance review",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "protected local artifact preparation",
+      "criteria": [
+        "Retain version-preserving pinned Linuxamd64 synthetic restic and MinIO binaries with independent provenance review"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/operator-source-reconciliation/synthetic-amd64-artifact-preparation.json#/independent_artifact_review/source_provenance_review_passed",
+          "criteria_met": [
+            "Retain version-preserving pinned Linuxamd64 synthetic restic and MinIO binaries with independent provenance review"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "e9e4aa961bf486d84f6d169c6eeae6b05694dd41",
+        "restic_binary_sha256": "1284c80a5b1e569a6e0cf44957d8a1d329e14774321cbf4f3f268021492ee989",
+        "minio_binary_sha256": "84091054b08d3dcce5beac8e67fee2980f093eb9c0227c99c4d4135ed78407ee",
+        "archive_sha256": "08c9955f61a885a5fdb707036c560670790ba7b3bef6dca025c51de418a4bfea"
+      },
+      "next_action": "Upload protected exact binaries after current CPU gate cleanup; execute actual versions and native synthetic callback",
+      "checklist": []
+    },
+    {
+      "id": "operator-synthetic-check-interruption-native",
+      "requirement": "Execute real synthetic repository check interruption, two fresh activations, exact reconciliation and complete independent cleanup",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "operator-synthetic-interruption-source",
+        "operator-real-check-observer-source",
+        "synthetic-restic-minio-artifact-retention",
+        "native-generation-i-cleanup-reconciliation",
+        "synthetic-startup-terminal-repair"
+      ],
+      "environment": "disposable native Linux services",
+      "criteria": [
+        "Execute real synthetic repository check interruption, two fresh activations, exact reconciliation and complete independent cleanup"
+      ],
+      "status": "failed",
+      "attempts": [
+        {
+          "source_commit": "843c5543bd7bf9cae45e0e7042f7ff053b91bb3c",
+          "environment": "disposable native services; local synthetic TLS repository and independently owned activation units",
+          "protocol": "Actual restic check SIGKILL with pidfd/birth proof; two fresh activation reconciliation and independent cleanup; no existing staging jobs or owner repository touched",
+          "result": "Containerd ttrpc Unix socket path exceeded Linux length limit during fresh daemon startup",
+          "evidence": "docs/acceptance/public-launch/synthetic-interruption-native-a.json"
+        }
+      ],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Repair and independently reconcile failed startup cleanup before a new short-root native attempt",
+      "checklist": []
+    },
+    {
+      "id": "candidate-forward-artifact-native",
+      "requirement": "Build retain and verify complete native forward candidate image artifact with exact runtime package and builder cleanup identities",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "candidate-runtime-review",
+        "native-generation-i-cleanup-reconciliation",
+        "candidate-image-build-source-review",
+        "synthetic-startup-terminal-repair"
+      ],
+      "environment": "owned disposable native image preparation",
+      "criteria": [
+        "Build retain and verify complete native forward candidate image artifact with exact runtime package and builder cleanup identities"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute exact declared protocol and retain failure and cleanup evidence",
+      "checklist": []
+    },
+    {
+      "id": "candidate-prior-artifact-native",
+      "requirement": "Build retain and verify separately reviewed prior candidate runtime source and distinct immutable image artifact with complete builder cleanup",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "candidate-runtime-review",
+        "native-generation-i-cleanup-reconciliation",
+        "candidate-image-build-source-review",
+        "synthetic-startup-terminal-repair"
+      ],
+      "environment": "owned disposable native image preparation",
+      "criteria": [
+        "Build retain and verify separately reviewed prior candidate runtime source and distinct immutable image artifact with complete builder cleanup"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute exact declared protocol and retain failure and cleanup evidence",
+      "checklist": []
+    },
+    {
+      "id": "candidate-private-protocol-assembly",
+      "requirement": "Assemble protected exact candidate forward prior worker prerequisite and source-bound application protocols",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "candidate-forward-artifact-native",
+        "candidate-prior-artifact-native",
+        "cpu-current-native-faults",
+        "cpu-30-pairs"
+      ],
+      "environment": "protected operator configuration",
+      "criteria": [
+        "Assemble protected exact candidate forward prior worker prerequisite and source-bound application protocols"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute exact declared protocol and retain failure and cleanup evidence",
+      "checklist": []
+    },
+    {
+      "id": "ledger-exact-checklist-validation",
+      "requirement": "All78 original checklist items mapped exactly once and complete current dependency/evidence validation succeeds",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "checklist-source"
+      ],
+      "environment": "isolated operator ledger validation",
+      "criteria": [
+        "All78 original checklist items mapped exactly once and complete current dependency/evidence validation succeeds"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute exact declared protocol and retain failure and cleanup evidence",
+      "checklist": []
+    },
+    {
+      "id": "final-sanitized-acceptance-packet",
+      "requirement": "Prepare independently reviewed current sanitized acceptance packet with exact retained release identities all native outcomes preserved failures maintenance state and external decisions",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [
+        "production-rehearsal",
+        "participant-artifacts",
+        "load-evaluation",
+        "recovery-native-faults",
+        "v060-acceptance",
+        "ledger-exact-checklist-validation"
+      ],
+      "environment": "isolated operator documentation",
+      "criteria": [
+        "Prepare independently reviewed current sanitized acceptance packet with exact retained release identities all native outcomes preserved failures maintenance state and external decisions"
+      ],
+      "status": "waiting_dependency",
+      "attempts": [],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Execute exact declared protocol and retain failure and cleanup evidence",
+      "checklist": []
+    },
+    {
+      "id": "candidate-image-build-source-review",
+      "requirement": "Independent source review of exact retained private candidate image builder and artifact admission",
+      "sources": [
+        "user-plan"
+      ],
+      "dependencies": [],
+      "environment": "isolated engineering",
+      "criteria": [
+        "Independent source review of exact retained private candidate image builder and artifact admission"
+      ],
+      "status": "passed",
+      "attempts": [],
+      "evidence": [
+        {
+          "reference": "docs/acceptance/public-launch/private-candidate-artifact-source-review.json#/source_review_passed",
+          "criteria_met": [
+            "Independent source review of exact retained private candidate image builder and artifact admission"
+          ]
+        }
+      ],
+      "identities": {
+        "source_commit": "358a75796990bd91ebbe7f767710584c698f9d2c"
+      },
+      "next_action": "Execute distinct forward and prior native artifact builds",
+      "checklist": []
+    },
+    {
+      "id": "cpu-lifecycle-overhead-repair",
+      "requirement": "Attribute and reduce whole owned OCI lifecycle overhead while preserving accounting window sandbox fixtures score and thresholds",
+      "sources": [
+        "user-plan",
+        "docs/acceptance/public-launch/native-cpu-generation-l.json"
+      ],
+      "dependencies": [
+        "cpu-current-native-faults"
+      ],
+      "environment": "isolated engineering; bounded declared native diagnostics serialized by primary",
+      "criteria": [
+        "Independent source and protocol review; meaningful focused tests and make check; exact retained corrected runtime/artifacts before new paired acceptance"
+      ],
+      "status": "running",
+      "attempts": [
+        {
+          "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+          "result": "Existing failed thirty-pair evidence shows median empty startup CPU238708.5us and remaining195080us; independent engineer investigating lifecycle costs without new measurements"
+        }
+      ],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Implement and review concrete corrective engineering; no unchanged favorable reruns",
+      "checklist": []
+    },
+    {
+      "id": "synthetic-startup-terminal-repair",
+      "requirement": "Reject excessive Unix paths before provisioning and independently retire exact never-admitted stale socket and empty worker after failed startup",
+      "sources": [
+        "user-plan",
+        "docs/acceptance/public-launch/synthetic-interruption-native-a.json"
+      ],
+      "dependencies": [],
+      "environment": "isolated source engineering then dedicated native cleanup controller",
+      "criteria": [
+        "Independent source review and focused/full tests; retained repaired source; original exact ownership cleanup positively verified without replaying failed gate"
+      ],
+      "status": "running",
+      "attempts": [
+        {
+          "source_commit": "843c5543bd7bf9cae45e0e7042f7ff053b91bb3c",
+          "result": "All conflicting native host operations paused; independent engineer implementing precise failed-startup retirement"
+        }
+      ],
+      "evidence": [],
+      "identities": {},
+      "next_action": "Review and retain repair then cleanup original generationA; preserve original failure",
+      "checklist": []
+    }
+  ],
+  "operating_rules": {
+    "push": false,
+    "private_evidence": "Raw evidence remains protected on host; committed references sanitized",
+    "frozen_release": "fd4be66575ae6dbef9785321a79a687f418df0b8",
+    "rollback": "b4d212da3109b7716eb41553986848e377fb5b3d"
+  }
+}

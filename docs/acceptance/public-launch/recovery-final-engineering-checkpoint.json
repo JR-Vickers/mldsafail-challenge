@@ -1,0 +1,59 @@
+{
+  "schema": "mldsafail.recovery-engineering-final-checkpoint.v1",
+  "source_commit": "af7c07033e9340ac7bf258e4caab95ca0c52254c",
+  "checkpoint_commits": [
+    "6819132",
+    "457ff70",
+    "7f955e1",
+    "5ea720a",
+    "af7c070"
+  ],
+  "shared_helper_dependencies": {
+    "owned_client": "cd72e15",
+    "owned_daemon": "ac38663d7d52e5b5c1768588c19d484e017e2f76"
+  },
+  "verification": {
+    "command": "make check",
+    "pytest_command": "uv run --extra dev python -m pytest",
+    "passed": 474,
+    "skipped": 8,
+    "historical_small_benchmark": "passed",
+    "source_import_asserted": "recovery engineering worktree src/mldsafail/__init__.py"
+  },
+  "independent_review": {
+    "reviewer": "preparation agent",
+    "scoped_consumer_fixture_focused": 33,
+    "native_signal_followup_focused": 12,
+    "daemon_postgres_followup_focused": 25,
+    "provision_lock_focused": 16,
+    "outcome": "passed_source_review_native_pending"
+  },
+  "status": "source_work_verified_native_execution_pending",
+  "remaining_agent_native_work": [
+    "Provision and accept exact fresh dedicated rootless operational daemon with separate worker/operator domains",
+    "Run modernized four-case service restoration fault fixture on exact clean source and immutable fixture image",
+    "Run disposable PostgreSQL admission/ownership acceptance",
+    "Run fresh synthetic production-like database/epoch restoration and audit using the integrated dedicated daemon context"
+  ],
+  "external_decisions": [
+    "Actual approved encrypted off-host storage configuration",
+    "Independent recovery-password custody",
+    "Actual owner webhook and notification destination",
+    "Public publication, production activation and external pilot participation"
+  ],
+  "maintenance": {
+    "owned_local_qemu_processes": "none_observed_at_checkpoint",
+    "shared_vps_operations": "primary_agent_exclusive",
+    "nothing_pushed": true
+  },
+  "historical_evidence": [
+    "recovery-synthetic-s3-final-report.json",
+    "recovery-native-client-review.json",
+    "accounting-isolated-daemon-final-review.json",
+    "participant-a4f1-archive-review.json"
+  ],
+  "limits": [
+    "Earlier native QEMU/helper/storage successes retain original source and scope; they do not substitute for newer integration native gates",
+    "Public launch is not approved or claimed"
+  ]
+}

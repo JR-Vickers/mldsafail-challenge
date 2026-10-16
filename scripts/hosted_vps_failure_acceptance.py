@@ -75,6 +75,11 @@ def main():
                                for p in FIXTURES.rglob("*.py")}
     config["driver"] = Path(__file__).with_name("hosted_vps_failure_driver.py").read_text()
     config["probe"] = Path(__file__).with_name("hosted_vps_failure_probe.py").read_text()
+    if subprocess.check_output(["git", "-C", str(Path(__file__).resolve().parents[1]), "status", "--porcelain"], text=True).strip():
+        parser.error("Commit and retain a clean operator source checkpoint before native acceptance.")
+    config["operator_source_commit"] = subprocess.check_output(["git", "-C", str(Path(__file__).resolve().parents[1]), "rev-parse", "HEAD"], text=True).strip()
+    config["operator_source_sha256"] = {name: hashlib.sha256(config[name].encode()).hexdigest()
+                                        for name in ("driver", "probe")}
     bootstrap = '''import json,os,pathlib,subprocess,sys
 c=json.load(sys.stdin)
 p=pathlib.Path.home()/('.mldsafail-acceptance-'+c['run_id'])

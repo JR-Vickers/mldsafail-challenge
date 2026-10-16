@@ -1,0 +1,13 @@
+{
+  "schema": "mldsafail.local-postgres-diagnostic.v1",
+  "source_commit": "71e390c86ea8c10a948fbcf612710a2385f36f3f",
+  "database_image": "sha256:fbcea1bd13b6a882cd6caa6b58db3ae5c102efe50ec625b3e2a5cbc50db5bfe4",
+  "scope": "Local development PostgreSQL17.5 LinuxARM64 engine diagnostic only; target VPS17.11 rootless gate remains pending",
+  "passed": true,
+  "cleanup_complete": true,
+  "test_returncode": 0,
+  "pytest_log_sha256": "4d2df7a96ce4a667da3ccf295f2d16c728a65ed0e861a3baa919f7bb469b02b5",
+  "tests_passed_count": 5,
+  "native_target_gate_passed": false,
+  "evidence_reference": "protected local development PostgreSQL diagnostic"
+}

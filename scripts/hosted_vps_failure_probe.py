@@ -93,11 +93,11 @@ def inspect(request):
             epoch = Path(os.environ['MLDSAFAIL_MLWE_EPOCH_PATH'])
             em = ev.read(epoch / 'manifest.json')
             secret = ev.read(epoch / 'secret.json')
-            text = request['text']
-            assert secret['nonce'] not in text
-            assert '/srv/mldsafail-evaluator' not in text
-            assert not re.search(r'"(?:seed|nonce|candidate|s1|s2)"\s*:', text)
-            assert all(not re.search(r'(?<![0-9])' + str(c['seed']) + r'(?![0-9])', text) for c in em['cases'])
+            surface = request['text']
+            assert secret['nonce'] not in surface
+            assert '/srv/mldsafail-evaluator' not in surface
+            assert not re.search(r'"(?:seed|nonce|candidate|s1|s2)"\s*:', surface)
+            assert all(not re.search(r'(?<![0-9])' + str(c['seed']) + r'(?![0-9])', surface) for c in em['cases'])
             return {'private_material_absent': True}
         raise ValueError('Unknown read-only probe')
 

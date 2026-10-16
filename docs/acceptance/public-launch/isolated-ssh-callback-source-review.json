@@ -1,0 +1,19 @@
+{
+  "schema": "mldsafail.independent-source-review.v1",
+  "review_passed": true,
+  "native_executed": false,
+  "reviewed_source_commit": "01f38e1",
+  "file_sha256": {
+    "deploy/native_recovery_transport_loss.py": "3b8ef90c9fd0200a936c9c77070e33422d873c20677ad68eb7942bd741260333"
+  },
+  "reviewer": "accounting independent agent",
+  "scope": [
+    "strict exact owner boot/PID/start/UID/cmdline reconnection proof",
+    "tiny actual PostgreSQL fixture query and finite240second wait",
+    "repeated independently retryable cleanup",
+    "independent finally cleanup and negative publication retry preservingoriginal"
+  ],
+  "host_controller_review_passed": false,
+  "actual_ssh_native_gate_passed": false,
+  "outer_owned_driver_cleanup_required": true
+}

@@ -1,0 +1,15 @@
+{
+  "schema": "mldsafail.source-review.v1",
+  "reviewed_source": "cd72e15d94d04dc117367dd8d471ae13a850b045",
+  "reviewed_helper_sha256": "7a95b247a63ae25b6cba9cb798aa0f7104584306a86a4ad94838ff130a4d8d50",
+  "status": "passed_source_review",
+  "focused_tests_passed": 19,
+  "observations": [
+    "Only an exclusively newly created child receives permission normalization; existing domains and the parent are unchanged.",
+    "A nofollow directory descriptor verifies birth UID/device/inode before fchmod0700 and verifies exact post-change path identity.",
+    "Required kernel controls and empty membership are proved before saving the birth record and spawning a PID.",
+    "Permission failures retain birth identity and perform exact independent cleanup without spawning commands."
+  ],
+  "native_acceptance": false,
+  "remaining": ["native_inherited_mode_client_birth", "CPU_async_client_consumer_adaptation"]
+}

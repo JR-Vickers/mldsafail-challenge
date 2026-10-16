@@ -1,0 +1,71 @@
+{
+  "actual_offhost_storage_accepted": false,
+  "actual_owner_custody_accepted": false,
+  "adoption_gates_passed": false,
+  "approved_for_scoped_synthetic_execution": true,
+  "artifact_review": {
+    "hash_size_correspondence_verified": true,
+    "provenance_record": "docs/acceptance/operator-source-reconciliation/synthetic-amd64-artifact-preparation.json",
+    "provenance_record_sha256": "28a7d04fa786ee6e2ae0298e2996dace99b6bbd8e1ecb45d5785034773108fac",
+    "remote_binaries_read_by_reviewer": false,
+    "runtime_versions_pending": true,
+    "verification_record": "results/native-resume/20261015/encrypted-artifact-verification.json",
+    "verification_record_sha256": "e0bbc311f2db9d4b5d22d9ce9058df9b7da6a0122b514b580b6879a74ab532a2"
+  },
+  "author": "Independent reviewer /root/functional_audit",
+  "benchmark_epoch_data_used": false,
+  "blocking_source_findings": [],
+  "callback_review_passed": true,
+  "conditions": [
+    "Run only clean frozen451943ae3d7cc511ed077ad79e27db256da75617 exact reviewed bytes via native_operator_unit, fresh .mlf-encrypted-local-20261015-a/probe private output and a disjoint fresh delegated operator domain. One native operation at a time after prior RPC domain absence verified.",
+    "Operator must bind exact private retained amd64 artifacts.json/restic/MinIO identities from hashed verification/provenance; check actual versions/architecture from runtime report against provenance before accepting result. Keep artifact directory immutable and do not substitute versions.",
+    "Use a controlled synthetic execution environment: remove inherited proxy and RESTIC/AWS/MINIO overrides unrelated to this fixture; no production/staging credentials or paths. Check actual MinIO listeners remain loopback and resources sufficient without stopping live services.",
+    "Require all declared faults actually reached, entire report passed and cleanup_complete, outer operator command complete/cleanup_complete, then independent cleanup CLI under fresh reviewed operator authority and current process/cgroup/socket inspection. Preserve every failed/partial report and cleanup receipt.",
+    "Atomic publication or process interruption can leave partial evidence; report alone is never authoritative acceptance. Stop on unresolved owned resources and reconcile exact recorded authority before further native work.",
+    "This source decision does not approve unsafe baseline rehearsal or any dependent protected-set/application load gate, production recovery, owner off-host custody, real S3 service, publication, or measurement adoption."
+  ],
+  "evidence_refs": [
+    "deploy/native_synthetic_s3.py",
+    "deploy/recovery_journal.py",
+    "deploy/owned_client.py",
+    "deploy/recovery_daemon.py",
+    "deploy/recovery.py",
+    "scripts/native_operator_unit.py",
+    "tests/test_native_synthetic_s3.py",
+    "results/native-resume/20261015/encrypted-artifact-verification.json",
+    "docs/acceptance/operator-source-reconciliation/synthetic-amd64-artifact-preparation.json",
+    "docs/acceptance/integration/baseline-independent-audit.json"
+  ],
+  "file_sha256": {
+    "deploy/native_synthetic_s3.py": "beba36a9f633814f717ffdd29e57a36bdb2178506c217a24de6a0ae83375bf7c",
+    "deploy/owned_client.py": "7a95b247a63ae25b6cba9cb798aa0f7104584306a86a4ad94838ff130a4d8d50",
+    "deploy/recovery.py": "b0294554d0d7a5bb226ead9f966ae54830eb7e3f727a1aa220877beff2766224",
+    "deploy/recovery_daemon.py": "bfcc4057dec8658fd4918db878a42e1fa1146f783957826d1348a98407d77331",
+    "deploy/recovery_journal.py": "1e8fb228c4412952b3b37ed0a8f2fdd026519fa25619a4e844a23674e4638180",
+    "scripts/native_operator_unit.py": "c85663895a6e00a38c9f812a08301d4954ae444d39307eabda2f744db39b7d73",
+    "tests/test_native_synthetic_s3.py": "d33ca55a8f89b96347733c5ff49bf3872374cfcfa208e849994c58d706e22d0e"
+  },
+  "findings": [
+    "Inspected entire native_synthetic_s3.py execution and independent cleanup path. Linux-only fresh private output and exclusive run lock reject output reuse and concurrent cleanup. Clean source and exact artifact checksum gates precede server execution.",
+    "All fixture material is newly generated: local CA/key, synthetic storage secret, synthetic restic password and copy, loopback ephemeral MinIO endpoint, three small snapshots plus deterministic64MiB synthetic upload fault. No benchmark epoch or externally supplied recovery set is read.",
+    "MinIO server and console commands explicitly bind127.0.0.1. Restic S3 URL and curl operations use this endpoint and local synthetic credentials with local CA. Runtime environment must remain synthetic and isolated as stated below.",
+    "Restic check --read-data, three-snapshot inventory, wrong password/storage secret/untrusted CA nonzero rejections, byte-equal restore, strict exact snapshot retention-state validation and post-prune check form the positive path. Negative commands retain bounded private logs.",
+    "Upload interruption requires a newly observed storage pack, live upload thread, exact owned client command identity and then cgroup stop. Upload thread must terminate with a recorded failure before retry/check/restore; inability to reach the boundary remains failure.",
+    "Encrypted pack corruption changes actual retrieved object bytes, requires check rejection and restores original object in finally followed by full check. Failure remains partial even where repair succeeds.",
+    "Journal registers non-Docker trusted clients only for this fixture. Its daemon-repair/container branches have empty authority and do not control staging/default Docker. owned_client birth gate durably registers each exact native cgroup before exec; stop verifies boot/device/inode/owner before killing and proving emptiness.",
+    "MinIO server has separate durable server-clients inventory. Finalization independently attempts Journal cleanup and server.stop, joins server executor and marks passed false on cleanup errors. Separate cleanup CLI retries Journal and every server-domain stop, writes a unique receipt and preserves earlier failures.",
+    "Outer native_operator_unit checks actual delegated non-root systemd service/invocation/controller/cgroup and private fresh journal, records source/command identities, runs bounded owned child and attempts outer domain cleanup. Outer success plus independent current absence inspection remain necessary; child report alone is insufficient.",
+    "Recovery validate_prune_state is used only against explicitly synthetic state after byte-exact restoration and Journal cleanup; this does not claim full protected recovery-set validation or owner retained key custody.",
+    "Artifact verification record hashes/sizes match retained independently reviewed amd64 provenance for restic, MinIO and manifest. Reviewer inspected those records and their correspondence; did not independently re-read remote binaries, run versions, test native runtime or assert operational success."
+  ],
+  "helper_sha256": "7a95b247a63ae25b6cba9cb798aa0f7104584306a86a4ad94838ff130a4d8d50",
+  "independent_authorship": true,
+  "native_acceptance_passed": false,
+  "native_executed_by_reviewer": false,
+  "native_protocol_review_passed": true,
+  "schema": "mldsafail.synthetic-encrypted-native-source-review.v1",
+  "scope": "Independent complete source inspection of standalone encrypted-only fixture, CLI cleanup, ownership helper contracts and actual native operator wrapper. Approval permits only one fresh local synthetic fixture under stated conditions; no Docker daemon, protected application recovery-set, owner custody or off-host acceptance.",
+  "script_sha256": "beba36a9f633814f717ffdd29e57a36bdb2178506c217a24de6a0ae83375bf7c",
+  "source_commit": "451943ae3d7cc511ed077ad79e27db256da75617",
+  "source_review_passed": true
+}

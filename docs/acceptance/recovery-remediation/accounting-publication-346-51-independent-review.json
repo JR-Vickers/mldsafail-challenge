@@ -1,0 +1,22 @@
+{
+  "schema": "mldsafail.independent-source-review.v1",
+  "reviewer": "recovery",
+  "reviewed_commits": [
+    "3462aab6a824d89415c9e5a746ff7a93f538541d",
+    "51d7b6e9fc620400cd4ea5ca6b1ed57d0307b977"
+  ],
+  "source_review_passed": true,
+  "native_executed": false,
+  "files_sha256": {
+    "research/cpu_measurement/native_driver.py": "2b7e20bf2a4319379a1c2ddc9695c23e5f06db194404a24916ce83fbcb2b1292",
+    "research/mlwe_v060_preparation/native_acceptance.py": "83802cde0b407c4940f50efb283d03d52b407ba1bd6795a3b68446d06079f952"
+  },
+  "focused_tests_passed": 27,
+  "checks": [
+    "publish-then-raise independently retracts positive final disposition",
+    "negative retry failure preserves original exception identity",
+    "original execution failure stays authoritative",
+    "actual completed resource cleanup remains separately recorded",
+    "no native acceptance or adoption inferred from source tests"
+  ]
+}

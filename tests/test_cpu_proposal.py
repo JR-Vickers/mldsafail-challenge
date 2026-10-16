@@ -38,16 +38,23 @@ def test_host_membership_proof(tmp_path):
     (b'malformed', 0, 'malformed'),
     (b'', 0, 'malformed'),
     (b'', 1, 'crash'),
+    (b'{"candidate":{"tag":"forged"}}', 1, 'invalid'),
 ])
 def test_experimental_worker_ignores_reported_cpu_and_verification(tmp_path, monkeypatch, output, exitcode, expected):
     import json
     from types import SimpleNamespace
     from research.cpu_measurement import harness
+    from deploy import owned_daemon
+    monkeypatch.setattr(owned_daemon, 'load_manifest', lambda: {'epoch':'a'*32})
+    monkeypatch.setattr(owned_daemon, 'verify_environment', lambda manifest, **kwargs:manifest)
     from mldsafail.benchmark_v050.generator import generate_mlwe
     (tmp_path / 'cpu.stat').write_text('usage_usec 20\n')
     (tmp_path / 'cgroup.events').write_text('populated 0\n')
     monkeypatch.setattr(harness.sys, 'platform', 'linux')
+    monkeypatch.setattr(harness, 'validate_delegation', lambda *args: None)
     monkeypatch.setattr(harness, 'prove_membership', lambda *args: None)
+    monkeypatch.setattr(harness, 'worker_cgroup', lambda *args: tmp_path / 'worker')
+    monkeypatch.setattr(harness, 'prove_exclusive', lambda *args: None)
     monkeypatch.setattr(harness.subprocess, 'check_output', lambda *args, **kw: json.dumps(
         {'CgroupVersion': '2', 'SecurityOptions': ['name=rootless']}).encode())
     def command(argv, **kwargs):
@@ -55,21 +62,19 @@ def test_experimental_worker_ignores_reported_cpu_and_verification(tmp_path, mon
             (tmp_path / 'cpu.stat').write_text('usage_usec 1020\n')
         return SimpleNamespace(returncode=0, stdout='{"Pid":123}')
     monkeypatch.setattr(harness.subprocess, 'run', command)
-    class Worker:
-        def __init__(self, argv, **kwargs):
-            self.stdout = kwargs['stdout']
-            self.returncode = None
-        def communicate(self, payload, timeout):
-            self.stdout.write(output)
-            self.stdout.flush()
-            self.returncode = exitcode
-        def poll(self):
-            return self.returncode
-        def wait(self, **kwargs):
-            return exitcode
-    monkeypatch.setattr(harness.subprocess, 'Popen', Worker)
+    import subprocess
+    real_popen = subprocess.Popen
+    monkeypatch.setattr(harness.subprocess, 'Popen', lambda *args, **kw: real_popen(
+        [__import__('sys').executable, '-c',
+         'import sys; sys.stdin.buffer.read(); sys.stdout.buffer.write(' + repr(output) + '); sys.exit(' + str(exitcode) + ')'], **kw))
+    from research.cpu_measurement import client
+    from deploy import owned_client
+    monkeypatch.setattr(client, 'mutation', lambda *args:'a'*64)
+    monkeypatch.setattr(client, 'spawn', lambda argv, owner, parent: (harness.subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE), {'id':'test'}))
+    monkeypatch.setattr(owned_client, 'stop', lambda entry: None)
+    owner = SimpleNamespace(check_identity=lambda:None, record={'generation':'a'*32}, mutation=lambda *args, **kwargs:None, update=lambda *args, **kwargs:None)
     result = harness._run('sha256:' + 'a' * 64, tmp_path, 'dedicated', tmp_path,
-                          generate_mlwe('small', 0, 1).public.to_dict(), lambda *args: True)
+                          generate_mlwe('small', 0, 1).public.to_dict(), lambda *args: True, owner=owner)
     assert result['authoritative_cpu_usec'] == 1000
     assert not result['verified'] and result['status'] == expected
 
@@ -78,16 +83,354 @@ def test_predeclared_cpu_adoption_gates():
     from research.cpu_measurement.native_suite import measurement_gates
     rows = [dict(fixture=name, repetition=i, authoritative_cpu_usec=cpu, wall_seconds=1.)
             for i in range(30) for name, cpu in [('empty', 200_000), ('child', 500_000)]]
-    assert measurement_gates(rows)['passed']
+    for index, row in enumerate(rows):
+        row.update(schema='mldsafail.cpu-evidence.v1', status='no_answer', cleanup_complete=True,
+                   suite_id='suite', source_sha256='source', image='image', host_identity='host',
+                   parent_inode=1, parent_device=2, generation=str(index), boot_id='00000000-0000-0000-0000-000000000000',
+                   started_monotonic=index * 2., finished_monotonic=index * 2. + 1.,
+                   counter_before_usec=0, counter_after_usec=row['authoritative_cpu_usec'])
+    assert measurement_gates(rows, audit_records=False)['passed']
     for row in rows:
         if row['fixture'] == 'empty':
             row['authoritative_cpu_usec'] = 100_000 if row['repetition'] % 2 else 300_000
-    assert measurement_gates(rows)['passed']  # Empty CV is deliberately not a gate.
+    for row in rows: row['counter_after_usec'] = row['authoritative_cpu_usec']
+    assert measurement_gates(rows, audit_records=False)['passed']  # Empty CV is deliberately not a gate.
     rows[1]['authoritative_cpu_usec'] = 2_000_000
-    assert not measurement_gates(rows)['gates']['deterministic_cpu_cv']
+    rows[1]['counter_after_usec'] = 2_000_000
+    assert not measurement_gates(rows, audit_records=False)['gates']['deterministic_cpu_cv']
     rows[1]['authoritative_cpu_usec'] = 500_000
+    rows[1]['counter_after_usec'] = 500_000
     for row in rows:
         if row['fixture'] == 'empty': row['wall_seconds'] = 6.
-    assert not measurement_gates(rows)['gates']['empty_wall_p95']
+    assert not measurement_gates(rows, audit_records=False)['gates']['empty_wall_p95']
     with pytest.raises(ValueError, match='30'):
-        measurement_gates(rows[:-1])
+        measurement_gates(rows[:-1], audit_records=False)
+
+
+def test_durable_generation_fences_interrupted_owner(tmp_path):
+    from research.cpu_measurement.ownership import Ownership
+    parent = tmp_path / 'parent'
+    parent.mkdir()
+    journal = tmp_path / 'private'
+    with pytest.raises(ValueError):
+        with Ownership(journal, parent) as owner:
+            owner.mutation('container_create', name='owned-container')
+            raise ValueError('injected interruption')
+    with pytest.raises(RuntimeError, match='reconciliation'):
+        with Ownership(journal, parent):
+            pass
+    import json
+    record = json.loads((journal / 'journal.json').read_text())
+    assert record['state'] == 'interrupted'
+    assert record['mutations'][0]['name'] == 'owned-container'
+
+
+def test_ownership_publishes_before_release_and_requires_cleanup(tmp_path):
+    import json
+    from research.cpu_measurement.ownership import Ownership
+    parent = tmp_path / 'parent'
+    parent.mkdir()
+    with Ownership(tmp_path / 'private', parent) as owner:
+        with pytest.raises(RuntimeError, match='cleanup'):
+            owner.finish({'cleanup_complete': False})
+        evidence = owner.finish({'cleanup_complete': True})
+        journal = json.loads((tmp_path / 'private/journal.json').read_text())
+        assert journal['state'] == 'complete'
+        assert json.loads((tmp_path / 'private' / journal['evidence_file']).read_text()) == evidence
+    with Ownership(tmp_path / 'private', parent) as owner:
+        owner.finish({'cleanup_complete': True})
+
+
+def test_stream_capture_caps_flood_and_preserves_crash():
+    import subprocess
+    import sys
+    import time
+    from research.cpu_measurement.harness import capture
+    process = subprocess.Popen([sys.executable, '-c', 'import sys; sys.stdout.buffer.write(b"x"*1000000)'],
+                               stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        status, raw = capture(process, b'input', time.monotonic() + 5, cap=1024)
+        assert status == 'output_limit' and len(raw) <= 1024
+    finally:
+        process.kill()
+        process.wait()
+        for stream in (process.stdin, process.stdout, process.stderr): stream.close()
+
+
+def test_contamination_proof_rejects_sibling_and_direct_members(tmp_path):
+    from research.cpu_measurement.harness import prove_exclusive
+    worker = tmp_path / 'worker'
+    sibling = tmp_path / 'sibling'
+    worker.mkdir()
+    sibling.mkdir()
+    (tmp_path / 'cgroup.procs').write_text('')
+    (worker / 'cgroup.procs').write_text('123\n')
+    (sibling / 'cgroup.procs').write_text('')
+    prove_exclusive(tmp_path, worker)
+    (sibling / 'cgroup.procs').write_text('456\n')
+    with pytest.raises(RuntimeError, match='Unauthorized'):
+        prove_exclusive(tmp_path, worker)
+
+
+def test_private_supervisor_request_restricts_paths():
+    import socket
+    from research.cpu_measurement.supervisor import read_request
+    server, client = socket.socketpair()
+    try:
+        client.sendall(b'{"fixture":"../../secrets"}\n')
+        with pytest.raises(ValueError, match='approved'):
+            read_request(server)
+    finally:
+        server.close()
+        client.close()
+
+
+def test_independent_audit_rejects_cleanup_and_counter_fabrication():
+    from research.cpu_measurement.audit import audit
+    record = dict(schema='mldsafail.cpu-evidence.v1', generation='a'*32, boot_id='00000000-0000-0000-0000-000000000000', parent_device=1,
+                  parent_inode=2, status='no_answer', execution_status='exited', verified=False, cleanup_complete=True,
+                  measurement_method='cgroup-v2-usage-usec', counter_before_usec=20,
+                  counter_after_usec=120, authoritative_cpu_usec=100, wall_seconds=1.,
+                  binding=dict(source_sha256='a'*64, supervisor_source_sha256='e'*64, source_commit='f'*40, image='sha256:'+'b'*64, epoch='isolated',
+                               host='c'*64, kernel='linux', docker={'cgroup_version': '2'}),
+                  membership=[{'worker_pid':123, 'cgroup':'/sys/fs/cgroup/owned/worker'}], input_delivery='membership_proven_before_delivery',
+                  termination='domain_empty', output_sha256=__import__('hashlib').sha256(b'{"candidate":null}').hexdigest(),
+                  raw_stdout_base64=__import__('base64').b64encode(b'{"candidate":null}').decode(),
+                  worker_returncode=0, source_artifact='generation-source',
+                  accounting_parent='/sys/fs/cgroup/owned', observations=[dict(usage_usec=20, monotonic=1.)],
+                  started_monotonic=1., deadline_monotonic=61., declared_timeout_seconds=60,
+                  capture=dict(stopped_monotonic=2., overflow=None, cap_bytes=1024*1024, stderr_base64='',
+                               stderr_sha256=__import__('hashlib').sha256(b'').hexdigest(),
+                               stdout_base64=__import__('base64').b64encode(b'{"candidate":null}').decode()),
+                  public_input=__import__('mldsafail.benchmark_v050.generator', fromlist=['generate_mlwe']).generate_mlwe('small',0,1).public.to_dict())
+    assert audit(record)['valid']
+    record['cleanup_complete'] = False
+    with pytest.raises(ValueError, match='Cleanup'):
+        audit(record)
+    record['cleanup_complete'] = True
+    record['authoritative_cpu_usec'] = 1
+    with pytest.raises(ValueError, match='delta'):
+        audit(record)
+
+
+def test_cleanup_reconciliation_is_retryable_and_preserves_failure(tmp_path, monkeypatch):
+    import json
+    from research.cpu_measurement.ownership import Ownership
+    from research.cpu_measurement import reconcile
+    parent = tmp_path / 'parent'
+    parent.mkdir()
+    (parent / 'cgroup.events').write_text('populated 0\n')
+    (parent / 'cpu.stat').write_text('usage_usec 100\n')
+    directory = tmp_path / 'private'
+    with pytest.raises(ValueError):
+        with Ownership(directory, parent) as owner:
+            owner.mutation('container_create_intent', name='cpu-proposal-' + 'a'*32, counter_before_usec=20)
+            raise ValueError('injected failure')
+    def unavailable(*args, **kwargs):
+        raise RuntimeError('daemon unavailable')
+    monkeypatch.setattr(reconcile.subprocess, 'check_output', unavailable)
+    assert not reconcile.reconcile(directory, parent)['cleanup_complete']
+    with pytest.raises(RuntimeError, match='reconciliation'):
+        with Ownership(directory, parent): pass
+    monkeypatch.setattr(reconcile.subprocess, 'check_output', lambda *args, **kwargs: b'')
+    assert reconcile.reconcile(directory, parent)['cleanup_complete']
+    assert reconcile.reconcile(directory, parent)['already_complete']
+    failures = [json.loads(path.read_text()) for path in directory.glob('*-cleanup-*.json')]
+    assert len(failures) == 2 and any(row['errors'] for row in failures)
+    with Ownership(directory, parent) as owner:
+        owner.finish({'cleanup_complete': True})
+
+
+def test_closed_output_streams_still_receive_ordinary_timeout():
+    import subprocess
+    import sys
+    import time
+    from research.cpu_measurement.harness import capture
+    process = subprocess.Popen([sys.executable, '-c', 'import os,time; os.close(1); os.close(2); time.sleep(10)'],
+                               stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    evidence = {}
+    deadline = time.monotonic() + .1
+    try:
+        assert capture(process, b'input', deadline, evidence=evidence)[0] == 'timeout'
+        assert evidence['stopped_monotonic'] >= deadline
+    finally:
+        process.kill()
+        process.wait()
+        for stream in (process.stdin, process.stdout, process.stderr): stream.close()
+
+
+def test_parent_lock_serializes_distinct_journal_directories(tmp_path):
+    from research.cpu_measurement.ownership import Ownership
+    parent = tmp_path / 'parent'
+    parent.mkdir()
+    with Ownership(tmp_path / 'first', parent) as first:
+        with pytest.raises(BlockingIOError):
+            with Ownership(tmp_path / 'second', parent): pass
+        first.finish({'cleanup_complete': True})
+
+
+def test_private_supervisor_enforces_total_request_deadline(monkeypatch):
+    from research.cpu_measurement import supervisor
+    clock = iter((0., .1, .6, 1.1))
+    monkeypatch.setattr(supervisor.time, 'monotonic', lambda: next(clock))
+    class Dribble:
+        def __init__(self): self.timeouts = []
+        def settimeout(self, value): self.timeouts.append(value)
+        def recv(self, count): return b' '
+    connection = Dribble()
+    with pytest.raises(TimeoutError, match='Absolute'):
+        supervisor.read_request(connection)
+    assert connection.timeouts == [.9, .4]
+
+
+def test_failed_invocation_retains_preexecution_source_and_public_input(tmp_path, monkeypatch):
+    import json
+    from pathlib import Path
+    from research.cpu_measurement import harness
+    from mldsafail.benchmark_v050.generator import generate_mlwe
+    parent = tmp_path / 'accounting'
+    parent.mkdir()
+    private = tmp_path / 'private'
+    source = tmp_path / 'contestant'
+    source.mkdir()
+    (source / 'solver.py').write_text('def solve(instance): return None\n')
+    (source / 'nested').mkdir()
+    (source / 'nested/helper.py').write_text('VALUE = 1\n')
+    monkeypatch.setattr(harness, 'canonical_directory', lambda _: private)
+    original_read = Path.read_bytes
+    monkeypatch.setattr(Path, 'read_bytes', lambda path: b'host-identity' if str(path) == '/etc/machine-id' else original_read(path))
+    monkeypatch.setattr(harness.subprocess, 'check_output', lambda *args, **kwargs: b'a'*40)
+    def interrupted(*args, owner, **kwargs):
+        snapshot = args[3]
+        assert snapshot.stat().st_mode & 0o777 == 0o755
+        assert (snapshot / 'nested').stat().st_mode & 0o777 == 0o755
+        intent = owner.record['mutations'][0]
+        assert (private / intent['source_artifact']).stat().st_mode & 0o777 == 0o700
+        assert intent['operation'] == 'invocation_intent'
+        assert (private / intent['source_artifact'] / 'solver.py').read_text() == (source / 'solver.py').read_text()
+        raise RuntimeError('Injected failure after durable provenance')
+    monkeypatch.setattr(harness, '_run', interrupted)
+    public = generate_mlwe('small', 0, 1).public.to_dict()
+    import os
+    previous_umask = os.umask(0o077)
+    try:
+        with pytest.raises(RuntimeError, match='durable provenance'):
+            harness.run('sha256:'+'b'*64, parent, 'native-slice', source, public, lambda *args: False,
+                        ownership_directory=private)
+    finally:
+        os.umask(previous_umask)
+    journal = json.loads((private / 'journal.json').read_text())
+    assert journal['state'] == 'interrupted'
+    assert journal['mutations'][0]['public_input'] == json.loads(json.dumps(public))
+    assert len(list(private.glob('*-interrupted.json'))) == 1
+
+
+def test_reboot_cleanup_never_signals_reused_host_client_pid(tmp_path, monkeypatch):
+    from research.cpu_measurement.ownership import Ownership
+    from research.cpu_measurement import reconcile
+    parent = tmp_path / 'parent'
+    parent.mkdir()
+    (parent / 'cgroup.events').write_text('populated 0\n')
+    (parent / 'cpu.stat').write_text('usage_usec 1\n')
+    directory = tmp_path / 'private'
+    with pytest.raises(ValueError):
+        with Ownership(directory, parent) as owner:
+            owner.mutation('host_client_spawned', pid=123, start_ticks=1, uid=1, cmdline_sha256='a'*64)
+            raise ValueError('interrupted')
+    monkeypatch.setattr(reconcile, 'boot_id', lambda: 'different-boot')
+    def forbidden(*args): raise AssertionError('Rebooted host client PID must never be signaled')
+    monkeypatch.setattr(reconcile.os, 'pidfd_open', forbidden, raising=False)
+    receipt = reconcile.reconcile(directory, parent)
+    assert receipt['cleanup_complete'] and receipt['changed_boot']
+
+
+def test_client_birth_acknowledgement_precedes_exec_and_failed_save_cancels(monkeypatch, tmp_path):
+    import sys
+    from types import SimpleNamespace
+    from research.cpu_measurement import client
+    parent=tmp_path/'operators';parent.mkdir()
+    accounting=tmp_path/'measurements';accounting.mkdir()
+    marker=tmp_path/'executed'
+    monkeypatch.setenv('MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT',str(parent))
+    monkeypatch.setattr(client.owned_client,'boot_id',lambda:'boot')
+    monkeypatch.setattr(client.owned_client,'identity',lambda pid:dict(pid=pid,start_ticks=1,uid=1,boot_id='boot',cmdline_sha256='a'*64))
+    def prepare(entry,parent):
+        path=parent/entry['id']
+        entry['cgroup_intent']={'name':path.name}
+        return path
+    monkeypatch.setattr(client.owned_client,'prepare_domain',prepare)
+    real_mkdir=__import__('pathlib').Path.mkdir
+    def mkdir(path,*args,**kwargs):
+        real_mkdir(path,*args,**kwargs)
+        for name in ('cgroup.procs','cgroup.events','cgroup.kill'): (path/name).write_text('populated 0\n' if name=='cgroup.events' else '')
+    monkeypatch.setattr(__import__('pathlib').Path,'mkdir',mkdir)
+    monkeypatch.setattr(client.owned_client,'stop',lambda entry:None)
+    receipts=[]
+    def save(operation,**entry):
+        assert not marker.exists()
+        receipts.append(entry)
+    owner=SimpleNamespace(mutation=save)
+    argv=[sys.executable,'-c',f'from pathlib import Path;Path({str(marker)!r}).write_text("executed")']
+    process,entry=client.spawn(argv,owner,accounting)
+    process.communicate(timeout=5)
+    assert marker.read_text()=='executed' and receipts[-1]['pid']==process.pid
+    assert {'bootstrap_cmdline_sha256','expected_cmdline_sha256','boot_id','uid','start_ticks','cgroup'} <= receipts[-1].keys()
+    marker.unlink()
+    def fail(operation,**entry):
+        assert not marker.exists()
+        if entry['pid'] is not None: raise OSError('injected durable save failure')
+    with pytest.raises(OSError,match='durable save'): client.spawn(argv,SimpleNamespace(mutation=fail),accounting)
+    assert not marker.exists()
+    monkeypatch.setenv('MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT',str(accounting))
+    with pytest.raises(RuntimeError,match='outside'): client.spawn(argv,owner,accounting)
+
+
+def test_client_domain_cleanup_precedes_worker_inventory_and_retains_failures(tmp_path, monkeypatch):
+    import json
+    from research.cpu_measurement.ownership import Ownership
+    from research.cpu_measurement import reconcile
+    from deploy import owned_client
+    parent=tmp_path/'parent';parent.mkdir()
+    (parent/'cgroup.events').write_text('populated 0\n')
+    (parent/'cpu.stat').write_text('usage_usec 100\n')
+    directory=tmp_path/'private'
+    with pytest.raises(ValueError):
+        with Ownership(directory,parent) as owner:
+            owner.mutation('container_create_intent',name='cpu-proposal-'+'a'*32,counter_before_usec=20)
+            owner.mutation('host_client_domain',id='client',pid=123)
+            raise ValueError('injected birth interruption')
+    order=[]
+    def failed(entry):
+        order.append('client')
+        raise RuntimeError('client cgroup still populated')
+    monkeypatch.setattr(owned_client,'stop',failed)
+    monkeypatch.setattr(reconcile.subprocess,'check_output',lambda *args,**kwargs:order.append('inventory') or b'')
+    assert not reconcile.reconcile(directory,parent)['cleanup_complete']
+    assert order==['client'] and len(list(directory.glob('*-cleanup-*.json')))==1
+    monkeypatch.setattr(owned_client,'stop',lambda entry:order.append('client'))
+    assert reconcile.reconcile(directory,parent)['cleanup_complete']
+    assert order==['client','client','inventory']
+    assert len(list(directory.glob('*-cleanup-*.json')))==2
+
+
+def test_released_unacknowledged_daemon_mutation_never_completes_cleanup(tmp_path, monkeypatch):
+    from research.cpu_measurement.ownership import Ownership
+    from research.cpu_measurement import reconcile
+    from deploy import owned_client
+    parent=tmp_path/'parent';parent.mkdir()
+    (parent/'cgroup.events').write_text('populated 0\n')
+    (parent/'cpu.stat').write_text('usage_usec 100\n')
+    directory=tmp_path/'private'
+    with pytest.raises(ValueError):
+        with Ownership(directory,parent) as owner:
+            owner.mutation('container_create_intent',name='cpu-proposal-'+'a'*32,counter_before_usec=20)
+            owner.mutation('host_client_domain',id='client',pid=123)
+            owner.mutation('host_client_release_intent',id='client')
+            raise ValueError('interrupted possible daemon request')
+    monkeypatch.setattr(owned_client,'stop',lambda entry:None)
+    monkeypatch.setattr(reconcile.subprocess,'check_output',lambda *args,**kwargs:b'')
+    receipt=reconcile.reconcile(directory,parent)
+    assert receipt['cleanup_complete'] is False
+    assert receipt['errors'][0]['step']=='daemon_mutation_uncertainty'
+    with pytest.raises(RuntimeError,match='reconciliation'):
+        with Ownership(directory,parent):pass

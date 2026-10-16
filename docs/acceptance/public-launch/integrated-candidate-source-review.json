@@ -1,0 +1,22 @@
+{
+  "schema": "mldsafail.integrated-candidate-source-review.v1",
+  "source_commit": "cda2f27c249a05e79307771ef3a763cda10f099e",
+  "observed_commit": "d1e45fe509c9204ce55bd7aacdb9c8a67c6ca00b",
+  "source_review_passed": true,
+  "cli_capability_preflight_passed": true,
+  "reference_identity_review_passed": true,
+  "candidate_runtime_review_passed": true,
+  "focused_tests_passed": [
+    40,
+    21
+  ],
+  "native_acceptance_passed": false,
+  "reviewer": "independent review_controls agent",
+  "scope": "Version capabilities before POST; durable private idempotency intent before POST and uncertain ACK reconciliation; expected worker/source/reference/audit/epoch/cohort identity; retained exact worker hook and negative publication preservation",
+  "files_sha256": {
+    "src/mldsafail/cli.py": "c149b32a0bd8ed0ef17d678b67a6897e18bdb0954c82962f325837d56cac2445",
+    "research/mlwe_v060_preparation/native_acceptance.py": "4d13610381f10e3423b61077b0388bd9f3464b7ff5a300e5935a095e79427436",
+    "research/mlwe_v060_preparation/references.py": "98e2f8f99407bb84a1e0b83574256b39e94b5360c95fea00a6c081b403765fdf",
+    "candidate_runtime/rehearsal.py": "5d6ef0093aa3fd58a2e67f85db701cdeb0fc36b5700ad67c0f856a27cbab949d"
+  }
+}

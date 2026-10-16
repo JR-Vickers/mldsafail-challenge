@@ -1,0 +1,22 @@
+{
+  "schema": "mldsafail.independent-artifact-review.v1",
+  "reviewer": "recovery",
+  "source_review_passed": true,
+  "archive_review_passed": true,
+  "native_install_passed": false,
+  "publication_approved": false,
+  "archive_sha256": "c67bf7ada203a15196a25e9bd5e1638299f08c94b954e609785933e5b77a0883",
+  "wheel_sha256": "570386753f38982f5a637280ba6218e0a930313c75ffc45ee2c7b1ad697985e7",
+  "author_source_commit": "b0421cdcda842e4dd6c4b43fafd90541a7ae0cd2",
+  "archive_preparation_source_commit": "2b2b833610506d75e969cbf393d9c920fa807888",
+  "checks": [
+    "all eight archive members regular and allowlisted",
+    "all manifest file checksums match",
+    "wheel package-only inventory 110 members",
+    "six repository public fixtures exclude private witness/nonces/epoch",
+    "README and contract local links resolve",
+    "package0.5.1 versus proposed protocol0.6 explicit",
+    "author/builder provenance distinct",
+    "all adoption/publication/native flags false"
+  ]
+}

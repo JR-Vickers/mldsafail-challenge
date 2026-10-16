@@ -20,12 +20,12 @@ production setup, and an external pilot remain open. See
 |---|---|
 | `mldsafail-mlwe` | Local 0.5.0, normalized complete-worker CPU against a fixed epoch reference |
 | Private staging submissions | 0.5.0, compatible epoch/environment cohorts only |
-| `make bench`, `mldsafail run`, local JSONL dashboard | Historical 0.4.0, versioned operation counts |
-| `make hosted-dev` | Historical 0.4.0 development stack |
-| `mldsafail clone`, submissions | Default 0.5.0; explicit `--benchmark-version 0.4.0` preserves historical behavior |
+| `make bench`, `mldsafail run` | Public MLWE 0.5.0 development, required experiment ledger |
+| `make hosted-dev` | MLWE development stack; requires an audited private epoch |
+| `mldsafail clone`, submissions | Default 0.5.0; Python-only solver workspace |
 
 The participant package is 0.5.1; clone and submissions default to benchmark
-0.5.0, while `run` remains historical 0.4.0. Operational recovery and durable
+0.5.0; `run` executes public development. Operational recovery and durable
 release retention are documented in [OPERATIONS.md](docs/OPERATIONS.md).
 Scores from different versions, epochs, or environments cannot be ranked together.
 Install only an owner-supplied release wheel after independently verifying its checksum:
@@ -122,29 +122,22 @@ Tokens are stored in the operating-system credential store. A mode-0600 plaintex
 fallback requires explicit `--allow-plaintext-storage` opt-in. Agents do not push
 commits or publish fixtures; the owner handles publication.
 
-## Historical 0.4.0 workflows
+## Public development
 
-Historical offline use is account-free and JSONL-backed:
+Copy the baseline with `mldsafail clone`. Keep the solver workspace Python-only.
+Run a baseline before editing, then compare against its retained output:
 
 ```sh
-make test
-make bench                         # public suite; appends an experiment
-make web-smoke
-make web                           # local JSONL dashboard at 127.0.0.1:5000
-mldsafail run --profile small --no-record
+mldsafail run --solver-dir WORKSPACE/solver --output NEW_OUTPUT \
+  --ledger experiments.jsonl --hypothesis "baseline" --mechanism "primal LLL" \
+  --parent-revision FULL_SHA --model MODEL
+make bench BENCH_ARGS="--solver-dir WORKSPACE/solver --output NEW_OUTPUT --ledger experiments.jsonl --hypothesis baseline --mechanism LLL --parent-revision FULL_SHA --model MODEL"
 ```
 
-Historical official comparisons require all public/hidden profiles, a reviewed
-trusted fingerprint, and maintainer-only hidden seeds. See
-[CHALLENGE.md](docs/CHALLENGE.md) and [AGENT_WORKFLOW.md](docs/AGENT_WORKFLOW.md).
-`make check` runs tests and a historical small-profile smoke without recording;
-it does not replace MLWE epoch acceptance or native staging checks.
-
-The historical local hosted prototype uses `make hosted-setup`, `make hosted-dev`,
-and `make hosted-down`. Setup replaces the development hidden-seed fixture under
-`HOSTED_EVALUATOR_DIR`; never point it at staging/production evidence. The stack
-uses development credentials and differs from private staging's standalone Compose
-configuration. See [OPERATIONS.md](docs/OPERATIONS.md).
+Each run uses new output and preserves failed or partial evidence. The public
+score is diagnostic. See [AGENT_WORKFLOW.md](docs/AGENT_WORKFLOW.md) for candidate
+comparison and private evaluation. `make check` runs tests and deterministic MLWE
+correctness checks. Historical execution is [unsupported archive tooling](docs/archive/LEGACY_V040.md).
 
 ## Safety and agent work
 

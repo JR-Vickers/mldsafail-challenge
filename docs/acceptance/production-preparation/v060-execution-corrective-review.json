@@ -1,0 +1,14 @@
+{
+  "schema": "mldsafail.source-review.v1",
+  "reviewed_sources": ["7424b9758517a7f2a71a65ead9f0fc42c26eac45", "4a47974a1b5cbdf63c09fc0bd01469966b8be319"],
+  "status": "passed_source_review",
+  "historical_findings": "v060-execution-source-review.json",
+  "resolved": ["sealed-reference-authority", "complete-evaluation-deadline"],
+  "evidence": [
+    "Draft references require a separate authenticated authority confirming strict readiness, all three independent audit/viability/sealing gates and exact table digest.",
+    "Full evaluation requires a dedicated native main-thread POSIX timer with a fixed 1200-second ceiling; checkpoint checks and asynchronous interruption prohibit a partial score without changing ordinary sixty-second worker limits or invocation count."
+  ],
+  "focused_tests_passed": 20,
+  "native_acceptance": false,
+  "limits": "No reference authority was issued, epoch sealed, native backend accepted, contract adopted or production default activated by this review."
+}

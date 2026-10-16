@@ -1,0 +1,18 @@
+{
+  "schema": "mldsafail.source-review.v1",
+  "reviewer": "independent primary agent",
+  "reviewed_sources": ["5196086", "2a22f76"],
+  "status": "passed_source_review",
+  "scope": "Baseline and public reproduction dedicated daemon consumer cleanup",
+  "observations": [
+    "Positive old-epoch daemon and entire worker-parent barrier precedes creator cancellation.",
+    "Damaged creator receipts prohibit restart, retain failures and leave the run fenced.",
+    "Publication errors remain failures and cannot produce cleanup completion.",
+    "A daemon-wide lock covers the entire execution and cleanup lifecycle.",
+    "The exact dedicated socket and worker slice are enforced, including all nested workers and baseline services."
+  ],
+  "local_checks": {"focused": 37, "make_check_passed": 462, "make_check_skipped": 11, "historical_score": 3901},
+  "operator_constraint": "Provisioning, execution and reconciliation use the same exact registered operator kernel parent; a new transient parent cannot silently reuse the manifest.",
+  "native_acceptance": false,
+  "remaining": ["native_positive_daemon_barrier", "native_baseline_rehearsal", "native_public_worker_reproduction"]
+}

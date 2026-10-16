@@ -1,0 +1,22 @@
+{
+  "schema": "mldsafail.independent-source-review.v1",
+  "source_commit": "a84e151a72e6a28e5b4ebf9301dcdb1c461cc403",
+  "source_review_passed": true,
+  "native_executed": false,
+  "criteria": [
+    "Baseline uses existing reviewed seven-image rehearsal; all images must be preloaded approved immutable driver artifacts",
+    "Same-process consumer lease nests through complete shutdown/restart and outer terminal current-manifest teardown",
+    "Worker base proof binds exact original frozen Dockerfile/FROM, native official untagged RepoDigest, AMD64 image ID and approved archive SHA before build",
+    "Frozen primitive worker proof binds reviewed historical source commit and exact scientific Python/Dockerfile/requirements hash map, native immutable image ID/architecture and approved archive SHA before invocation",
+    "Two fresh no-cache build contexts retain unchanged frozen scientific source and exact approved offline dependency wheels",
+    "36 public cases compare three image outputs independently; dependency inventories compare A/B only",
+    "Consumer and outer driver cleanup both must pass before acceptance; failures remain retained"
+  ],
+  "verification": {
+    "focused_passed": 6
+  },
+  "limitations": [
+    "Actual native baseline/reproduction execution remains required",
+    "No CPU measurement or approved-design production activation claimed"
+  ]
+}

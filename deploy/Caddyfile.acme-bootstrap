@@ -1,0 +1,10 @@
+# HTTP challenge-only bootstrap; enable publicly only after owner activation.
+http://{$MLDSAFAIL_DOMAIN} {
+    handle /.well-known/acme-challenge/* {
+        root * /var/www/acme
+        file_server
+    }
+    handle {
+        respond 404
+    }
+}

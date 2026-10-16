@@ -1,6 +1,6 @@
 # Preparation only: owner activation gate. Use a new env file, fresh secrets,
 # production OAuth and distinct epoch identity; never reuse staging volumes.
-# Standalone private staging configuration. Run using the deployment user's
+# Standalone production preparation configuration. Run using the deployment user's
 # rootless Docker context. All IMAGE variables must reference immutable digests.
 name: mldsafail-production
 x-logging: &logging
@@ -16,7 +16,7 @@ x-web-environment: &web-environment
   MLDSAFAIL_SECRET_KEY: ${MLDSAFAIL_SECRET_KEY:?required}
   GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:?required}
   GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:?required}
-  MLDSAFAIL_BENCHMARK_VERSION: "0.5.0"
+  MLDSAFAIL_BENCHMARK_VERSION: ${MLDSAFAIL_BENCHMARK_VERSION:?explicit supported version required}
   MLDSAFAIL_EVALUATOR_FINGERPRINT: ${MLDSAFAIL_EVALUATOR_FINGERPRINT:?required}
   MLDSAFAIL_HIDDEN_SUITE_VERSION: ${MLDSAFAIL_HIDDEN_SUITE_VERSION:?required}
   MLDSAFAIL_WORKER_CLASS: ${MLDSAFAIL_WORKER_CLASS:?required}
@@ -60,7 +60,7 @@ services:
     environment:
       MLDSAFAIL_REQUIRE_RESOURCE_FLOORS: "1"
       MLDSAFAIL_DATABASE_URL: postgresql+psycopg://mldsafail:${POSTGRES_PASSWORD:?required}@db/mldsafail
-      MLDSAFAIL_BENCHMARK_VERSION: "0.5.0"
+      MLDSAFAIL_BENCHMARK_VERSION: ${MLDSAFAIL_BENCHMARK_VERSION:?explicit supported version required}
       MLDSAFAIL_WORKER_IMAGE: ${WORKER_IMAGE:?immutable image required}
       MLDSAFAIL_EVALUATOR_FINGERPRINT: ${MLDSAFAIL_EVALUATOR_FINGERPRINT:?required}
       MLDSAFAIL_HIDDEN_SUITE_VERSION: ${MLDSAFAIL_HIDDEN_SUITE_VERSION:?required}
@@ -87,15 +87,17 @@ services:
     ports: ["80:80", "443:443"]
     read_only: true
     environment:
-      MLDSAFAIL_DOMAIN: ${MLDSAFAIL_DOMAIN:?production DNS required}
+      MLDSAFAIL_DOMAIN: ${MLDSAFAIL_DOMAIN:?production origin host required}
     volumes:
       - ./deploy/Caddyfile.production:/etc/caddy/Caddyfile:ro
+      - ${PRODUCTION_TLS_ROOT:?certificate root required}:/etc/letsencrypt:ro
+      - ${PRODUCTION_ACME_WEBROOT:?ACME webroot required}:/var/www/acme:ro
       - caddy_data:/data
       - caddy_config:/config
     tmpfs: ["/tmp:size=16m"]
     cap_drop: [ALL]
     # The pinned Caddy binary carries this file capability. Its bounding set
-    # must include it even though private staging listens on port 8080.
+    # must include it for the production HTTPS listener.
     cap_add: [NET_BIND_SERVICE]
     security_opt: ["no-new-privileges:true"]
     mem_limit: 64m

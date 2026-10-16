@@ -7,30 +7,47 @@ from pathlib import Path
 import shutil
 import subprocess
 from deploy.recovery import private_file, validate_set
+from deploy.recovery_journal import atomic_json
 
 
 def assemble(config, destination, operation=None):
+    if operation is None:
+        raise ValueError('Durable operator ownership required for recovery assembly')
     if destination.exists():
         raise ValueError('Recovery set must be new')
     destination.mkdir(mode=0o700, parents=True)
     compose = ['docker', 'compose', '--env-file', config['env_file'], '-f', config['compose']]
     def command(argv, timeout=30):
-        return subprocess.check_output(argv, stderr=subprocess.DEVNULL, text=True, timeout=timeout)
+        return operation.command(argv, stderr=subprocess.DEVNULL, capture_output=True,
+                                 text=True, check=True, timeout=timeout).stdout
     states = {}
+    identifiers = {}
     for role in ['web', 'coordinator']:
         identifier = command(compose + ['ps', '-aq', role]).strip()
+        if not identifier or len(identifier.split()) != 1:
+            raise ValueError('Expected exactly one existing service container')
+        identifiers[role] = identifier
         states[role] = json.loads(command(['docker', 'inspect', '--format', '{{json .State}}', identifier]))['Running']
     if operation:
-        operation.services(compose, states)
+        operation.services(compose, states, identifiers)
     journal = destination / 'maintenance.json'
-    journal.write_text(json.dumps({'compose': compose, 'service_states': states, 'cleanup_complete': False}))
-    journal.chmod(0o600)
+    atomic_json(journal, {'compose': compose, 'service_states': states,
+                          'service_identifiers': identifiers, 'cleanup_complete': False})
     categories = {key: [] for key in ['database', 'epoch', 'evidence', 'configuration', 'secrets', 'release', 'images']}
+    original = None
     try:
-        for role in ['coordinator', 'web']:
+        # Close submission admission before inspecting the original coordinator.
+        for role in ['web']:
             if operation:
                 operation.save('stop ' + role + ' intent')
-            command(compose + ['stop', role], 60)
+            command(['docker', 'container', 'stop', identifiers[role]], 60)
+        # Query the database before starting a stopped coordinator: starting it
+        # could otherwise claim queued work before its own inventory check.
+        active = command(compose + ['exec', '-T', 'db', 'psql', '-U', 'mldsafail',
+            '-d', 'mldsafail', '-X', '-q', '-A', '-t', '-v', 'ON_ERROR_STOP=1', '-c',
+            "BEGIN READ ONLY; SELECT count(*) FROM evaluation_jobs WHERE status IN ('queued','claimed','running'); COMMIT;"], 60)
+        if active.strip() != '0':
+            raise RuntimeError('Active or unverified evaluation work prevents backup')
         code = '''import json,os
 from pathlib import Path
 from sqlalchemy import create_engine,select,text
@@ -54,20 +71,19 @@ with Session(engine) as session:
   paths.append(str(run))
 print(json.dumps({'epoch':str(epoch),'runs':paths,'epoch_id':manifest['id']}))
 '''
-        owned = []
+        if not states['coordinator']:
+            if operation:
+                operation.save('temporary pinned coordinator start intent')
+            command(['docker', 'container', 'start', identifiers['coordinator']], 60)
+        inventory = json.loads(command(['docker', 'exec', identifiers['coordinator'],
+                                        '/app/.venv/bin/python', '-c', code], 600))
         if operation:
-            import uuid
-            name = 'recovery-inventory-' + uuid.uuid4().hex
-            image = command(compose + ['images', '-q', 'coordinator']).strip()
-            image = json.loads(command(['docker', 'inspect', image]))[0]['Id']
-            operation.container(name, image)
-            owned = ['--name', name, '--label', 'org.mldsafail.recovery=' + name]
-        inventory = json.loads(command(compose + ['run', *owned, '--rm', '--no-deps', '--entrypoint',
-                                       '/app/.venv/bin/python', 'coordinator', '-c', code], 600))
+            operation.save('stop coordinator intent')
+        command(['docker', 'container', 'stop', identifiers['coordinator']], 60)
         output = destination / 'database'
         command([config['python'], str(Path(__file__).with_name('backup_postgres.py')),
                  '--env-file', config['env_file'], '--compose', config['compose'],
-                 '--output', str(output), *([] if operation else ['--verify-restore'])], 360)
+                 '--output', str(output)], 360)
         def copy(source, category, relative):
             source = Path(source)
             if source.is_symlink():
@@ -102,20 +118,15 @@ print(json.dumps({'epoch':str(epoch),'runs':paths,'epoch_id':manifest['id']}))
         manifest = {'files': files, 'categories': categories,
                     'database_evidence_verified': True, 'epoch_id': inventory['epoch_id']}
         # Remove maintenance journal only after all original services are restored.
+    except BaseException as error:
+        original = error
     finally:
-        if operation:
+        try:
             operation.cleanup()
-        else:
-            errors = []
-            for role, running in states.items():
-                try:
-                    command(compose + ['start' if running else 'stop', role], 60)
-                except Exception:
-                    errors.append(role)
-            journal.write_text(json.dumps({'compose': compose, 'service_states': states,
-                                          'cleanup_complete': not errors, 'cleanup_errors': errors}))
-            if errors:
-                raise RuntimeError('Recovery assembly cleanup incomplete; restore states from private journal')
+        except BaseException as error:
+            if original is None: original = error
+            else: original.add_note('Independent assembly cleanup: ' + type(error).__name__)
+        if original is not None: raise original
     journal.unlink()
     (destination / 'recovery.json').write_text(json.dumps(manifest, sort_keys=True))
     (destination / 'recovery.json').chmod(0o600)
@@ -126,13 +137,17 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument("--cleanup", action="store_true")
     args = parser.parse_args()
     os.umask(0o077)
     import signal
     for sig in [signal.SIGTERM, signal.SIGHUP]:
         signal.signal(sig, lambda *_: (_ for _ in ()).throw(InterruptedError()))
     try:
-        print(json.dumps(assemble(json.loads(private_file(args.config).read_text()), args.output)))
+        from deploy.recovery_journal import standalone_operation
+        config = json.loads(private_file(args.config).read_text())
+        print(json.dumps(standalone_operation(config, args.output.parent, 'assembly',
+            lambda operation: assemble(config, args.output, operation=operation), args.cleanup)))
     except Exception:
         print(json.dumps({'assembly_failed': True, 'private_evidence_retained': True}))
         raise SystemExit(1)

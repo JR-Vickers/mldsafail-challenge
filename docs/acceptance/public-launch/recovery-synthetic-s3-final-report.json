@@ -1,0 +1,128 @@
+{
+  "schema": "mldsafail.synthetic-s3.v1",
+  "source_commit": "d9441283d3084562928e18e549e7b80d4e798e2e",
+  "script_sha256": "beba36a9f633814f717ffdd29e57a36bdb2178506c217a24de6a0ae83375bf7c",
+  "helper_sha256": "7d63f7fae08f2c17bb382c7a6ab70e0e78415f9398ea515b96db097b6967d4e0",
+  "kernel": "6.8.0-142-generic",
+  "architecture": "aarch64",
+  "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+  "restic_version": "restic 0.17.3 compiled with go1.23.3 on linux/arm64",
+  "minio_version": "minio version DEVELOPMENT.GOGET (commit-id=DEVELOPMENT.GOGET)\nRuntime: go1.26.1 linux/arm64\nLicense: GNU AGPLv3 - https://www.gnu.org/licenses/agpl-3.0.html\nCopyright: 2015-0000 MinIO, Inc.",
+  "artifacts": {
+    "minio_binary_distribution": "cross-built from exact official release source; public binary archive unavailable (HTTP410)",
+    "minio_binary_sha256": "2a6d1323c4656de1841256f034070220b4ce9612134d41474fbe5b74702c74bb",
+    "minio_go_sum_sha256": "27b57eced706cc0cd34cb4a971560ba601002590b91d4fe24c67f0ced9732f7a",
+    "minio_source_commit": "0d7408fc9969caf07de6a8c3a84f9fbb10a6739e",
+    "minio_source_sha256": "1a63209927b9d1fb239b2a776b7b01d1902eff19379a108f4bc7005edcc0968c",
+    "minio_source_url": "https://codeload.github.com/minio/minio/tar.gz/refs/tags/RELEASE.2025-04-22T22-12-26Z",
+    "minio_tag_object": {
+      "sha": "f19c534b9f457773dcd043d977433e1a71525c3b",
+      "type": "tag",
+      "url": "https://api.github.com/repos/minio/minio/git/tags/f19c534b9f457773dcd043d977433e1a71525c3b"
+    },
+    "minio_target": "CGO_ENABLED=0 GOOS=linux GOARCH=arm64 -trimpath",
+    "minio_toolchain": "go version go1.26.1 darwin/arm64",
+    "restic_archive_sha256": "db27b803534d301cef30577468cf61cb2e242165b8cd6d8cd6efd7001be2e557",
+    "restic_binary_sha256": "d588df01aea6c7f677c85712d75f5dcf588fc94da05f393c7264e96c78e52619",
+    "restic_release": "https://github.com/restic/restic/releases/tag/v0.17.3",
+    "scope": "synthetic-only"
+  },
+  "protocol": [
+    "trusted local CA required",
+    "three synthetic snapshots",
+    "full check and byte-exact restore",
+    "wrong key and wrong S3 credentials rejected",
+    "real upload interruption after new pack",
+    "retry/check/restore",
+    "verified synthetic restore before retention",
+    "corrupted S3 encrypted object rejected then repaired",
+    "all client/server domains removed"
+  ],
+  "stages": [
+    {
+      "name": "HTTPS S3 init",
+      "passed": true
+    },
+    {
+      "name": "three snapshots/full check",
+      "passed": true
+    },
+    {
+      "name": "wrong recovery/storage key and untrusted TLS rejected",
+      "passed": true
+    },
+    {
+      "name": "real upload interrupted/retried and bytes restored",
+      "passed": true
+    },
+    {
+      "name": "retention after byte-verified synthetic restore",
+      "passed": true
+    },
+    {
+      "name": "corrupted encrypted S3 pack rejected and original repaired",
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "cleanup_complete": true,
+  "cleanup_errors": [],
+  "synthetic_only": true,
+  "benchmark_epoch_data_used": false,
+  "actual_offhost_storage_accepted": false,
+  "actual_owner_custody_accepted": false,
+  "scope": "Disposable local VM loopback HTTPS S3 and synthetic encrypted recovery only; no real backup set, staging mounts, shared host, or owner credentials.",
+  "evidence": {
+    "location": "operator-private: mldsafail-synthetic-s3-vm-20261004-final/guest-evidence.tar",
+    "archive_sha256": "0017660ef526df056c7da969a438b0a2227194da1f512bf05a4527424406b02d",
+    "ownership_receipt_sha256": "583eba61b21cf0d8490f558dd09dfcb5fa03983283264ce9fb57a3f39249b809"
+  },
+  "vm_cleanup": {
+    "owned_vm_stopped": true,
+    "original_disk_unchanged": true,
+    "original_vars_unchanged": true,
+    "cleanup_errors": [],
+    "collection_errors": []
+  },
+  "not_accepted": [
+    "Approved actual off-host storage repository",
+    "Independent owner password custody",
+    "Production recovery set restoration",
+    "Production or staging timer activation",
+    "Docker daemon RPC interruption barrier",
+    "Benchmark measurement Python version or thresholds"
+  ],
+  "source_review": {
+    "preparation_cleanup_corrections": "5309da9",
+    "tested_preparation_source": "7295ee44bbfd6dbcc710ac12ad78f0e0b52e5caf",
+    "focused_tests_passed": 16,
+    "result": "Earlier receipt parse, phase publication, and finally cleanup sequencing blockers corrected; unresolved daemon mutation fence remains explicit."
+  },
+  "monitoring_source": {
+    "commit": "99396c0",
+    "focused_tests_passed": 22,
+    "make_check_passed": 421,
+    "make_check_skipped": 8,
+    "scope": "Source/unit verification of strict versioned receipt, exact restoration identity, future/corrupt/wrong-context rejection and upload-time freshness only."
+  },
+  "strict_verified_state_accepted": true,
+  "synthetic_manifest_sha256": "4c6c63f6a4ab4a8acbd25e1827f071171372ad4e55c89ab58d8a34322622db24",
+  "restored_snapshot_identity": {
+    "snapshot": "44193249631426f6418e21973a1a6b2cce2d066f72fdb8db2c03c275074df2d9",
+    "epoch_id": "synthetic-only-1ca8f5fbb4364b4995348caad646b59c",
+    "result_count": 0,
+    "restored_manifest_sha256": "4c6c63f6a4ab4a8acbd25e1827f071171372ad4e55c89ab58d8a34322622db24",
+    "schema": "mldsafail.recovery-state.v1",
+    "scope": "Synthetic-only receipt; not a real benchmark epoch or database restoration."
+  },
+  "historical_evidence": [
+    "recovery-synthetic-s3-report.json retains earlier d0f450a outcome",
+    "recovery-synthetic-s3-strict-report.json retains earlier9f1b5cc strict outcome"
+  ],
+  "latest_source_verification": {
+    "commit": "d9441283d3084562928e18e549e7b80d4e798e2e",
+    "make_check_passed": 428,
+    "make_check_skipped": 8,
+    "unresolved": "Dedicated Docker daemon RPC barrier remains pending independent source/native acceptance; conservative source fences prohibit cleanup claims after response loss."
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "schema": "mldsafail.integration-final-preservation.v1",
+  "source_commit": "6be11b518570bc183e45dfd2f2a251aa827c145d",
+  "source_tree": "a980d0b0ab12fd700316d89b4fbbce532415362c",
+  "bundle": "/Users/jarrett/dev/mldsafail-challenge/results/integration-preservation/20261013/integration-6be11b5.bundle",
+  "bundle_sha256": "7e7e5e1f4ce4ba5ab77dcb4b2cf024e06405a2ef0f51700d756eb37c4da2ce7c",
+  "standalone_bundle_verified": true,
+  "independent_clone_head": "6be11b518570bc183e45dfd2f2a251aa827c145d",
+  "audited_branch_movements": [],
+  "main_unchanged": "4602f455c7cc365b41d05bb0ef49f738dd6d9d2b",
+  "make_check": {
+    "passed": true,
+    "tests_passed": 942,
+    "tests_skipped": 13,
+    "deterministic_mlwe_checks": 8,
+    "log_sha256": "4a0826d67b743d8929027293db1091b761dacc400f2a86a23ac895626eb61991"
+  },
+  "ledger_validation": {
+    "valid": true,
+    "errors": [],
+    "ready": []
+  },
+  "limitation": "The standalone bundle covers the complete consolidated implementation and handoff at the named commit; its subsequent preservation receipt is a separate Git checkpoint. No native or owner acceptance is added."
+}

@@ -1,0 +1,44 @@
+{
+  "status": "predeclared",
+  "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+  "environment": "private staging, loopback requests only, serialized root-owned native operations",
+  "gates": [
+    {
+      "id": "idle-read-load",
+      "duration_seconds": 300,
+      "evaluation_count": 0
+    },
+    {
+      "id": "reference-read-load",
+      "duration_seconds": 300,
+      "evaluation_count": 1,
+      "fixture_source_commit": "e547caffb06ced2e82f28cf1c130c8131613384d",
+      "solver_path": "reference",
+      "benchmark_version": "0.5.0",
+      "start_condition": "One owned reference evaluation is running; no unrelated queued or active work",
+      "complete_evaluation_ceiling_seconds": 1200
+    }
+  ],
+  "identical_client_protocol": {
+    "aggregate_anonymous_requests_per_second": 5,
+    "maximum_clients": 10,
+    "anonymous_routes": [
+      "/",
+      "/health/ready"
+    ],
+    "authenticated_route": "/api/v1/me",
+    "authenticated_interval_seconds": 5,
+    "http_timeout_seconds": 2
+  },
+  "thresholds": {
+    "p95_seconds_exclusive": 1,
+    "p99_seconds_exclusive": 2,
+    "read_errors": 0,
+    "host_floor_violations": 0,
+    "available_memory_minimum_bytes": 134217728,
+    "free_storage_minimum_bytes": 5368709120
+  },
+  "failure_policy": "Retain every failure; repair justified causes before a changed-source/protocol rerun; never repeat unchanged measurements to obtain a favorable result",
+  "submission_policy": "Durable unique idempotency key before POST; reconcile lost responses through existing idempotency records, never blindly resubmit",
+  "completion": "Verify source/image identity, exact owned submission terminal evidence and audit, idle queue, no owned workers, service health and unchanged private epoch/worker identity"
+}

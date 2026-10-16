@@ -1,0 +1,13 @@
+{
+  "schema": "mldsafail.v060-source-components-review.v1",
+  "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+  "source_review_passed": true,
+  "focused_tests_passed": 45,
+  "reviewer": "independent review_controls agent",
+  "native_acceptance_passed": false,
+  "version_source_passed": true,
+  "evidence_source_passed": true,
+  "cohort_source_passed": true,
+  "fresh_epoch_source_passed": true,
+  "scope": "Explicit version dispatch; strict cohort privacy; one warmup and exactly three measured invocations; versioned signed independently re-read audited evidence; fresh tiny separate epochs and audited sealed reference authority; disposable testing only; production adoption gated"
+}

@@ -1,0 +1,31 @@
+{
+  "schema": "mldsafail.native-audit.v1",
+  "status": "passed",
+  "reviewer": "independent preparation agent; read-only actual retained evidence audit",
+  "source_commit": "5af49e9b94a460d4de86584fc31ef4b8049dd210",
+  "native_executed": true,
+  "guest_evidence_archive_sha256": "d8b209c4007bffd8abb401820dd70822f0b979af3d378ad751de1ff2eb24bd77",
+  "ownership_sha256": "b4f037f93ee350237db34f487d0b2effb5b9b13ed92ab6f2f6562e84e3c18c59",
+  "actual_hard_power_loss": true,
+  "changed_boot_verified": true,
+  "fresh_daemon_and_roots_verified": true,
+  "immutable_logical_dump_verified": true,
+  "tiny_schema_public_fixture_preserved": true,
+  "new_scope_cleanup_complete": true,
+  "old_scope_remains_fenced": true,
+  "owned_vm_stopped": true,
+  "protected_original_hashes_independently_verified": true,
+  "scope": "Disposable tiny logical PostgreSQL recovery; old scope is fenced, not restored or declared cleaned. Runtime Docker graphs remain on stopped retained VM disk.",
+  "excluded_claims": [
+    "off-host owner repository",
+    "private staging epoch recovery",
+    "old Docker ID restoration",
+    "CPU measurement",
+    "production approval"
+  ],
+  "prior_failures": "VM1/2/3 failed outcomes and partial evidence remain retained.",
+  "evidence_refs": [
+    "protected modern-powerloss VM4 ownership.json and guest-evidence.tar",
+    "docs/acceptance/production-preparation/modern-powerloss-native-independent-audit.json"
+  ]
+}

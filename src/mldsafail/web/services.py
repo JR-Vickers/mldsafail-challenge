@@ -198,14 +198,16 @@ def create_submission(session: Session, user: User, payload: dict, idempotency_k
     hypothesis = str(payload.get("hypothesis", "")).strip()
     notes = str(payload.get("notes", ""))
     tags = payload.get("tags", [])
-    benchmark_version = str(payload.get("benchmark_version", "0.4.0"))
+    benchmark_version = str(payload.get("benchmark_version", "0.5.0"))
+    if benchmark_version not in {"0.5.0", "0.6.0"}:
+        raise DomainError("unsupported_benchmark", "New historical 0.4.0 submissions are unsupported.", 422)
     if not hypothesis or len(hypothesis) > 2000 or len(notes) > 5000:
         raise DomainError("invalid_text", "Hypothesis is required and text fields must be within limits.")
     if not isinstance(tags, list) or len(tags) > 10 or not all(isinstance(tag, str) and 0 < len(tag) <= 40 for tag in tags):
         raise DomainError("invalid_tags", "Tags must be a list of at most 10 short strings.")
     normalized = {"repository_url": repository_url, "commit_sha": commit_sha.lower(), "hypothesis": hypothesis,
                   "notes": notes, "tags": tags, "benchmark_version": benchmark_version}
-    if benchmark_version == "0.5.0":
+    if benchmark_version in {"0.5.0", "0.6.0"}:
         if not cohort or not all(cohort.get(name) for name in
                                 ("epoch_id", "evaluator_fingerprint", "hidden_suite_version", "worker_class")):
             raise DomainError("epoch_unavailable", "The MLWE cohort is not configured.", 503)
@@ -213,7 +215,7 @@ def create_submission(session: Session, user: User, payload: dict, idempotency_k
             if name in payload and payload[name] != value:
                 raise DomainError("incompatible_cohort", "The requested evaluation cohort is incompatible.", 422)
         normalized.update(cohort)
-        solver_path = payload.get("solver_path", "src/mldsafail/solver")
+        solver_path = payload.get("solver_path", "solver")
         if (not isinstance(solver_path, str) or not solver_path or len(solver_path) > 200
                 or PurePosixPath(solver_path).is_absolute() or ".." in PurePosixPath(solver_path).parts
                 or any(part.startswith(".") for part in solver_path.split("/"))
@@ -221,7 +223,7 @@ def create_submission(session: Session, user: User, payload: dict, idempotency_k
             raise DomainError("invalid_solver_path", "Solver directory must be a normalized repository-relative path.", 422)
         normalized["solver_path"] = solver_path
     elif any(name in payload for name in allowed - set(normalized)):
-        raise DomainError("incompatible_cohort", "Epoch fields require MLWE 0.5.0.", 422)
+        raise DomainError("incompatible_cohort", "Epoch fields require a configured MLWE version.", 422)
     digest = _request_digest(normalized)
     if admission_limits is not None:
         evaluation_transaction_lock(session)

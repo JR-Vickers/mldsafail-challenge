@@ -1,0 +1,29 @@
+{
+  "schema": "mldsafail.cpu-native-review.v1",
+  "status": "source_review_passed",
+  "source_commit": "e6f03ece8a744b41f9435125703017386fd66bf3",
+  "reviewer": "independent preparation supervisor and native protocol reviewer",
+  "supervisor_source_sha256": "d0ca17d2e7f1353c1c352c059971291f9137a769024407d25e55bb563b406b15",
+  "acceptance_source_sha256": "e705050015cd97ecda32970cbcc53f99f7b0af67268d8aa4e7b30e80e9032cc8",
+  "supervisor_review_passed": true,
+  "native_protocol_review_passed": true,
+  "auditor_review": "Separate actual independent auditor receipt required.",
+  "scope": [
+    "Earlier reviewed accounting proxy/helper source retained; recovery scope blob is byte-identical root dd9ccc7, source identity changes without policy changes.",
+    "Lean proposed worker uses identical native resource caps without importing frozen timing adapter; context retains approved solver dependencies.",
+    "Prospective build/export validates clean source, immutable worker identity/configuration and descriptor-bound owned regular archive.",
+    "Artifact is a preparation receipt only; outer driver cleanup remains mandatory and no epoch/reference/native fault/pair/adoption/default gate passes.",
+    "Native worker context Git queries use bounded durable owned clients; isolated local preparation defaults to bounded subprocesses.",
+    "Candidate acceptance never rebuilds after native gating; exact gated immutable worker image/context hash/source commit must match native prerequisites and fresh epoch authority.",
+    "Archive permission transition to0400 is fsynced before artifact publication."
+  ],
+  "verification": {
+    "combined_focused_tests_passed": 28
+  },
+  "native_executed_by_reviewer": false,
+  "native_gate": "pending",
+  "evidence_refs": [
+    "docs/acceptance/production-preparation/prospective-worker-final-source-review.json"
+  ],
+  "candidate_acceptance_source_sha256": "c4d148058cb41352f37dde98441bc725bbef15aa9eb226b677fec7e999135161"
+}

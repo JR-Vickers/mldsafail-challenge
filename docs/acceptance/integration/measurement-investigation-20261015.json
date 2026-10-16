@@ -1,0 +1,187 @@
+{
+  "schema": "mldsafail.bounded-measurement-investigation.v1",
+  "date": "2026-10-15",
+  "diagnostic_completed": true,
+  "adoption_gates_passed": false,
+  "source_commit": "0215c9c539825c1492a9129f93c55923bd42d51e",
+  "supervisor_source_sha256": "dc23d3f82de658e96dda68005abd78fdb31326bdaf636310041371ae172b620e",
+  "diagnostic_source_sha256": "a85afadb6029709dc803abc12e9afc7bb0e8e1b2aa1eced99802b66752d9e4bc",
+  "sampler_source_sha256": "420244118276e3d52c5e3e24d7ffc0473828555264c0bea46cdd2600241191af",
+  "worker": {
+    "passed": true,
+    "image": "sha256:c5c35eb224f77fe84caa977e18a73d10a710366090fa7ad88e9eb21cde9a74cc",
+    "archive_sha256": "d2bba48a2307a11dcdb229fc09f2a2c52f8117d59d5e00c55334acffa7422741",
+    "native_manifest": "sha256:379afc658dd32c26e8b41a8f8d8dcc17027323647f235dffb809a497f9c6e658",
+    "config_digest": "sha256:3eeaccd6bc6e0c8c4aff9c9684e5b1ad129ae43d116ea8f4e552af070df13772",
+    "architecture": "amd64",
+    "labels": {
+      "org.mldsafail.architecture": "linux/amd64",
+      "org.mldsafail.benchmark.version": "0.6.0",
+      "org.mldsafail.measurement": "cgroup-v2-usage-usec"
+    },
+    "retained_provenance": "docs/acceptance/public-launch/native-worker-generation-d.json",
+    "prior_probe_failure_preserved": true
+  },
+  "startup_acceptance": {
+    "passed": true,
+    "case_count": 10,
+    "failed_attempts_preserved": [
+      "startup-a-private-file-mode",
+      "startup-b-unsupported-job-json"
+    ]
+  },
+  "fault_suite": {
+    "passed": true,
+    "cases": 13,
+    "default_pair_suite_executed": false
+  },
+  "protocol": {
+    "ordered_pairs": 3,
+    "invocations": 6,
+    "measurement_reruns": 0,
+    "timeout_seconds": 60,
+    "full_lifecycle_window_unchanged": true,
+    "sandbox_and_verifier_unchanged": true
+  },
+  "measurements": [
+    {
+      "repetition": 0,
+      "fixture": "empty",
+      "generation": "865c60d47b794abbb181a012bb239d99",
+      "authoritative_cpu_usec": 490194,
+      "wall_seconds": 2.565759101882577,
+      "status": "no_answer",
+      "cleanup_complete": true,
+      "sample_count": 339,
+      "sampler_errors": [],
+      "process_tick_usec": 10000.0,
+      "observed_process_ticks": 48,
+      "worker_first_observed_seconds_after_start": 1.5658744950778782,
+      "worker_observed_span_seconds": 0.8000447819940746,
+      "output_capture_stopped_seconds_after_start": 2.4807483069598675,
+      "post_capture_to_finished_seconds": 0.08501079492270947,
+      "raw_sha256": "09e290ac222f321f5e73396970e62cad199bdefdb6e7aa37390b7762ee705c0e"
+    },
+    {
+      "repetition": 0,
+      "fixture": "child",
+      "generation": "ed9bb7965401400b8b0d1dde7fb7eb70",
+      "authoritative_cpu_usec": 610165,
+      "wall_seconds": 2.6098248888738453,
+      "status": "no_answer",
+      "cleanup_complete": true,
+      "sample_count": 336,
+      "sampler_errors": [],
+      "process_tick_usec": 10000.0,
+      "observed_process_ticks": 58,
+      "worker_first_observed_seconds_after_start": 1.5823391189333051,
+      "worker_observed_span_seconds": 0.8755876389332116,
+      "output_capture_stopped_seconds_after_start": 2.5430021970532835,
+      "post_capture_to_finished_seconds": 0.06682269182056189,
+      "raw_sha256": "586045bfb05465240682593266f0735b65624645916cbf220dd271a4b18029cc"
+    },
+    {
+      "repetition": 1,
+      "fixture": "empty",
+      "generation": "281ce133bfd044b7af498cb37f91b9f7",
+      "authoritative_cpu_usec": 450899,
+      "wall_seconds": 3.3316031449940056,
+      "status": "no_answer",
+      "cleanup_complete": true,
+      "sample_count": 361,
+      "sampler_errors": [],
+      "process_tick_usec": 10000.0,
+      "observed_process_ticks": 44,
+      "worker_first_observed_seconds_after_start": 2.3213909468613565,
+      "worker_observed_span_seconds": 0.7545524910092354,
+      "output_capture_stopped_seconds_after_start": 3.267162720905617,
+      "post_capture_to_finished_seconds": 0.06444042408838868,
+      "raw_sha256": "8d73633e96f064bd8b8befb5cf99a8d478964dcf3d7f217564c5ece916eaa9cc"
+    },
+    {
+      "repetition": 1,
+      "fixture": "child",
+      "generation": "54c18782e46b432f940ffb97b7f15108",
+      "authoritative_cpu_usec": 697191,
+      "wall_seconds": 2.875752240885049,
+      "status": "no_answer",
+      "cleanup_complete": true,
+      "sample_count": 319,
+      "sampler_errors": [],
+      "process_tick_usec": 10000.0,
+      "observed_process_ticks": 66,
+      "worker_first_observed_seconds_after_start": 1.678694240981713,
+      "worker_observed_span_seconds": 1.0312295979820192,
+      "output_capture_stopped_seconds_after_start": 2.8105915479827672,
+      "post_capture_to_finished_seconds": 0.06516069290228188,
+      "raw_sha256": "179373e03698e3cd9ab9265ea2494f4ef4a564607fda79fc11238c0ea2440cc1"
+    },
+    {
+      "repetition": 2,
+      "fixture": "empty",
+      "generation": "f5e5d073d07340e48603de912ddcbb1a",
+      "authoritative_cpu_usec": 397843,
+      "wall_seconds": 2.2025730500463396,
+      "status": "no_answer",
+      "cleanup_complete": true,
+      "sample_count": 271,
+      "sampler_errors": [],
+      "process_tick_usec": 10000.0,
+      "observed_process_ticks": 38,
+      "worker_first_observed_seconds_after_start": 1.3868522169068456,
+      "worker_observed_span_seconds": 0.6389851551502943,
+      "output_capture_stopped_seconds_after_start": 2.1244314711075276,
+      "post_capture_to_finished_seconds": 0.07814157893881202,
+      "raw_sha256": "5d62dd5660542716aef9929fa168289a3c4989239f7b56becfa01a2f82684a0d"
+    },
+    {
+      "repetition": 2,
+      "fixture": "child",
+      "generation": "2a6cd7daa2664702ad8189576131ca39",
+      "authoritative_cpu_usec": 639587,
+      "wall_seconds": 3.2594619740266353,
+      "status": "no_answer",
+      "cleanup_complete": true,
+      "sample_count": 365,
+      "sampler_errors": [],
+      "process_tick_usec": 10000.0,
+      "observed_process_ticks": 61,
+      "worker_first_observed_seconds_after_start": 2.176189501071349,
+      "worker_observed_span_seconds": 0.9524829180445522,
+      "output_capture_stopped_seconds_after_start": 3.2082721409387887,
+      "post_capture_to_finished_seconds": 0.05118983308784664,
+      "raw_sha256": "47d15abfca24e974ddf1b95b6f674fd82fcf905d17e0d0b44816c7bbfc159310"
+    }
+  ],
+  "descriptive_only": {
+    "empty_cpu_median_usec": 450899,
+    "child_cpu_cv": 0.055693229473280474,
+    "sample_pairs": 3
+  },
+  "thresholds_unchanged": {
+    "child_cpu_cv_max": 0.05,
+    "empty_cpu_median_usec_max": 250000,
+    "empty_wall_p95_seconds_max": 5,
+    "required_pairs_for_adoption_minimum": 30
+  },
+  "independent_cleanup": {
+    "startup-c": true,
+    "faults": true,
+    "diagnostic": true
+  },
+  "environment": {
+    "kernel": "6.8.0-142-generic",
+    "architecture": "amd64",
+    "operator_python": "3.12.10",
+    "docker_server": "29.8.1",
+    "host_preflight_sha256": "538122855bc05ae027bf0c622cee7a937fb2d497796ddee7a398348f2c491fcf"
+  },
+  "limitations": [
+    "Exactly three pairs are diagnostic, not a replacement for the required30 sequential pairs.",
+    "Only authoritative_cpu_usec from the complete exclusive cpu.stat lifecycle window is authoritative.",
+    "10ms target sampling and coarse100Hz process ticks can miss short-lived processes, scheduling gaps and exited descendants.",
+    "Observed first-worker/capture/finalization offsets separate observations, not exact startup/execution/cleanup CPU partitions; no startup subtraction or cost conversion.",
+    "G/L30-pair failures remain unchanged; this packet adopts no measurement contract or default."
+  ],
+  "next_action": "Review a separately frozen performance correction before any new measurement experiment; require full faults and >=30 sequential pairs at unchanged thresholds."
+}

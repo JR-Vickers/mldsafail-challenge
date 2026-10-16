@@ -1,0 +1,33 @@
+{
+  "schema": "mldsafail.source-review.v1",
+  "reviewed_source": "83e4543e87a885d2f4d5466c6b142d290897ad55",
+  "scope": "Inactive proposed v060 backend, worker, context builder, reference preparation, envelope auditing and queue coordinator",
+  "status": "changes_required",
+  "native_execution": false,
+  "focused_tests": {
+    "suites": [
+      "tests/test_v060_backend.py",
+      "tests/test_v060_preparation.py"
+    ],
+    "passed": 15
+  },
+  "findings": [
+    {
+      "id": "sealed-reference-authority",
+      "observed": "prepare_references returns a table and a receipt with ready=false and unresolved independent audit, full viability and sealing gates. evaluate can consume that same table: reference_costs compares caller-supplied identities and receipt digest without requiring a sealed independently audited readiness authority.",
+      "correction": "Keep draft references separate from execution-admissible references. Require authenticated exact-cohort independent audit and sealing readiness before evaluation, and reject draft output explicitly."
+    },
+    {
+      "id": "complete-evaluation-deadline",
+      "observed": "The full hundred-case evaluation has no monotonic complete-evaluation deadline. Four sixty-second invocations per case permit hours of work despite the preserved twenty-minute complete-evaluation ceiling.",
+      "correction": "Enforce the fixed complete-evaluation ceiling, propagate remaining time to execution and cleanup, and classify incomplete execution as infrastructure failure without replacing measured invocations or changing score penalties."
+    }
+  ],
+  "positive_observations": [
+    "Version selection remains explicit and inactive; no default or production adoption is introduced.",
+    "Fresh tiny challenge-grid completeness, repeated-instance rejection and exact three measured invocations are implemented.",
+    "Durable source, worker, supervisor and epoch evidence bindings are checked before signing.",
+    "Accepted submission transition precedes result insertion in the reviewed queue correction."
+  ],
+  "limits": "Source review and local tests do not prove native accounting, reference viability, production cohort readiness or contract approval."
+}

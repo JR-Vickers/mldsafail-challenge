@@ -16,7 +16,7 @@ from mldsafail.web.services import create_api_token, sanitize_log, verify_api_to
 
 
 def hosted_app(tmp_path):
-    app = create_app(config_name="test", config={"DATABASE_URL": f"sqlite:///{tmp_path / 'test.db'}"})
+    app = create_app(config_name="test", config={"DATABASE_URL": f"sqlite:///{tmp_path / 'test.db'}", "MLWE_EPOCH_ID": "synthetic"})
     Base.metadata.create_all(app.extensions["mldsafail_engine"])
     return app
 
@@ -240,3 +240,14 @@ def test_api_capacity_rejection_preserves_status_cancel_and_retry(tmp_path):
     assert client.get('/api/v1/submissions/' + identifier, headers=headers).status_code == 200
     assert client.post('/api/v1/submissions/' + identifier + '/cancel', headers=headers).status_code == 200
     assert client.post('/api/v1/submissions', headers=headers | {'Idempotency-Key': 'second'}, json=payload).status_code == 201
+
+
+def test_version_capability_preflight_uses_real_submission_scope(tmp_path):
+    app=hosted_app(tmp_path)
+    _,_,token=user_and_token(app)
+    client=app.test_client()
+    assert client.get('/api/v1/capabilities').status_code==401
+    response=client.get('/api/v1/capabilities',headers={'Authorization':f'Bearer {token}'})
+    assert response.status_code==200
+    assert response.json==dict(schema='mldsafail.api-capabilities.v1',explicit_version_selection=True,submission_versions=[app.config['BENCHMARK_VERSION']])
+    assert '0.6.0' not in response.json['submission_versions']

@@ -1,0 +1,85 @@
+{
+  "schema": "mldsafail.operator-source-reconciliation.v1",
+  "source_commit": "f97f147b728b460884bfefa17e3aebd7d4b87a47",
+  "source_files_sha256": {
+    "deploy/operator_activation.py": "912f9e86fedb68c143dacd29257f7c0d05f2853aab0739e283aca16dca1f6aee",
+    "scripts/native_repeat_activation_verification.py": "b2b3c367b6616b98707d98716adb67c6bdd005d0fa6731ab585f0afbe01c97ef",
+    "scripts/native_recovery_rpc_loss.py": "5d41bbb25c085ac2a2b1d5792f2bd5f94037bfb296257957b274ac7d8f137faf",
+    "src/mldsafail/cli.py": "c149b32a0bd8ed0ef17d678b67a6897e18bdb0954c82962f325837d56cac2445",
+    "research/mlwe_v060_preparation/references.py": "98e2f8f99407bb84a1e0b83574256b39e94b5360c95fea00a6c081b403765fdf"
+  },
+  "native_executed": false,
+  "public_launch_approved": false,
+  "local_verification": {
+    "focused_tests_passed": 48,
+    "operator_checkpoint_make_check_passed": 811,
+    "operator_checkpoint_make_check_skipped": 11
+  },
+  "independent_operator_review": {
+    "reviewer": "review_controls",
+    "source_review_passed": true,
+    "focused_tests_passed": 22,
+    "scope": "repeat fixture and optional actual interrupted-job evidence verifier after exact actor/journal/epoch/attempt correction"
+  },
+  "proposed_corrections": [
+    {
+      "task": "recovery-rpc-lost-ack-source",
+      "status": "passed",
+      "scope": "source tooling only",
+      "existing_evidence": "docs/acceptance/recovery-remediation/native-journal-rpc-d06-source-verification.json#/independent_source_review/source_review_passed",
+      "native_descendant": "recovery-rpc-lost-ack-native"
+    },
+    {
+      "task": "v060-reference-identity-repair",
+      "status": "passed",
+      "scope": "trusted expected identity substitution regression and independent corrective source re-review only",
+      "existing_evidence": "docs/acceptance/production-preparation/v060-adapter-review.json#/corrective_re_review",
+      "note": "Add a typed boolean evidence wrapper; preserve original correction_required finding and original failed attempt"
+    },
+    {
+      "task": "v060-cli-capability-preflight",
+      "status": "passed",
+      "scope": "unsupported legacy server rejected before POST and generated idempotency evidence retained; source tests only"
+    },
+    {
+      "task": "operator-repeat-activation-lifecycle",
+      "status": "split_required",
+      "source_child": "operator-repeat-activation-source",
+      "native_child": "operator-repeat-activation-native",
+      "source_passed": true,
+      "native_passed": false
+    },
+    {
+      "task": "operator-interrupted-job-native",
+      "status": "pending_native",
+      "source_tooling_passed": true,
+      "native_passed": false
+    }
+  ],
+  "remaining_executable_native_tasks": [
+    "Inactive exact retained operator unit inventory/module/interpreter and systemd-analyze parsing",
+    "Two distinct exited delegated fixture units with serialized ownership and independent domain absence",
+    "Actual SIGKILL interrupted admitted synthetic recovery-check; next fresh activation reconciliation exact binding; no owner repository or staging service mutations",
+    "Current-source native encrypted synthetic S3 interruption/corruption/retry/retention/pruning where affected lifecycle source differs from historic proof",
+    "Native recovery Journal create/start response loss using actual Docker201/204 acknowledgements and executor quiescence"
+  ],
+  "still_missing_engineering": [
+    "Bounded synthetic repository-check fixture/orchestrator ensuring an actual restic check remains in progress at exact admitted-journal signal boundary; existing verifier does not execute or substitute this test"
+  ],
+  "source_assertions": {
+    "recovery_rpc_lost_ack_tooling_passed": true,
+    "reference_identity_repair_passed": true,
+    "operator_repeat_and_interruption_verifier_passed": true,
+    "cli_capability_preflight_tests_passed": true,
+    "cli_independent_review_passed": true
+  },
+  "independent_cli_reference_review": {
+    "reviewer": "review_controls",
+    "reviewed_primary_commit": "cda2f27c249a05e79307771ef3a763cda10f099e",
+    "source_review_passed": true,
+    "focused_cli_reference_candidate_tests_passed": 40,
+    "cli_sha256": "c149b32a0bd8ed0ef17d678b67a6897e18bdb0954c82962f325837d56cac2445",
+    "reference_sha256": "98e2f8f99407bb84a1e0b83574256b39e94b5360c95fea00a6c081b403765fdf",
+    "scope": "capability-before-POST, durable generated intent/key, uncertain acknowledgement preservation; trusted expected reference identity substitution rejection; no native or adoption claim"
+  }
+}

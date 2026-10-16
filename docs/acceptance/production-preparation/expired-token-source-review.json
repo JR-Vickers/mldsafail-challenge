@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "reviewer": "independent preparation agent",
+  "source_commit": "18fe8c5",
+  "script_sha256": "468cd584717e649aa78ba616f20d0a5ff5e1073d79c4d5b181946745e75fc7de",
+  "source_review_passed": true,
+  "findings": [],
+  "review_scope": [
+    "disposable SQLite synthetic identity isolation",
+    "active unlimited expired revoked UI and authentication assertions",
+    "plaintext exclusion"
+  ],
+  "native_gate_pending": true,
+  "native_evidence_requires": [
+    "exact retained application image ID",
+    "probe source hash",
+    "private native result receipt"
+  ],
+  "public_launch_approved": false
+}

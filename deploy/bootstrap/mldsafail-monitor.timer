@@ -1,7 +1,7 @@
 [Unit]
-Description=Check private staging health every minute
+Description=Check service health every five minutes
 [Timer]
 OnBootSec=2min
-OnUnitActiveSec=1min
+OnUnitActiveSec=5min
 [Install]
 WantedBy=timers.target

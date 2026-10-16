@@ -1,0 +1,26 @@
+{
+  "author": "Independent delegated reviewer /root/native_review",
+  "conditions": [
+    "Freeze reviewed bytes and bind replacement supervisor/script digests to new independent packets before native execution.",
+    "Keep A/B evidence and failure dispositions; execute in fresh domains only after independent resource reconciliation.",
+    "Review is source and evidence interpretation; reviewer did not execute native kernel checks."
+  ],
+  "findings": [
+    "Reviewed correction from unsupported JSON list-jobs output to explicit header-free full plain no-pager job table. Parser preserves exact unit names and rejects malformed row lengths, undecodable bytes, nonpositive/non-ASCII/duplicate IDs and unknown states.",
+    "Never-admitted startup authority still requires passed setup mutations, no image/manifest admission, exact same-boot provisioning, unchanged unit fragment, inactive/failed MainPID0, no matching daemon job, absent daemon domains, exact empty worker birth and refused socket with durable retirement intent.",
+    "Pending job fixture shares production query/parser, persists parsed job inventory and fault state, requires exact daemon job and expected pending-job fence before counting success.",
+    "Parent-collected startup B evidence records first six gates passed and seventh failed at JSON parsing, all seven cleanup dispositions true; outer operator cleanup true with complete=false. This remains a failed suite rather than startup acceptance."
+  ],
+  "frozen_source_commit": null,
+  "native_acceptance_passed": false,
+  "native_execution_verified_by_reviewer": false,
+  "schema": "mldsafail.native-job-interface-source-review.v1",
+  "sha256": {
+    "deploy/owned_daemon.py": "b193bef129c6aaabe985f6ba13706edaad21c19650ffcc1b8cee7bde87eee2eb",
+    "results/native-resume/20261015/startup-b-progress.txt": "d7593091c6c76274fc74c691f620a5b3a1873e330f2f2c8f4be39bd52ef13aff",
+    "results/native-resume/20261015/systemd-job-interface.txt": "ea022d46a20bbc8b2c2f8199ff4f5ae5ffd33e94045981bf29864ebfd90ab17e",
+    "scripts/native_startup_acceptance.py": "c7d8bdf90d5b796e9718124c7727e55c33fc5a2587ab35663ee2d7d6cf62676b",
+    "tests/test_owned_daemon.py": "27a1975fddbc6ae19aa2319de9450eadb2b4f52dd56cab502f39fdc1e582d3af"
+  },
+  "source_review_passed": true
+}

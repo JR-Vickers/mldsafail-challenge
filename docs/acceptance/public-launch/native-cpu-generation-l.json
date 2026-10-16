@@ -1,0 +1,33 @@
+{
+  "schema": "mldsafail.native-cpu-generation.v1",
+  "source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+  "supervisor_source_sha256": "68ce712d9e72be35900475074c7bc208d71611bd38af24fcb51d5aa1cc0a5af7",
+  "worker_source_commit": "e4b8669aa1eb1e242e1fda5a6564669054ebad9d",
+  "worker_image": "sha256:c5c35eb224f77fe84caa977e18a73d10a710366090fa7ad88e9eb21cde9a74cc",
+  "native_executed": true,
+  "passed": false,
+  "native_fault_suite_passed": true,
+  "fault_cases": 13,
+  "pairs_completed": 30,
+  "whole_owned_cleanup_verified": true,
+  "independent_all_owned_domains_absent": true,
+  "thresholds_changed": false,
+  "metrics": {
+    "child_cpu_cv": 0.0969114654753043,
+    "empty_cpu_median_usec": 432285.5,
+    "empty_wall_p95_seconds": 3.171658131002914
+  },
+  "thresholds": {
+    "child_cpu_cv_max": 0.05,
+    "empty_cpu_median_usec_max": 250000,
+    "empty_wall_p95_seconds_max": 5
+  },
+  "raw_sha256": {
+    "operator": "eb9c1fe69f085a86f59d544aa20be4fa1a4cef5d29f5a57eeb2264c2f86611c7",
+    "driver": "1da05886bad22d27a1feb20c97d7d49715b88720c1ba8421639358fd0bd0e441",
+    "fault_report": "8f47d1004906c77b992276cf3583faac94c59704a81489415aa12abea6cbccda",
+    "pairs_report": "fb27661763a9dfec271c20dbd9791ef44f8ee7c6b480f1d2e412bc41ab582d34"
+  },
+  "evidence_reference": "protected native CPU generationL",
+  "next_action": "Attribute whole lifecycle overhead and implement independently reviewed correction before changed-source measurements"
+}

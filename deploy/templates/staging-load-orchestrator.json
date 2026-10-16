@@ -1,0 +1,22 @@
+{
+  "gate": "idle-read-load",
+  "operator_source_commit": "EXACT_REVIEWED_CLEAN_SOURCE_COMMIT",
+  "protocol_sha256": "c39bdb683d6b08ef5b76851c2944a3fa82f8b7041ccdc433e03cfc8eca029004",
+  "run_directory": "/PRIVATE/NEW_LOAD_RUN",
+  "credentials": "/PRIVATE/EXISTING_OWNER_TOKEN.json",
+  "user_id": "ACTUAL_AUTHENTICATED_OWNER_ID",
+  "fixture_repository": "https://github.com/OWNER/REVIEWED_FIXTURES",
+  "release_manifest": "/PRIVATE/RETAINED_6B_RELEASE_MANIFEST.json",
+  "probe_source": "/PRIVATE/REVIEWED_ACCEPTANCE_PROBE.py",
+  "probe_sha256": "ACTUAL_REVIEWED_PROBE_SHA256",
+  "coordinator_container": "ACTUAL_COORDINATOR_NAME",
+  "web_container": "ACTUAL_WEB_NAME",
+  "evaluator_work_root": "/srv/mldsafail-evaluator/jobs",
+  "service_images": {
+    "ACTUAL_WEB_NAME": "ACTUAL_IMMUTABLE_IMAGE_ID",
+    "ACTUAL_COORDINATOR_NAME": "ACTUAL_IMMUTABLE_IMAGE_ID",
+    "ACTUAL_DATABASE_NAME": "ACTUAL_IMMUTABLE_IMAGE_ID",
+    "ACTUAL_PROXY_NAME": "ACTUAL_IMMUTABLE_IMAGE_ID"
+  },
+  "database_container": "ACTUAL_DATABASE_NAME"
+}

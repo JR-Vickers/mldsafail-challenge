@@ -1,0 +1,20 @@
+{
+  "schema": "mldsafail.source-review.v1",
+  "status": "source_review_passed",
+  "source_commit": "9943ae9eaa770297c572927a56ecc8c702a3efb2",
+  "host_source_sha256": "47db6bb0d325fcbee94caf514aecd4b0a5c659fae196e8de09cf790df2ef9df3",
+  "native_executed": false,
+  "tests": {
+    "passed": 13,
+    "command": "uv run --extra dev python -m pytest tests/test_native_recovery_transport_loss.py tests/test_isolated_recovery_powerloss.py -q"
+  },
+  "scope": [
+    "isolated protected-base overlay and exact drive allowlist",
+    "owned independent SSH SIGKILL and exact same-boot owner identity",
+    "independent transport and VM cleanup and immutable originals"
+  ],
+  "limitations": [
+    "Actual transport native execution remains pending",
+    "No staging, external storage or private epoch acceptance"
+  ]
+}

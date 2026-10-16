@@ -1,0 +1,194 @@
+import socket
+import threading
+from types import SimpleNamespace
+import pytest
+from candidate_runtime.rehearsal import serve_operation
+from deploy import owned_client
+
+
+@pytest.fixture(autouse=True)
+def native_owner(monkeypatch):
+    monkeypatch.setattr(owned_client,'identity',lambda pid:dict(pid=pid,start_ticks=1))
+
+
+def test_dispatches_gateway_on_main_thread_and_preserves_operation_error():
+    dispatched=[];ready=threading.Event()
+    def dispatch():
+        dispatched.append(threading.current_thread())
+        ready.set()
+    gateway=SimpleNamespace(server=SimpleNamespace(settimeout=lambda seconds:None),serve_once=dispatch)
+    assert serve_operation(gateway,lambda cancel:ready.wait(2),seconds=3) is True
+    assert dispatched and all(thread is threading.main_thread() for thread in dispatched)
+    def fail(cancel):raise ValueError('original application failure')
+    with pytest.raises(ValueError,match='original application failure'):
+        serve_operation(gateway,fail,seconds=3)
+
+
+def test_background_dispatch_is_rejected_before_operation():
+    errors=[];called=[]
+    def run():
+        try:serve_operation(None,lambda cancel:called.append(True),seconds=1)
+        except BaseException as error:errors.append(error)
+    thread=threading.Thread(target=run);thread.start();thread.join(2)
+    assert len(errors)==1 and isinstance(errors[0],RuntimeError) and not called
+
+
+def test_gateway_failure_cancels_and_joins_blocked_operation():
+    stopped=threading.Event()
+    def operation(cancel):
+        assert cancel.wait(2)
+        stopped.set()
+    def fail():raise ValueError('gateway disconnected')
+    gateway=SimpleNamespace(server=SimpleNamespace(settimeout=lambda seconds:None),serve_once=fail)
+    with pytest.raises(ValueError,match='gateway disconnected'):
+        serve_operation(gateway,operation,seconds=3)
+    assert stopped.is_set()
+
+
+def test_deadline_cancels_and_joins_blocked_operation():
+    stopped=threading.Event()
+    def operation(cancel):
+        cancel.wait(2);stopped.set()
+    gateway=SimpleNamespace(server=SimpleNamespace(settimeout=lambda seconds:None))
+    with pytest.raises(TimeoutError):serve_operation(gateway,operation,seconds=0)
+    assert stopped.is_set()
+
+
+def test_gateway_failure_stops_owned_transport_and_publishes_closed_lifecycle(monkeypatch,tmp_path):
+    import json
+    stopped=threading.Event();observed=[]
+    entry={'id':'owned-operation'}
+    journal=SimpleNamespace(data={'clients':[]})
+    def operation(cancel):
+        journal.data['clients'].append(entry)
+        assert stopped.wait(2)
+    def stop(value):
+        observed.append(value);stopped.set()
+    monkeypatch.setattr(owned_client,'stop',stop)
+    def fail():raise ValueError('gateway interrupted')
+    gateway=SimpleNamespace(server=SimpleNamespace(settimeout=lambda seconds:None),serve_once=fail)
+    receipt=tmp_path/'lifecycle.json'
+    with pytest.raises(ValueError,match='gateway interrupted'):
+        serve_operation(gateway,operation,seconds=3,journal=journal,receipt=receipt)
+    proof=json.loads(receipt.read_text())
+    assert observed==[entry] and proof['state']=='closed' and proof['cleanup_complete'] is True
+    assert proof['thread_alive'] is False and proof['cancel_requested'] is True
+
+
+def test_surviving_io_thread_retains_negative_lifecycle(monkeypatch,tmp_path):
+    import itertools
+    import json
+    from candidate_runtime import rehearsal
+    release=threading.Event();finished=threading.Event()
+    def operation(cancel):
+        release.wait(2)
+        finished.set()
+    ticks=iter(itertools.count(0,100))
+    monkeypatch.setattr(rehearsal.time,'monotonic',lambda:next(ticks))
+    gateway=SimpleNamespace(server=SimpleNamespace(settimeout=lambda seconds:None))
+    receipt=tmp_path/'negative.json'
+    try:
+        with pytest.raises(rehearsal.OperationCleanupIncomplete,match='runtime reuse prohibited'):
+            serve_operation(gateway,operation,seconds=1,receipt=receipt)
+        proof=json.loads(receipt.read_text())
+        assert proof['state']=='cleanup_incomplete' and proof['cleanup_complete'] is False
+        assert proof['thread_alive'] is True and proof['cancel_requested'] is True
+    finally:
+        monkeypatch.undo()
+        release.set()
+        assert finished.wait(2)
+
+
+def test_application_port_and_immutable_identity_are_rechecked_after_switch():
+    import json
+    from candidate_runtime.rehearsal import application_base
+    image='sha256:'+'a'*64
+    row={'Image':image,'State':{'Running':True},'NetworkSettings':{'Ports':{'8000/tcp':[{'HostIp':'127.0.0.1','HostPort':'32123'}]}}}
+    journal=SimpleNamespace(command=lambda *args,**kwargs:SimpleNamespace(stdout=json.dumps([row])))
+    assert application_base(journal,'owned',image=image)=='http://127.0.0.1:32123'
+    row['NetworkSettings']['Ports']['8000/tcp'][0]['HostPort']='32124'
+    assert application_base(journal,'owned',image=image)=='http://127.0.0.1:32124'
+    row['NetworkSettings']['Ports']['8000/tcp'][0]['HostIp']='0.0.0.0'
+    with pytest.raises(ValueError,match='Loopback-only'):application_base(journal,'owned',image=image)
+    row['NetworkSettings']['Ports']['8000/tcp'][0]['HostIp']='127.0.0.1'
+    row['Image']='sha256:'+'b'*64
+    with pytest.raises(ValueError,match='Exact running'):application_base(journal,'owned',image=image)
+
+
+def test_restoration_query_limits_normalization_to_declared_auth_timestamp():
+    from candidate_runtime.rehearsal import restoration_query
+    exact=restoration_query(['api_tokens','experiment_results'])
+    normalized=restoration_query(['api_tokens','experiment_results'],normalize_auth_timestamps=True)
+    assert "to_jsonb(t) - 'last_used_at'" not in exact
+    assert normalized.count("to_jsonb(t) - 'last_used_at'")==2
+    assert 'FROM experiment_results t' in normalized and 'FROM api_tokens t' in normalized
+    with pytest.raises(ValueError):restoration_query(['users; DROP TABLE users'])
+    with pytest.raises(ValueError):restoration_query(['users','users'])
+
+
+@pytest.mark.parametrize('prior',[
+    {'rollback_application_artifact':'private'},
+    {'rollback_application_source_commit':'b'*40},
+    {'rollback_application_artifact':'private','rollback_application_source_commit':'not-a-commit'},
+    {'rollback_application_artifact':'private','rollback_application_source_commit':'a'*40},
+])
+def test_rollback_admission_rejects_incomplete_or_same_source(monkeypatch,prior):
+    from candidate_runtime import rehearsal
+    protocol=dict(schema='mldsafail.private-candidate-image-protocol.v1',worker_artifact='worker',prerequisites='prerequisites',application_artifact='current',**prior)
+    monkeypatch.setattr(rehearsal.owned_daemon,'read_private_json',lambda path:protocol)
+    monkeypatch.setattr(rehearsal,'accepted_worker',lambda *args,**kwargs:{'image':'sha256:'+'c'*64})
+    monkeypatch.setattr(rehearsal,'require_image',lambda *args,**kwargs:{'image':'sha256:'+'d'*64})
+    journal=SimpleNamespace(path=__import__('pathlib').Path('/private/state/journal.json'))
+    config={'source_commit':'a'*40,'image':'sha256:'+'c'*64,'image_archive_sha256':'e'*64,'supervisor_source_sha256':'f'*64}
+    with pytest.raises(ValueError):rehearsal.callback(journal,config,{'loaded_images':[config['image']]})
+
+
+def test_rollback_admission_rejects_same_immutable_image(monkeypatch):
+    from candidate_runtime import rehearsal
+    protocol=dict(schema='mldsafail.private-candidate-image-protocol.v1',worker_artifact='worker',prerequisites='prerequisites',application_artifact='current',
+        rollback_application_artifact='prior',rollback_application_source_commit='b'*40)
+    monkeypatch.setattr(rehearsal.owned_daemon,'read_private_json',lambda path:protocol)
+    monkeypatch.setattr(rehearsal,'accepted_worker',lambda *args,**kwargs:{'image':'sha256:'+'c'*64})
+    monkeypatch.setattr(rehearsal,'require_image',lambda *args,**kwargs:{'image':'sha256:'+'d'*64})
+    journal=SimpleNamespace(path=__import__('pathlib').Path('/private/state/journal.json'))
+    config={'source_commit':'a'*40,'image':'sha256:'+'c'*64,'image_archive_sha256':'e'*64,'supervisor_source_sha256':'f'*64}
+    with pytest.raises(ValueError,match='distinct immutable'):rehearsal.callback(journal,config,{'loaded_images':[config['image']]})
+
+
+def test_ambiguous_positive_switch_publication_is_retracted(monkeypatch,tmp_path):
+    import json
+    from candidate_runtime import rehearsal
+    path=tmp_path/'switch.json';calls=[]
+    def publish(target,value):
+        calls.append(value)
+        target.write_text(json.dumps(value))
+        if len(calls)==1:raise OSError('directory fsync failed after rename')
+    monkeypatch.setattr(rehearsal.owned_daemon,'publish',publish)
+    with pytest.raises(OSError,match='directory fsync failed'):
+        rehearsal.publish_verified_switch(path,dict(passed=True,state='forward_verified'))
+    proof=json.loads(path.read_text())
+    assert proof['passed'] is False and proof['state']=='publication_failed'
+    assert proof['evidence_publication_failed'] is True and len(calls)==2
+
+
+def test_negative_switch_publication_failure_preserves_original(monkeypatch,tmp_path):
+    from candidate_runtime import rehearsal
+    failure=OSError('original postrename failure');calls=[]
+    def publish(target,value):
+        calls.append(value)
+        if len(calls)==1:raise failure
+        raise ValueError('negative publication failed')
+    monkeypatch.setattr(rehearsal.owned_daemon,'publish',publish)
+    with pytest.raises(OSError) as error:
+        rehearsal.publish_verified_switch(tmp_path/'switch.json',dict(passed=True))
+    assert error.value is failure and len(calls)==2
+    assert calls[1]['passed'] is False and any('Negative switch disposition' in note for note in failure.__notes__)
+
+
+def test_restore_schema_inventory_includes_constraint_and_index_definitions():
+    from candidate_runtime.rehearsal import restoration_query
+    query=restoration_query(['experiment_results'])
+    assert 'pg_get_constraintdef(c.oid,true)' in query
+    assert 'pg_constraint c JOIN pg_class' in query and "n.nspname='public'" in query
+    assert 'tablename,indexname,indexdef' in query and 'pg_indexes' in query
+    assert "schemaname='public'" in query

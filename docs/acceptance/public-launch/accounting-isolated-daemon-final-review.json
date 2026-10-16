@@ -1,0 +1,41 @@
+{
+  "schema": "mldsafail.independent-source-review.v1",
+  "source_commit": "ac38663d7d52e5b5c1768588c19d484e017e2f76",
+  "reviewed_components_sha256": {
+    "deploy/owned_client.py": "7a95b247a63ae25b6cba9cb798aa0f7104584306a86a4ad94838ff130a4d8d50",
+    "deploy/owned_daemon.py": "fa593c45ef8bf98075f25b49276387f13be878f78796fd6c3c62f7e530f832c8",
+    "research/cpu_measurement/client.py": "e2053a3ee33c263c4e3ff842e870f6b699e36fde6db6be966dd3a89736af8f93",
+    "research/cpu_measurement/guardian.py": "cd689f596d3740e986d349cd74f34f2b099fac33ee0ad965095f8970f5c21846",
+    "research/cpu_measurement/mutations.py": "f03087a87159dae49790e5a4b0e2dcbfdc25a01effc6d2e6937fbff2668875b9",
+    "research/cpu_measurement/ownership.py": "3df6a5d1bb1ab8bb510e019030e5108f84c568a8046942dfaf232d18b3ea926e",
+    "research/cpu_measurement/harness.py": "d7ff7a1ef504a80b771a91793f1cc1d3fca008660f2d5e61444d94fcfa5cdf7e",
+    "research/cpu_measurement/supervisor.py": "80fe92400d40663785aff4b11624f47a2b3e9e7a5735baaee6ccb4f404f03445",
+    "research/cpu_measurement/audit.py": "c534851a760e1d19140309f83642ec496720948ebc1a35ffc9d3bdf380814fbc",
+    "research/cpu_measurement/reconcile.py": "555fee8812acf31c65650808949ed37f41a1d82f1dfb34dbd2da7a35dc739dcb",
+    "research/cpu_measurement/native_loss.py": "dfc9e63270f5b2d0057e43df71e588f22978414afd0a3c107c482178650681c1",
+    "research/cpu_measurement/native_fault_suite.py": "d0c2c1055b633abfc87adc6e4719a91ff2af077861cc02db45d6083e9d1a35a3",
+    "research/cpu_measurement/native_lifecycle.py": "90f4e752470938b0d1eef7dfd021ac77b6aa2eb2db4a8d7e58c5cf8f520892cf"
+  },
+  "review_outcome": "passed_source_review_with_native_gates_pending",
+  "corrections": [
+    "Exact boot/PID/start/UID/cmdline and cgroup ownership bind before exec release",
+    "Owned client cgroup admission secures fresh kernel-inherited mode with descriptor and inode proof",
+    "Separate dedicated daemon/worker/operator domains; private fresh empty daemon config",
+    "Split create/start guardian acknowledgements and positive whole-daemon/worker barrier before creator cancellation",
+    "Versioned exact barrier proof and durable next-epoch restart intent permit bounded crash-resume",
+    "Native proxy transport pending guard precedes upstream connect; live executor prevents restart until transport quiescence",
+    "Independent cleanup and bounded immutable correctness/accounting evidence publication"
+  ],
+  "focused_tests": {
+    "command": "uv run --extra dev python -m pytest tests/test_cpu_daemon_protocol.py tests/test_owned_client.py tests/test_cpu_proposal.py <exact ac38663 tests/test_owned_daemon.py>",
+    "passed": 66,
+    "source_import": "/Users/jarrett/dev/mldsafail-launch-accounting/src/mldsafail/__init__.py",
+    "interpreter": "/Users/jarrett/dev/mldsafail-launch-accounting/.venv/bin/python3"
+  },
+  "limits": [
+    "Dedicated trusted UID/daemon writer boundary remains mandatory",
+    "No native fault or performance pass claimed by source review",
+    "Complete native accounting fault suite and 30 sequential pairs remain required",
+    "Contract adoption/production default remain owner decisions"
+  ]
+}

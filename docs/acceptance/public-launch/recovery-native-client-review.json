@@ -1,0 +1,91 @@
+{
+  "accounting_adapter_review": {
+    "checkout_difference": "PROPOSAL.md daemon-gap documentation only; executable adapter/helper/tests unchanged",
+    "criteria": [
+      "durable domain intent before spawn",
+      "inode-bound domain receipt before bootstrap",
+      "verified PID membership acknowledgement before exec release",
+      "separate operator and accounting domains",
+      "creator domain cancellation precedes inventory",
+      "spawn failure independently closes each pipe"
+    ],
+    "focused_tests_passed": 39,
+    "remaining": [
+      "Docker daemon pending create/start quiescence and mid-request fault gate",
+      "Native accounting fault and paired measurement gates"
+    ],
+    "source_commit": "125a8840079815aa533e686d4d5021d0fe41534b",
+    "status": "passed_limited_scope",
+    "verification_checkout": "7279b831de9d0bfcf3f1f0e7c8f145652c2841f0"
+  },
+  "local_verification": {
+    "focused_native_harness_and_helper_tests_passed": 19,
+    "historical_040_small_benchmark_correct": true,
+    "make_check_skipped": 8,
+    "make_check_tests_passed": 400
+  },
+  "operator_client_native": {
+    "benchmark_measurements_performed": false,
+    "criteria": {
+      "descendant_domain_killed_and_removed": true,
+      "inode_device_uid_mismatch_refused": true,
+      "leader_exited_and_grandchild_membership_verified": true,
+      "no_pre_release_mutation": true,
+      "original_powerloss_disk_and_firmware_unchanged": true,
+      "owned_vm_stopped": true,
+      "prior_boot_receipt_did_not_signal": true,
+      "repeated_cleanup": true,
+      "unreleased_bootstrap_eof_before_cleanup": true
+    },
+    "guest_evidence_sha256": "cd711dae0a164493e79e0597844a812b72dc37a15962a87431b984a0b5d19335",
+    "helper_sha256": "7d63f7fae08f2c17bb382c7a6ab70e0e78415f9398ea515b96db097b6967d4e0",
+    "kernel": "6.8.0-142-generic",
+    "preserved_prior_outcomes": [
+      {
+        "reason": "concurrent exact cgroup removal ENOENT race, repaired in fc0aab5",
+        "ref": "private:qemu-operator-client-first-20261004",
+        "status": "failed"
+      },
+      {
+        "ref": "private:qemu-operator-client-repaired-20261004",
+        "scope": "earlier protocol inferred leader exit from fixture delay; superseded by explicit membership proof",
+        "status": "passed"
+      }
+    ],
+    "private_evidence_ref": "private:qemu-operator-client-membership-20261004",
+    "python": "3.12.3 helper-only operational fixture",
+    "remaining": [
+      "Actual VPS operator delegation and native acceptance before timer activation",
+      "Docker daemon in-flight mutation fence remains separate unresolved technical gate"
+    ],
+    "scope": "isolated local ARM64 VM, synthetic operator clients only",
+    "script_sha256": "35094de4d0a844b760fc8385b6e7e5e35026019660f58c12162bd84a60e46656",
+    "source_commit": "d874b557f37bed2aef9d066f31ab6014b556f024",
+    "status": "passed",
+    "vm_base_sha256": "1d6bffe64b848468ac97f821d369a4846d983de1800ccf6b5ec8853e85cefc55",
+    "vm_image_source": "https://cloud-images.ubuntu.com/noble/20260926/"
+  },
+  "participant_archive_review": {
+    "archive_sha256": "90a31e7e7a9d16ffe49c3dbd409edbe49274e39373fc1862eb6132280fd93bfb",
+    "criteria": [
+      "all included checksums",
+      "exact approved starter Git bytes",
+      "all Markdown local links resolve",
+      "separate archive and wheel provenance",
+      "cooperative clock scope explicitly bounded",
+      "no private epoch/operator evidence included"
+    ],
+    "public_fixed_fixtures": 6,
+    "regular_allowlisted_files": 8,
+    "remaining": [
+      "Native public reproduction",
+      "Owner publication/public launch approval"
+    ],
+    "source_commit": "16e5e9f32f9d21a3a63d006fcdbf30885d9a465b",
+    "status": "passed_limited_scope",
+    "wheel_sha256": "3c2490de73a99d31f57e9cadcd6fd9eb5a30540511d485b475a9330b76c008b5",
+    "wheel_source_commit": "4a9d82d666dea328286631a5ffe62f19a1c985b3"
+  },
+  "public_launch_approved": false,
+  "schema": "mldsafail.launch-review.v1"
+}

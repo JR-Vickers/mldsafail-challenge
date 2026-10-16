@@ -1,0 +1,48 @@
+{
+  "schema": "mldsafail.source-verification.v1",
+  "source_commit": "b5a9e8f19056e90e0a86e4639ed46877388e61b5",
+  "required_own_commits": [
+    "72d2a96574bcd34dce6969f531d892d5af1ffee9",
+    "b5a9e8f19056e90e0a86e4639ed46877388e61b5"
+  ],
+  "base_commit": "95593b69f73afc73efabbad72521cfba0535c9e4",
+  "source_files_sha256": {
+    "deploy/assemble_recovery.py": "780842d3d1eba4fe952892ff43776127d7d581095c903a646ca993965ff4d964",
+    "deploy/backup_postgres.py": "0fc6c89cab74eebdb0a0cede3b5f1283426272b4815d0b912645a3d3ede27df6",
+    "deploy/restore_recovery.py": "24b8b402a8c5642293530fa2958de8e9baf1715e330750e92d9a6c4bf322a8de",
+    "scripts/native_protected_local_restoration.py": "111c184f8403703c39cbbc56f81a4120d9fc85706f6c0cfe590fecfa7efca733"
+  },
+  "focused_tests_passed": 53,
+  "make_check": {
+    "passed": 756,
+    "skipped": 27
+  },
+  "interpreter": "CPython3.12.10",
+  "package_import_verified_from_exact_worktree": true,
+  "independent_source_review": {
+    "reviewer": "preparation",
+    "source_review_passed": true,
+    "focused_final_tests_passed": 12,
+    "native_executed": false
+  },
+  "native_full_protected_restore_passed": false,
+  "offhost_storage_verified": false,
+  "owner_password_custody_verified": false,
+  "production_activation_approved": false,
+  "remaining_native_criteria": [
+    "fresh dedicated owned daemon and both approved loaded image archives",
+    "intact private seven-category sealed recovery set",
+    "full snapshot schema/data comparison plus frozen epoch and every accepted run audit",
+    "exact expected epoch/result inventory",
+    "independent operation cleanup and whole outer driver barrier"
+  ],
+  "bound": {
+    "custom_dump_transport_max_bytes": 8388608,
+    "at_least_one_accepted_result": true
+  },
+  "limitations": [
+    "native acceptance pending primary serialized executor",
+    "local receipts never update off-host backup freshness",
+    "a larger custom dump requires additional bounded transport tooling before acceptance"
+  ]
+}

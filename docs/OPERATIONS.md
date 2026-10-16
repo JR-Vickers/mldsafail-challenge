@@ -220,21 +220,30 @@ not yet demonstrated rollback; retained images alone do not close that gate.
 ## Backups and restore verification
 
 The installed daily PostgreSQL timer writes local private dumps. To perform the
-acceptance backup on a quiescent source, after draining work and stopping web and
+dump on a quiescent source, after draining work and stopping web and
 coordinator, run the checked-in helper on the VPS:
 
 ```sh
 python3 "$STAGING_CHECKOUT/deploy/backup_postgres.py" \
   --env-file "$STAGING_ENV_FILE" \
   --compose "$STAGING_CHECKOUT/compose.private.yaml" \
-  --output /PRIVATE/postgres-backups --verify-restore
+  --output /PRIVATE/postgres-backups
 ```
 
-The helper uses mode-0600 dumps in a private directory, creates an exact named
-disposable restore database, compares its normalized dump with the quiescent
-source, and removes only that disposable database. It never restores over the
-application database. Restart the intended services after verification; use the
+The helper writes mode-0600 dumps and records `restore_verified=false`. It does
+not verify a restore; its former `--verify-restore` option is retired. Restart
+the intended services after the dump; use the
 acceptance runner's cleanup during its controlled maintenance window.
+
+For restore acceptance, use the durable dedicated-daemon recovery workflow in
+the daily recovery section below and [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md).
+Prepare the reviewed private configuration, owned daemon and protected recovery
+set before running `python -m deploy.daily_recovery --config /PRIVATE/daily-recovery.json`.
+Acceptance requires upload, independent restore, full schema/data/epoch/evidence
+audit and verified cleanup; a dump alone cannot satisfy it. Configure and review
+this operation before stopping live services. Historical baseline rehearsals
+require their exact manifest-bound restore-capable helper and reject current
+helpers in preflight; see [the native protocol](acceptance/NATIVE_BASELINE_REPRODUCTION_PROTOCOL.md).
 
 Local dumps are neither automatically encrypted nor off-host backups. Configure
 and verify automated provider/off-host retention and restore access separately.

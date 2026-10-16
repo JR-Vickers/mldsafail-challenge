@@ -1,0 +1,45 @@
+{
+  "author": "Independent read-only reviewer /root/functional_audit",
+  "base_head": "6479742075c10ba2278aa3ecfc7dfea30e85b7ab",
+  "blocking_source_findings": [
+    {
+      "file": "scripts/operator_daemon_lifecycle.py",
+      "finding": "settle cancels all owned clients even when positive shutdown barrier failed or could not be durably published. baseline cleanup then continues Docker mutations despite settle errors. Uncertain creators must remain fenced until exact whole-daemon/worker positive barrier; failure must not continue native inventory/removal on an unproved/restarted backend."
+    },
+    {
+      "file": "scripts/baseline_production_rehearsal.py",
+      "finding": "After rollback/forward checks only COMPLETE.json digest, not fresh audit_epoch content and result audit. Mutations to epoch files with unchanged completion marker are undetected by these post-switch checks. Re-audit epoch and retained accepted evidence/result after each switch to prove unchanged full sealed epoch and result."
+    }
+  ],
+  "callback_review_passed": false,
+  "file_sha256": {
+    "compose.production.yaml": "3c323fb5978f8dfa8cdc60e68da4b49e02178ced1857007998285d614f971bc2",
+    "deploy/backup_postgres.py": "0fc6c89cab74eebdb0a0cede3b5f1283426272b4815d0b912645a3d3ede27df6",
+    "deploy/owned_client.py": "7a95b247a63ae25b6cba9cb798aa0f7104584306a86a4ad94838ff130a4d8d50",
+    "deploy/owned_daemon.py": "b193bef129c6aaabe985f6ba13706edaad21c19650ffcc1b8cee7bde87eee2eb",
+    "deploy/recovery_daemon.py": "bfcc4057dec8658fd4918db878a42e1fa1146f783957826d1348a98407d77331",
+    "deploy/verify_recovery_evidence.py": "6f97d8bdf486039823e9861ec6e791cb083763fd5ae678b99807bcd501d448b6",
+    "research/cpu_measurement/native_driver.py": "2b7e20bf2a4319379a1c2ddc9695c23e5f06db194404a24916ce83fbcb2b1292",
+    "scripts/baseline_production_rehearsal.py": "ac895984187c1ffc0d05681fe22683ab86e8e3730ff947e4e22df8908ea821a2",
+    "scripts/native_baseline_acceptance.py": "eed2ed20393ae07bf7152c609ec9bc102e439278a4f297e75a1689689ef705b6",
+    "scripts/operator_daemon_lifecycle.py": "de6b5d8efc26fc61a02339b5f7496c687955aa5830882ec7f4df0098e7d12156"
+  },
+  "native_acceptance_passed": false,
+  "native_executed": false,
+  "native_protocol_review_passed": false,
+  "pending_prerequisite_inspection": [
+    "Exact retained 6b332 operator source compose, deploy.backup_postgres and all imported recovery helpers need independent hashes/review. validate only hashes compose and benchmark_v050 Python. Current backup_postgres explicitly rejects --verify-restore used by rehearsal; actual retained historical backup semantics are not yet inspected.",
+    "Current compose requires BENCHMARK_VERSION, PRODUCTION_TLS_ROOT and PRODUCTION_ACME_WEBROOT interpolation absent from synthetic values; exact retained compose may differ. Resolve against retained source without exposing staging variables.",
+    "Bind imported baseline rehearsal/lifecycle bytes and exact private input protocol/manifests into final reviewed frozen packet; callback source hash alone excludes these imports."
+  ],
+  "positive_findings": [
+    "Baseline callback requires all rehearsal images preloaded by pinned driver artifacts, uses fresh owned root/socket and requires complete plus cleanup_complete before callback receipt.",
+    "Rehearsal uses fresh random project/credentials and epoch, isolated evaluator directories and labeled disposable Docker resources under owned worker cgroup. Public proxy removed and web is explicitly IPv4 loopback ephemeral.",
+    "Initial accepted result gate calls deploy.verify_recovery_evidence.verify to audit sealed epoch, run evidence, diagnostics and score; requires exactly one result and exact epoch ID.",
+    "Application rollback/forward replaces only web/coordinator images with explicit no-deps up and MLDSAFAIL_SKIP_MIGRATIONS in supplied production compose. DB dump equality excludes declared token/rate-limit/audit mutable rows; frozen worker image must stay identical.",
+    "Failed epoch files and evidence are retained; failed DB volumes can be preserved. Outer native driver cleanup remains separately required."
+  ],
+  "review_date_utc": "2026-10-15",
+  "schema": "mldsafail.baseline-independent-source-audit.v1",
+  "scope": "Source inspection only. No remote commands or native tests executed. No approval of rollback baseline execution until blockers and retained-input inspection resolved."
+}

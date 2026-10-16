@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "source_commit": "6f24d40e10a11d3af6f0e98b6990199e5df02077",
+  "reviewer": "independent preparation agent",
+  "source_files_sha256": {
+    "src/mldsafail/benchmark_versions.py": "fb1e3a9d9df1275c4bb4e3cfc1808a9fcde1e59468cb55efcf007275683c2e60",
+    "src/mldsafail/web/api.py": "9792e44012c190aba5de503e0eb32195cbb45bc45c7490e82b4d119e4658da73",
+    "src/mldsafail/web/app.py": "d8892cae2c8205ee549a77464bbd153fb463c6adc1989b126d62fbe0952ed5ee",
+    "research/mlwe_v060_preparation/references.py": "40eecad53a505f20e456a208dc2c6c943a04665007610650111bc4e0f66583e4"
+  },
+  "scope": "inactive version adapters, registry dispatch/default gate, cohort/privacy and future reference contract; no native backend claim",
+  "focused_tests_passed": 6,
+  "findings": [
+    {
+      "id": "v060-reference-worker-source-binding",
+      "status": "correction_required",
+      "requirement": "Reference compatibility validation must compare worker/source identity to independently supplied trusted expected identities, not merely validate digest syntax.",
+      "evidence": "reference_costs accepts altered syntactically valid worker_image/reference_source_commit with unchanged cohort/epoch fields.",
+      "next_action": "Add explicit expected worker/source identity parameters or trusted artifact mapping and mismatch regression tests before backend activation."
+    }
+  ],
+  "verified_properties": [
+    "no shipped v060 registry/backend",
+    "legacy default retained; v060 default additionally requires owner approval flag",
+    "unknown or unregistered versions fail closed",
+    "API filtering separates version epoch evaluator suite and worker identities",
+    "public projections exclude raw private evidence",
+    "protocol explicitly identifies actual backend/coordinator/envelope/reference gates as pending"
+  ],
+  "native_acceptance_pending": true,
+  "contract_adoption_approved": false,
+  "production_activation_approved": false,
+  "corrective_re_review": {
+    "source_commit": "2ec93c1bed20f531745d2cbcb09732b7873866da",
+    "reference_validator_sha256": "98e2f8f99407bb84a1e0b83574256b39e94b5360c95fea00a6c081b403765fdf",
+    "finding_id": "v060-reference-worker-source-binding",
+    "disposition": "passed: worker image, reference source and audit receipt now equal separately supplied trusted expectations; mismatch regression tests pass",
+    "focused_tests_passed": 6,
+    "scope": "inactive adapter source review only; actual backend/native accounting/audit/activation remain pending"
+  }
+}

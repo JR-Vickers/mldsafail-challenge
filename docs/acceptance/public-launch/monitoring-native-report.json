@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "source_commit": "280c3b1bfa3f7fd7414c6472414ef7f1af60b9e7",
+  "native_checks_passed": 20,
+  "loopback_responses": [
+    503,
+    503,
+    204
+  ],
+  "deduplicated": true,
+  "recovery_delivered": true,
+  "payload_contains_only_status_and_check_names": true,
+  "strict_backup_receipt_faults_verified": true,
+  "recent_verification_does_not_refresh_upload_age": true,
+  "native_resource_floors_checked": true,
+  "cleanup_complete": true,
+  "parent_absent": true,
+  "controller_absent": true,
+  "private_report_sha256": "dacd37789bd4bc12da7af323b4fc648f399e92d9729c938d26c5bbb1b16e9e04",
+  "private_evidence_reference": "protected native monitoring acceptance attempt 20261004",
+  "scope": "Synthetic decisions and loopback delivery on actual Linux; approved external receiver, live backup freshness and timer activation remain incomplete."
+}

@@ -82,7 +82,12 @@ def test_retention_preserves_failures_and_repository(tmp_path, monkeypatch):
         record = dict(repository='repo' if index != 6 else 'other',
                       set_directory='set-' + run, restore_directory='restore-' + run,
                       cleanup_complete=index != 4, restore_verified=index != 5,
-                      verified_at=f'2026-10-0{index+1}')
+                      verified_at=f'2026-09-0{index+1}')
+        record['snapshot'] = 'a' * 64
+        record['verified_state'] = dict(schema='mldsafail.recovery-state.v1', repository=record['repository'],
+            snapshot=record['snapshot'], epoch_id='synthetic', result_count=0, restored_manifest_sha256='b' * 64,
+            restore_verified=record['restore_verified'], cleanup_complete=record['cleanup_complete'],
+            uploaded_at=record['verified_at']+'T00:00:00+00:00', verified_at=record['verified_at']+'T00:00:01+00:00')
         for key in ('set_directory', 'restore_directory'):
             (tmp_path / record[key]).mkdir()
         atomic_json(tmp_path / 'journals' / ('run-' + run + '.json'), record)
@@ -99,6 +104,8 @@ def test_retention_preserves_failures_and_repository(tmp_path, monkeypatch):
     with pytest.raises(ValueError):
         remove_owned(tmp_path, link.name)
 
+
+from types import SimpleNamespace
 
 DRIVER = r'''
 import json, sys, time
@@ -120,16 +127,21 @@ def command(argv, **kwargs):
     return SimpleNamespace(stdout='identifier', returncode=0)
 journal.subprocess.check_output = output
 journal.subprocess.run = command
+import deploy.owned_client as owned_client
+def owned_run(argv, entries, save, evidence_directory, **kwargs):
+    value = output(argv, **kwargs) if ('inspect' in argv or 'ps' in argv) else command(argv, **kwargs).stdout
+    return SimpleNamespace(stdout=value, returncode=0)
+owned_client.run = owned_run
 def boundary(stage):
     if config['stage'] == stage:
         marker.write_text(stage)
         time.sleep(30)
 def assembly(config, destination, operation):
     destination.mkdir()
-    operation.services(['docker','compose'], {'web': True, 'coordinator':True})
+    operation.services(['docker','compose'], {'web': True, 'coordinator':True}, {'web':'web','coordinator':'coordinator'})
     operation.container('recovery-test', 'sha256:'+'a'*64)
     boundary('assembly')
-def execute(config, *args):
+def execute(config, *args, **kwargs):
     boundary('upload')
     Path(config['backup_state']).write_text(json.dumps({'repository':'repo','snapshot':'snapshot'}))
 def verify(config, destination, operation):
@@ -198,29 +210,34 @@ def test_concurrent_and_restart_reconciliation(tmp_path):
 
 def test_cleanup_independent_failure_and_retry(tmp_path, monkeypatch):
     journal = Journal(tmp_path / 'operation.json', {})
-    journal.services(['docker','compose'], {'web':True,'coordinator':True})
+    journal.services(['docker','compose'], {'web':True,'coordinator':True}, {'web':'web','coordinator':'coordinator'})
     calls = []
     def command(argv, **kwargs):
         calls.append(argv)
         if argv[-1] == 'web':
             raise RuntimeError('failure')
+    def owned_run(argv, entries, save, evidence_directory, **kwargs):
+        command(argv, **kwargs)
+        return SimpleNamespace(stdout='{"Running":true}', returncode=0)
+    monkeypatch.setattr('deploy.owned_client.run', owned_run)
     monkeypatch.setattr('deploy.recovery_journal.subprocess.run', command)
     monkeypatch.setattr('deploy.recovery_journal.subprocess.check_output',
                         lambda argv, **kw: '{"Running":true}' if 'inspect' in argv else 'identifier')
     with pytest.raises(RuntimeError):
         journal.cleanup()
     assert any(argv[-1] == 'coordinator' for argv in calls)
-    assert journal.data['cleanup_errors'] == ['service:web']
-    monkeypatch.setattr('deploy.recovery_journal.subprocess.run', lambda *a, **kw: None)
-    journal.cleanup()
-    assert journal.data['cleanup_complete']
+    assert 'service:web' in journal.data['cleanup_errors']
+    assert any('positive_dedicated_daemon_barrier_required' in e for e in journal.data['cleanup_errors'])
+    monkeypatch.setattr('deploy.owned_client.run', lambda *a, **kw: SimpleNamespace(stdout='{"Running":true}', returncode=0))
+    with pytest.raises(RuntimeError): journal.cleanup()
+    assert not journal.data['cleanup_complete']  # Earlier unacknowledged RPC remains fenced.
 
 
 def test_disk_floor_preserves_evidence(tmp_path, monkeypatch):
     from deploy.daily_recovery import run
     from types import SimpleNamespace
     root = tmp_path / 'root'
-    root.mkdir()
+    root.mkdir(mode=0o700)
     failed = root / ('set-' + 'a' * 32)
     failed.mkdir()
     monkeypatch.setattr('deploy.daily_recovery.shutil.disk_usage', lambda _: SimpleNamespace(free=1))
@@ -241,7 +258,10 @@ def test_production_compose_synthetic_configuration(tmp_path):
                 'CADDY_IMAGE','POSTGRES_IMAGE']
     env.update({key: 'synthetic' for key in required})
     env.update(PRODUCTION_EVALUATOR_ROOT='/srv/mldsafail-production-evaluator',
-               ROOTLESS_DOCKER_SOCKET='/run/user/1000/docker.sock')
+               ROOTLESS_DOCKER_SOCKET='/run/user/1000/docker.sock',
+               MLDSAFAIL_BENCHMARK_VERSION='0.5.0',
+               PRODUCTION_TLS_ROOT='/srv/synthetic-tls',
+               PRODUCTION_ACME_WEBROOT='/srv/synthetic-acme')
     argv = ['docker','compose','-f','compose.production.yaml','config','--format','json']
     result = subprocess.run(argv, env=env, capture_output=True, text=True, timeout=30)
     assert result.returncode == 0, result.stderr
@@ -261,6 +281,10 @@ def test_container_ownership_mismatch_never_removed(tmp_path, monkeypatch):
     def command(argv, **kw):
         calls.append(argv)
         return SimpleNamespace(stdout='identifier')
+    def owned_run(argv, entries, save, evidence_directory, **kwargs):
+        command(argv, **kwargs)
+        return SimpleNamespace(stdout='{"Running":true}', returncode=0)
+    monkeypatch.setattr('deploy.owned_client.run', owned_run)
     monkeypatch.setattr('deploy.recovery_journal.subprocess.run', command)
     monkeypatch.setattr('deploy.recovery_journal.subprocess.check_output', lambda *a, **kw:
                         json.dumps([{'Name':'/owned','Image':'wrong','Config':{'Labels':{}}}]))
@@ -280,11 +304,15 @@ def test_verification_published_only_after_cleanup(tmp_path, monkeypatch, cleanu
         destination.mkdir()
         operation.data['cleanup_complete'] = False
         operation.save('maintenance intent')
-    def upload(config, *args):
-        atomic_json(state, dict(repository='repo', snapshot='snapshot', restore_verified=False))
+    def upload(config, *args, **kwargs):
+        atomic_json(state, dict(repository='repo', snapshot='a'*64, restore_verified=False))
     def verify(config, destination, operation):
         destination.mkdir()
-        return dict(repository='repo', snapshot='snapshot', restore_verified=True, cleanup_complete=True)
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).isoformat()
+        return dict(schema='mldsafail.recovery-state.v1', repository='repo', snapshot='a'*64,
+            epoch_id='synthetic', result_count=0, restored_manifest_sha256='b'*64, uploaded_at=now,
+            verified_at=now, restore_verified=True, cleanup_complete=True)
     def cleanup(operation):
         operation.data.update(cleanup_complete=not cleanup_failure,
                               cleanup_errors=['service:web'] if cleanup_failure else [])
@@ -309,7 +337,7 @@ def test_verification_published_only_after_cleanup(tmp_path, monkeypatch, cleanu
     assert record['restore_verified'] != cleanup_failure
 
 
-@pytest.mark.parametrize('boundary', ['coordinator', 'web', 'run'])
+@pytest.mark.parametrize('boundary', ['coordinator', 'web', 'exec'])
 def test_assembly_maintenance_boundaries(tmp_path, monkeypatch, boundary):
     from deploy.assemble_recovery import assemble
     calls = []
@@ -319,12 +347,20 @@ def test_assembly_maintenance_boundaries(tmp_path, monkeypatch, boundary):
             return argv[-1]
         if 'inspect' in argv:
             return '{"Running":true}'
-        if ('stop' in argv and argv[-1] == boundary) or ('run' in argv and boundary == 'run'):
+        if ('stop' in argv and argv[-1] == boundary) or ('exec' in argv and boundary == 'exec'):
             raise InterruptedError()
+        if 'psql' in argv: return '0\n'
+        if 'exec' in argv: return '{"epoch":"/synthetic","runs":[],"epoch_id":"synthetic"}'
         return ''
     monkeypatch.setattr('deploy.assemble_recovery.subprocess.check_output', output)
+    monkeypatch.setattr('deploy.recovery_journal.subprocess.run', lambda argv, **kw: calls.append(argv))
+    from types import SimpleNamespace
+    from tests.test_recovery_tools import _mock_owned_run
+    operation = Journal(tmp_path / 'operation.json', {})
+    operation.command = lambda argv, **kwargs: SimpleNamespace(stdout=output(argv, **kwargs))
+    monkeypatch.setattr('deploy.owned_client.run', _mock_owned_run)
     with pytest.raises(InterruptedError):
-        assemble(dict(env_file='/private/env', compose='/app/compose.private.yaml'), tmp_path / 'set')
+        assemble(dict(env_file='/private/env', compose='/app/compose.private.yaml'), tmp_path / 'set', operation=operation)
     assert any(argv[-2:] == ['start','web'] for argv in calls)
     assert any(argv[-2:] == ['start','coordinator'] for argv in calls)
 
@@ -363,3 +399,68 @@ def test_retained_release_exact_inventory_and_cli(tmp_path):
     destination.chmod(0o500)
     with pytest.raises(ValueError, match='list'):
         verify(root, data['source_commit'])
+
+
+def test_standalone_operator_cleanup_preserves_original_and_journal(tmp_path, monkeypatch):
+    from deploy.recovery_journal import standalone_operation
+    calls = []
+    def cleanup(self):
+        calls.append('cleanup')
+        self.data.update(cleanup_complete=False, cleanup_errors=['injected'])
+        self.save('failed cleanup')
+        raise RuntimeError('cleanup failure')
+    monkeypatch.setattr(Journal, 'cleanup', cleanup)
+    def action(operation):
+        operation.data['cleanup_complete'] = False
+        operation.save('failure intent')
+        raise ValueError('original failure')
+    with pytest.raises(ValueError, match='original failure') as raised:
+        standalone_operation({}, tmp_path, 'fixture', action)
+    assert calls == ['cleanup']
+    assert 'cleanup failed' in raised.value.__notes__[0]
+    path = tmp_path / '.mldsafail-fixture-operation' / 'operation.json'
+    assert not json.loads(path.read_text())['cleanup_complete']
+    with pytest.raises(RuntimeError, match='cleanup failure'):
+        standalone_operation({}, tmp_path, 'fixture', lambda _: pytest.fail('must reconcile first'))
+
+
+def test_standalone_operator_serializes_manual_actions(tmp_path):
+    from deploy.recovery_journal import standalone_operation
+    def action(operation):
+        with pytest.raises(BlockingIOError):
+            standalone_operation({}, tmp_path, 'fixture', lambda _: None)
+        return {'accepted': True}
+    assert standalone_operation({}, tmp_path, 'fixture', action) == {'accepted': True}
+    assert standalone_operation({}, tmp_path, 'fixture', lambda _: pytest.fail('cleanup only'), True)['cleanup_complete']
+
+
+def test_local_pruning_never_uses_unversioned_or_future_receipts(tmp_path, monkeypatch):
+    (tmp_path / 'journals').mkdir()
+    run_id = 'a' * 32
+    record = dict(repository='repo', set_directory='set-' + run_id,
+                  restore_directory='restore-' + run_id, snapshot='b'*64,
+                  restore_verified=True, cleanup_complete=True, verified_at='2099-01-01T00:00:00+00:00')
+    for key in ('set_directory', 'restore_directory'):
+        (tmp_path / record[key]).mkdir()
+    atomic_json(tmp_path / 'journals' / ('run-' + run_id + '.json'), record)
+    prune(tmp_path, 'repo', 1)
+    assert (tmp_path / record['restore_directory']).exists()
+    assert (tmp_path / record['set_directory']).exists()
+
+
+def test_daily_recovery_rejects_shared_operator_directory_before_cleanup(tmp_path):
+    from deploy.daily_recovery import run
+    root = tmp_path / 'shared'; root.mkdir(mode=0o755)
+    with pytest.raises(ValueError, match='Private owned daily'):
+        run({'recovery_root': str(root)})
+    assert not (root / 'lock').exists()
+
+
+def test_daily_recovery_rejects_symlink_lock_before_reconciliation(tmp_path):
+    from deploy.daily_recovery import run
+    root = tmp_path / 'private'; root.mkdir(mode=0o700)
+    external = tmp_path / 'external'; external.write_text('preserve')
+    (root / 'lock').symlink_to(external)
+    with pytest.raises(ValueError, match='non-symlink'):
+        run({'recovery_root': str(root)})
+    assert external.read_text() == 'preserve'

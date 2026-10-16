@@ -1,0 +1,39 @@
+{
+  "schema": "mldsafail.independent-source-review.v1",
+  "reviewed_source": [
+    "4c964e0ea4f834b08f30ddde2ecd5b0f37bda37d",
+    "82d10cf61ba4fb53c9068406d9d7f91a8acebc43",
+    "9ab1161588cc54779ea8eb71230cf22392a5e7ad",
+    "d956d6ba5a5d4f15e8f750cf2ab075d22f3c03c3",
+    "7769f0b0026322b841669b67e8e8730174fc360e"
+  ],
+  "source_review_passed": true,
+  "native_executed": false,
+  "criteria": [
+    "Bounded actual Docker health preludes preserve pending executor restart fence before transport",
+    "Exact declared mutation response retained without acknowledgement; both sockets independently closed while preserving original failure",
+    "Candidate native HTTP/engine/thread acquisitions are inside protected cleanup scope; outer and inner dedicated daemon environments remain separate",
+    "Final candidate application disposition follows resource cleanup; failed publication independently retries a negative record preserving original error",
+    "Repeat job activation saves typed effective config and journal identity before admission; failed acknowledgement retries before any subsequent RPC",
+    "Whole prior provision lease spans terminal daemon retirement and independent known job reconciliation; missing expected journal stays fenced except durable never-admitted job intent"
+  ],
+  "verification": [
+    {
+      "tests": "test_cpu_native_transport",
+      "passed": 8
+    },
+    {
+      "tests": "test_v060_native_acceptance",
+      "passed": 8
+    },
+    {
+      "tests": "test_operator_activation + test_activation_unit_rendering",
+      "passed": 14
+    }
+  ],
+  "limitations": [
+    "No native CPU fault or thirty-pair result claimed",
+    "No candidate contract adoption/default activation or production approval",
+    "Native repeat activation, candidate application and operator gates remain separately required"
+  ]
+}

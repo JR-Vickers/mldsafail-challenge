@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "source_commit": "a4f1f273b1294c94b73e3d2c789f41d0e953300f",
+  "archive_sha256": "b3ff543af250bb96b6dc098c9f0bad900fdc6d3edb097a1ab2e94ddf9a7d3dd8",
+  "wheel_sha256": "47b1bc54fcee977665dad922df4b633d9e81762a36802b6e279d5dcb062b0bbb",
+  "approved_files": 8,
+  "checksums_verified": 7,
+  "wheel_changes_from_preserved_4a_candidate": [
+    "mldsafail/cli.py",
+    "distribution RECORD"
+  ],
+  "frozen_wheel_evaluator_and_benchmark_bytes_unchanged": true,
+  "approved_starter_identical": true,
+  "archive_contract_change": "Only remove the link to the research decision omitted from this minimal archive; original and included contract hashes explicitly distinguished in SOURCE.json. Repository frozen contract unchanged.",
+  "local_fresh_account_install_complete": true,
+  "independent_review": "primary agent artifact allowlist, all checksums, source metadata, starter bytes, documentation links and wheel entry comparison",
+  "native_installation": "separate pending gate",
+  "published": false
+}

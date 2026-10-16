@@ -1,0 +1,50 @@
+{
+  "cleanup_executed": false,
+  "policy": "Retain every original worktree, branch, artifact and all new successful/failed/partial evidence. No cleanup deletion is authorized.",
+  "protected_manifest": "/Users/jarrett/dev/mldsafail-challenge/results/integration-evidence/20261013/cleanup.private.json",
+  "manifest_sha256": "5e641e8ab70022909b863bd558220b2f7d39e26bbd07f1730be25698ffa14575",
+  "new_local_images": [
+    {
+      "image": "sha256:9a19ce82c843aba6ba12d505273e595a0a9f4ca576002ae2783b534fc7822a59",
+      "tags": [
+        "mldsafail-integration-worker:8471a8d"
+      ],
+      "source_label": null,
+      "disposition": "retain; only final code-checkpoint image selected for build proof; no production image selected"
+    },
+    {
+      "image": "sha256:46c631ef22528010f47c18ae57d1e34fed7e0d913b2862a0e6349f951e13aaa4",
+      "tags": [
+        "mldsafail-integration-worker:0375e1c"
+      ],
+      "source_label": "0375e1c731a0cf6ce99b278bf90447000aabbccd",
+      "disposition": "retain; only final code-checkpoint image selected for build proof; no production image selected"
+    },
+    {
+      "image": "sha256:f9ca862cab1db915bab7006833f46138369e6ef732ee01c5fe18822fe8922131",
+      "tags": [
+        "mldsafail-integration-worker:verified-0375e1c"
+      ],
+      "source_label": "0375e1c5499fb173b80847fb7081fec5217bf88a",
+      "disposition": "retain; only final code-checkpoint image selected for build proof; no production image selected"
+    },
+    {
+      "image": "sha256:6c9de8ef380b34088da304348e9b498461b14a7b021f7649bceb6baebd098dd3",
+      "tags": [
+        "mldsafail-integration-worker:final-0375e1c"
+      ],
+      "source_label": "0375e1c5499fb173b80847fb7081fec5217bf88a",
+      "disposition": "retain; only final code-checkpoint image selected for build proof; no production image selected"
+    },
+    {
+      "image": "sha256:faefd625f39008de443692311d5dbfd662e2f52dd9d174c0c0444d057d365419",
+      "tags": [
+        "mldsafail-integration-worker:26c5f2f"
+      ],
+      "source_label": "26c5f2f4bc771b319ffccc2cdcb1c735eaab4176",
+      "disposition": "retain; only final code-checkpoint image selected for build proof; no production image selected"
+    }
+  ],
+  "public_development_containers_remaining": 0,
+  "remote_resource_absence_proven": false
+}

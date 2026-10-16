@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "source_commit": "5560cf6c87dd1a38cd2f9b37200d54bb17d6b257",
+  "source_script_sha256": "f43deb7d9b3b02dda3d80f135c8ceb1c52cac74a72a32e0b98061e0806f57ca5",
+  "guest_source_sha256": {
+    "deploy/native_recovery_acceptance.py": "c27798e356774a24869c4c264d26fcaf5193cdc10f1ef424a4551a544d0185f2",
+    "deploy/qemu_recovery_guest.py": "1d954777f393e747e1344e880bb4439ec19bcc2d168e334cdc10755f514e1679",
+    "deploy/recovery_journal.py": "d8b18df48eef9acf8ab1ea950ae137c1b61dbbf19bde6928a4b99f7e76048e43"
+  },
+  "ubuntu_image_sha256": "1d6bffe64b848468ac97f821d369a4846d983de1800ccf6b5ec8853e85cefc55",
+  "fixture_image": "sha256:ce64758a109eb420d874a118f87920e625e12d3634e03b4a5573fd9f6e5d3507",
+  "environment": {
+    "architecture": "ARM64",
+    "kernel": "6.8.0-142-generic",
+    "docker": "29.8.2",
+    "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]"
+  },
+  "hard_power_loss_passed": true,
+  "healthy_multi_user_reboot_required": true,
+  "actual_ssh_transport_loss_passed": true,
+  "distinct_fixture_journals": true,
+  "boot_identity_invariants_verified": true,
+  "migration_invocations_each": 1,
+  "original_container_identities_preserved": true,
+  "repeated_cleanup_passed": true,
+  "owned_vm_stopped": true,
+  "raw_evidence_reference": "protected local VM evidence directory recorded in operator handoff; guest-evidence.tar and retained disk",
+  "guest_evidence_sha256": "503f902450ec23680c25aa05cab5877e831fc44a18830260328959b8f8b7ef22",
+  "scope": "synthetic local rootless-Docker recovery helpers; no staging epoch, evaluator benchmark, production/off-host recovery or public launch acceptance",
+  "preserved_attempts": [
+    {
+      "attempt": "memory",
+      "outcome": "QEMU rejected 4-GiB low-address memory; repaired to2GiB"
+    },
+    {
+      "attempt": "archive",
+      "outcome": "nonexistent namespace __init__.py in archive input; corrected"
+    },
+    {
+      "attempt": "boot",
+      "outcome": "helper assertions passed but reboot entered emergency target due boot-label discovery; repaired VM-only device mapping and required multi-user target"
+    },
+    {
+      "attempt": "transport",
+      "outcome": "SSH-loss left synthetic child orphan holding ownership; failed safely; added durable process identity and pidfd cancellation"
+    }
+  ]
+}

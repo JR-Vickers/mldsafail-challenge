@@ -15,13 +15,15 @@ services:
 
   web:
     build: {context: ., dockerfile: Dockerfile}
-    image: mldsafail-web:0.4.0
+    image: mldsafail-web:development
     restart: unless-stopped
     read_only: true
     tmpfs: ["/tmp:size=32m,noexec,nosuid,nodev"]
     security_opt: ["no-new-privileges:true"]
     cap_drop: [ALL]
     environment:
+      MLDSAFAIL_BENCHMARK_VERSION: ${MLDSAFAIL_BENCHMARK_VERSION:?explicit supported version required}
+      MLDSAFAIL_MLWE_EPOCH_ID: ${MLDSAFAIL_MLWE_EPOCH_ID:-}
       MLDSAFAIL_ENV: ${MLDSAFAIL_ENV:-production}
       MLDSAFAIL_DATABASE_URL: postgresql+psycopg://mldsafail:${POSTGRES_PASSWORD}@db/mldsafail
       MLDSAFAIL_SECRET_KEY: ${MLDSAFAIL_SECRET_KEY}
@@ -39,7 +41,7 @@ services:
 
   coordinator:
     build: {context: ., dockerfile: Dockerfile.coordinator}
-    image: mldsafail-coordinator:0.4.0
+    image: mldsafail-coordinator:development
     restart: unless-stopped
     user: "${EVALUATOR_UID:-1000}:${EVALUATOR_GID:-1000}"
     read_only: true
@@ -49,10 +51,11 @@ services:
     group_add: ["0"]
     environment:
       MLDSAFAIL_DATABASE_URL: postgresql+psycopg://mldsafail:${POSTGRES_PASSWORD}@db/mldsafail
-      MLDSAFAIL_HIDDEN_SEEDS_PATH: ${EVALUATOR_WORK_DIR:-/Users/jarrett/dev/mldsafail-evaluator}/secrets/hidden-seeds.json
+      MLDSAFAIL_MLWE_EPOCH_ID: ${MLDSAFAIL_MLWE_EPOCH_ID:?audited epoch required}
+      MLDSAFAIL_MLWE_EPOCH_PATH: ${EVALUATOR_WORK_DIR:?private evaluator directory required}/epoch
       MLDSAFAIL_EVALUATOR_WORK_ROOT: ${EVALUATOR_WORK_DIR:-/Users/jarrett/dev/mldsafail-evaluator}
-      MLDSAFAIL_WORKER_IMAGE: mldsafail-worker:0.4.0
-      MLDSAFAIL_BENCHMARK_VERSION: "0.4.0"
+      MLDSAFAIL_WORKER_IMAGE: mldsafail-mlwe:development
+      MLDSAFAIL_BENCHMARK_VERSION: ${MLDSAFAIL_BENCHMARK_VERSION:?explicit supported version required}
       MLDSAFAIL_EVALUATOR_FINGERPRINT: ${MLDSAFAIL_EVALUATOR_FINGERPRINT}
       MLDSAFAIL_HIDDEN_SUITE_VERSION: ${MLDSAFAIL_HIDDEN_SUITE_VERSION}
       MLDSAFAIL_WORKER_CLASS: rootless-docker-v1
@@ -63,8 +66,7 @@ services:
       db: {condition: service_healthy}
 
   worker-image:
-    build: {context: ., dockerfile: Dockerfile.worker}
-    image: mldsafail-worker:0.4.0
+    image: mldsafail-mlwe:development
     profiles: [build]
 
   db:

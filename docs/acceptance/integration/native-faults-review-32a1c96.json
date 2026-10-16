@@ -1,0 +1,87 @@
+{
+  "acceptance_source_sha256": "72da580aa07c48271d585a60f5daeff4efbdb4b7a2c0a0764b0ffe35bf71c6e4",
+  "adoption_gates_passed": false,
+  "auditor_review_passed": true,
+  "author": "Independent delegated reviewer /root/native_review",
+  "conditions": [
+    "Execute only matching frozen clean source and script bytes under reviewed delegated operator wrapper; verify actual environment/artifacts independently.",
+    "Use fresh disposable domains, protected roots/cgroups, synthetic fixtures and one native operation at a time.",
+    "Positive callback/harness result requires independently checked outer controller cleanup and post-run current resource inventory before acceptance.",
+    "Preserve partial/negative evidence; stop on ownership/cleanup failure; never weaken fences or repeat unchanged measurements for favorable results."
+  ],
+  "evidence_refs": [
+    "docs/acceptance/integration/native-resume-review.json",
+    "research/cpu_measurement/native_driver.py",
+    "deploy/owned_daemon.py",
+    "deploy/owned_client.py",
+    "deploy/recovery_daemon.py",
+    "research/cpu_measurement/supervisor.py",
+    "research/cpu_measurement/audit.py",
+    "scripts/native_accounting_faults.py"
+  ],
+  "file_sha256": {
+    "audit.py": "c534851a760e1d19140309f83642ec496720948ebc1a35ffc9d3bdf380814fbc",
+    "client.py": "e2053a3ee33c263c4e3ff842e870f6b699e36fde6db6be966dd3a89736af8f93",
+    "daemon.py": "9e81859dc5af5371596041230ae9ac34ca1446f96e1308e617d5dd4e7271089d",
+    "deploy/owned_client.py": "7a95b247a63ae25b6cba9cb798aa0f7104584306a86a4ad94838ff130a4d8d50",
+    "deploy/owned_daemon.py": "76c0deab32f63c2b09333575bcd68139d894c1a5b50523b687f76ada1d5fe575",
+    "deploy/recovery_daemon.py": "bfcc4057dec8658fd4918db878a42e1fa1146f783957826d1348a98407d77331",
+    "guardian.py": "cd689f596d3740e986d349cd74f34f2b099fac33ee0ad965095f8970f5c21846",
+    "harness.py": "646abe28e7e6359983ac9565a42aabfbfb1fd642f97a9eaea59936b939f24ef1",
+    "mutations.py": "f03087a87159dae49790e5a4b0e2dcbfdc25a01effc6d2e6937fbff2668875b9",
+    "native_birth.py": "112dc66495fa27c3046c7ccdf8c77a82f94ac304baf3f5f31f725726054b74bf",
+    "native_driver.py": "2b7e20bf2a4319379a1c2ddc9695c23e5f06db194404a24916ce83fbcb2b1292",
+    "native_fault_suite.py": "d0c2c1055b633abfc87adc6e4719a91ff2af077861cc02db45d6083e9d1a35a3",
+    "native_lifecycle.py": "e62687cead8c7bd8aa88160abe57834c1bec7f21c53c72a13320ebda87b6be1b",
+    "native_loss.py": "34893ac35a1407e8e56505a66a636b1241d166d12139b187e44a745151eec05d",
+    "native_suite.py": "cc08fc2062eaf4a3fd3b4032db34ba571a9a9d45089c3fae7d6ac7c710edbf00",
+    "native_transport.py": "cad75e1176ab638586c88e891f6cd3566a42fc265cf6e39306cbeb07beb25075",
+    "ownership.py": "3df6a5d1bb1ab8bb510e019030e5108f84c568a8046942dfaf232d18b3ea926e",
+    "phase_diagnostics.py": "420244118276e3d52c5e3e24d7ffc0473828555264c0bea46cdd2600241191af",
+    "reconcile.py": "555fee8812acf31c65650808949ed37f41a1d82f1dfb34dbd2da7a35dc739dcb",
+    "supervisor.py": "0b2a6091f646c607ee5a9583f207a60a27f625ddfbac37d33287d5f3a7f4458f"
+  },
+  "helper_review_findings": {
+    "auditor": [
+      "Independent output verification, exact counter delta, bounded capture and generation/source bindings are checked. Interrupted or aborted journals cannot become scores.",
+      "Terminal cleanup marks authoritative_result_available false, preserves interrupted measurement and uses a distinct terminal receipt; review does not certify any existing score."
+    ],
+    "callback": [
+      "Not applicable: cleanup_state has no callback admission and cannot restart the old daemon. No acceptance_source_sha256 approved by this receipt."
+    ],
+    "native_protocol": [
+      "Provision lease serializes terminal mutation and re-read detects driver journal changes before cleanup. Prior driver journal is copied before replacement.",
+      "Existing-manifest cleanup proves exact fragment/leader authority before daemon control, then exact daemon and complete worker domains before uncertain client cancellation. Identity mismatches remain negative fences.",
+      "Independent live process/cgroup/socket/container inventory remains required after cleanup; journal completion alone is insufficient."
+    ],
+    "supervisor": [
+      "Fixed fixture allowlist, same-UID Unix peer gate, absolute request deadline, serial execution and durable dispatch receipts constrain experimental dispatch.",
+      "Terminal cleanup never calls execute or supervisor dispatch; validate requires clean commit/hash, reviewed packet and same dedicated delegated operator unit."
+    ]
+  },
+  "independent_authorship": true,
+  "native_acceptance_passed": false,
+  "native_execution_verified_by_reviewer": false,
+  "native_protocol_review_passed": true,
+  "schema": "mldsafail.cpu-native-review.v1",
+  "scope": "faults source review only for exact clean frozen commit and reviewed script; no production, publication, 0.6.0 adoption or native execution acceptance.",
+  "script_review": {
+    "conditions": [
+      "Frozen clean checkpoint and independent packet must bind exact acceptance_source_sha256 before execution.",
+      "Verify retained amd64 image archive, immutable worker digest/provenance and current host isolation separately.",
+      "Require independently checked outer cleanup; retain all partial/failure evidence and do not repeat unchanged diagnostic."
+    ],
+    "findings": [
+      "Explicit acceptance=callback,daemon_kind=owned prevents default CPU driver branch and its 30-pair suite.",
+      "Callback invokes only complete native_fault_suite, requires contract_fault_gate_passed, then verifies refreshed owned daemon environment.",
+      "Returned callback completion receipt cannot alone pass native driver acceptance: outer cleanup and durable finalize_acceptance remain required."
+    ],
+    "frozen_commit_binding_verified": true,
+    "native_execution_verified": false,
+    "source_review_passed": true,
+    "source_sha256": "72da580aa07c48271d585a60f5daeff4efbdb4b7a2c0a0764b0ffe35bf71c6e4"
+  },
+  "source_commit": "32a1c96fb9a7be12ed5c8f31e666e2063f834eb6",
+  "supervisor_review_passed": true,
+  "supervisor_source_sha256": "85dc9b5955aa6d05be5ba4177aa71c65258e2d7569f3b4774c04ec5e1cf99037"
+}

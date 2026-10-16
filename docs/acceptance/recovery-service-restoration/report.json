@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "source_base": "c84277b",
+  "environment": "isolated macOS engineering worktree; no hosted maintenance",
+  "implementation": "Persist existing application container IDs and initial states before maintenance; restore directly with Docker container start/stop and bounded health checks; never activate Compose dependencies",
+  "verification": {
+    "make_check": "passed: 367 tests, 8 skipped; historical small benchmark passed",
+    "focused_coverage": ["assembly interruption boundaries", "independent cleanup failure and retry", "retained stopped state", "missing original container fails without recreation", "legacy journal identity persisted before mutation", "SIGTERM/SIGKILL reconciliation"],
+    "native_service_acceptance": "not run"
+  },
+  "preserved_failures": [
+    "Initial engineering checks failed because interruption mocks did not intercept the new Docker subprocess.run path; corrected mocks",
+    "Initial make check also failed because the isolated environment lacked fpylll binary provenance; installed unchanged existing research requirements"
+  ],
+  "remaining_gates": [
+    "On disposable native services with a migration dependency, prove direct restoration does not execute migrations, retains exact container identities and initial states, and leaves database schema unchanged",
+    "Run disposable native interruption, missing-container, unhealthy-service and repeated independent cleanup acceptance before timer activation"
+  ],
+  "limitations": [
+    "Legacy journals lack original container identities; cleanup resolves and durably records their current existing service IDs before mutation. Original identity preservation cannot be retroactively proved from such journals"
+  ],
+  "host_changes": false,
+  "public_launch_approved": false
+}

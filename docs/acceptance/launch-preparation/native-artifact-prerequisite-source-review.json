@@ -1,0 +1,41 @@
+{
+  "schema": "mldsafail.native-artifact-source-review.v1",
+  "passed": true,
+  "status": "source_review_passed",
+  "source_commit": "f574711783db1fd391581535ade12ac3ed803717",
+  "native_executed": false,
+  "reviewer": "independent preparation agent",
+  "primitive_source_files_sha256": {
+    "__init__.py": "2eea5c0cc3853a410e90f2a560c6e16d3d29bf8bbfffa286779e12879adb4d9f",
+    "__main__.py": "39ba389d3dbea6e267a26bd2291de139fb3167eb532a541f45c00402e0c69f5c",
+    "audit.py": "c376731e482bcf5e509f7dd01af4204c6e5ad28035afa26643ab380c1bb7303b",
+    "calibration.py": "bbf9cbd95a75f664f660c5e9dafca2629676240e65df15bf9ab2243457eed40c",
+    "conclusion.py": "53c4ee4aae960488ad0dd4dcef743fd314ec07845ade61e45b2d656cc50696f9",
+    "constants.py": "d7c02a3e029e83a3fe39216443818cf71aa3df921b7aa547b6f183f4fdef1321",
+    "decision.py": "c67c91f48dcf2f4cf4c11d52792c6b909c5b701e6bdcc266414a84045f9dc89d",
+    "embedding.py": "c9c72314dbfd2d6a1bea9c03a98707792c0cc2aa01960dd8222ffb285534395c",
+    "generator.py": "f84988f5244c462f25b1ed879617a7525c7315595b87f0534eea286c61e2070e",
+    "models.py": "4212448226c795927a7186484b35d959aabcb653dae0099a83d43f74dcf92bf3",
+    "report.py": "f85d58cd8ae16bcf92b4bcb837603a06f9dba230bfe5d2bea0b38ff02a143b64",
+    "ring.py": "f4bb4cbab49cde98b968d4d0d58ec29c746e473d94f6b3c47f39b73befdc47c4",
+    "runner.py": "78d6ff47c9e959d2f9b99e4580c5b97ce65329031a93961c49e9ee0b23a318f8",
+    "simple_baselines.py": "f8d1b287fc90fd9e6eb767ad35d027fd5388d77d45304234c6a6873c30e8cefb",
+    "solvers.py": "0fdd4b81d209137cd635b69776913a63c400a66de5b836f1dd99409c260a5382",
+    "verify.py": "0e245a0c325d7b5ddcdbbd1a96f1569f1079928532cdc58b02ea1ccfba64a6e5",
+    "worker.py": "36f9cf456068d84337cfcf2c1068eff9ba707d99ddb14b5bbf5f947dfa3e7516",
+    "Dockerfile": "d3e36d69df90bb78ff5126c9a55f395ccb12cc3a82978967bb4860af85fabd20",
+    "requirements.txt": "c0a2360072abf816758c21e26c150a281e80932561ff79a953932c542579da43"
+  },
+  "acceptance_source_sha256": "b020d3181b8746666b578bb3c414f13884c28bbd25ca6366abebbff0452e5690",
+  "tests": {
+    "passed": 9,
+    "command": "uv run --extra dev python -m pytest tests/test_native_reproduction_artifacts.py -q"
+  },
+  "evidence_refs": [
+    "independent source comparison against c842 frozen primitive tree",
+    "exact artifact callback and provenance-consumer review"
+  ],
+  "limitations": [
+    "Artifact construction/export only; native benchmark/reproduction and outer cleanup separately required"
+  ]
+}

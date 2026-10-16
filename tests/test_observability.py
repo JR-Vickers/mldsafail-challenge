@@ -17,6 +17,8 @@ def test_metrics_and_json_health_contract(tmp_path):
 
 
 def test_production_requires_database_and_secret(monkeypatch):
+    monkeypatch.setenv("MLDSAFAIL_BENCHMARK_VERSION", "0.5.0")
+    monkeypatch.setenv("MLDSAFAIL_MLWE_EPOCH_ID", "synthetic")
     monkeypatch.delenv("MLDSAFAIL_DATABASE_URL", raising=False)
     monkeypatch.delenv("MLDSAFAIL_SECRET_KEY", raising=False)
     try:

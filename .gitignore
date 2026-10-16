@@ -11,3 +11,7 @@ docs/agent-briefs/
 debug*
 .mlwe-pilot-private/
 .mlwe-stability-private/
+
+# Protected integration bundles, inventories, artifacts and raw receipts.
+results/integration-preservation/
+results/integration-evidence/

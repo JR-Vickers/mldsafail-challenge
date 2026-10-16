@@ -7,6 +7,7 @@ from functools import wraps
 from flask import Blueprint, current_app, g, jsonify, request
 from sqlalchemy import select
 
+from mldsafail.benchmark_versions import application_cohort, UnsupportedBenchmark
 from mldsafail.web.db import get_session
 from mldsafail.web.models import EvaluationAttempt, EvaluationJob, ExperimentResult, Submission
 from mldsafail.web.services import DomainError, cancel_submission, check_rate_limit, create_submission, sanitize_log, verify_api_token
@@ -16,6 +17,11 @@ api = Blueprint("api_v1", __name__, url_prefix="/api/v1")
 
 def error(code: str, message: str, status: int):
     return jsonify(error={"code": code, "message": message}), status
+
+
+@api.errorhandler(UnsupportedBenchmark)
+def unsupported_benchmark(exception):
+    return error(exception.code, str(exception), exception.status)
 
 
 @api.errorhandler(DomainError)
@@ -52,7 +58,7 @@ def serialize_submission(item: Submission) -> dict:
         "created_at": item.created_at.isoformat(), "updated_at": item.updated_at.isoformat(),
         **({name: getattr(item, name) for name in
             ("epoch_id", "evaluator_fingerprint", "hidden_suite_version", "worker_class", "solver_path")}
-           if item.benchmark_version == "0.5.0" else {}),
+           if item.benchmark_version in {"0.5.0", "0.6.0"} else {}),
     }
 
 
@@ -73,17 +79,17 @@ def me():
 @token_required("submission:read")
 def leaderboard():
     from mldsafail.web.repositories import DatabaseResultRepository
-    version = current_app.config["BENCHMARK_VERSION"]
+    version, cohort = application_cohort(current_app.config, request.args.get("benchmark_version"))
     query = select(ExperimentResult).where(
         ExperimentResult.verified.is_(True), ExperimentResult.benchmark_version == version,
-        ExperimentResult.evaluator_fingerprint == current_app.config["EVALUATOR_FINGERPRINT"],
-        ExperimentResult.hidden_suite_version == current_app.config["HIDDEN_SUITE_VERSION"],
-        ExperimentResult.worker_class == current_app.config["WORKER_CLASS"])
-    if version == "0.5.0":
-        query = query.where(ExperimentResult.epoch_id == current_app.config["MLWE_EPOCH_ID"])
+        ExperimentResult.evaluator_fingerprint == cohort["evaluator_fingerprint"],
+        ExperimentResult.hidden_suite_version == cohort["hidden_suite_version"],
+        ExperimentResult.worker_class == cohort["worker_class"])
+    if version in {"0.5.0", "0.6.0"}:
+        query = query.where(ExperimentResult.epoch_id == cohort["epoch_id"])
     results = get_session().scalars(query).all()
     records = {result.id: DatabaseResultRepository._record(result) for result in results}
-    if version == "0.5.0":
+    if version in {"0.5.0", "0.6.0"}:
         from mldsafail.benchmark_v050.scoring import ranked_groups
         ranks = ranked_groups({result.id: result.mlwe_score for result in results})
     else:
@@ -101,15 +107,12 @@ def submissions_create():
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
         return error("invalid_json", "Request body must be a JSON object.", 400)
-    if payload.get("benchmark_version", current_app.config["BENCHMARK_VERSION"]) != current_app.config["BENCHMARK_VERSION"]:
-        return error("unsupported_benchmark", "The requested benchmark version is unsupported.", 422)
-    payload = {"benchmark_version": current_app.config["BENCHMARK_VERSION"], **payload}
+    if 'benchmark_version' in payload and not isinstance(payload['benchmark_version'], str):
+        raise UnsupportedBenchmark('The requested benchmark version is unsupported.')
+    version, cohort = application_cohort(current_app.config, payload.get('benchmark_version'))
+    payload = {**payload, 'benchmark_version': version}
     if current_app.config["ENV"] in {"private-staging", "staging", "production"} and str(payload.get("repository_url", "")).startswith("file:"):
         return error("invalid_repository", "Repository must be a public GitHub HTTPS URL.", 422)
-    cohort = {"epoch_id": current_app.config["MLWE_EPOCH_ID"],
-              "evaluator_fingerprint": current_app.config["EVALUATOR_FINGERPRINT"],
-              "hidden_suite_version": current_app.config["HIDDEN_SUITE_VERSION"],
-              "worker_class": current_app.config["WORKER_CLASS"]}
     item, created = create_submission(get_session(), g.api_user, payload, request.headers.get("Idempotency-Key", ""), cohort=cohort,
                                       admission_limits=({
                                           'outstanding_per_account': current_app.config['OUTSTANDING_PER_ACCOUNT'],
@@ -154,3 +157,17 @@ def submissions_cancel(identifier):
 
 def init_api(app):
     app.register_blueprint(api)
+
+
+@api.get("/capabilities")
+@token_required("submission:write")
+def capabilities():
+    versions = []
+    for version in ("0.5.0", "0.6.0"):
+        try:
+            application_cohort(current_app.config, version)
+        except UnsupportedBenchmark:
+            continue
+        versions.append(version)
+    return jsonify(schema="mldsafail.api-capabilities.v1",
+                   explicit_version_selection=True, submission_versions=versions)

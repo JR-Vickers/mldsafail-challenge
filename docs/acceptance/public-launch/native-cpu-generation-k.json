@@ -1,0 +1,25 @@
+{
+  "schema": "mldsafail.native-cpu-generation.v1",
+  "source_commit": "6fcf6111178918e8d17dd494730bd55b4cb469e7",
+  "supervisor_source_sha256": "f2e8c433f8b2c14b7fa946cacd403f08412f82d77bcea74239492ce66f6409b0",
+  "worker_image": "sha256:c5c35eb224f77fe84caa977e18a73d10a710366090fa7ad88e9eb21cde9a74cc",
+  "native_executed": true,
+  "passed": false,
+  "native_fault_suite_passed": false,
+  "pairs_started": false,
+  "failure_type": "TimeoutError",
+  "failure": "Owner-kill fault could not reach proven input delivery; its short two-second limit covered startup and elapsed before capture could send input",
+  "evidence": "Second hang dispatch completed after3.34seconds; input_delivery_intent present, input_delivered absent; owner kill was not injected",
+  "whole_owned_cleanup_verified": true,
+  "independent_all_owned_domains_absent": true,
+  "raw_sha256": {
+    "operator": "c4752bd7cf5d22f7538d344f90568f2d21c26b96590dc7c68abe3a1c56be200c",
+    "driver": "b74145611275d762c612a87e63215544f9d5ae142b8a40d6219e9eb0a6d23839",
+    "fault_report": "6b0f5ed2e969662d26afd8c9bbd5dc86959ecb56d94e14d132d627f6ed531d62"
+  },
+  "corrective_source_commit": "391a7d0f2484ddbfedcedd509f5ff8d69edc1e8b",
+  "corrective_source_review_passed": true,
+  "corrective_focused_tests_passed": 33,
+  "measurement_thresholds_changed": false,
+  "evidence_reference": "protected native CPU generationK"
+}

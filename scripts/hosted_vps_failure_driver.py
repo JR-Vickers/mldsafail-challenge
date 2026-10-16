@@ -41,8 +41,28 @@ def require(condition, message='Acceptance condition failed'):
         raise RuntimeError(message)
 
 
+COMMAND_FAILURE_LOG = None
+
+
+def record_command_failure(args, stdout, stderr, returncode):
+    if COMMAND_FAILURE_LOG is None:
+        return
+    descriptor = os.open(COMMAND_FAILURE_LOG, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+    with os.fdopen(descriptor, 'w') as stream:
+        stream.write(json.dumps({'command': args, 'stdout': str(stdout),
+                                'stderr': str(stderr), 'returncode': returncode}) + '\n')
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
 def command(args, input=None, timeout=30):
-    result = subprocess.run(args, input=input, text=True, capture_output=True, timeout=timeout)
+    try:
+        result = subprocess.run(args, input=input, text=True, capture_output=True, timeout=timeout)
+    except subprocess.TimeoutExpired as error:
+        record_command_failure(args, error.stdout, error.stderr, 'timeout')
+        raise RuntimeError('Host command timed out (details retained on host only)') from None
+    if result.returncode != 0:
+        record_command_failure(args, result.stdout, result.stderr, result.returncode)
     require(result.returncode == 0, 'Host command failed (details retained on host only)')
     return result.stdout.strip()
 
@@ -57,6 +77,37 @@ def save(path, data):
     os.replace(temporary, path)
 
 
+def application_override(path, manifest):
+    """Remove dependency edges explicitly, including completed migration jobs.
+
+    --no-deps alone can still restart service_completed_successfully dependencies
+    on the native Compose version. The frozen base configuration stays unchanged.
+    """
+    lines = ['services:']
+    for role in ('web', 'coordinator'):
+        identity = manifest['images'][role]['id']
+        require(identity.startswith('sha256:') and len(identity) == 71,
+                'Application switch requires immutable image IDs')
+        lines += ['  ' + role + ':', '    image: ' + identity,
+                  '    depends_on: !reset {}']
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(descriptor, 'w') as stream:
+        stream.write('\n'.join(lines) + '\n')
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def set_service_state(compose, role, running, execute=None):
+    """Start/stop one existing application container without Compose dependencies."""
+    require(role in {'web', 'coordinator'}, 'Only application service state may change')
+    execute = execute or command
+    identifier = execute(compose + ['ps', '-aq', role])
+    require(isinstance(identifier, str) and identifier and
+            not identifier.startswith('-') and len(identifier.split()) == 1,
+            'Application service must resolve to exactly one container')
+    execute(['docker', 'start' if running else 'stop', identifier])
+
+
 def worker_owned(info, submissions, image):
     """A name alone is never sufficient authority to kill a container."""
     mounts = info.get('Mounts', [])
@@ -67,8 +118,44 @@ def worker_owned(info, submissions, image):
 
 
 def containers():
-    ids = command(['docker', 'ps', '-aq']).splitlines()
-    return json.loads(command(['docker', 'inspect', *ids])) if ids else []
+    """Keep complete inventory while accepting only proven snapshot disappearances.
+
+    Disposable workers can be removed between ps and inspect. Docker emits the
+    remaining objects as JSON but returns nonzero for the vanished IDs. Every
+    other error remains fatal; a daemon failure is never an empty inventory.
+    """
+    import re
+    ids = command(['docker', 'ps', '-aq', '--no-trunc']).splitlines()
+    if not ids:
+        return []
+    require(all(re.fullmatch(r'[0-9a-f]{64}', identifier) for identifier in ids),
+            'Malformed container inventory identity')
+    args = ['docker', 'inspect', *ids]
+    try:
+        result = subprocess.run(args, text=True, capture_output=True, timeout=30)
+    except subprocess.TimeoutExpired as error:
+        record_command_failure(args, error.stdout, error.stderr, 'timeout')
+        raise RuntimeError('Container inventory timed out') from None
+    if result.returncode:
+        record_command_failure(args, result.stdout, result.stderr, result.returncode)
+    try:
+        observed = json.loads(result.stdout)
+        require(isinstance(observed, list), 'Malformed container inventory')
+        retained = {entry['Id'] for entry in observed}
+    except (ValueError, TypeError, KeyError):
+        raise RuntimeError('Malformed container inventory') from None
+    require(retained <= set(ids), 'Unexpected container inventory identity')
+    if result.returncode:
+        vanished = set()
+        for line in result.stderr.splitlines():
+            match = re.fullmatch(r'(?:Error: No such object: |Error response from daemon: No such container: )([0-9a-f]{64})', line, flags=re.IGNORECASE)
+            require(match is not None, 'Container inspection failed (details retained on host only)')
+            vanished.add(match.group(1))
+        require(vanished and vanished == set(ids) - retained,
+                'Incomplete container inventory without disappearance proof')
+    else:
+        require(retained == set(ids), 'Incomplete successful container inventory')
+    return observed
 
 
 def cleanup(journal, generation=None):
@@ -122,7 +209,7 @@ def _cleanup(journal):
     if data.get('maintenance'):
         for role, running in data.get('service_states', {'coordinator': True, 'web': True}).items():
             try:
-                command(data['compose'] + ['start' if running else 'stop', role])
+                set_service_state(data['compose'], role, running)
             except Exception:
                 errors.append('service restoration failed')
     try:
@@ -465,9 +552,9 @@ class Driver:
     def switch(self, manifest):
         self.guard()
         override = self.directory / 'switch.json'
-        save(override, {'services': {role: {'image': manifest['images'][role]['id']} for role in ('web', 'coordinator')}})
-        self.mutate(self.compose + ['stop', 'coordinator'])
-        self.mutate(self.compose + ['-f', str(override), 'create', '--no-deps', 'coordinator'], timeout=60)
+        application_override(override, manifest)
+        set_service_state(self.compose, 'coordinator', False, self.mutate)
+        self.mutate(self.compose + ['-f', str(override), 'up', '--no-start', '--no-deps', 'coordinator'], timeout=60)
         self.mutate(self.compose + ['-f', str(override), 'up', '-d', '--no-deps', 'web'], timeout=60)
         self.wait(lambda: self.health(), 90)
         # Validate evaluator compatibility using the switched application image.
@@ -560,6 +647,37 @@ class Driver:
         require(available >= 128 * 1024**2, 'Preflight RAM floor')
         require(shutil.disk_usage('/srv').free >= 5 * 1024**3, 'Preflight disk floor')
         # A new invocation may resume only after verified cleanup and full identity preflight.
+        # Preserve earlier failed/partial outcomes before a resumed invocation publishes.
+        history = self.directory / ('prior-generation-' + str(self.j.get('generation', 0)))
+        for name in ('report.json', 'failure.log'):
+            previous = self.directory / name
+            if previous.exists():
+                history.mkdir(mode=0o700, exist_ok=True)
+                parent_fd = os.open(self.directory, os.O_RDONLY | os.O_DIRECTORY)
+                try:
+                    os.fsync(parent_fd)
+                finally:
+                    os.close(parent_fd)
+                retained = history / name
+                if retained.exists():
+                    require(retained.read_bytes() == previous.read_bytes(), 'Prior evidence differs')
+                else:
+                    temporary = history / ('.retaining-' + uuid.uuid4().hex)
+                    fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                    with os.fdopen(fd, 'wb') as stream:
+                        stream.write(previous.read_bytes())
+                        stream.flush()
+                        os.fsync(stream.fileno())
+                    os.replace(temporary, retained)
+                    directory_fd = os.open(history, os.O_RDONLY | os.O_DIRECTORY)
+                    try:
+                        os.fsync(directory_fd)
+                    finally:
+                        os.close(directory_fd)
+        self.j.setdefault('operator_attempts', []).append({
+            'source_commit': self.c.get('operator_source_commit'),
+            'sha256': self.c.get('operator_source_sha256'),
+            'generation': self.j.get('generation', 0) + 1})
         self.j.update(closing=False, cleanup_complete=False, generation=self.j.get('generation', 0) + 1)
         with journal_lock(self.path):
             save(self.path, self.j)
@@ -590,6 +708,8 @@ class Driver:
         # Cleanup is installed before stopping normal service or injecting any fault.
         self.j.update(maintenance=True, cleanup_complete=False, watch_host=True)
         self.touch()
+        stop = None
+        thread = None
         try:
             self.mutate(['docker', 'stop', coordinator])
             self.guard()
@@ -597,7 +717,7 @@ class Driver:
                 self.scenario(name, kind)
             self.guard()
             # Stop web for a quiescent backup; DB remains online and schema untouched.
-            self.mutate(self.compose + ['stop', 'web'])
+            set_service_state(self.compose, 'web', False, self.mutate)
             self.touch()
             # A backup command may take >45s: watchdog heartbeat continues in a thread.
             import threading
@@ -614,15 +734,12 @@ class Driver:
                                   str(self.directory / 'backups'), '--verify-restore'], timeout=360)
                 require(json.loads(backup)['restore_verified'])
             finally:
-                stop.set()
-                thread.join()
-                self.mutate(self.compose + ['start', 'web'])
+                set_service_state(self.compose, 'web', True, self.mutate)
             self.wait(lambda: self.health(), 90)
             self.j['snapshot'] = self.probe('snapshot')
             self.j['leaderboard'] = self.api('/api/v1/leaderboard')
             new_override = self.directory / 'restore.json'
-            save(new_override, {'services': {role: {'image': release['images'][role]['id']}
-                                            for role in ('web', 'coordinator')}})
+            application_override(new_override, release)
             self.j['restore_command'] = self.compose + ['-f', str(new_override), 'up', '-d', '--no-deps', 'web', 'coordinator']
             self.touch()
             self.switch(rollback)
@@ -636,23 +753,31 @@ class Driver:
                       'remaining': ['automated off-host backups', 'overall migration acceptance', 'production launch prerequisites'],
                       'worker_image': self.j['worker_image'],
                       'evaluator_fingerprint': self.j['identity']['fingerprint'],
-                      'release_commit': release['source_commit'], 'rollback_commit': rollback['source_commit']}
+                      'release_commit': release['source_commit'], 'rollback_commit': rollback['source_commit'],
+                      'operator_attempts': self.j['operator_attempts']}
             self.touch()
         finally:
+            if stop is not None:
+                stop.set()
+            if thread is not None:
+                thread.join(timeout=10)
             cleanup(self.path)
             watcher.terminate()
             watcher.wait(timeout=10)
+            require(thread is None or not thread.is_alive(), 'Heartbeat thread did not stop after cleanup')
         report['cleanup_verified'] = True
         save(self.directory / 'report.json', report)
         print(json.dumps(report), flush=True)
 
 
 def main():
+    global COMMAND_FAILURE_LOG
     if len(sys.argv) in {3, 4} and sys.argv[1] == '--watchdog':
         watchdog(Path(sys.argv[2]), int(sys.argv[3]) if len(sys.argv) == 4 else None)
         return
     config = json.load(sys.stdin)
     os.umask(0o077)
+    COMMAND_FAILURE_LOG = Path(config['directory']) / 'command-failures.jsonl'
     # Acquire ownership before journal construction, including first-run creation.
     with (Path(config['directory']) / 'lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)

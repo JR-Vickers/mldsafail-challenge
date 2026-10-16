@@ -1,0 +1,26 @@
+{
+  "schema": "mldsafail.independent-source-review.v1",
+  "review_passed": true,
+  "native_executed": false,
+  "reviewed_source_commit": "e19c1c1",
+  "file_sha256": {
+    "scripts/staging_load_orchestrator.py": "20b9874ef60c1b6e27b8890a5e03102a519eb60113fc01c3438ac02c39e5ff3f",
+    "scripts/staging_read_load.py": "b1708d02a46e9e3d3b98ca1ef09ffa8a1894b442d769211b4836a337dd4a9efe",
+    "docs/acceptance/public-launch/staging-load-protocol.json": "c39bdb683d6b08ef5b76851c2944a3fa82f8b7041ccdc433e03cfc8eca029004"
+  },
+  "focused_tests_passed": 8,
+  "scope": [
+    "durable pre-POST intent; lostresponse reconciliation never reposts",
+    "interrupted measurement never repeated",
+    "sameboot monotonic1200seconds and actualterminaltimestamp ceiling",
+    "fixed5requests/sec plus authenticated1/5sec,300seconds,existinglatency/resource thresholds",
+    "nativeexactapplication/worker/epoch/service/queue/audit/privacy/leaderboard checks",
+    "independentknownclientcleanup and persistentcorruptauthority fence",
+    "negative cleanup publication retry preservingoriginalerror"
+  ],
+  "native_gates_pending": [
+    "idle five-minute read load",
+    "identical read load starting during one controlled reference evaluation"
+  ],
+  "benchmark_semantics_changed": false
+}

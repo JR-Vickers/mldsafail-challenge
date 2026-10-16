@@ -1,0 +1,27 @@
+{
+  "schema": "mldsafail.source-review.v1",
+  "status": "source_review_passed",
+  "source_commits": [
+    "b6bb094745efddadac2c8b60f00f6f23817dfcd1",
+    "7c502951df77a42dfed0e483407925bfba74f7da",
+    "00ba8b2b8c993722ba535a001a9dce0b2f077dbd"
+  ],
+  "source_sha256": {
+    "scripts/native_image_export.py": "6d1e4f70334e8f4f21811b52c8acb8fb8f3d8e9696ce10f558404156bb92b25d",
+    "scripts/native_recovery_service_verification.py": "734658f6970fc7105a1737ae3177c19eedc33b76839f154fec79ccda5ead1187",
+    "scripts/native_synthetic_database_restoration.py": "fec6e097704d0c41b28f9c6fb7d968d8746114109fde9ea0ffac10d9bb9863a8"
+  },
+  "native_executed": false,
+  "tests": {
+    "passed": 11,
+    "command": "uv run --extra dev python -m pytest tests/test_native_synthetic_database_restoration.py tests/test_native_recovery_service_verification.py tests/test_native_image_export.py -q"
+  },
+  "scope": [
+    "acknowledged atomic Docker save inode before archive sealing",
+    "immutable image ID fixture admission",
+    "fresh synthetic logical dump restoration and independent cleanup"
+  ],
+  "limitations": [
+    "Native execution and off-host/private-epoch acceptance remain separate"
+  ]
+}

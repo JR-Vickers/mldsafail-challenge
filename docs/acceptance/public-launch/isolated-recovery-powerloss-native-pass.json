@@ -1,0 +1,58 @@
+{
+  "schema": "mldsafail.native-recovery-powerloss-acceptance.v1",
+  "source_commit": "5af49e9b94a460d4de86584fc31ef4b8049dd210",
+  "callback_sha256": "3f9d372180f3ea6e06feacb0904263b86db6e4c79cfa45bf8c348a51a0f386ca",
+  "source_bundle_sha256": "a012df9e2d891dd60e1f492c65842cbb22e489b03a6c3e3235f5b8dc155d6e5f",
+  "passed": true,
+  "native_executed": true,
+  "synthetic_only": true,
+  "scope": "Actual hard power loss; current private owned-daemon recovery API restores immutable tiny logical database in fresh postboot daemon. No old Docker root/container ID reuse.",
+  "environment": {
+    "uid": 1000,
+    "kernel": "6.8.0-142-generic",
+    "python": "3.12.3",
+    "docker_version": "29.8.2",
+    "docker_api": "1.56",
+    "dockerd_sha256": "d4316ae30c2e0d672cad96b4dc52442251d819b35f7079299412cd81704aba0b",
+    "rootless_script_sha256": "200203633806081a401e60aefdf68a8fa73fc7dc80aa854c52a69d47710a3488"
+  },
+  "artifact": {
+    "postgres_image": "sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea",
+    "postgres_archive_sha256": "22bfc021c19389a8bf741291dbbb8ee144df2ab2ca978449c0cc790ca406d7f3",
+    "evidence_archive_sha256": "d8b209c4007bffd8abb401820dd70822f0b979af3d378ad751de1ff2eb24bd77",
+    "evidence_archive_bytes": 114995200,
+    "official_ubuntu_base_sha256": "1d6bffe64b848468ac97f821d369a4846d983de1800ccf6b5ec8853e85cefc55",
+    "protected_original_disk_sha256": "aa09be55f088787be73253c63a8bbebc167fddbeebd28e75495ced8e4ab5941d",
+    "protected_original_firmware_sha256": "0fb3ae9d7edc7f72620e53bd49df7a9f7e3e6d28fcd16914cd84627a585f04f6"
+  },
+  "criteria": {
+    "actual_hard_power_loss": true,
+    "changed_boot": true,
+    "old_unit_inactive": true,
+    "old_kernel_authority_retired": true,
+    "old_roots_reused": false,
+    "logical_database_identity_preserved": true,
+    "schema_preserved": true,
+    "public_fixture_preserved": true,
+    "post_operation_cleanup_complete": true,
+    "native_driver_cleanup_complete": true,
+    "native_driver_cleanup_errors": [],
+    "private_evidence_export_complete": true,
+    "owned_vm_stopped": true,
+    "host_cleanup_errors": [],
+    "protected_original_disk_unchanged": true,
+    "protected_original_firmware_unchanged": true
+  },
+  "evidence_ref": "private:modern-powerloss-20261004-4/{ownership.json,guest-evidence.tar,source.bundle,boot-0.log,boot-1.log}; private:recovery-modern-powerloss/run-4.log",
+  "preserved_failed_attempts": [
+    "isolated-recovery-powerloss-attempt-1.json",
+    "isolated-recovery-powerloss-attempt-2.json",
+    "isolated-recovery-powerloss-attempt-3.json"
+  ],
+  "limitations": [
+    "Actual private epoch/database recovery remains a separate required gate",
+    "Actual approved off-host storage and independent owner recovery-key custody remain externally blocked",
+    "No CPU benchmark accounting measurement or threshold gate executed",
+    "No public or production activation approval"
+  ]
+}

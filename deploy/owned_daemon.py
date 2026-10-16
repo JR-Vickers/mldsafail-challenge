@@ -1,0 +1,586 @@
+"""Dedicated rootless-daemon identities and kernel-proven uncertainty fencing.
+
+No default daemon is eligible. Only explicit private manifests for dedicated
+mldsafail-owned-daemon/mldsafail-cpu-daemon units may be controlled.
+"""
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import stat
+import socket as socket_module
+import sys
+import time
+import uuid
+from deploy import owned_client
+
+SCHEMA='mldsafail.owned-daemon.v1'
+
+
+def publish(path, value):
+    path=Path(path)
+    temporary=path.with_name('.'+path.name+'.'+uuid.uuid4().hex)
+    try:
+        with temporary.open('x') as stream:
+            os.fchmod(stream.fileno(),0o600)
+            json.dump(value,stream,sort_keys=True,allow_nan=False)
+            stream.flush();os.fsync(stream.fileno())
+        os.replace(temporary,path)
+        descriptor=os.open(path.parent,os.O_RDONLY|os.O_DIRECTORY)
+        try: os.fsync(descriptor)
+        finally: os.close(descriptor)
+    finally:
+        if temporary.exists(): temporary.unlink()
+
+
+def read_private_json(path, *, cap=65536):
+    descriptor=os.open(_canonical(path),os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+    with os.fdopen(descriptor,'rb') as stream:
+        info=os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_mode & 0o077:
+            raise RuntimeError('Private regular owned receipt required')
+        raw=stream.read(cap+1)
+    if len(raw)>cap: raise RuntimeError('Owned receipt exceeds cap')
+    value=json.loads(raw)
+    if not isinstance(value,dict): raise RuntimeError('Owned receipt must be an object')
+    return value
+
+
+def fingerprint(value):
+    return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
+
+
+def _canonical(path):
+    path=Path(path)
+    if not path.is_absolute() or any(part.is_symlink() for part in (path,*path.parents)):
+        raise RuntimeError('Canonical absolute owned path required')
+    return path
+
+
+def _private_directory(path, *, docker_data=False):
+    path=_canonical(path)
+    info=path.stat()
+    if not path.is_dir() or info.st_uid!=os.getuid() or (info.st_mode & 0o777 not in ({0o700,0o710} if docker_data else {0o700})):
+        raise RuntimeError('Private owner directory required')
+    return dict(path=str(path),device=info.st_dev,inode=info.st_ino,uid=info.st_uid,mode=info.st_mode&0o777)
+
+
+
+def _native_endpoint_preflight(base):
+    """Linux Docker/containerd endpoints include their longest internal suffix."""
+    if sys.platform != 'linux': return
+    for relative in ('docker.sock','exec_root/containerd/containerd.sock',
+                     'exec_root/containerd/containerd.sock.ttrpc','rootless_state/api.sock'):
+        if len(os.fsencode(Path(base)/relative)) > 104:
+            raise RuntimeError('Native Unix endpoint exceeds 104-byte bound: '+relative)
+
+
+def provision(base, *, unit, protected_roots):
+    """Fresh private roots only; pre-existing daemon/evaluator roots are ineligible."""
+    base=_canonical(base)
+    _private_directory(base.parent)
+    if not protected_roots:
+        raise RuntimeError('Explicit protected staging/deployment roots required')
+    protected=[_canonical(path) for path in protected_roots]
+    protected.extend([Path.home()/'.local/share/docker',Path('/srv/mldsafail'),Path('/srv/mldsafail-evaluator')])
+    if any(base==path or base in path.parents or path in base.parents for path in protected):
+        raise RuntimeError('Dedicated daemon roots overlap protected infrastructure')
+    if not re.fullmatch('mldsafail-(?:owned|cpu)-daemon-[a-z0-9-]+\\.service',unit):
+        raise RuntimeError('Dedicated daemon unit required')
+    _native_endpoint_preflight(base)
+    base.mkdir(mode=0o700)  # Existing roots, including prior failed provision, are never reused.
+    roots={}
+    for name in ('root_dir','exec_root','rootless_state'):
+        directory=base/name
+        directory.mkdir(mode=0o700)
+        roots[name]=_private_directory(directory)
+    publish(base/'daemon.json',{})
+    config=dict(path=str(base/'daemon.json'),sha256=hashlib.sha256((base/'daemon.json').read_bytes()).hexdigest())
+    receipt=dict(daemon_pidfile=str(base/'dockerd.pid'),daemon_config=config,schema='mldsafail.owned-daemon-provision.v1',id=uuid.uuid4().hex,
+                 unit=unit,base=_private_directory(base),roots=roots,
+                 protected_roots=[str(path) for path in protected],boot_id=owned_client.boot_id())
+    publish(base/'provision.json',receipt)
+    return receipt
+
+
+def bind_worker(provisioning, *, worker_parent, worker_cgroup_parent, operator_parent, protected_domains):
+    """Durably bind a fresh empty nonce-named parent before daemon mutations."""
+    expected='mldsafail-'+provisioning['unit'].split('-')[1]+'-workers-'+provisioning['id']+'.slice'
+    if worker_cgroup_parent!=expected or Path(worker_parent).name!=expected:
+        raise RuntimeError('Fresh nonce-named dedicated worker slice required')
+    if 'worker_birth' in provisioning: raise RuntimeError('Worker birth already bound')
+    paths=[_canonical(worker_parent),_canonical(operator_parent)]
+    protected=[_canonical(path) for path in protected_domains]
+    _disjoint(paths,protected)
+    for path in paths: owned_client.prepare_domain({'id':uuid.uuid4().hex},path)
+    if owned_client.populated(paths[0]): raise RuntimeError('Fresh worker parent must be empty')
+    receipt=dict(provisioning,worker_birth=owned_client.domain_identity(paths[0]),operator_domain=owned_client.domain_identity(paths[1]),worker_cgroup_parent=expected,protected_domains=[str(path) for path in protected])
+    publish(Path(provisioning['base']['path'])/'provision.json',receipt)
+    return receipt
+
+
+def _disjoint(paths,protected):
+    if any(a==b or a in b.parents or b in a.parents for index,a in enumerate(paths) for b in paths[index+1:]) or any(a==b or a in b.parents or b in a.parents for a in paths for b in protected):
+        raise RuntimeError('Daemon/operator/worker/protected domains must be disjoint')
+
+
+def _worker_binding(provisioning,worker_domain,worker_cgroup_parent,daemon_domain=None,*,teardown_only=False):
+    expected='mldsafail-'+provisioning['unit'].split('-')[1]+'-workers-'+provisioning['id']+'.slice'
+    if worker_cgroup_parent!=expected or Path(worker_domain['path']).name!=expected or provisioning.get('worker_birth')!=worker_domain:
+        raise RuntimeError('Fresh dedicated worker birth identity required')
+    operator=provisioning.get('operator_domain')
+    if not operator: raise RuntimeError('Exact provisioned operator domain required')
+    if not teardown_only and (owned_client.domain_identity(operator['path'])!=operator or os.environ.get('MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT')!=operator['path']):
+        raise RuntimeError('Exact provisioned operator domain required')
+    paths=[Path(worker_domain['path']),Path(operator['path'])]
+    if daemon_domain is not None: paths.append(Path(daemon_domain['path']))
+    _disjoint(paths,[Path(path) for path in provisioning['protected_domains']])
+
+
+def _provisioning(value, unit, roots):
+    if not isinstance(value,dict) or value.get('schema')!='mldsafail.owned-daemon-provision.v1' or value.get('unit')!=unit:
+        raise RuntimeError('Fresh dedicated daemon provisioning receipt required')
+    base=value['base']
+    if value.get('daemon_pidfile')!=str(Path(base['path'])/'dockerd.pid'): raise RuntimeError('Fresh dedicated PID file required')
+    config=value.get('daemon_config')
+    if not isinstance(config,dict) or config.get('path')!=str(Path(base['path'])/'daemon.json') or read_private_json(config['path'])!={} or hashlib.sha256(Path(config['path']).read_bytes()).hexdigest()!=config.get('sha256'):
+        raise RuntimeError('Fresh immutable empty dedicated daemon config required')
+    if _private_directory(base['path'])!=base:
+        raise RuntimeError('Fresh daemon base directory identity changed')
+    for name,root in roots.items():
+        original=dict(value['roots'][name]);current=dict(root)
+        if name=='root_dir' and original.get('mode')==0o700 and current.get('mode') in {0o700,0o710}:
+            current['mode']=original['mode']  # Same exact inode, narrow Docker traversal adjustment beneath private base.
+        if Path(root['path'])!=Path(base['path'])/name or value['roots'][name]['path']!=root['path'] or (name in {'root_dir','exec_root'} and original!=current):
+            raise RuntimeError('Daemon roots differ from fresh provisioning')
+    for protected in value['protected_roots']:
+        path=Path(protected); owned=Path(base['path'])
+        if path==owned or path in owned.parents or owned in path.parents:
+            raise RuntimeError('Dedicated roots overlap protected infrastructure')
+    return value
+
+
+def _unit(unit):
+    if not isinstance(unit,str) or not re.fullmatch('mldsafail-(?:owned|cpu)-daemon-[a-z0-9-]+\\.service',unit):
+        raise RuntimeError('Explicit dedicated daemon unit required')
+    values=subprocess.check_output(['systemctl','--user','show',unit,'--property=MainPID',
+        '--property=ControlGroup','--property=Restart','--property=KillMode','--property=Delegate',
+        '--property=FragmentPath','--property=ActiveState'],timeout=15,text=True)
+    state=dict(line.split('=',1) for line in values.splitlines() if '=' in line)
+    if state.get('Restart')!='no' or state.get('KillMode')!='control-group' or state.get('Delegate')!='yes':
+        raise RuntimeError('Dedicated unit requires Restart=no/KillMode=control-group/Delegate=yes')
+    fragment=_canonical(state['FragmentPath'])
+    if fragment.stat().st_uid!=os.getuid() or fragment.stat().st_mode & 0o022:
+        raise RuntimeError('Dedicated unit fragment must be owner controlled')
+    state['unit_fragment_sha256']=hashlib.sha256(fragment.read_bytes()).hexdigest()
+    if state.get('ActiveState')=='active':
+        domain=Path('/sys/fs/cgroup')/state['ControlGroup'].lstrip('/')
+        if domain.name!=unit:
+            raise RuntimeError('Dedicated unit must own its own exact cgroup')
+        state['domain_path']=str(domain)
+    return state
+
+
+def _hash_executable(pid):
+    with (Path('/proc')/str(pid)/'exe').open('rb') as stream:
+        return hashlib.file_digest(stream,'sha256').hexdigest()
+
+
+def _daemon_process(domain, expected_sha256):
+    matches=[]
+    for file in Path(domain).rglob('cgroup.procs'):
+        for pid in file.read_text().split():
+            try:
+                if _hash_executable(int(pid))==expected_sha256:
+                    matches.append(owned_client.identity(int(pid)))
+            except (FileNotFoundError,ProcessLookupError): pass
+    if len(matches)!=1:
+        raise RuntimeError('Exactly one dedicated digest-bound dockerd process required')
+    return matches[0]
+
+
+def _endpoint(socket):
+    path=_canonical(socket)
+    _private_directory(path.parent)
+    import stat
+    info=path.stat()
+    if not stat.S_ISSOCK(info.st_mode) or info.st_uid!=os.getuid():
+        raise RuntimeError('Dedicated owner Unix socket required')
+    if os.environ.get('DOCKER_HOST')!='unix://'+str(path) or os.environ.get('DOCKER_CONTEXT'):
+        raise RuntimeError('Explicit isolated Docker endpoint required; contexts forbidden')
+
+
+def register(*, unit, socket, root_dir, exec_root, rootless_state, manifest_path,
+             expected_server_version, expected_server_git_commit, expected_executable_sha256,
+             worker_parent, worker_cgroup_parent, provisioning, epoch=None, teardown_only=False):
+    """Register already provisioned/started dedicated native services explicitly."""
+    if not re.fullmatch('[0-9a-f]{64}',expected_executable_sha256):
+        raise RuntimeError('Expected native dockerd executable SHA256 required')
+    roots={name:_private_directory(value,docker_data=name=='root_dir') for name,value in
+           [('root_dir',root_dir),('exec_root',exec_root),('rootless_state',rootless_state)]}
+    _provisioning(provisioning,unit,roots)
+    if len({entry['path'] for entry in roots.values()})!=3:
+        raise RuntimeError('Distinct dedicated daemon roots required')
+    owned_client.prepare_domain({'id':uuid.uuid4().hex},worker_parent)  # Native fs/type/access proof, no mutation.
+    worker_domain=owned_client.domain_identity(worker_parent)
+    if worker_domain['uid']!=os.getuid() or worker_domain['mode'] & 0o022 or (Path(worker_parent)/'cgroup.type').read_text().strip()!='domain':
+        raise RuntimeError('Exclusive owned worker domain required')
+    _worker_binding(provisioning,worker_domain,worker_cgroup_parent,teardown_only=teardown_only)
+    _endpoint(socket)
+    state=_unit(unit)
+    if state['ActiveState']!='active': raise RuntimeError('Dedicated daemon unit is not active')
+    domain=owned_client.domain_identity(state['domain_path'])
+    _worker_binding(provisioning,worker_domain,worker_cgroup_parent,domain,teardown_only=teardown_only)
+    daemon_process=_daemon_process(domain['path'],expected_executable_sha256)
+    argv=(Path('/proc')/str(daemon_process['pid'])/'cmdline').read_bytes().split(b'\0')
+    arguments=[os.fsdecode(value) for value in argv if value]
+    for option,value in [('pidfile',provisioning['daemon_pidfile']),('config-file',provisioning['daemon_config']['path']),('data-root',root_dir),('exec-root',exec_root),('host','unix://'+str(socket)),('live-restore','false'),('cgroup-parent',worker_cgroup_parent)]:
+        values=[]
+        for index,arg in enumerate(arguments):
+            if arg=='--'+option and index+1<len(arguments): values.append(arguments[index+1])
+            elif arg.startswith('--'+option+'='): values.append(arg.split('=',1)[1])
+        if values != [str(value)]: raise RuntimeError('Explicit isolated daemon argument mismatch: '+option)
+    leader=owned_client.identity(int(state['MainPID']))
+    leader_environment=(Path('/proc')/str(leader['pid'])/'environ').read_bytes().split(b'\0')
+    expected_env=os.fsencode('DOCKERD_ROOTLESS_ROOTLESSKIT_STATE_DIR='+str(rootless_state))
+    if expected_env not in leader_environment:
+        raise RuntimeError('Explicit isolated rootlesskit state required')
+    info=json.loads(subprocess.check_output(['docker','info','--format','{{json .}}'],timeout=30))
+    version=json.loads(subprocess.check_output(['docker','version','--format','{{json .Server}}'],timeout=30))
+    if info.get('DockerRootDir')!=str(root_dir) or info.get('ServerVersion')!=expected_server_version or version.get('GitCommit')!=expected_server_git_commit:
+        raise RuntimeError('Dedicated daemon root/version/build mismatch')
+    if info.get('LiveRestoreEnabled') is not False or str(info.get('CgroupVersion'))!='2' or info.get('CgroupDriver')!='systemd' or not any('rootless' in option for option in info.get('SecurityOptions',[])):
+        raise RuntimeError('Rootless cgroup-v2 daemon with live restore disabled required')
+    if epoch is not None and not re.fullmatch('[0-9a-f]{32}',epoch): raise RuntimeError('Exact restart epoch required')
+    manifest=dict(schema=SCHEMA,terminal_only=teardown_only,epoch=epoch or uuid.uuid4().hex,unit=unit,socket=str(socket),
+                  roots=roots,domain=domain,leader=leader,daemon_process=daemon_process,
+                  worker_domain=worker_domain,worker_cgroup_parent=worker_cgroup_parent,provisioning=provisioning,
+                  server_version=expected_server_version,server_git_commit=expected_server_git_commit,
+                  daemon_executable_sha256=expected_executable_sha256,
+                  unit_fragment_sha256=state['unit_fragment_sha256'])
+    publish(_canonical(manifest_path),manifest)
+    return manifest
+
+
+def load_manifest(path=None):
+    aliases=[value for value in (os.environ.get('MLDSAFAIL_OPERATOR_DAEMON_MANIFEST'),os.environ.get('MLDSAFAIL_CPU_DAEMON_MANIFEST')) if value]
+    if path is None:
+        if not aliases or len(set(aliases))!=1:
+            raise RuntimeError('One explicit dedicated-daemon manifest required')
+        path=aliases[0]
+    path=_canonical(path)
+    descriptor=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+    with os.fdopen(descriptor,'rb') as stream:
+        info=os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_mode & 0o077:
+            raise RuntimeError('Private owner daemon manifest required')
+        raw=stream.read(65537)
+    if len(raw)>65536: raise RuntimeError('Daemon manifest exceeds cap')
+    manifest=json.loads(raw)
+    required={'schema','epoch','unit','socket','roots','domain','leader','daemon_process',
+              'server_version','server_git_commit','daemon_executable_sha256','unit_fragment_sha256',
+              'worker_domain','worker_cgroup_parent','provisioning'}
+    if (not isinstance(manifest,dict) or set(manifest) not in (required,required|{'terminal_only'})
+            or ('terminal_only' in manifest and type(manifest['terminal_only']) is not bool)
+            or manifest['schema']!=SCHEMA or not re.fullmatch('[0-9a-f]{32}',manifest['epoch'])):
+        raise RuntimeError('Exact versioned daemon epoch manifest required')
+    return manifest
+
+
+def verify_root_identities(manifest):
+    """Admit only Docker's data-root traversal-bit change under the same base."""
+    base=manifest['provisioning']['base']
+    if _private_directory(base['path'])!=base:
+        raise RuntimeError('Dedicated daemon private base identity changed')
+    observed={}
+    for name,value in manifest['roots'].items():
+        current=_private_directory(value['path'],docker_data=name=='root_dir')
+        expected=dict(value)
+        if name=='root_dir':
+            if type(expected.get('mode')) is not int or expected['mode'] not in {0o700,0o710}:
+                raise RuntimeError('Dedicated daemon retained data-root mode is invalid')
+            expected['mode']=current['mode']
+        if current!=expected:
+            raise RuntimeError('Dedicated daemon root identity changed')
+        observed[name]=current
+    if observed['root_dir']!=manifest['roots']['root_dir']:
+        record=dict(schema='mldsafail.owned-daemon-root-mode.v1',manifest_sha256=fingerprint(manifest),
+            private_base=base,registered_root=manifest['roots']['root_dir'],observed_root=observed['root_dir'])
+        path=Path(base['path'])/('root-mode-'+record['manifest_sha256']+'-'+str(observed['root_dir']['mode'])+'.json')
+        if path.is_symlink():raise RuntimeError('Retained data-root observation is a symlink')
+        if path.exists():
+            if read_private_json(path)!=record:raise RuntimeError('Retained data-root observation differs')
+        else:publish(path,record)
+    return observed
+
+
+def verify_environment(manifest, *, measurement_parent=None, docker_info=None):
+    if manifest.get('terminal_only') is True: raise RuntimeError('Terminal-only daemon authority cannot evaluate')
+    _endpoint(manifest['socket'])
+    state=_unit(manifest['unit'])
+    if state['ActiveState']!='active' or int(state['MainPID'])!=manifest['leader']['pid'] or state['domain_path']!=manifest['domain']['path'] or state['unit_fragment_sha256']!=manifest['unit_fragment_sha256']:
+        raise RuntimeError('Dedicated daemon unit identity changed')
+    if owned_client.domain_identity(manifest['domain']['path'])!=manifest['domain'] or owned_client.identity(manifest['leader']['pid'])!=manifest['leader'] or owned_client.identity(manifest['daemon_process']['pid'])!=manifest['daemon_process']:
+        raise RuntimeError('Dedicated daemon kernel process/domain identity changed')
+    if _hash_executable(manifest['daemon_process']['pid'])!=manifest['daemon_executable_sha256']:
+        raise RuntimeError('Dedicated daemon executable identity changed')
+    _provisioning(manifest['provisioning'],manifest['unit'],manifest['roots'])
+    _worker_binding(manifest['provisioning'],manifest['worker_domain'],manifest['worker_cgroup_parent'],manifest['domain'])
+    verify_root_identities(manifest)
+    owned_client.prepare_domain({'id':uuid.uuid4().hex},manifest['worker_domain']['path'])
+    if owned_client.domain_identity(manifest['worker_domain']['path'])!=manifest['worker_domain']:
+        raise RuntimeError('Entire owned worker parent identity changed')
+    if measurement_parent is not None and str(measurement_parent)!=manifest['worker_domain']['path']:
+        raise RuntimeError('Accounting parent differs from dedicated daemon worker parent')
+    domains=[Path(manifest['domain']['path']),Path(manifest['worker_domain']['path'])]
+    operator=os.environ.get('MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT')
+    if operator: domains.append(_canonical(operator))
+    if measurement_parent is not None: _canonical(measurement_parent)
+    if any(a==b or a in b.parents or b in a.parents for index,a in enumerate(domains) for b in domains[index+1:]):
+        raise RuntimeError('Daemon/operator/worker domains must be separate')
+    if docker_info is not None:
+        if docker_info.get('DockerRootDir')!=manifest['roots']['root_dir']['path'] or docker_info.get('ServerVersion')!=manifest['server_version'] or docker_info.get('LiveRestoreEnabled') is not False:
+            raise RuntimeError('Dedicated Docker API identity mismatch')
+    return manifest
+
+
+def shutdown_barrier(manifest, *, worker_domains=(), evidence_directory, attempt_id):
+    """Kernel shutdown of exact old epoch; all steps independent, never fallback."""
+    if not re.fullmatch('[a-zA-Z0-9_-]{1,128}',attempt_id): raise ValueError('Safe attempt identity required')
+    errors=[]
+    control_safe=False
+    try:
+        if fingerprint(load_manifest())!=fingerprint(manifest):
+            raise RuntimeError('Current dedicated manifest authority differs from old epoch')
+        state=_unit(manifest['unit'])
+        if state['unit_fragment_sha256']!=manifest['unit_fragment_sha256']:
+            raise RuntimeError('Dedicated unit config changed; control prohibited')
+        if state['ActiveState']=='active':
+            if int(state['MainPID'])!=manifest['leader']['pid'] or state['domain_path']!=manifest['domain']['path'] or owned_client.identity(manifest['leader']['pid'])!=manifest['leader']:
+                raise RuntimeError('Dedicated unit epoch changed; control prohibited')
+            control_safe=True
+            subprocess.run(['systemctl','--user','stop',manifest['unit']],check=True,timeout=45,capture_output=True)
+        elif state['ActiveState'] not in {'inactive','failed'}:
+            raise RuntimeError('Dedicated unit state is not reconciled')
+        else:
+            control_safe=True
+    except BaseException as error: errors.append(dict(step='dedicated_unit_stop',error=repr(error)))
+    try:
+        if not control_safe: raise RuntimeError('Daemon control identity was not proved')
+        owned_client.stop({'cgroup':manifest['domain']})
+    except BaseException as error: errors.append(dict(step='dedicated_daemon_domain_stop',error=repr(error)))
+    if any(domain!=manifest['worker_domain'] for domain in worker_domains):
+        errors.append(dict(step='worker_domain_identity',error='Caller worker receipt differs from entire registered parent'))
+    # All late/unacknowledged containers are confined by daemon default parent
+    # and explicit operator overrides, so the complete parent is mandatory.
+    for domain in [manifest['worker_domain']]:
+        try:
+            if not control_safe: raise RuntimeError('Old daemon epoch authority not proved; worker control prohibited')
+            path=owned_client.verify_domain({'cgroup':domain})
+            if path is not None:
+                (path/'cgroup.kill').write_text('1')
+                deadline=time.monotonic()+15
+                while owned_client.populated(path):
+                    if time.monotonic()>deadline: raise RuntimeError('Owned worker domain remains populated')
+                    time.sleep(.05)
+                owned_client.verify_domain({'cgroup':domain})
+        except BaseException as error: errors.append(dict(step='dedicated_worker_domain_stop',error=repr(error)))
+    receipt=dict(schema='mldsafail.owned-daemon-barrier.v1',attempt_id=attempt_id,
+                 daemon_epoch=manifest['epoch'],daemon_manifest_sha256=fingerprint(manifest),
+                 shutdown_proven=not errors,errors=errors,restart_required=True)
+    name=attempt_id+'-daemon-barrier-'+uuid.uuid4().hex+'.json'
+    publish(Path(evidence_directory)/name,receipt)
+    receipt['receipt_file']=name
+    return receipt
+
+
+def restart_and_refresh(manifest, shutdown_receipt, *, manifest_path, client_entries=(), evidence_directory, attempt_id):
+    """Only after positive old-epoch proof and independently empty client domains."""
+    if manifest.get('terminal_only') is True: raise RuntimeError('Terminal-only daemon authority cannot restart')
+    if not isinstance(shutdown_receipt,dict) or shutdown_receipt.get('schema')!='mldsafail.owned-daemon-barrier.v1' or shutdown_receipt.get('attempt_id')!=attempt_id or shutdown_receipt.get('errors')!=[] or shutdown_receipt.get('shutdown_proven') is not True or shutdown_receipt.get('daemon_manifest_sha256')!=fingerprint(manifest) or shutdown_receipt.get('daemon_epoch')!=manifest['epoch']:
+        raise RuntimeError('Positive exact daemon shutdown receipt required')
+    _worker_binding(manifest['provisioning'],manifest['worker_domain'],manifest['worker_cgroup_parent'])
+    for entry in client_entries:
+        path=owned_client.verify_domain(entry)
+        if path is not None and owned_client.populated(path): raise RuntimeError('Owned client survives barrier')
+    intent_path=Path(evidence_directory)/(attempt_id+'-daemon-restart-intent.json')
+    previous_intent=read_private_json(intent_path) if intent_path.exists() else None
+    expected=dict(schema='mldsafail.owned-daemon-restart-intent.v1',attempt_id=attempt_id,
+                  previous_epoch=manifest['epoch'],manifest_sha256=fingerprint(manifest),unit=manifest['unit'])
+    if previous_intent is not None:
+        if set(previous_intent)!=set(expected)|{'next_epoch'} or any(previous_intent[key]!=value for key,value in expected.items()) or not re.fullmatch('[0-9a-f]{32}',previous_intent['next_epoch']):
+            raise RuntimeError('Restart intent identity mismatch')
+        intent=previous_intent
+    else:
+        intent=dict(expected,next_epoch=uuid.uuid4().hex)
+    current=load_manifest(manifest_path)
+    if current['epoch']!=manifest['epoch']:
+        if previous_intent is None or current['epoch']!=intent['next_epoch']:
+            raise RuntimeError('Different daemon epoch has no exact retained restart authority')
+        for key in ('unit','socket','worker_domain','worker_cgroup_parent','provisioning','server_version','server_git_commit','daemon_executable_sha256','unit_fragment_sha256'):
+            if current[key]!=manifest[key]: raise RuntimeError('Refreshed epoch changed bound daemon contract')
+        verify_environment(current)
+        return current
+    state=_unit(manifest['unit'])
+    if state['unit_fragment_sha256']!=manifest['unit_fragment_sha256'] or (state['ActiveState'] not in {'inactive','failed'} and not (state['ActiveState']=='active' and previous_intent is not None)):
+        raise RuntimeError('Dedicated unit changed before restart')
+    if previous_intent is None: publish(intent_path,intent)
+    if state['ActiveState']!='active':
+        subprocess.run(['systemctl','--user','start',manifest['unit']],check=True,timeout=45,capture_output=True)
+    deadline=time.monotonic()+45
+    while True:
+        try:
+            refreshed=register(unit=manifest['unit'],socket=manifest['socket'],
+                **{name:value['path'] for name,value in manifest['roots'].items()},manifest_path=manifest_path,
+                expected_server_version=manifest['server_version'],expected_server_git_commit=manifest['server_git_commit'],
+                expected_executable_sha256=manifest['daemon_executable_sha256'],
+                worker_parent=manifest['worker_domain']['path'],worker_cgroup_parent=manifest['worker_cgroup_parent'],
+                provisioning=manifest['provisioning'],epoch=intent['next_epoch'])
+            break
+        except (RuntimeError,subprocess.SubprocessError,FileNotFoundError):
+            if time.monotonic()>deadline: raise
+            time.sleep(.1)
+    receipt=dict(schema='mldsafail.owned-daemon-restart.v1',attempt_id=attempt_id,
+                 previous_epoch=manifest['epoch'],new_epoch=refreshed['epoch'],manifest_sha256=fingerprint(refreshed))
+    publish(Path(evidence_directory)/(attempt_id+'-daemon-restart-'+uuid.uuid4().hex+'.json'),receipt)
+    return refreshed
+
+
+JOB_QUERY = ['systemctl', '--user', 'list-jobs', '--no-legend', '--no-pager', '--plain', '--full']
+
+
+def _parse_jobs(raw):
+    """Parse systemctl's header-free job table; --output=json is not a job API.
+
+    Unknown/malformed output remains a fence, never an empty inventory.
+    """
+    if isinstance(raw, bytes):
+        raw = raw.decode('utf-8', errors='strict')
+    rows = []
+    for line in raw.splitlines():
+        if not line.strip():
+            continue
+        fields = line.split()
+        if (len(fields) != 4 or not fields[0].isascii() or not fields[0].isdigit()
+                or int(fields[0]) <= 0 or fields[3] not in {'waiting', 'running'}):
+            raise RuntimeError('Malformed system manager job inventory remains fenced')
+        rows.append(dict(id=int(fields[0]), unit=fields[1], type=fields[2], state=fields[3]))
+    if len({row['id'] for row in rows}) != len(rows):
+        raise RuntimeError('Duplicate system manager jobs remain fenced')
+    return rows
+
+
+def _failed_startup_authority(state):
+    if state.get('image_load_intent') or state.get('registered_manifest') or Path(state['manifest_path']).exists():
+        raise RuntimeError('Never-admitted startup proof cannot replace registered daemon barrier')
+    commands=state['commands']
+    if not isinstance(commands,list) or any(not isinstance(row,dict) for row in commands):
+        raise RuntimeError('Exact completed setup command receipts required')
+    if any(row.get('kind')!='read' and row.get('state')!='passed' for row in commands):
+        raise RuntimeError('Uncertain system manager mutation remains fenced')
+    if any(row.get('argv',[None])[0]=='docker' and row.get('kind')!='read' for row in commands):
+        raise RuntimeError('Docker mutation admission forbids startup-only proof')
+    provisioning=state['provisioning'];base=provisioning['base']
+    if provisioning['boot_id']!=owned_client.boot_id() or _private_directory(base['path'])!=base or provisioning['unit']!=state['daemon_unit']:
+        raise RuntimeError('Exact same-boot fresh daemon provisioning required')
+    if read_private_json(Path(base['path'])/'provision.json')!=provisioning:
+        raise RuntimeError('Exact retained provisioning receipt changed')
+    unit=_unit(state['daemon_unit'])
+    fragment=[row for row in state['units'] if Path(row['path']).name==state['daemon_unit']]
+    if len(fragment)!=1 or unit['unit_fragment_sha256']!=fragment[0]['sha256']:
+        raise RuntimeError('Fresh unit fragment identity changed')
+    if unit['ActiveState'] not in {'inactive','failed'} or int(unit['MainPID'])!=0:
+        raise RuntimeError('Never-admitted daemon must be inactive with no leader')
+    jobs=_parse_jobs(subprocess.check_output(JOB_QUERY,timeout=15))
+    if any(row['unit']==state['daemon_unit'] for row in jobs):
+        raise RuntimeError('Fresh daemon startup jobs remain pending')
+    group=unit.get('ControlGroup','')
+    if group and (Path('/sys/fs/cgroup')/group.lstrip('/')).exists():
+        raise RuntimeError('Never-admitted daemon cgroup remains present')
+    worker=provisioning['worker_birth']
+    operator=_canonical(provisioning['operator_domain']['path'])
+    managers=[path for path in operator.parents if path.name=='user@'+str(os.getuid())+'.service']
+    if sys.platform=='linux' and (len(managers)!=1 or Path('/sys/fs/cgroup') not in managers[0].parents):
+        raise RuntimeError('Exact native user manager cgroup required')
+    if managers and (managers[0]/'app.slice'/state['daemon_unit']).exists():
+        raise RuntimeError('Exact fresh daemon cgroup remains present')
+    _worker_binding(provisioning,worker,state['worker_slice'],teardown_only=True)
+    domain=owned_client.verify_domain({'cgroup':worker})
+    if domain is not None and (owned_client.populated(domain) or (domain/'cgroup.procs').read_text().strip() or list(domain.rglob('cgroup.procs'))!=[domain/'cgroup.procs']):
+        raise RuntimeError('Exact failed-start worker parent is not empty')
+    socket=_canonical(state['socket'])
+    if socket != Path(base['path'])/'docker.sock':
+        raise RuntimeError('Exact provisioned Docker socket required')
+    return socket,base
+
+
+def _socket_identity(path):
+    info=path.lstat()
+    if not stat.S_ISSOCK(info.st_mode) or info.st_uid!=os.getuid():
+        raise RuntimeError('Exact owner Unix socket required')
+    return dict(device=info.st_dev,inode=info.st_ino,uid=info.st_uid,mode=info.st_mode)
+
+
+def _refused_socket(path):
+    with socket_module.socket(socket_module.AF_UNIX,socket_module.SOCK_STREAM) as probe:
+        probe.settimeout(1)
+        try: probe.connect(str(path))
+        except ConnectionRefusedError: return
+        raise RuntimeError('Failed-start socket still accepts connections')
+
+
+def _retire_startup_socket(state, *, evidence_directory, attempt_id):
+    path,base=_failed_startup_authority(state)
+    try: identity=_socket_identity(path)
+    except FileNotFoundError: return dict(state='absent',socket=str(path))
+    _refused_socket(path)
+    intent_path=Path(evidence_directory)/(attempt_id+'-socket-retirement-intent-'+uuid.uuid4().hex+'.json')
+    intent=dict(schema='mldsafail.owned-daemon-socket-retirement-intent.v1',
+                attempt_id=attempt_id,provision_sha256=fingerprint(state['provisioning']),
+                socket=str(path),socket_identity=identity,base=base,boot_id=owned_client.boot_id())
+    publish(intent_path,intent)  # No mutation without durable independent authority.
+    _failed_startup_authority(state)
+    _refused_socket(path)
+    descriptor=os.open(path.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+    try:
+        directory=os.fstat(descriptor)
+        if (directory.st_dev,directory.st_ino,directory.st_uid,directory.st_mode&0o777)!=(base['device'],base['inode'],base['uid'],base['mode']):
+            raise RuntimeError('Private socket base changed before retirement')
+        info=os.stat(path.name,dir_fd=descriptor,follow_symlinks=False)
+        if dict(device=info.st_dev,inode=info.st_ino,uid=info.st_uid,mode=info.st_mode)!=identity:
+            raise RuntimeError('Socket birth changed before retirement')
+        os.unlink(path.name,dir_fd=descriptor)
+        os.fsync(descriptor)
+    finally: os.close(descriptor)
+    _failed_startup_authority(state)
+    if path.exists() or path.is_symlink(): raise RuntimeError('Socket reappeared after retirement')
+    return dict(state='retired',socket=str(path),socket_identity=identity,
+                intent_path=str(intent_path),intent_sha256=fingerprint(intent))
+
+
+def failed_startup_barrier(state, *, evidence_directory, attempt_id):
+    """Retire only a never-admitted dead service and its refused owned socket.
+
+    The controller must serialize maintenance with the provision lease. Every
+    retry creates independent evidence and preserves earlier negative receipts.
+    """
+    errors=[];retirement=None
+    try:
+        if not re.fullmatch('[a-zA-Z0-9_-]{1,128}',attempt_id): raise ValueError('Safe attempt identity required')
+        retirement=_retire_startup_socket(state,evidence_directory=evidence_directory,attempt_id=attempt_id)
+    except BaseException as error: errors.append(dict(step='failed_startup_authority',error=repr(error)))
+    receipt=dict(schema='mldsafail.owned-daemon-failed-startup.v1',attempt_id=attempt_id,
+        startup_shutdown_proven=not errors,healthy_daemon_registered=False,errors=errors,
+        socket_retirement=retirement)
+    path=Path(evidence_directory)/(attempt_id+'-failed-startup-'+uuid.uuid4().hex+'.json')
+    try: publish(path,receipt)
+    except BaseException as original:
+        receipt['startup_shutdown_proven']=False
+        receipt['errors'].append(dict(step='publication',error=repr(original)))
+        try: publish(path,receipt)
+        except BaseException as retry: original.add_note('Negative publication retry failed: '+repr(retry))
+        raise
+    return receipt

@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "scope": "Operator heartbeat/resumption/evidence provenance source review only; native resumed acceptance required",
+  "reviewer": "independent preparation agent",
+  "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+  "source_files_sha256": {
+    "scripts/hosted_vps_failure_driver.py": "6dc6d34534a3355a83400f9a7a231e9ff5ed872da48f8f8cc80be6b16c52037a",
+    "scripts/hosted_vps_failure_acceptance.py": "d13ac7b0a8f6f9cee84a531818fa001ea1b569b5f37b29f019abee5fbf9c5eec"
+  },
+  "findings_repaired": [
+    "Use script source root for Git identity",
+    "Bound heartbeat join and attempt cleanup before publishing join failure",
+    "Atomically retain and fsync previous generation evidence including parent directory"
+  ],
+  "protocol": "Resume exact existing journal; verify seven completed submissions without POST; protected disposable database restoration and exact b4d212d application rollback then forward; full privacy scan and final cleanup; frozen ceilings unchanged",
+  "prior_failure_reference": "private:launch-scenarios-6b332cd-20261004/prior-generation-1",
+  "verification": {
+    "focused_passed": 45,
+    "make_check_passed": 325,
+    "skipped": 8,
+    "historical_small_correct": true
+  },
+  "native_passed": false
+}

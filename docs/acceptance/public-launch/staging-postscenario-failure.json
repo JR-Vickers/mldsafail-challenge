@@ -1,0 +1,21 @@
+{
+  "run_id": "launch-scenarios-6b332cd-20261004",
+  "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+  "scenario_gates": {
+    "cancellation": true,
+    "timeout": true,
+    "invalid": true,
+    "crash": true,
+    "retry": true,
+    "exhaustion": true,
+    "lease": true
+  },
+  "overall_acceptance_passed": false,
+  "failure": "Final log privacy probe interrupted (exit137); watchdog maintenance heartbeat was not refreshed throughout rollback/forward/privacy phase",
+  "cleanup_verified": true,
+  "cleanup_errors": [],
+  "services_healthy": true,
+  "daemon_server_version": "29.8.1",
+  "private_evidence_reference": "private:launch-scenarios-6b332cd-20261004/generation1",
+  "next_action": "Review heartbeat lifetime correction; resume exact journal and reverify completed submissions without POST; repeat protected backup and exact application rollback/forward/privacy gates"
+}

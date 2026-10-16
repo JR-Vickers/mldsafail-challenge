@@ -1,13 +1,13 @@
 .PHONY: test bench check web web-smoke hosted-dev hosted-down migrate primitive-study-smoke primitive-study-development primitive-study-report primitive-study-verify
 
 test:
-	uv run pytest
+	uv run --extra dev python -m pytest
 
 bench:
-	uv run python -m mldsafail.benchmark.runner
+	uv run mldsafail run $(BENCH_ARGS)
 
 check: test
-	uv run python -m mldsafail.benchmark.runner --profile small --no-record
+	uv run python -m pytest tests/test_mlwe_v050_contract.py
 
 web:
 	uv run python -m mldsafail.web.app
@@ -16,6 +16,7 @@ web-smoke:
 	uv run python -c "from mldsafail.web.app import create_app; response = create_app().test_client().get('/'); assert response.status_code == 200; print('web smoke test passed')"
 
 hosted-dev:
+	uv run python -m mldsafail.benchmark_v050.build --tag mldsafail-mlwe:development
 	docker compose --env-file deploy/dev.env -f compose.yaml -f compose.dev.yaml --profile build build
 	docker compose --env-file deploy/dev.env -f compose.yaml -f compose.dev.yaml up -d db web proxy coordinator
 
@@ -25,10 +26,7 @@ hosted-down:
 HOSTED_EVALUATOR_DIR ?= /Users/jarrett/dev/mldsafail-evaluator
 
 hosted-setup:
-	rm -f $(HOSTED_EVALUATOR_DIR)/secrets/hidden-seeds.json
-	mkdir -p $(HOSTED_EVALUATOR_DIR)/secrets
-	cp deploy/dev-hidden-seeds.json $(HOSTED_EVALUATOR_DIR)/secrets/hidden-seeds.json
-	chmod 0400 $(HOSTED_EVALUATOR_DIR)/secrets/hidden-seeds.json
+	@echo "Use docs/MLWE_LOCAL.md to provision an audited private MLWE epoch; historical seed setup is unsupported."
 
 migrate:
 	uv run alembic upgrade head

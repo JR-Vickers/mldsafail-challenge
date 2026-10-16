@@ -1,0 +1,33 @@
+{
+  "schema": "mldsafail.launch-source-verification.v1",
+  "source_commit": "10da7cc6eaca95a3372edaf708f6b5c457f3321a",
+  "supervisor_source_sha256": "f3e7608cf7148891146b5b5ee80d282eab14a1789ef82b334b079539b9728369",
+  "source_review_passed": true,
+  "local_verification_passed": true,
+  "native_acceptance_passed": false,
+  "verification": {
+    "make_check": {
+      "passed": 819,
+      "skipped": 13,
+      "log_reference": "protected local integrated operator check"
+    },
+    "supervisor_independent_review": {
+      "reviewer": "independent review_controls agent",
+      "focused_tests_passed": 7,
+      "scope": "Serialized post-publication disposition and exact matching generation prevent ambiguous publication from passing"
+    },
+    "administrative_independent_review": {
+      "reviewer": "independent review_controls agent",
+      "scope": "Privileged local database operator boundary, participant ownership and atomic audit preservation"
+    },
+    "operator_independent_review": {
+      "reviewer": "independent review_controls agent",
+      "source_commits": [
+        "5259ba3",
+        "f97f147"
+      ],
+      "scope": "Interrupted actual job retirement bound to replacement activation"
+    }
+  },
+  "native_next_action": "Retain this exact source; execute fault and admission protocols when session SSH connectivity permits; do not reinterpret local checks as native evidence"
+}

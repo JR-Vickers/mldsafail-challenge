@@ -1,3 +1,4 @@
+from deploy.recovery_daemon import locked_config_operation
 """Inactive daily recovery with durable interruption cleanup and local retention."""
 import argparse
 from datetime import datetime, timezone
@@ -7,9 +8,10 @@ import os
 from pathlib import Path
 import shutil
 import signal
+import stat
 import uuid
 from deploy.assemble_recovery import assemble
-from deploy.recovery import execute, private_file, validate_set
+from deploy.recovery import execute, private_file, validate_set, validate_verified_receipt
 from deploy.recovery_journal import Journal, atomic_json, safe_path, sync_directory
 from deploy.restore_recovery import verify
 
@@ -38,7 +40,14 @@ def prune(root, repository, keep):
             raise ValueError('Run ownership mismatch')
         if (record.get('repository') == repository and record.get('verified_at') and
                 record.get('cleanup_complete') and record.get('restore_verified')):
-            records.append((record['verified_at'], path, record))
+            try:
+                verified = validate_verified_receipt(record.get('verified_state'), {'repository': repository},
+                                                     expected_snapshot=record.get('snapshot'))
+                if record.get('snapshot') != verified['snapshot']:
+                    raise ValueError('Local run snapshot mismatch')
+            except (ValueError, TypeError, KeyError):
+                continue  # Historical/partial evidence cannot authorize deletion.
+            records.append((datetime.fromisoformat(verified['verified_at']), path, record))
     for _, path, record in sorted(records, reverse=True):
         if not record.get('pruned'):
             remove_owned(root, record['restore_directory'])
@@ -66,14 +75,23 @@ def record_cleanup(operation, journals):
         atomic_json(path, record)
 
 
+@locked_config_operation
 def run(config, cleanup_only=False):
     root = safe_path(config['recovery_root'])
     root.mkdir(mode=0o700, parents=True, exist_ok=True)
     journals = safe_path(root / 'journals')
     journals.mkdir(mode=0o700, exist_ok=True)
+    for directory in (root, journals):
+        info = directory.stat()
+        if info.st_uid != os.getuid() or info.st_mode & 0o077:
+            raise ValueError('Private owned daily recovery directories required')
     sync_directory(root.parent)
     sync_directory(root)
-    with safe_path(root / 'lock').open('a') as lock:
+    descriptor = os.open(safe_path(root / 'lock'), os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(descriptor, 'a') as lock:
+        info = os.fstat(lock.fileno())
+        if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077 or info.st_nlink != 1:
+            raise ValueError('Private owned recovery lock required')
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         operation = Journal(journals / 'operation.json', config)
         try:
@@ -89,7 +107,7 @@ def run(config, cleanup_only=False):
         if shutil.disk_usage(root).free < 5 * 1024**3:
             raise RuntimeError('disk: recovery floor below 5 GiB; failed evidence preserved')
         run_id = uuid.uuid4().hex
-        operation.data.update(services={}, containers=[], run_id=run_id)
+        operation.data.update(services={}, containers=[], clients=[], run_id=run_id)
         operation.save('preflight complete')
         record_path = journals / ('run-' + run_id + '.json')
         backup = dict(config['backup'])
@@ -101,7 +119,7 @@ def run(config, cleanup_only=False):
             operation.save('assembly intent')
             assemble(config['assembly'], root / record['set_directory'], operation=operation)
             operation.save('upload intent')
-            execute(backup, 'backup', root / record['set_directory'])
+            execute(backup, 'backup', root / record['set_directory'], journal=operation)
             state = json.loads(Path(backup['backup_state']).read_text())
             if state['repository'] != backup['repository']:
                 raise ValueError('Backup repository mismatch')
@@ -115,7 +133,8 @@ def run(config, cleanup_only=False):
                     verified.get('repository') != backup['repository'] or
                     verified.get('snapshot') != backup['restore_snapshot']):
                 raise ValueError('Verification identity mismatch')
-            record.update(restore_verified=True, cleanup_complete=True,
+            validate_verified_receipt(verified, backup, expected_snapshot=backup['restore_snapshot'])
+            record.update(restore_verified=True, cleanup_complete=True, verified_state=verified,
                           verified_at=datetime.now(timezone.utc).isoformat())
             atomic_json(record_path, record)
             atomic_json(safe_path(backup['backup_state']), verified)
@@ -143,11 +162,26 @@ def main():
         raise InterruptedError('Recovery interrupted')
     for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
         signal.signal(sig, interrupted)
+    config = json.loads(private_file(args.config).read_text())
+    from deploy.healthchecks import notify
     try:
-        print(json.dumps(run(json.loads(private_file(args.config).read_text()), args.cleanup)))
+        result = run(config, args.cleanup)
     except Exception:
+        try:
+            notify(config, 'recovery', False)
+        except Exception:
+            pass
         print(json.dumps({'daily_recovery_failed': True, 'private_evidence_retained': True}))
         raise SystemExit(1)
+    # Cleanup-only invocations never report backup success. run() returns this
+    # marker only after upload, restore/audit, independent cleanup and retention.
+    if result.get('daily_recovery_verified') is True:
+        try:
+            notify(config, 'recovery', True)
+        except Exception:
+            print(json.dumps({'daily_recovery_verified': True, 'heartbeat_delivery_failed': True}))
+            raise SystemExit(1)
+    print(json.dumps(result))
 
 
 if __name__ == '__main__':

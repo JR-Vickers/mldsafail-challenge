@@ -1,0 +1,19 @@
+{
+  "schema": "mldsafail.source-review.v1",
+  "status": "source_review_passed",
+  "source_commit": "b232c544ff4823da13775eaa1e5bbbdf68500936",
+  "native_executed": false,
+  "review_scope": [
+    "offline approved AMD64 wheel admission",
+    "exact native provenance and architecture lock",
+    "both CLI preflights before native driver"
+  ],
+  "tests": {
+    "command": "uv run --extra dev python -m pytest tests/test_v060_offline_wheels.py tests/test_v060_backend.py tests/test_native_v060_worker_preparation.py -q",
+    "passed": 30
+  },
+  "architecture_lock_sha256": "35890cf7c5ed544124dc4cc86269009f11d029a5388d1627b6899e986650c1f0",
+  "limitations": [
+    "Native build, accounting acceptance and contract adoption remain separate gates"
+  ]
+}

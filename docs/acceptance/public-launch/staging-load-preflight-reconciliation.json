@@ -1,0 +1,23 @@
+{
+  "schema": "mldsafail.load-interruption-reconciliation.v1",
+  "original_source_commit": "0e0bc13b1f17bb7da7e85609c302ef22bca7ec1c",
+  "cleanup_source_commit": "eedab6c3a553d9dea8058e1644b4671e4c92620f",
+  "original_gate_passed": false,
+  "measurement_started": false,
+  "submission_intent_present": false,
+  "failure": "Retained release inventory exceeded default receipt cap before identity capture",
+  "correction": "Bound manifest read to one MiB; release-bound cleanup observation permitted only before admission",
+  "cleanup_verified": true,
+  "wrapper_cleanup_verified": true,
+  "services_running_and_healthy_where_configured": true,
+  "raw_evidence_location": "protected staging idle load attemptA and separate cleanup attemptB",
+  "source_review_passed": true,
+  "focused_tests_passed": 19,
+  "make_check_passed": true,
+  "make_check_counts": {
+    "passed": 794,
+    "skipped": 11
+  },
+  "predeclared_thresholds_changed": false,
+  "authentication_renewal_pending": true
+}

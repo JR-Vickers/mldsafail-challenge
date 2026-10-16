@@ -1,0 +1,17 @@
+{
+  "schema": "mldsafail.source-review.v1",
+  "reviewed_source": "397eb53a1a90ba3dfff7920193dd39a70342bad1",
+  "scope": "Native create/start lost acknowledgement and owner interruption diagnostic orchestration",
+  "status": "passed_source_review",
+  "focused_tests_passed": 24,
+  "native_execution": false,
+  "observations": [
+    "Injection requires retained actual successful daemon response and a durably released matching creator phase, rather than any exception.",
+    "Started worker must be running with open stdin and no input-delivery intent before the owner interruption.",
+    "Completion requires canonical ownership fence, independently complete reconciliation and a repaired daemon epoch.",
+    "Final transport join and evidence publication failures retain the original orchestration error and do not skip reconciliation or permit a pass."
+  ],
+  "resolved_findings": ["unguarded_final_join", "failure_publication_masked_original"],
+  "remaining": ["native_mid_create_loss", "native_mid_start_loss", "native_restart_publication_loss", "native_fault_receipt_audit"],
+  "limits": "This narrow source review does not replace native daemon confinement, benchmark measurements, the complete accounting audit or contract approval."
+}

@@ -1,0 +1,17 @@
+{
+  "schema": "mldsafail.launch-native-cpu-partial.v1",
+  "source_commit": "60ce7e8f2be8f94d3b2b7647d4cf6a6af8c7f2da",
+  "native_executed": true,
+  "delegation_passed": true,
+  "positive_baseline_passed": true,
+  "before_exec_owner_loss_passed": true,
+  "fault_suite_passed": false,
+  "performance_pairs_executed": false,
+  "cleanup_complete": true,
+  "independent_cgroup_absence_verified": true,
+  "fault_report_sha256": "c5b01c75cf4e2d9ee62bcc2061ab3d0e2917ed75b1e6d6c03910ffc4b557b2fe",
+  "evidence_ref": "protected native CPU generation F journals",
+  "failure": "Lost-create-ack injection did not reach mutation because real Docker health prelude was rejected",
+  "corrective_source": "82d10cf",
+  "native_retry_required": true
+}

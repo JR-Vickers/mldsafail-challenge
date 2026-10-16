@@ -1,0 +1,68 @@
+{
+  "schema": "mldsafail.measurement-followup.v1",
+  "date": "2026-10-16",
+  "source_commit": "20df32a8398e6440af9fbbc1d792b0c41bccd113",
+  "new_measurement_pairs": 0,
+  "contract_adopted": false,
+  "rows": [
+    {
+      "fixture": "child",
+      "repetition": 0,
+      "raw_sha256": "586045bfb05465240682593266f0735b65624645916cbf220dd271a4b18029cc",
+      "authoritative_cpu_usec": 610165,
+      "observed_python_lifetime_cpu_usec": 580000,
+      "observed_python_tick_growth_usec": 550000,
+      "python_process_count": 2
+    },
+    {
+      "fixture": "empty",
+      "repetition": 0,
+      "raw_sha256": "09e290ac222f321f5e73396970e62cad199bdefdb6e7aa37390b7762ee705c0e",
+      "authoritative_cpu_usec": 490194,
+      "observed_python_lifetime_cpu_usec": 480000,
+      "observed_python_tick_growth_usec": 440000,
+      "python_process_count": 1
+    },
+    {
+      "fixture": "child",
+      "repetition": 1,
+      "raw_sha256": "179373e03698e3cd9ab9265ea2494f4ef4a564607fda79fc11238c0ea2440cc1",
+      "authoritative_cpu_usec": 697191,
+      "observed_python_lifetime_cpu_usec": 660000,
+      "observed_python_tick_growth_usec": 630000,
+      "python_process_count": 2
+    },
+    {
+      "fixture": "empty",
+      "repetition": 1,
+      "raw_sha256": "8d73633e96f064bd8b8befb5cf99a8d478964dcf3d7f217564c5ece916eaa9cc",
+      "authoritative_cpu_usec": 450899,
+      "observed_python_lifetime_cpu_usec": 440000,
+      "observed_python_tick_growth_usec": 400000,
+      "python_process_count": 1
+    },
+    {
+      "fixture": "child",
+      "repetition": 2,
+      "raw_sha256": "47d15abfca24e974ddf1b95b6f674fd82fcf905d17e0d0b44816c7bbfc159310",
+      "authoritative_cpu_usec": 639587,
+      "observed_python_lifetime_cpu_usec": 610000,
+      "observed_python_tick_growth_usec": 570000,
+      "python_process_count": 2
+    },
+    {
+      "fixture": "empty",
+      "repetition": 2,
+      "raw_sha256": "5d62dd5660542716aef9929fa168289a3c4989239f7b56becfa01a2f82684a0d",
+      "authoritative_cpu_usec": 397843,
+      "observed_python_lifetime_cpu_usec": 380000,
+      "observed_python_tick_growth_usec": 350000,
+      "python_process_count": 1
+    }
+  ],
+  "limitations": [
+    "Process CPU survives exec: comm is an observation, not exact function attribution.",
+    "Coarse process ticks omit threads and short-lived processes; lifetime ticks are not a replacement for cpu.stat.",
+    "Host import probe uses the engineering interpreter outside the container; not an acceptance result."
+  ]
+}

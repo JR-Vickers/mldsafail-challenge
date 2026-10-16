@@ -1,0 +1,21 @@
+{
+  "schema": "mldsafail.independent-source-review.v1",
+  "reviewer": "recovery",
+  "source_review_passed": true,
+  "native_executed": false,
+  "reviewed_working_diff_base": "ebec766b7266610e5fe68273a7e9c2316fe0a4b3",
+  "files_sha256": {
+    "src/mldsafail/benchmark_v060/Dockerfile": "e146551a908b4816c97af79715acd3e461a6c1a691db195f28dd872e3c375d9a",
+    "scripts/native_v060_worker_preparation.py": "677a3cdd0f6e4ecd1ddaa537977ea268f49ea4aa41f89b5e8277f357c2a5209a",
+    "tests/test_native_v060_worker_preparation.py": "563170be98e8055b265889a78e5f1204d7c6690094166237a90404732bd7c69c"
+  },
+  "focused_tests_passed": 19,
+  "scope": "package-only worker permissions and source-bound unprivileged native import smoke before artifact export",
+  "checks": [
+    "package a+rX before UID65534",
+    "read-only/network-none/dropALL/no-new-privileges startup container",
+    "exact loaded image/container name/ID and stopped successful exit required",
+    "startup failure forbids image export and positive artifact",
+    "outer owned barrier still required; full changed-artifact native gates pending"
+  ]
+}

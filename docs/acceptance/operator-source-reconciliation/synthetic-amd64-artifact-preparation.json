@@ -1,0 +1,68 @@
+{
+  "schema": "mldsafail.synthetic-amd64-artifact-preparation.v1",
+  "preparation_passed": true,
+  "target_architecture": "linux/amd64",
+  "original_architecture": "linux/arm64",
+  "versions_changed": false,
+  "restic_version": "0.17.3",
+  "minio_source_release": "RELEASE.2025-04-22T22-12-26Z",
+  "artifact_sha256": {
+    "restic": "1284c80a5b1e569a6e0cf44957d8a1d329e14774321cbf4f3f268021492ee989",
+    "minio": "84091054b08d3dcce5beac8e67fee2980f093eb9c0227c99c4d4135ed78407ee",
+    "artifacts.json": "fce9e0fdda89549e4bc730efec07c1ece12d1c84ff5bb25ad2f037cdea384256"
+  },
+  "artifact_bytes": {
+    "restic": 26501272,
+    "minio": 157911631
+  },
+  "upstream_provenance": {
+    "minio_source_url": "https://codeload.github.com/minio/minio/tar.gz/refs/tags/RELEASE.2025-04-22T22-12-26Z",
+    "minio_source_sha256": "1a63209927b9d1fb239b2a776b7b01d1902eff19379a108f4bc7005edcc0968c",
+    "restic_release": "https://github.com/restic/restic/releases/tag/v0.17.3",
+    "restic_archive_sha256": "5097faeda6aa13167aae6e36efdba636637f8741fed89bbf015678334632d4d3",
+    "minio_source_commit": "0d7408fc9969caf07de6a8c3a84f9fbb10a6739e",
+    "minio_toolchain": "go version go1.26.1 darwin/arm64",
+    "minio_target": "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 -trimpath -mod=readonly",
+    "minio_go_sum_sha256": "27b57eced706cc0cd34cb4a971560ba601002590b91d4fe24c67f0ced9732f7a",
+    "restic_archive_url": "https://github.com/restic/restic/releases/download/v0.17.3/restic_0.17.3_linux_amd64.bz2",
+    "restic_official_checksum_url": "https://github.com/restic/restic/releases/download/v0.17.3/SHA256SUMS",
+    "restic_official_checksum_file_sha256": "378bed59e38c0f122d1ea1702cf62c50944b22c114c19e944ec129f6431a876a",
+    "original_arm64_manifest_sha256": "3284e39c597585e2b6817c3842103d989f3a1500a94c6c6a8fadf1cb1863a105",
+    "official_tag_response_sha256": "398e74f599d9b68512e0fd758f2e8a5bbc2353a1f365eb05cee6811793592d5d"
+  },
+  "elf_machine": 62,
+  "elf_class_bits": 64,
+  "statically_linked": true,
+  "minio_dependency_module_verification_passed": true,
+  "minio_dependency_module_verification_sha256": "b4537ed75f533f993f371954de47e42a793b8e5b0587577de7e27fb3e50696bd",
+  "scope": "synthetic-only; separate amd64 artifact for local disposable operator fixture only",
+  "native_executed": false,
+  "native_version_execution_pending": true,
+  "production_restic_0181_substituted": false,
+  "actual_offhost_storage_accepted": false,
+  "actual_owner_custody_accepted": false,
+  "historical_evidence": "docs/acceptance/public-launch/recovery-synthetic-s3-strict-report.json",
+  "historical_failure_preserved": "Existing approved ELF arm64 input is incompatible with amd64 VPS; original MinIO binary archive HTTP410/source-build history remains unchanged",
+  "evidence": {
+    "location": "operator-private: synthetic-native-amd64/20261005-a",
+    "preparation_sha256": "cc0d54caba4b24a79664c0692673fd6d4ef2e38cda54f03c4073b72f4b74e017"
+  },
+  "remaining_native_criteria": [
+    "On exact VPS owned controller verify restic version reports0.17.3/linuxamd64 and MinIO --version reports expected original source build/Go1.26.1/linuxamd64",
+    "Run complete disposable synthetic scheduled-check interruption callback and independent cleanup on retained reviewed source"
+  ],
+  "independent_artifact_review": {
+    "reviewer": "review_controls",
+    "source_provenance_review_passed": true,
+    "verified_properties": [
+      "Actual ELF64 machine62 and no PT_INTERP for both binaries",
+      "Private owned0700 singlelink executables and600manifest",
+      "Exact restic archive checksum against retained official SHA256SUMS and byte-exact decompression",
+      "Exact MinIO approved archive/tag-object/source commit/go.sum and unchanged extracted source",
+      "Actual Go build metadata Go1.26.1 CGO0 Linuxamd64 trimpath; dependency verification record hash",
+      "Exact private preparation receipt hash matches sanitized outcome"
+    ],
+    "native_executed": false,
+    "runtime_version_and_full_callback_pending": true
+  }
+}

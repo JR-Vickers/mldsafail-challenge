@@ -53,3 +53,157 @@ Run the prepared fixtures with `python -m research.cpu_measurement.native_suite 
 The suite includes 30 empty/child repetitions and tampering/exit/malformed/timeout
 fixtures. Counter/membership failures have local tests. Native fixture results
 remain pending.
+
+## Isolated engineering checkpoint (not adoption)
+
+The prototype now uses a separate private on-disk ownership directory (never the
+cgroup filesystem). A durable generation journals mutation intent and fences
+replacement work after interruption; a flock serializes journal access, rather
+than serving as the durable owner. Complete records are atomically published and
+file/directory-synced before release. `audit.py` independently checks their digest,
+generation, environment binding, counters, verifier disposition and cleanup.
+The native runner requires `--ownership-directory`; the private host supervisor
+also requires explicit `--socket` and isolated `--epoch` arguments.
+The directory must equal `canonical_directory(parent)` under the supervisor
+owner’s user-state directory; alternate per-parent journals are rejected. Its socket
+accepts same-UID peers and fixed reviewed fixture names only. It is experimental
+host tooling and grants no arbitrary participant execution endpoint.
+
+Streaming stdout/stderr stays within per-stream caps, cleanup failures are retained
+independently, and paired gates reject duplicate/incomplete pairs, nonfinite data,
+inconsistent provenance, unfinished ownership and overlapping execution. Parent
+identity and unauthorized populated sibling/direct membership are checked during
+capture. **These observations do not prove continuous accounting exclusivity by
+themselves.** Native deployment must demonstrate exclusive trusted delegation,
+worker-inaccessible controls, and absence of other authorized host writers.
+A private socket is not a hostile same-UID security boundary.
+
+Still required before freeze: independent supervisor/auditor review; native
+explicit interruption reconciliation and independently retryable cleanup acceptance; native
+counter/delegation/contamination/concurrent-owner/cleanup faults; descendant
+membership/counter proofs; and the unchanged 30-pair idle-host gate. No native
+result or completed findings 2–8 is claimed by the local engineering checkpoint.
+
+`reconcile` provides explicit fenced cleanup: it preserves the interrupted
+journal, independently retries owned container removal and domain termination,
+proves domain emptiness/counter monotonicity, and durably records every cleanup
+attempt. A cleanup receipt never supplies a measurement or score. Completed
+measurement generations retain independent ownership manifests and source
+artifacts; audit can address each generation after later runs. The independent
+case-cost helper accepts exactly three unique, identically bound/input invocations,
+rejects infrastructure evidence errors, marks invalid candidates ineligible and
+penalizes the whole case for any ordinary failure.
+
+## Dedicated native setup and retained execution protocol
+
+Use an exclusively controlled trusted Linux service account/rootless Docker
+daemon and a dedicated experimental accounting parent. An existing trusted host
+UID is permitted when every host writer is trusted and conflicting operator jobs
+are serialized; this is a recorded host trust assumption, not protection against
+a hostile same-UID host process. The supervisor, daemon credentials and writable
+cgroup controls belong solely to that trusted UID; workers receive neither
+credentials nor controls. Restrict other same-UID operator jobs during the gate. An administrator must delegate
+CPU, memory and PID controls to the service, then provision an **empty accounting
+child** beneath its delegated subtree. Keep supervisor/daemon processes outside
+that accounting child. Record the actual host path, Docker cgroup-parent mapping,
+owner/mode, `cgroup.type`, controllers, parent device/inode and systemd/Docker
+configuration privately. Never reuse the frozen staging accounting parent.
+The actual mapping is a native acceptance prerequisite; unit-file parsing or
+Docker Desktop cannot establish it.
+
+Determine the mandatory journal location without starting workers:
+
+```sh
+python -c 'from pathlib import Path; from research.cpu_measurement.ownership import canonical_directory; import sys; print(canonical_directory(Path(sys.argv[1])))' /sys/fs/cgroup/ACTUAL_DELEGATED_ACCOUNTING_CHILD
+```
+
+Use the exact retained immutable reviewed worker image and source commit. Run the
+native fault tool on this isolated parent, reconcile each unfinished generation,
+then run `native_suite --image sha256:... --parent ... --cgroup-parent ...
+--ownership-directory CANONICAL_DIRECTORY --output NEW_PRIVATE_DIRECTORY` once
+under the predeclared idle-host protocol. Do not retry an unchanged failed
+performance gate to select a favorable result. `native_fault_suite` executes
+native workers while injecting missing/regressing reads, membership mismatch,
+cleanup failure and competing ownership at trusted interfaces. It also probes real sibling contamination, delegation rejection, private-socket
+response loss, supervisor SIGKILL fencing/cleanup and host-observed grandchild
+lineage/CPU lower bounds. Native execution of every probe is pending.
+A partial fault result must never be described as contract acceptance.
+
+For an interrupted generation, use `reconcile --ownership-directory ... --parent
+...` before further work. Reconciliation inspects generation label, immutable
+image and configured cgroup-parent identity before container removal. Domain
+termination requires an explained authorized member tree; unexplained members
+keep the generation fenced for independent operator investigation. Cleanup
+attempts and the original interruption remain private retained records. A daemon
+outage, missing identity or altered accounting parent never permits blind removal
+or a replacement measurement.
+
+### Gated Docker client birth and interrupted reconciliation
+
+Native accounting now additionally requires the explicit trusted environment
+`MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT` identifying a separate delegated native
+cgroup-v2 domain. It must have exclusive owner write permissions and be outside
+(and not an ancestor of) the measured worker parent. Each Docker-run CLI gets a
+fresh inode-bound operator child domain. Durable domain intent and identity
+precede spawn; the Python bootstrap waits on an EOF-safe private pipe until its
+PID/start ticks/UID/boot/bootstrap and expected exec identities plus membership
+have been durably acknowledged. Only then can Docker-run execute. Operator
+client CPU is excluded from worker accounting.
+
+Reconciliation kills/proves every durable operator-client domain empty before
+inventorying worker containers. A client cleanup failure keeps the generation
+fenced and retains an immutable failed cleanup receipt; it cannot establish a
+worker-empty proof while a late creator might remain. The supervisor binding
+includes the imported `deploy/owned_client.py` bytes. Native fault acceptance
+includes real owner SIGKILL while stopped after the pre-release durable bootstrap
+acknowledgement, followed by fencing and independently retryable domain cleanup.
+This revised source needs new independent review and native acceptance; earlier
+d9 review/native identities do not establish these gates.
+
+Independent review identified a further unresolved daemon mutation gate: an
+already submitted Docker daemon create/start request may outlive its terminated
+CLI domain. Creator-domain emptiness alone does not prove that a delayed daemon
+request cannot create or start a worker after inventory. The new birth probe
+covers pre-release death; after-input death has an acknowledged worker. Neither
+substitutes for interruption during daemon create/start. Full native fault and
+public-safe accounting acceptance remain incomplete until an explicit daemon
+mutation fence (including terminal container-removal semantics), independent
+review and mid-request native fault evidence establish no late owned work.
+
+### Dedicated daemon and acknowledged mutation protocol (implementation pending native proof)
+
+The successor separates `docker create`, `docker start ID` and read-only
+`docker attach --sig-proxy=false ID`. A separately owned guardian durably
+publishes bounded CLI acknowledgement evidence for both mutating operations
+before the next phase. The worker starts with open stdin; native acceptance must
+prove it remains blocked until the later attachment and public-input delivery.
+An unacknowledged released operation is uncertain even when inventory is empty.
+
+`deploy/owned_daemon.py` requires a private explicit manifest and newly
+provisioned disjoint roots. Registration binds the dedicated unit fragment,
+rootlesskit state, private Unix endpoint, data/exec roots, daemon executable
+SHA256, server version/build, boot/PID/start/UID identities and kernel domains.
+Its default container parent is the exact separately owned systemd worker slice.
+The shared staging `docker.service` is ineligible. No timer enables this service.
+
+For an uncertain RPC, the reconciler first positively stops the exact dedicated
+daemon epoch and kills/proves its entire registered worker parent empty,
+including unacknowledged late workers. Only after that proof may it cancel
+mutation guardians, restart the dedicated service, refresh the epoch manifest
+and reconcile retained container intents. Failed/replaced identities preserve
+fences and immutable failure receipts. These source/configuration tests do not
+establish native daemon shutdown, rootless stdin, mutation-loss or measurement
+acceptance. Installed Docker 29.8.1 source could not be matched to an upstream
+tag during investigation; no older locking behavior waives this barrier.
+
+Native lost-RPC acceptance now has separately retained create and start probes
+(`native_loss.py`). A bounded diagnostic proxy forwards a real request and
+retains an actual successful Docker response before withholding acknowledgement
+and SIGKILLing the gated owner. The probe then requires the durable owner fence,
+exact dedicated daemon/entire-worker-parent shutdown, independently cancelled
+clients, and refreshed daemon epoch. The fault CLI must declare a supported
+`--api-version`; its shim affects only the selected mutating Docker command,
+never registration reads or ordinary measurements. These are mandatory native
+fault-suite cases; their source and local socket tests do not establish native
+acceptance. After-start-before-attach stdin behavior remains a separate native
+compatibility observation and must not be inferred from a source test.

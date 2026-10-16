@@ -1,0 +1,11 @@
+{
+  "source_commit": "9703f2eeacc5efb7387332c8090863dbe44d0283",
+  "passed": false,
+  "failure": "Native cgroup child inherited group write permission; helper rejected it before spawning the command.",
+  "cleanup_complete": true,
+  "controller_absent": true,
+  "old_parent_absent": true,
+  "client_spawned": false,
+  "private_evidence_reference": "protected native operator acceptance attempt 20261004, generation 1",
+  "next_action": "Restrict newly created owned child permissions before admission; review and rerun on corrected retained source."
+}

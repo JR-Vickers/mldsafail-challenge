@@ -130,15 +130,54 @@ def logout(args) -> int:
 def submit(args) -> int:
     config = _read_config(); server = _server(args)
     token = _load_token(server)
+    if args.benchmark_version == "0.6.0":
+        capabilities = _request("GET", server, "/api/v1/capabilities", token=token).json()
+        if (not isinstance(capabilities, dict)
+                or capabilities.get("schema") != "mldsafail.api-capabilities.v1"
+                or capabilities.get("explicit_version_selection") is not True
+                or not isinstance(capabilities.get("submission_versions"), list)
+                or "0.6.0" not in capabilities["submission_versions"]):
+            raise CliError("Server does not support explicit 0.6.0 submissions.")
     payload = {"repository_url": args.repo, "commit_sha": args.commit, "hypothesis": args.hypothesis,
                "notes": args.notes, "tags": args.tag or [], "benchmark_version": args.benchmark_version}
     if args.epoch_id:
         payload["epoch_id"] = args.epoch_id
-    if args.solver_path or args.benchmark_version == "0.5.0":
+    if args.solver_path or args.benchmark_version in {"0.5.0", "0.6.0"}:
         payload["solver_path"] = args.solver_path or "solver"
-    response = _request("POST", server, "/api/v1/submissions", token=token, json=payload,
-                        headers={"Idempotency-Key": args.idempotency_key or str(uuid.uuid4())})
-    item = response.json()["submission"]
+    request_key = args.idempotency_key or str(uuid.uuid4())
+    intent_path = None
+    if args.benchmark_version == "0.6.0":
+        directory = config_path().parent / "submission-intents"
+        if any(path.is_symlink() for path in (directory.absolute(), *directory.absolute().parents)):
+            raise CliError("Private submission intent paths cannot contain symlinks.")
+        directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+        info=directory.stat()
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
+            raise CliError("Private owner submission intent directory required.")
+        intent_path = directory / (uuid.uuid4().hex + ".json")
+        descriptor = os.open(intent_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(descriptor, "w") as stream:
+            json.dump(dict(schema="mldsafail.cli-submission-intent.v1", server=server,
+                           idempotency_key=request_key, request=payload), stream)
+            stream.flush(); os.fsync(stream.fileno())
+        descriptor = os.open(directory, os.O_RDONLY)
+        try: os.fsync(descriptor)
+        finally: os.close(descriptor)
+    try:
+        response = _request("POST", server, "/api/v1/submissions", token=token, json=payload,
+                            headers={"Idempotency-Key": request_key})
+        item = response.json()["submission"]
+        if args.benchmark_version == "0.6.0" and (not isinstance(item,dict)
+                or not isinstance(item.get('id'),str) or not item['id']
+                or item.get('state') not in {'queued','validating','running','accepted','rejected','infrastructure_failed','cancelled'}
+                or not isinstance(item.get('benchmark_version'),str)):
+            raise ValueError('Malformed versioned submission acknowledgement')
+    except (CliError, ValueError, KeyError, TypeError) as error:
+        if intent_path is None: raise
+        known_id=item.get("id", "unknown") if isinstance(locals().get("item"),dict) else "unknown"
+        raise CliError(f"Submission outcome is uncertain (acknowledged id {known_id}); reconcile key {request_key} using private intent {intent_path}: {error}") from error
+    if args.benchmark_version == "0.6.0" and item.get("benchmark_version") != "0.6.0":
+        raise CliError(f"Server acknowledged a different benchmark version for submission {item.get('id', 'unknown')}; reconcile key {request_key} using private intent {intent_path}.")
     print(f"{item['id']}  {item['state']}")
     return 0
 
@@ -173,6 +212,18 @@ def submission_action(args):
     return 0
 
 
+def _scaffold_commit(directory, message):
+    """Generated initial commit only; never writes participant Git settings."""
+    environment = dict(os.environ)
+    environment.update(GIT_AUTHOR_NAME='MLDSAFAIL Workspace',
+                       GIT_AUTHOR_EMAIL='workspace@mldsafail.invalid',
+                       GIT_COMMITTER_NAME='MLDSAFAIL Workspace',
+                       GIT_COMMITTER_EMAIL='workspace@mldsafail.invalid')
+    return subprocess_run(['git', '-C', str(directory), '-c', 'commit.gpgSign=false',
+                           '-c', 'core.hooksPath=/dev/null', 'commit', '-q', '-m', message],
+                          env=environment, check=True, capture_output=True)
+
+
 def clone_workspace(args) -> int:
     from pathlib import Path
 
@@ -183,7 +234,7 @@ def clone_workspace(args) -> int:
         subprocess_run(["git", "init", "-q", str(dir_path)], check=True)
     except Exception as exc:
         raise CliError(f"git init failed: {exc}") from exc
-    if args.benchmark_version == "0.5.0":
+    if args.benchmark_version in {"0.5.0", "0.6.0"}:
         from importlib.resources import files
         solver_dir = dir_path / "solver"
         solver_dir.mkdir(parents=True, exist_ok=True)
@@ -196,43 +247,24 @@ def clone_workspace(args) -> int:
         (dir_path / "README.md").write_text(
             "# MLWE benchmark 0.5.0 workspace (participant package 0.5.1)\n\n"
             "Edit only solver/*.py. Use the repository's docs/MLWE_PILOT.md public development procedure "
-            "for local evaluation; mldsafail run measures historical 0.4.0.\n"
+            "for local evaluation with mldsafail run.\n"
             "Publish this workspace to a public GitHub repository and commit your solver.\n"
             'mldsafail submit --server "$STAGING_SERVER" --repo https://github.com/OWNER/REPO '
             '--commit FULL_SHA --solver-path solver --hypothesis "..."\n'
             'mldsafail status ID --server "$STAGING_SERVER" --follow\n')
+        if args.benchmark_version == '0.6.0':
+            (dir_path / 'README.md').write_text(
+                '# Proposed MLWE 0.6.0 workspace (explicit selection)\n\n'
+                'Edit only solver/*.py; solve(public_instance) remains the public interface.\n'
+                'This workspace is preparatory: use only an adopted, audited 0.6.0 server/epoch.\n'
+                'Do not reuse 0.5.0 scores, reference costs or private evidence.\n'
+                'mldsafail submit --benchmark-version 0.6.0 --solver-path solver '
+                '--server URL --repo https://github.com/OWNER/REPO --commit FULL_SHA --hypothesis "..."\n')
         subprocess_run(["git", "-C", str(dir_path), "add", "."], check=True)
-        subprocess_run(["git", "-C", str(dir_path), "commit", "-q", "-m", "Scaffold MLWE 0.5.0 solver"], check=True)
+        _scaffold_commit(dir_path, f"Scaffold MLWE {args.benchmark_version} solver")
         print(f"Workspace created at {dir_path}; publish a full commit to public GitHub before submitting.")
         return 0
-    solver_dir = dir_path / "src" / "mldsafail" / "solver"
-    math_dir = dir_path / "src" / "mldsafail" / "math"
-    solver_dir.mkdir(parents=True, exist_ok=True)
-    math_dir.mkdir(parents=True, exist_ok=True)
-    solver_init = solver_dir / "__init__.py"
-    math_init = math_dir / "__init__.py"
-    solver_init.write_text(
-        '"""Participant solver workspace."""\n'
-        "from mldsafail.solver.lazy import solve\n"
-        '\n'
-        '__all__ = ["solve"]\n'
-    )
-    math_init.write_text('"""Participant math primitives workspace."""\n')
-    try:
-        subprocess_run(["git", "-C", str(dir_path), "add", "."], check=True)
-        subprocess_run(
-            ["git", "-C", str(dir_path), "commit", "-q", "-m", "feat: scaffold participant workspace"],
-            check=True, capture_output=True,
-        )
-    except Exception as exc:
-        raise CliError(f"git commit failed: {exc}") from exc
-    head = subprocess_run(
-        ["git", "-C", str(dir_path), "rev-parse", "HEAD"], check=True, capture_output=True, text=True
-    ).stdout.strip()
-    print(f"Workspace created at {dir_path}")
-    print(f"Commit {head}")
-    print(f"Submit with: mldsafail submit --benchmark-version 0.4.0 --server URL --repo https://github.com/OWNER/REPO --commit {head} --hypothesis \"...\"")
-    return 0
+    raise CliError("Historical 0.4.0 workspaces are unsupported; see docs/archive/LEGACY_V040.md.")
 
 
 def subprocess_run(*args, **kwargs):
@@ -254,7 +286,7 @@ def build_parser() -> argparse.ArgumentParser:
     submission = commands.add_parser("submit", help="submit an immutable public GitHub commit")
     submission.add_argument("--repo", required=True); submission.add_argument("--commit", required=True)
     submission.add_argument("--hypothesis", required=True); submission.add_argument("--notes", default="")
-    submission.add_argument("--tag", action="append"); submission.add_argument("--benchmark-version", default="0.5.0", choices=["0.4.0", "0.5.0"])
+    submission.add_argument("--tag", action="append"); submission.add_argument("--benchmark-version", default="0.5.0", choices=["0.5.0", "0.6.0"])
     submission.add_argument("--epoch-id", help="require this immutable MLWE epoch identity")
     submission.add_argument("--solver-path", help="repository-relative MLWE solver directory containing solver.py")
     submission.add_argument("--idempotency-key"); submission.add_argument("--server"); submission.set_defaults(handler=submit)
@@ -263,7 +295,7 @@ def build_parser() -> argparse.ArgumentParser:
     state.add_argument("--interval", type=float, default=2.0); state.add_argument("--server"); state.set_defaults(handler=status)
     clone = commands.add_parser("clone", help="create a participant workspace with a baseline solver")
     clone.add_argument("dir", nargs="?", default="mldsafail-workspace", help="workspace directory")
-    clone.add_argument("--benchmark-version", default="0.5.0", choices=["0.4.0", "0.5.0"])
+    clone.add_argument("--benchmark-version", default="0.5.0", choices=["0.5.0", "0.6.0"])
     clone.set_defaults(handler=clone_workspace)
     for name in ("logs", "cancel"):
         command = commands.add_parser(name)
@@ -277,8 +309,8 @@ def main(argv: list[str] | None = None) -> int:
     raw = list(sys.argv[1:] if argv is None else argv)
     # Benchmark options intentionally remain owned by the established runner.
     if raw and raw[0] == "run":
-        from mldsafail.benchmark.runner import main as benchmark_main
-        return benchmark_main(raw[1:])
+        from mldsafail.development import main as development_main
+        return development_main(["develop", *raw[1:]])
     args = build_parser().parse_args(raw)
     try:
         return args.handler(args)

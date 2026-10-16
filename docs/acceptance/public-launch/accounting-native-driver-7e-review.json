@@ -1,0 +1,29 @@
+{
+  "schema": "mldsafail.independent-native-driver-review.v1",
+  "source_commit": "7e213558458f50adcc94f42a2b8f129b14221ba9",
+  "source_sha256": {
+    "deploy/owned_daemon.py": "2b1b2c2a46f3928fb8c14a8a50c2006071839a455745de492ad255e61a2be28c",
+    "deploy/recovery_daemon.py": "04c67a4b09c30b75e840589f7282003d8d0804aeb8f236d36b871c630bb6b71c",
+    "research/cpu_measurement/native_driver.py": "5391b22e2eae7ef27cd205746be390aec71c008d16a4b86545865b63e7132226",
+    "research/cpu_measurement/templates/owned-daemon.service.in": "0323d490cdd695d83f356cfd6293d0a0bd0d52e64d63d9965990ced92ca1f7ea"
+  },
+  "verdict": "passed_source_review_native_pending",
+  "focused_tests": {
+    "helper_driver": 25,
+    "earlier_driver_helper_protocol": 31,
+    "exact_worktree_import_asserted": true
+  },
+  "closed_findings": [
+    "Terminal authority is explicitly durable and denied by ordinary verify/restart before unit control",
+    "Private full-operation provisioning lock covers registration/callback/cleanup",
+    "Trusted same-process callbacks source-bound to independent review packet",
+    "Positive exact daemon/entire worker barrier precedes uncertain creator cancellation",
+    "New terminal controller uses disjoint delegated parent and cannot resume old evaluation",
+    "Private manifest reader accepts exact historical schema or strict terminal boolean"
+  ],
+  "limits": [
+    "Native provisioning/fault/pair results are not claimed by source review",
+    "Trusted dedicated UID writer boundary remains mandatory",
+    "Postboot recovery must use fresh contexts and immutable snapshots; stale Docker roots/birth authority are not promoted"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schema": "mldsafail.recovery-source-verification.v1",
+  "source_commit": "71e390c86ea8c10a948fbcf612710a2385f36f3f",
+  "fault_receipt_publication_source_review_passed": true,
+  "real_check_observer_source_review_passed": true,
+  "native_acceptance_passed": false,
+  "make_check_passed_count": 854,
+  "make_check_skipped_count": 13,
+  "independent_focused_tests": {
+    "fault_receipts": 17,
+    "interruption_observer": 22
+  },
+  "reviewer": "independent review_controls agent",
+  "publication_scope": "Intermediate receipt provisional; final positive publication ambiguity triggers independent negative retry; original error and retry notes preserved",
+  "observer_scope": "Actually admitted fixed native restic check required; exact main process pidfd and post-acquisition birth/domain verification; bounded signal observer cleanup before positive publication",
+  "still_pending": "Synthetic repository/backend orchestration, actual native observer execution, two fresh activation reconciliation and independent whole cleanup"
+}

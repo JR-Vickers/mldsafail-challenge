@@ -13,7 +13,7 @@ def evaluate(readiness, services, leases, verified_backup, failed_jobs, now=None
         failures.add('service')
     if any(expiry < now for expiry in leases):
         failures.add('lease')
-    if verified_backup is None or (now - verified_backup).total_seconds() > 26 * 3600:
+    if verified_backup is None or verified_backup.tzinfo is None or not 0 <= (now - verified_backup).total_seconds() <= 26 * 3600:
         failures.add('backup')
     if failed_jobs:
         failures.add('scheduled_job')
@@ -80,12 +80,16 @@ with Session(engine) as session:
             failed_jobs.append(unit)
     verified_backup = None
     try:
-        backup = json.loads(Path(config['backup_state']).read_text())
-        if backup['restore_verified'] and backup.get('cleanup_complete', False) and backup['repository'] == config['repository']:
-            verified_backup = datetime.fromisoformat(backup['verified_at'])
+        from deploy.recovery import validate_verified_state
+        if not config.get('expected_epoch_id'):
+            raise ValueError('Monitoring requires exact expected epoch identity')
+        backup = validate_verified_state(config)
+        verified_backup = datetime.fromisoformat(backup['uploaded_at'])
     except Exception:
         pass
     failures = evaluate(readiness, services, leases, verified_backup, failed_jobs)
+    from deploy.healthchecks import notify
+    notify(config, 'service', not failures)
     if config.get('alert_enabled'):
         credential = private_file(config['alert_token_file']).read_text().strip()
         deliver(config['alert_url'], credential, Path(config['alert_state']), failures)

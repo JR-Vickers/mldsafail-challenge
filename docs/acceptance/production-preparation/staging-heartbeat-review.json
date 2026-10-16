@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "reviewer": "independent preparation agent",
+  "operator_source_commit": "860fd220a0a56cc188b4184fe8c33c6ae7f46b33",
+  "application_source_commit": "6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf",
+  "source_files_sha256": {
+    "scripts/hosted_vps_failure_driver.py": "6dc6d34534a3355a83400f9a7a231e9ff5ed872da48f8f8cc80be6b16c52037a",
+    "scripts/hosted_vps_failure_acceptance.py": "d13ac7b0a8f6f9cee84a531818fa001ea1b569b5f37b29f019abee5fbf9c5eec",
+    "scripts/hosted_vps_failure_probe.py": "a65d01f6b8e1d6696273b0fdb875e8d34f774b91a7a6c290d84eb96c61603875"
+  },
+  "source_review_passed": true,
+  "review_scope": "heartbeat lifetime/bounded stop, same-journal no-POST passed-scenario resumption, clean operator source provenance and durable prior-generation preservation",
+  "resolved_findings": [
+    "git operations bound to __file__ source root rather than caller cwd",
+    "bounded heartbeat join precedes cleanup attempt",
+    "prior report/failure bytes privately atomically/fsync retained including parentdirectory"
+  ],
+  "native_results_reported_by_primary_operator": {
+    "generation": 2,
+    "all_seven_scenarios_passed": true,
+    "quiescent_disposable_restore_passed": true,
+    "exact_b4d212d_rollback_and_6b_forward_passed": true,
+    "privacy_and_cleanup_passed": true,
+    "earlier_generation_failure_preserved": true
+  },
+  "native_results_independently_executed_by_this_reviewer": false,
+  "public_launch_approved": false
+}

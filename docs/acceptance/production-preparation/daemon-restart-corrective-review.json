@@ -1,0 +1,16 @@
+{
+  "schema": "mldsafail.source-review.v1",
+  "reviewed_sources": ["b60b6e805dba4ae6d9f81890832866b6117a781c", "020410c6c96a8b7b8608558453a99db3c05cf7cb", "fd72d097145717d9b2f0adf1e9499cd384c7d10f"],
+  "status": "passed_source_review",
+  "scope": "Durable exact-next-epoch restart after publication or response loss",
+  "observations": [
+    "Positive old-epoch barrier is retained before restart; retry does not kill a successfully published replacement epoch.",
+    "Durable restart intent identifies the next epoch before starting its service; existing replacement must match that epoch and bound contract and pass current native identity checks.",
+    "Restart rejects wrong schema, attempt, epoch, manifest fingerprint, nonempty errors or non-boolean positive proof."
+  ],
+  "consumer_checkpoint": "5196086",
+  "consumer_focused_tests_passed": 32,
+  "consumer_make_check": {"passed": 457, "skipped": 11, "historical_score": 3901},
+  "native_acceptance": false,
+  "remaining": ["independent_baseline_and_reproduction_consumer_review", "native_daemon_inflight_and_restart_fault_acceptance"]
+}

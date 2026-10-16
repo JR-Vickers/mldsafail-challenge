@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "reviewer": "independent preparation agent",
+  "source_commit_pending_clean_freeze": true,
+  "reviewed_files_sha256": {
+    "scripts/native_operator_unit.py": "cff60b52f4ee4c6df1d868ec8c1d8043f427d65aa728e81f22077fe719aaca28",
+    "deploy/owned_client.py": "7d63f7fae08f2c17bb382c7a6ab70e0e78415f9398ea515b96db097b6967d4e0"
+  },
+  "source_review_passed": true,
+  "scope": "trusted native command wrapper; no Docker lifecycle or daemon-quiescence claim",
+  "resolved_findings": [
+    "actual unit InvocationID Delegate KillMode ControlGroup MainPID compared before mutation",
+    "all unit/git preflight subprocesses bounded to30seconds",
+    "helper and trusted command digests included in private receipts"
+  ],
+  "verified_source_properties": [
+    "nonroot current namedservice kernel domain derives own delegation parent",
+    "exclusive private owner journal created before command mutations",
+    "shared native helper birth/cleanup/capture bound to exact source",
+    "each client domain stop and final receipt publication attempted independently",
+    "original command exception retained"
+  ],
+  "native_gate_pending": true,
+  "native_requirements": [
+    "exact clean source and matching reviewed hashes",
+    "native helper gate",
+    "terminal systemd service and kernelparent absence independently proven by primary caller"
+  ],
+  "public_launch_approved": false
+}

@@ -212,6 +212,9 @@ def create_app(
     app.config.from_mapping(load_config(config_name))
     if config:
         app.config.update(config)
+    if app.config['BENCHMARK_VERSION'] == '0.6.0':
+        from mldsafail.benchmark_versions import application_cohort
+        application_cohort(app.config)  # Gate default activation before initializing services.
     configured = results_path or os.environ.get("MLDSAFAIL_RESULTS_PATH") or DEFAULT_RESULTS
     app.config["RESULTS_PATH"] = Path(configured)
     app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(seconds=app.config.pop("PERMANENT_SESSION_LIFETIME_SECONDS"))

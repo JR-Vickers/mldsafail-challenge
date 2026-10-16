@@ -109,4 +109,4 @@ def test_detail_methodology_and_escaping(tmp_path):
     assert b'<script>alert("owned")</script>' not in detail.data
     assert b"&lt;script&gt;" in detail.data
     assert client.get("/experiment/unknown").status_code == 404
-    assert b"never accepts external public keys" in client.get("/methodology").data
+    assert b"External keys, signatures" in client.get("/methodology").data

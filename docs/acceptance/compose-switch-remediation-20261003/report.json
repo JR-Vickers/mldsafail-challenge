@@ -1,0 +1,81 @@
+{
+  "activation": {
+    "live_deployment_retried": false,
+    "live_services_changed": false,
+    "live_staging_application": "exact b4d212da3109b7716eb41553986848e377fb5b3d",
+    "production_public_or_timer_changes": false,
+    "pushed": false
+  },
+  "earlier_failed_probe": {
+    "disposable_cleanup_verified": true,
+    "failed_evidence_preserved": true,
+    "live_services_changed": false,
+    "reason": "Compose start restarted the dummy migration during cleanup"
+  },
+  "evidence": "Raw commands, failure logs, migration markers and native journals remain private on VPS. This report exports sanitized outcomes only.",
+  "fixes": [
+    "Reset web/coordinator dependencies explicitly for image switches and restoration",
+    "Use supported up --no-start --no-deps to prepare a stopped coordinator",
+    "Use Compose only to look up existing application IDs; start/stop those containers directly through Docker during cleanup and backup restart"
+  ],
+  "images": {
+    "coordinator": "sha256:5131f41e16407f81d1fa41ba3de2bd127651cfce87b74d2852babdc093b60ea2",
+    "web": "sha256:2289b8f00ef297bf37a24ef267f4d931a4389815ab07185a2de8a0defbb6bbca",
+    "worker": "sha256:6aaf71aa16e36631dec607f0726fb1e8d6f94954ce55a15a74ba4989777b5cfe"
+  },
+  "native": {
+    "cleanup_verified": true,
+    "compose_version": "Docker Compose version v5.5.1",
+    "dependency_restarts": 0,
+    "failure_restoration_and_repeated_cleanup": true,
+    "live_services_changed": false,
+    "migration_invocations": 1,
+    "passed": true,
+    "project": "mldsafail-switch-drill-acbb4a7c6c81",
+    "release_commit": "fd4be66575ae6dbef9785321a79a687f418df0b8",
+    "rollback_commit": "b4d212da3109b7716eb41553986848e377fb5b3d",
+    "switches": [
+      {
+        "coordinator_stopped": true,
+        "direction": "forward",
+        "exact_application_images": true,
+        "migration_and_db_unchanged": true
+      },
+      {
+        "coordinator_stopped": true,
+        "direction": "rollback",
+        "exact_application_images": true,
+        "migration_and_db_unchanged": true
+      },
+      {
+        "coordinator_stopped": true,
+        "direction": "forward_again",
+        "exact_application_images": true,
+        "migration_and_db_unchanged": true
+      }
+    ]
+  },
+  "remaining": [
+    "Use only the fresh source-bound release for the next live staging attempt",
+    "Compatible live deployment, expired-token UI check, all seven native failure scenarios, and quiescent application-only rollback/forward acceptance remain pending"
+  ],
+  "remediation_passed": true,
+  "scope": [
+    "disposable native deployment/rollback/forward and cleanup verification",
+    "build and durable retention of a fresh compatible acceptance release"
+  ],
+  "source_commit": "fd4be66575ae6dbef9785321a79a687f418df0b8",
+  "status": "pass for deployment-remediation prerequisites; full staging acceptance remains pending",
+  "verification": {
+    "all_native_extracted_source_bytes_verified_against_manifest": true,
+    "benchmark_fingerprints_locks_configuration_and_worker_match_rollback": true,
+    "focused_tests": "56 passed",
+    "frozen_source_files_byte_identical_to_b4d212d": true,
+    "host_operator_environment": "Python 3.12.10 with unchanged frozen dependency lock",
+    "make_check": "320 passed, 8 native pytest tests skipped; historical smoke score 3901",
+    "packaged_coordinator_contains_corrected_runner": true,
+    "packaged_evaluator_files_exactly_match_frozen_source": true,
+    "retained_copies_independently_verified": true,
+    "source_archives_images_wheel_manifests_checksums_retained_locally_and_on_vps": true
+  }
+}

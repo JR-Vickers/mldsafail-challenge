@@ -1,3 +1,4 @@
+from deploy.recovery_daemon import locked_config_operation
 """Durable recovery ownership and independently retryable cleanup."""
 import hashlib
 import json
@@ -32,6 +33,28 @@ def atomic_json(path, value):
         os.fsync(stream.fileno())
     temporary.replace(path)
     sync_directory(path.parent)
+
+
+def restore_service(identifier, running, runner=None):
+    """Restore an existing container without Compose dependency activation."""
+    if not identifier or len(identifier.split()) != 1:
+        raise ValueError('Expected exactly one existing service container')
+    runner = runner or subprocess.run
+    runner(['docker', 'container', 'start' if running else 'stop', identifier],
+           check=True, capture_output=True, timeout=60)
+    deadline = time.monotonic() + 60
+    while True:
+        if runner is subprocess.run:
+            output = subprocess.check_output(['docker', 'inspect', '--format', '{{json .State}}', identifier], text=True, timeout=30)
+        else:
+            output = runner(['docker', 'inspect', '--format', '{{json .State}}', identifier],
+                            text=True, capture_output=True, timeout=30).stdout
+        state = json.loads(output)
+        if state['Running'] == running and (not running or state.get('Health', {}).get('Status', 'healthy') == 'healthy'):
+            return
+        if time.monotonic() >= deadline:
+            raise RuntimeError('Service health/state mismatch')
+        time.sleep(1)
 
 
 class Journal:
@@ -70,50 +93,185 @@ class Journal:
     def save(self, phase):
         self.data['phase'] = phase
         atomic_json(self.path, self.data)
+        from deploy.recovery_terminal import journal_published
+        journal_published(self.path)
 
-    def services(self, compose, states):
-        self.data.update(compose=compose, services=states, cleanup_complete=False)
+    def services(self, compose, states, identifiers, daemon_manifest_path=None):
+        if set(identifiers) != set(states):
+            raise ValueError('Service identity inventory mismatch')
+        self.data.update(compose=compose, services=states, service_identifiers=identifiers,
+                         cleanup_complete=False, service_daemon_context=None, service_environment={key: os.environ.get(key) for key in (
+                             'DOCKER_HOST', 'DOCKER_CONTEXT', 'MLDSAFAIL_OPERATOR_DAEMON_MANIFEST', 'MLDSAFAIL_CPU_DAEMON_MANIFEST')})
+        if daemon_manifest_path:
+            from deploy.recovery_daemon import bind
+            self.data['service_daemon_context'] = bind(self.data, daemon_manifest_path)
         self.save('service maintenance intent')
 
-    def container(self, name, image):
-        self.data['containers'].append(dict(name=name, image=image, label=name))
+    def container(self, name, image, daemon_manifest_path=None):
+        context = None
+        if daemon_manifest_path:
+            from deploy.recovery_daemon import bind
+            context = bind(self.data, daemon_manifest_path)
+        self.data['containers'].append(dict(name=name, image=image, label=name, daemon_context=context))
         self.data['cleanup_complete'] = False
         self.save('container creation intent')
 
+    def command(self, argv, **kwargs):
+        from deploy.owned_client import run
+        from deploy.recovery_daemon import bind, scope
+        from contextlib import nullcontext
+        selected = kwargs.pop('daemon_manifest_path', None)
+        context = bind(self.data, selected) if selected else None
+        self.data['cleanup_complete'] = False
+        mutation = None
+        if (Path(argv[0]).name == 'docker' and any(token in {
+                'create', 'run', 'up', 'start', 'stop', 'restart', 'kill', 'rm',
+                'down', 'pause', 'unpause', 'update'} for token in argv[1:])):
+            import uuid
+            mutation = {'id': uuid.uuid4().hex, 'acknowledged': False, 'daemon_context': context,
+                        'argv_sha256': hashlib.sha256(json.dumps(argv).encode()).hexdigest()}
+            self.data.setdefault('daemon_mutations', []).append(mutation)
+            self.save('daemon mutation intent')
+        start_index = len(self.data.setdefault('clients', []))
+        def publish():
+            for entry in self.data['clients'][start_index:]:
+                entry['daemon_context'] = context
+            self.save('owned host client')
+        with scope(selected) if selected else nullcontext():
+            if selected and kwargs.get('env') is not None:
+                environment = dict(kwargs['env'])
+                for key in ('DOCKER_HOST', 'DOCKER_CONTEXT', 'MLDSAFAIL_OPERATOR_DAEMON_MANIFEST', 'MLDSAFAIL_CPU_DAEMON_MANIFEST'):
+                    value = os.environ.get(key)
+                    if value is None: environment.pop(key, None)
+                    else: environment[key] = value
+                kwargs['env'] = environment
+            result = run(argv, self.data['clients'], publish, self.path.parent, **kwargs)
+        if mutation is not None and result.returncode == 0:
+            mutation['acknowledged'] = True
+            self.save('daemon mutation acknowledged')
+        return result
+
     def cleanup(self):
+        from deploy.recovery_daemon import repair, shared_scope, cleanup_entries, scope
         errors = []
+        try:
+            errors.extend(str(item) for item in repair(self.data, self.path.parent, lambda: self.save('daemon epoch repaired')))
+        except BaseException as error:
+            errors.append('daemon_repair:' + type(error).__name__)
+        for field in ('clients', 'containers', 'daemon_mutations'):
+            cleanup_entries(self.data, field, errors)
+        if self.data.get('corrupt_fields'):
+            errors.append('retained_corrupt_authority')
+        from deploy.owned_client import stop
+        for entry in self.data.get('clients', []):
+            try:
+                stop(entry)
+                entry['finished'] = True
+            except Exception:
+                errors.append('host_client:' + str(entry.get('id', 'invalid') if isinstance(entry, dict) else 'invalid'))
         for container in self.data['containers']:
             try:
-                result = subprocess.run(['docker', 'container', 'ls', '-aq', '--no-trunc',
+                if container.get('retired_by_terminal_barrier') is True:
+                    from deploy.recovery_terminal import validate_retirement
+                    validate_retirement(self.data,container['daemon_context'])
+                    continue  # Exact stopped daemon/worker proof; no old backend restart.
+                if self.data.get('terminal_no_restart') is True and container.get('daemon_context'):
+                    raise RuntimeError('Unproved terminal owned container remains fenced')
+                selected = None
+                if container.get('daemon_context'):
+                    selected = self.data['daemon_contexts'][container['daemon_context']]['manifest_path']
+                def container_command(argv, **kwargs):
+                    return self.command(argv, daemon_manifest_path=selected, **kwargs)
+                result = container_command(['docker', 'container', 'ls', '-aq', '--no-trunc',
                                          '--filter', 'name=^/' + container['name'] + '$'],
                                         capture_output=True, text=True, check=True, timeout=30)
                 identifier = result.stdout.strip()
                 if not identifier:
                     continue
-                info = json.loads(subprocess.check_output(['docker', 'inspect', identifier], timeout=30))[0]
+                info = json.loads(container_command(['docker', 'inspect', identifier], capture_output=True, timeout=30).stdout)[0]
                 if (info['Name'] != '/' + container['name'] or container['image'] not in {info['Image'], info['Config'].get('Image')} or
                         info['Config']['Labels'].get('org.mldsafail.recovery') != container['label']):
                     raise ValueError('Container ownership mismatch')
-                subprocess.run(['docker', 'rm', '-f', identifier], check=True, capture_output=True, timeout=60)
+                container_command(['docker', 'rm', '-f', identifier], check=True, capture_output=True, timeout=60)
             except Exception:
-                errors.append('container:' + container['name'])
-        for role, running in self.data['services'].items():
+                errors.append('container:' + str(container.get('name', 'invalid')))
+        services = self.data.get('services', {})
+        if not isinstance(services, dict):
+            errors.append('corrupt_service_authority')
+            services = {}
+        for role, running in services.items():
             try:
-                compose = self.data['compose']
-                subprocess.run(compose + ['start' if running else 'stop', role], check=True,
-                               capture_output=True, timeout=60)
-                identifier = subprocess.check_output(compose + ['ps', '-aq', role], text=True, timeout=30).strip()
-                deadline = time.monotonic() + 60
-                while True:
-                    state = json.loads(subprocess.check_output(['docker', 'inspect', '--format', '{{json .State}}', identifier], text=True, timeout=30))
-                    if state['Running'] == running and (not running or state.get('Health', {}).get('Status', 'healthy') == 'healthy'):
-                        break
-                    if time.monotonic() >= deadline:
-                        raise RuntimeError('Service health/state mismatch')
-                    time.sleep(1)
+                selected = None
+                if self.data.get('service_daemon_context'):
+                    if self.data.get('terminal_no_restart') is True:
+                        from deploy.recovery_terminal import validate_retirement
+                        validate_retirement(self.data,self.data['service_daemon_context'])
+                        continue  # Retired disposable services have no live state to restore.
+                    selected = self.data['daemon_contexts'][self.data['service_daemon_context']]['manifest_path']
+                def service_command(argv, **kwargs):
+                    return self.command(argv, daemon_manifest_path=selected, **kwargs)
+                with scope(selected) if selected else shared_scope(self.data.get('service_environment', {})):
+                    identifiers = self.data.setdefault('service_identifiers', {})
+                    if role not in identifiers:
+                        # Persist identities for interrupted pre-upgrade journals first.
+                        identifier = service_command(self.data['compose'] + ['ps', '-aq', role],
+                                                  capture_output=True, text=True, timeout=30).stdout.strip()
+                        if not identifier or len(identifier.split()) != 1:
+                            raise ValueError('Expected exactly one existing service container')
+                        identifiers[role] = identifier
+                        self.save('service identity reconciliation')
+                    restore_service(identifiers[role], running, runner=service_command)
             except Exception:
                 errors.append('service:' + role)
+        if any(item.get('acknowledged') is not True and not item.get('resolved_by_barrier') for item in self.data.get('daemon_mutations', [])):
+            errors.append('daemon_mutation_uncertainty:positive_dedicated_daemon_barrier_required')
+        import uuid
+        receipt_name = uuid.uuid4().hex + '-cleanup.json'
+        try:
+            atomic_json(self.path.parent / receipt_name, {'schema': 'mldsafail.recovery-cleanup.v1',
+                'configuration': self.identity, 'run_id': self.data.get('run_id'),
+                'cleanup_complete': not errors, 'errors': list(errors)})
+            self.data['latest_cleanup_receipt'] = receipt_name
+        except Exception as error:
+            errors.append('cleanup_receipt_publication:' + type(error).__name__)
         self.data.update(cleanup_errors=errors, cleanup_complete=not errors)
         self.save('cleanup')
         if errors:
             raise RuntimeError('Recovery cleanup incomplete')
+
+
+@locked_config_operation
+def standalone_operation(config, parent, role, action, cleanup_only=False):
+    """Durable serial ownership for manual operator entry points."""
+    import fcntl
+    import stat
+    parent = safe_path(parent)
+    directory = safe_path(parent / ('.mldsafail-' + role + '-operation'))
+    directory.mkdir(mode=0o700, exist_ok=True)
+    info = directory.stat()
+    if info.st_uid != os.getuid() or info.st_mode & 0o077:
+        raise ValueError('Private owned operator journal directory required')
+    sync_directory(parent)
+    descriptor = os.open(directory / 'lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    try:
+        info = os.fstat(descriptor)
+        if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
+            raise ValueError('Private owned operator lock required')
+        fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        operation = Journal(directory / 'operation.json', config)
+        if not operation.data['cleanup_complete']:
+            operation.cleanup()
+        if cleanup_only:
+            return {'cleanup_complete': True}
+        try:
+            result = action(operation)
+        except BaseException as original:
+            try:
+                operation.cleanup()
+            except BaseException as error:
+                original.add_note('Independent operator cleanup failed: ' + type(error).__name__)
+            raise
+        operation.cleanup()
+        return result
+    finally:
+        os.close(descriptor)

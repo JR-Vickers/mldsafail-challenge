@@ -1,0 +1,54 @@
+{
+  "adoption_gates_passed": false,
+  "author": "Independent delegated reviewer /root/profile_review",
+  "command_clients_no_surviving_exact_birth": 17,
+  "driver_and_operator_evidence_hashes_match_live": true,
+  "driver_cleanup_complete": true,
+  "historical_generations_checked": 41,
+  "historical_journals_unchanged_and_domains_sockets_absent": true,
+  "interpretation": [
+    "Both fixed empty solver invocations emitted candidate null and completed; explanatory probe and independent cleanup inspection passed.",
+    "Control 809675us and profile 634739us cgroup deltas are diagnostic totals with different import/cache/instrumentation states. They are not evidence of speedup or an acceptance result.",
+    "Instrumented imports preload shared worker dependencies through pstats before cProfile begins. cProfile run_module 0.081s and worker.main 0.003s are elapsed profiler function times under prewarmed imports, not uninstrumented worker CPU.",
+    "PROFILE_CPU_SECONDS 0.471495355 includes instrumentation imports after timer start and excludes interpreter startup. Importtime values report elapsed import times.",
+    "Thirteen source_to_code calls and 0.028s compile time motivate investigating source compilation/import overhead; this probe does not establish the exact control CPU breakdown."
+  ],
+  "measurement_acceptance_passed": false,
+  "operator_cleanup_complete": true,
+  "operator_controller_exact_birth_absent": true,
+  "passed": true,
+  "positive_daemon_worker_shutdown_barrier": true,
+  "private_evidence_refs": [
+    "results/worker-profile/20261016/independent-postflight-private.json",
+    "results/worker-profile/20261016/independent-protected-container-status-private.txt",
+    "results/worker-profile/20261016/driver.json",
+    "results/worker-profile/20261016/operator.json",
+    "results/worker-profile/20261016/worker-profile/report.json"
+  ],
+  "protected_running_container_ids_and_images_unchanged": 4,
+  "read_only_native_inspection": true,
+  "recorded_domains_absent": 107,
+  "report_and_stream_hashes_verified": true,
+  "results": [
+    {
+      "cpu_usec": 809675,
+      "mode": "control",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "af6c7fb881a23139f78554fd9fa58f3e162cd5aa23ee4448386f20d5d6f89a70",
+      "wall_seconds": 2.6871352000162005
+    },
+    {
+      "cpu_usec": 634739,
+      "mode": "profile",
+      "stderr_sha256": "501a842f60f80a5537bf446fe46fb3a03fc3cf9840793def8a88ce77d5480b27",
+      "stdout_sha256": "af6c7fb881a23139f78554fd9fa58f3e162cd5aa23ee4448386f20d5d6f89a70",
+      "wall_seconds": 1.8317769230343401
+    }
+  ],
+  "schema": "mldsafail.worker-profile-postflight.v1",
+  "socket_absent": true,
+  "source_commit": "2fe0c2c178a3d6d169618aee6d51099d2ca93a88",
+  "systemd_jobs_empty": true,
+  "unrelated_historical_stopped_containers": 3,
+  "unrelated_resource_observation": "Three additional stopped containers on the protected daemon were created September 30 / October 1 and exited at least 12 days earlier. They were preserved; this receipt verifies cleanup of the new disposable probe, not removal of historical artifacts."
+}

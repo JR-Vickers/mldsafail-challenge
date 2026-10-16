@@ -1,0 +1,21 @@
+{
+  "schema": "mldsafail.independent-source-review.v1",
+  "reviewer": "recovery",
+  "source_commit": "2564a72c7f1c6ef5fd74e4ee079f90aead774ce1",
+  "source_review_passed": true,
+  "native_gate_passed": false,
+  "scope": "docs-only decision packet; no owner approval or native execution",
+  "files_sha256": {
+    "docs/MEASUREMENT_ADOPTION_PACKET.md": "303b47fcaee1e96b2a9f49e3de3ffce05e5a1abaa721e35ff64b3a6a94f05000",
+    "docs/acceptance/v060-contract-decision/decision.json": "b1aee16281db570e87930c8d8724812168addf1d2252727105144e0accc7b908"
+  },
+  "checks": [
+    "MD and JSON reviewed",
+    "MD hash matches companion JSON",
+    "seven score policy source hashes match exact b042 source",
+    "all prospective evidence slots unaccepted",
+    "historical G failed gate metrics retained",
+    "empty-worker CV diagnostic only",
+    "separate owner decisions remain unset"
+  ]
+}

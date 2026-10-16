@@ -1,0 +1,24 @@
+{
+  "schema": "mldsafail.cpu-native-review.v1",
+  "status": "source_review_passed",
+  "reviewer": "preparation agent; independent supervisor and native protocol followup",
+  "source_commit": "c4b03d40619f066d7e97b6b7974b98b08cc67da7",
+  "supervisor_source_sha256": "a3393269d29369418fc9a21e6c369c8c68b5213b40bf5cc138bf77df17088382",
+  "driver_sha256": "14f5807a3a417a2cca0352b031efc851134792461e6c3465184dc8ec3937569a",
+  "owned_daemon_sha256": "a994ee75e543880d9defdd59c83ab54385e36106200effeedf766490c5dbe591",
+  "supervisor_review_passed": true,
+  "native_protocol_review_passed": true,
+  "auditor_review": "Separate actual independent auditor receipt required in combined private packet.",
+  "scope": [
+    "Successful bounded systemctl zero-job query may return whitespace-only output; unsuccessful queries and malformed nonempty JSON still fence startup cleanup.",
+    "Terminal cleanup rereads the exact retained predecessor under the provision lease and rejects changed state.",
+    "An immutable UUID-named predecessor archive is published before changing controller metadata or controlling any owned resource; failed archive publication blocks mutation."
+  ],
+  "verification": {"focused_tests_passed": 60, "interpreter": "exact accounting worktree Python and package imports"},
+  "native_executed_by_reviewer": false,
+  "native_accounting_gate": "pending",
+  "prior_native_failures": "Preserved; this source repair supplies no successful measurement outcome.",
+  "activation_approved": false,
+  "contract_adoption_approved": false,
+  "evidence_refs": ["docs/acceptance/production-preparation/native-terminal-followup-source-review.json"]
+}

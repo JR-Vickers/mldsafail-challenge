@@ -1,0 +1,9 @@
+[Unit]
+Description=Check short-lived IP certificate renewal four times daily
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=6h
+RandomizedDelaySec=30min
+Persistent=true
+[Install]
+WantedBy=timers.target
