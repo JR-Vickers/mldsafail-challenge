@@ -47,7 +47,7 @@ def test_disposable_rehearsal_rejects_staging_and_mutable_images(tmp_path):
         validate(value)
 
 
-def test_rehearsal_cleanup_never_removes_ownership_mismatch_and_retries_independently(tmp_path, monkeypatch):
+def test_rehearsal_cleanup_fences_docker_after_missing_daemon_authority(tmp_path, monkeypatch):
     (tmp_path / 'journal.json').write_text(json.dumps({'run_id': 'owned', 'cleanup_complete': False}))
     calls = []
     def command(argv, **_):
@@ -66,8 +66,7 @@ def test_rehearsal_cleanup_never_removes_ownership_mismatch_and_retries_independ
     monkeypatch.setattr('scripts.baseline_production_rehearsal.command', command)
     assert cleanup(tmp_path, {}) is False
     assert ['docker', 'rm', '-f', 'container-id'] not in calls
-    assert ['docker', 'volume', 'rm', 'volume-id'] in calls
-    assert ['docker', 'network', 'rm', 'network-id'] in calls
+    assert not any('docker' in call for call in calls)
     assert json.loads((tmp_path / 'journal.json').read_text())['cleanup_complete'] is False
 
 
@@ -92,7 +91,8 @@ def test_rehearsal_lock_fences_concurrent_cleanup(tmp_path, monkeypatch):
 
 
 def test_cleanup_final_inventory_rejects_late_container_creation(tmp_path, monkeypatch):
-    (tmp_path / 'journal.json').write_text(json.dumps({'run_id': 'owned', 'cleanup_complete': False}))
+    (tmp_path / 'journal.json').write_text(json.dumps({'run_id': 'owned', 'cleanup_complete': False,
+        'dedicated_daemon': {}, 'daemon_reconciliation': {'attempt': 'op', 'receipt': {'shutdown_proven': True}}}))
     scans = 0
     def command(argv, **_):
         nonlocal scans
@@ -101,10 +101,24 @@ def test_cleanup_final_inventory_rejects_late_container_creation(tmp_path, monke
             return b'late-owned-container\n' if scans == 3 else b''
         return b''
     monkeypatch.setattr('scripts.baseline_production_rehearsal.command', command)
+    monkeypatch.setenv('MLDSAFAIL_OPERATOR_DAEMON_MANIFEST', '/tmp/manifest')
+    monkeypatch.setattr('scripts.baseline_production_rehearsal.operator_daemon_lifecycle.owned_daemon.restart_and_refresh', lambda *a, **k: {})
     assert cleanup(tmp_path, {}) is False
     report = json.loads((tmp_path / 'journal.json').read_text())
     assert report['cleanup_phase'] == 'incomplete'
     assert report['final_inventory']['container'] == ['late-owned-container']
+
+
+def test_cleanup_negative_daemon_barrier_preserves_attempt_and_avoids_docker(tmp_path, monkeypatch):
+    journal = {'run_id': 'owned', 'cleanup_complete': False, 'dedicated_daemon': {}}
+    (tmp_path / 'journal.json').write_text(json.dumps(journal))
+    monkeypatch.setattr('scripts.baseline_production_rehearsal.operator_daemon_lifecycle.owned_daemon.shutdown_barrier',
+                        lambda *a, **k: {'shutdown_proven': False})
+    monkeypatch.setattr('scripts.baseline_production_rehearsal.command', lambda *_a, **_k: pytest.fail('Docker cleanup crossed failed barrier'))
+    assert cleanup(tmp_path, {}) is False
+    receipt = json.loads((tmp_path / 'journal.json').read_text())
+    assert receipt['daemon_reconciliation']['attempt'].startswith('operator-')
+    assert receipt['cleanup_phase'] == 'incomplete'
 
 
 def test_protected_roots_and_readiness_timeout_are_enforced(tmp_path, monkeypatch):
@@ -142,6 +156,7 @@ def test_cleanup_does_not_require_source_or_release_manifests(tmp_path):
 def test_cleanup_continues_after_corrupt_clients_and_journal_publication_failure(tmp_path, monkeypatch):
     (tmp_path / 'journal.json').write_text(json.dumps({'run_id': 'owned', 'cleanup_complete': False}))
     (tmp_path / 'clients.json').write_text('{truncated')
+    # Malformed creator authority must fence all Docker mutation and inventory.
     calls = []
     def command(argv, **kwargs):
         calls.append(argv)
@@ -154,9 +169,9 @@ def test_cleanup_continues_after_corrupt_clients_and_journal_publication_failure
     monkeypatch.setattr('scripts.baseline_production_rehearsal.atomic_json', refuse)
     errors = []
     assert cleanup(tmp_path, {}, errors_out=errors) is False
-    assert len(calls) == 7  # all four phases and all three final inventories
+    assert calls == []
     assert any(error['step'] == 'receipt_load' for error in errors)
-    assert sum(error.get('kind') == 'journal' for error in errors) == 5
+    assert sum(error.get('kind') == 'journal' for error in errors) >= 1
 
 
 def test_failed_preservation_publication_still_calls_cleanup_and_preserves_original(tmp_path, monkeypatch):
@@ -195,5 +210,5 @@ def test_empty_inventory_cannot_clear_unacknowledged_daemon_mutation(tmp_path, m
     monkeypatch.setattr('scripts.baseline_production_rehearsal.command', lambda *_args, **_kwargs: b'')
     assert cleanup(tmp_path, {}) is False
     receipt = json.loads((tmp_path / 'journal.json').read_text())
-    assert receipt['final_inventory'] == {'container': [], 'volume': [], 'network': []}
+    assert 'final_inventory' not in receipt
     assert receipt['cleanup_errors'][0]['step'] == 'daemon_barrier'

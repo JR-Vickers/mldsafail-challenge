@@ -145,9 +145,17 @@ def cleanup(root, env, journal=None, errors_out=None):
             errors.append({'kind': 'owned_client', 'step': 'receipt_load', 'error_type': type(error).__name__})
             continue
         all_clients.extend(clients)
-    errors.extend(operator_daemon_lifecycle.settle(journal, all_clients, root,
+    authority_errors = bool(errors)
+    barrier_errors = operator_daemon_lifecycle.settle(journal, all_clients, root,
                   lambda: atomic_json(root / 'journal.json', journal),
-                  permit_restart=not any(error.get('kind') == 'owned_client' for error in errors)))
+                  permit_restart=not any(error.get('kind') == 'owned_client' for error in errors))
+    errors.extend(barrier_errors)
+    if barrier_errors or authority_errors:
+        journal.update(cleanup_complete=False, cleanup_errors=errors, cleanup_phase='incomplete')
+        publish('daemon_barrier_incomplete')
+        if errors_out is not None:
+            errors_out[:] = errors
+        return False
     # A damaged earlier client receipt cannot block independent gated cleanup.
     env = {**env, 'MLDSAFAIL_OWNED_CLIENT_RECEIPT': 'cleanup-clients-' + uuid.uuid4().hex + '.json'}
     mutations_path = root / 'daemon-mutations.json'
@@ -454,10 +462,16 @@ with Session(create_engine(os.environ['MLDSAFAIL_DATABASE_URL'])) as session:
         if not board['leaderboard']:
             raise RuntimeError('Audited disposable leaderboard result absent')
         audit_code = ('import json,os,sys;sys.path.insert(0,"/opt/mldsafail"); from pathlib import Path; '
-                      'from deploy.verify_recovery_evidence import verify; '
-                      'print(json.dumps(verify(os.environ["MLDSAFAIL_DATABASE_URL"], '
-                      'Path(os.environ["MLDSAFAIL_MLWE_EPOCH_PATH"]), '
-                      'Path(os.environ["MLDSAFAIL_EVALUATOR_WORK_ROOT"])/"runs")))')
+                      'from sqlalchemy import create_engine,select; from sqlalchemy.orm import Session; '
+                      'from mldsafail.web.models import ExperimentResult,EvaluationJob; '
+                      'from deploy.verify_recovery_evidence import verify; db=os.environ["MLDSAFAIL_DATABASE_URL"]; '
+                      'epoch=Path(os.environ["MLDSAFAIL_MLWE_EPOCH_PATH"]); '
+                      'audit=verify(db,epoch,Path(os.environ["MLDSAFAIL_EVALUATOR_WORK_ROOT"])/"runs"); '
+                      'engine=create_engine(db); rows=[]; session=Session(engine)\n'
+                      'for result in session.scalars(select(ExperimentResult).order_by(ExperimentResult.submission_id)):\n'
+                      ' job=session.scalar(select(EvaluationJob).where(EvaluationJob.submission_id==result.submission_id)); '
+                      ' rows.append({"result_id":result.id,"submission_id":result.submission_id,"score":result.score,"mlwe_score":result.mlwe_score,"epoch_id":result.epoch_id,"verified":result.verified,"source_digest":result.source_digest,"benchmark_version":result.benchmark_version,"evaluator_fingerprint":result.evaluator_fingerprint,"hidden_suite_version":result.hidden_suite_version,"worker_class":result.worker_class,"diagnostics":result.diagnostics,"attempts":job.attempts if job else None}); '
+                      '\nsession.close(); engine.dispose(); audit["accepted_results"]=rows; print(json.dumps(audit,sort_keys=True,allow_nan=False))')
         audited = json.loads(command(compose + ['exec', '-T', 'coordinator', '/app/.venv/bin/python', '-c', audit_code], env=env, timeout=600))
         if not audited['database_evidence_verified'] or audited['result_count'] != 1 or audited['epoch_id'] != epoch['id']:
             raise RuntimeError('Independent disposable result/evidence audit failed')
@@ -472,7 +486,22 @@ with Session(create_engine(os.environ['MLDSAFAIL_DATABASE_URL'])) as session:
                 '--exclude-table-data=audit_events', 'mldsafail'], env=env)
             return hashlib.sha256(b'\n'.join(line for line in data.splitlines() if not line.startswith((b'\\restrict ', b'\\unrestrict ')))).hexdigest()
         before_digest = database_digest()
-        epoch_digest = hashlib.sha256((evaluator / 'epoch/COMPLETE.json').read_bytes()).hexdigest()
+        # Pin complete sealed and accepted-result state through both application switches.
+        def evidence_identity():
+            output = command(compose + ['exec', '-T', 'coordinator', '/app/.venv/bin/python', '-c', audit_code], env=env, timeout=600)
+            return json.loads(output)
+        baseline_evidence = audited
+        epoch_inventory = lambda: sorted((path.relative_to(evaluator / 'epoch').as_posix(),
+            hashlib.sha256(path.read_bytes()).hexdigest()) for path in (evaluator / 'epoch').rglob('*') if path.is_file())
+        before_epoch_inventory = epoch_inventory()
+        epoch_audit_code = ('from pathlib import Path; from mldsafail.benchmark_v050.evidence import audit_epoch; '
+                            'manifest,reference=audit_epoch(Path(' + repr(str(evaluator / 'epoch')) + ')); '
+                            'print(manifest["id"])')
+        def audit_sealed_epoch():
+            result = command(owned_python + [epoch_audit_code], env=env, timeout=600).decode().strip()
+            if result != epoch['id']:
+                raise RuntimeError('Sealed epoch audit identity changed')
+        audit_sealed_epoch()
         for direction, web_image, coordinator_image in [('rollback', images['rollback_web'], images['rollback_coordinator']), ('forward', images['web'], images['coordinator'])]:
             generated['services']['web']['image'] = web_image
             generated['services']['coordinator']['image'] = coordinator_image
@@ -488,11 +517,17 @@ with Session(create_engine(os.environ['MLDSAFAIL_DATABASE_URL'])) as session:
                     if time.monotonic() >= deadline:
                         raise RuntimeError('Disposable application switch readiness failed')
                     time.sleep(1)
+            switch_evidence = evidence_identity()
+            assert switch_evidence == baseline_evidence
+            assert epoch_inventory() == before_epoch_inventory
+            audit_sealed_epoch()
             command(compose + ['stop', 'coordinator', 'web'], env=env)
             assert database_digest() == before_digest
-            assert hashlib.sha256((evaluator / 'epoch/COMPLETE.json').read_bytes()).hexdigest() == epoch_digest
+            assert epoch_inventory() == before_epoch_inventory
             assert json.loads(command(['docker', 'image', 'inspect', images['worker']], env=env))[0]['Id'] == images['worker']
-            stage(direction + '_application_only_no_migration', {'database_digest': before_digest, 'epoch_digest': epoch_digest,
+            stage(direction + '_application_only_no_migration', {'database_digest': before_digest,
+                    'epoch_inventory_sha256': hashlib.sha256(json.dumps(before_epoch_inventory, separators=(',', ':')).encode()).hexdigest(),
+                    'accepted_evidence_identity': baseline_evidence,
                     'auth_mutable_rows_excluded': ['rate_limit_states', 'api_tokens', 'audit_events'],
                     'same_token_still_authenticated': True})
         report['behavior_gates_passed'] = True

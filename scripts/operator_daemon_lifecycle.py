@@ -29,7 +29,7 @@ def bind(journal, publish):
 
 
 def settle(journal, clients, root, publish, *, permit_restart=True):
-    """Fail closed; independent creator stops still run after barrier failure."""
+    """Require a durable whole-daemon barrier before stopping creators or restarting."""
     errors = []
     manifest = journal.get('dedicated_daemon')
     pending = journal.get('daemon_reconciliation')
@@ -39,6 +39,8 @@ def settle(journal, clients, root, publish, *, permit_restart=True):
         if manifest is None:
             raise RuntimeError('Durable dedicated daemon binding missing')
         if receipt is None:
+            journal['daemon_reconciliation'] = {'attempt': attempt, 'receipt': None}
+            publish()
             receipt = owned_daemon.shutdown_barrier(manifest, evidence_directory=Path(root), attempt_id=attempt)
         if receipt['shutdown_proven'] is not True:
             raise RuntimeError('Dedicated daemon shutdown remains unproved')
@@ -46,6 +48,13 @@ def settle(journal, clients, root, publish, *, permit_restart=True):
         publish()  # Positive barrier must survive loss after restart publication.
     except Exception as error:
         errors.append({'step': 'daemon_barrier', 'error_type': type(error).__name__})
+        journal['daemon_reconciliation'] = {'attempt': attempt, 'receipt': receipt,
+                                            'error_type': type(error).__name__}
+        try:
+            publish()
+        except Exception as publication_error:
+            errors.append({'step': 'daemon_barrier_publication', 'error_type': type(publication_error).__name__})
+        return errors
     for entry in clients:
         try:
             owned_client.stop(entry)

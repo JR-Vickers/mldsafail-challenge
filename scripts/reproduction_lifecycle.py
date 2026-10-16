@@ -194,6 +194,16 @@ class ReproductionRun:
                 errors.append('ClientReceipt:' + type(error).__name__)
         errors.extend(operator_daemon_lifecycle.settle(self.journal, clients, self.root, self.save,
                       permit_restart=not any(isinstance(error, str) and error.startswith('ClientReceipt:') for error in errors)))
+        if errors:
+            remaining = ['unreconciled_daemon_or_creator_authority']
+            self.journal.update(cleanup_complete=False, cleanup_errors=errors,
+                                remaining_owned_containers=remaining, cleanup_phase='incomplete')
+            publish()
+            try:
+                atomic_json(self.root / ('cleanup-failure-' + uuid.uuid4().hex + '.json'), self.journal)
+            except Exception:
+                pass
+            return False
         # Independent gated cleanup does not publish through the damaged run journal.
         self.cleanup_clients = []
         receipt_path = self.root / ('cleanup-clients-' + uuid.uuid4().hex + '.json')

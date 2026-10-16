@@ -220,7 +220,7 @@ owner decisions. Pilot usability observations cannot adopt a measurement contrac
 
 ## 21. Development plan
 
-1. Resolve the failed baseline cleanup/post-switch audit source gate and missing exact retained installation/reproduction prerequisites; see [current handoff](INTEGRATION_HANDOFF.md). Scoped startup, faults, bounded diagnostics, RPC loss and local encrypted recovery passed; combined acceptance remains incomplete.
+1. Local baseline cleanup ordering and full post-switch epoch/result audits are repaired and focused/full checks pass; independent review and exact retained compose/backup/recovery helper inspection remain gates before native rollback acceptance. Exact installation/reproduction prerequisites also remain unresolved; see [current handoff](INTEGRATION_HANDOFF.md). Scoped startup, faults, bounded diagnostics, RPC loss and local encrypted recovery passed; combined acceptance remains incomplete.
 2. Review a separately frozen corrective performance proposal; the single diagnostic completed and G/L failures remain unchanged.
 3. Produce passing exact-source measurement/reference/hosted proof before asking
    for contract adoption, followed separately by any default activation decision.

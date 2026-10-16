@@ -71,10 +71,10 @@ def test_cleanup_retains_client_failure_even_when_container_inventory_empty(tmp_
     monkeypatch.setattr('scripts.reproduction_lifecycle.ReproductionRun.command', lambda *_args, **_kwargs: SimpleNamespace(stdout=b''))
     assert run.cleanup() is False
     assert any(item.get('step') == 'creator_stop' for item in run.journal['cleanup_errors'])
-    assert run.journal['remaining_owned_containers'] == []
+    assert run.journal['remaining_owned_containers'] == ['unreconciled_daemon_or_creator_authority']
 
 
-def test_reproduction_cleanup_publication_failure_does_not_skip_removal_or_final_inventory(tmp_path, monkeypatch):
+def test_reproduction_cleanup_publication_failure_fences_removal_and_inventory(tmp_path, monkeypatch):
     run = ReproductionRun(tmp_path, [])
     run.journal = {'dedicated_daemon': {'worker_cgroup_parent': 'owned.slice'}, 'run_id': 'a' * 32, 'clients': [], 'attempts': []}
     calls = []
@@ -88,9 +88,8 @@ def test_reproduction_cleanup_publication_failure_does_not_skip_removal_or_final
     monkeypatch.setattr('scripts.reproduction_lifecycle.ReproductionRun.command', command)
     monkeypatch.setattr(run, 'save', lambda: (_ for _ in ()).throw(OSError('publication failure')))
     assert run.cleanup() is False
-    assert ['docker', 'rm', '-f', 'owned-container'] in calls
-    assert calls[-1][:3] == ['docker', 'ps', '-aq']
-    assert run.journal['remaining_owned_containers'] == []
+    assert calls == []
+    assert run.journal['remaining_owned_containers'] == ['unreconciled_daemon_or_creator_authority']
     assert len(run.journal['cleanup_errors']) >= 2
 
 
@@ -100,7 +99,7 @@ def test_reproduction_empty_inventory_does_not_clear_unknown_daemon_mutation(tmp
     monkeypatch.setattr('scripts.reproduction_lifecycle.ReproductionRun.command', lambda *_args, **_kwargs: SimpleNamespace(stdout=b''))
     monkeypatch.setattr('scripts.operator_daemon_lifecycle.owned_daemon.shutdown_barrier', lambda *a, **kw: {'shutdown_proven': False})
     assert run.cleanup() is False
-    assert run.journal['remaining_owned_containers'] == []
+    assert run.journal['remaining_owned_containers'] == ['unreconciled_daemon_or_creator_authority']
     assert any(item.get('step') == 'daemon_barrier' for item in run.journal['cleanup_errors'])
 
 
@@ -131,4 +130,4 @@ def test_malformed_embedded_clients_still_barriers_but_never_restarts(tmp_path, 
     monkeypatch.setattr(run, 'command', lambda *a, **kw: SimpleNamespace(stdout=b''))
     assert run.cleanup() is False
     assert reached == ['barrier']
-    assert run.journal['remaining_owned_containers'] == []
+    assert run.journal['remaining_owned_containers'] == ['unreconciled_daemon_or_creator_authority']

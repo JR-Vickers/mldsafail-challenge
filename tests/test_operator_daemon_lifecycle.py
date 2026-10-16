@@ -14,27 +14,31 @@ def test_barrier_precedes_creator_stop_and_restart(monkeypatch, tmp_path):
     monkeypatch.setattr(module.owned_daemon, 'restart_and_refresh', lambda *a, **kw: events.append('restart') or {'epoch': 'new'})
     journal = {'dedicated_daemon': {'epoch': 'old'}}
     assert module.settle(journal, [{}], tmp_path, lambda: events.append('publish')) == []
-    assert events == ['barrier', 'publish', 'stop', 'restart', 'publish']
+    assert events == ['publish', 'barrier', 'publish', 'stop', 'restart', 'publish']
     assert journal['dedicated_daemon']['epoch'] == 'new'
 
 
-def test_failed_barrier_preserves_independent_stop_and_prohibits_restart(monkeypatch, tmp_path):
+def test_failed_barrier_prohibits_creator_stop_and_restart(monkeypatch, tmp_path):
     events = []
     monkeypatch.setattr(module.owned_daemon, 'shutdown_barrier', lambda *a, **kw: {'shutdown_proven': False})
     monkeypatch.setattr(module.owned_client, 'stop', lambda entry: events.append('stop'))
     monkeypatch.setattr(module.owned_daemon, 'restart_and_refresh', lambda *a, **kw: events.append('unsafe_restart'))
-    assert module.settle({'dedicated_daemon': {}}, [{}], tmp_path, lambda: None)
-    assert events == ['stop']
+    journal = {'dedicated_daemon': {}}
+    assert module.settle(journal, [{}], tmp_path, lambda: None)
+    assert events == []
+    assert journal['daemon_reconciliation']['attempt'].startswith('operator-')
 
 
-def test_barrier_publication_failure_still_stops_creators_without_restart(monkeypatch, tmp_path):
+def test_barrier_publication_failure_prohibits_creator_stop_and_restart(monkeypatch, tmp_path):
     events = []
     monkeypatch.setattr(module.owned_daemon, 'shutdown_barrier', lambda *a, **kw: {'shutdown_proven': True})
     monkeypatch.setattr(module.owned_client, 'stop', lambda entry: events.append('stop'))
     monkeypatch.setattr(module.owned_daemon, 'restart_and_refresh', lambda *a, **kw: events.append('unsafe_restart'))
-    errors = module.settle({'dedicated_daemon': {}}, [{}], tmp_path,
+    journal = {'dedicated_daemon': {}}
+    errors = module.settle(journal, [{}], tmp_path,
                           lambda: (_ for _ in ()).throw(OSError('publication')))
-    assert errors and events == ['stop']
+    assert errors and events == []
+    assert journal['daemon_reconciliation']['attempt'].startswith('operator-')
 
 
 def test_durable_pending_barrier_resumes_restart_without_killing_new_daemon(monkeypatch, tmp_path):

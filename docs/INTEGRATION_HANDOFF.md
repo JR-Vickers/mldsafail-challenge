@@ -57,10 +57,14 @@ separates these remaining outcomes:
   dependency inventory still unverified. Existing operator environments do not
   establish fresh installed import/dependency isolation.
 - Rollback rehearsal: [independent source audit](acceptance/integration/baseline-independent-audit.json)
-  withheld execution. Cleanup can cancel uncertain creators after a failed daemon
-  barrier, and post-switch checks do not re-audit full epoch/result contents.
-  Direct retained-source inspection also could not find the required compose file;
-  the original source archive remains available for future exact restoration and review.
+  withheld execution. The source repair now halts creator cancellation and all
+  downstream Docker cleanup unless whole-daemon shutdown is positively proven and
+  durably recorded; post-switch checks re-audit the sealed epoch inventory and
+  accepted result/evidence. Focused tests and `make check` are recorded with the
+  source checkpoint. Independent supervisor/auditor/protocol/callback reviews have
+  not yet matched that checkpoint. Exact retained compose, backup and transitive
+  recovery helpers were not found in bounded local inspection; no substitute was
+  used, so native execution remains withheld.
 - Full protected-set restoration, admitted-job interrupted/repeated activation,
   application failure matrix and two 300-second load phases: deferred with the
   fresh audited application fixture and source gate. The new disposable load
@@ -69,13 +73,13 @@ separates these remaining outcomes:
   Python registry-base archive/provenance not found in the declared inventory;
   inventoried MLWE workers cannot substitute for them.
 
-Before admitting rollback, freeze/review a separate repair that stops cleanup
-when a positive whole-daemon/worker barrier is unavailable, independently
-re-audits the complete sealed epoch and accepted evidence after each switch, and
-binds the exact retained compose/backup/recovery helper bytes. Then construct
-fresh reviewed application/recovery/load protocols. No failed epoch may be
-replaced automatically. Measurement correction remains a separate reviewed source
-checkpoint followed by the complete fault suite and at least 30 sequential pairs.
+Before admitting rollback, obtain independent reviews of the frozen source and
+exact dependency/configuration inventory, and recover/verify the exact historical
+compose/backup/recovery helper bytes. Native execution remains withheld until those
+gates pass. Then construct fresh reviewed application/recovery/load protocols. No
+failed epoch may be replaced automatically. Measurement correction remains a
+separate reviewed source checkpoint followed by the complete fault suite and at
+least 30 sequential pairs.
 
 ## Preservation and branch disposition
 
