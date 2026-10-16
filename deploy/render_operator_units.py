@@ -21,7 +21,14 @@ def literal_path(value):
     return path
 
 
-def render(source, interpreter, metadata, configuration, user, uid, output, *, monitor_only=False, docker_socket=None):
+def render(source, interpreter, metadata, configuration, user, uid, output, *, monitor_only=False, docker_socket=None, cgroup_root='/sys/fs/cgroup/system.slice', monitor_name='mldsafail-monitor', owner_unit=None):
+    cgroup_root = str(Path(cgroup_root))
+    if '..' in Path(cgroup_root).parts or not re.fullmatch(r'/sys/fs/cgroup/[A-Za-z0-9_.@/-]+', cgroup_root):
+        raise ValueError('Literal cgroup hierarchy required')
+    if not re.fullmatch(r'mldsafail-[a-z0-9-]+', monitor_name):
+        raise ValueError('Explicit literal monitor unit name required')
+    if owner_unit is not None and (not monitor_only or not re.fullmatch(r'mldsafail-launch-[a-z0-9-]+\.service', owner_unit)):
+        raise ValueError('Explicit owned rehearsal operator service required')
     if docker_socket is not None:
         docker_socket = str(literal_path(docker_socket))
     source, interpreter, output = map(literal_path, (source, interpreter, output))
@@ -45,6 +52,8 @@ def render(source, interpreter, metadata, configuration, user, uid, output, *, m
         if path.is_symlink() or hashlib.sha256(path.read_bytes()).hexdigest() != sources.get(relative):
             raise ValueError('Operator module does not match retained source metadata')
     selected = {name: value for name, value in SERVICES.items() if not monitor_only or value[1] == 'monitor'}
+    if monitor_only:
+        selected = {monitor_name + '.service': SERVICES['mldsafail-monitor.service']}
     if set(configuration) != {value[1] for value in selected.values()}:
         raise ValueError('Explicit private configuration paths required')
     configurations = {name: literal_path(path) for name, path in configuration.items()}
@@ -72,12 +81,14 @@ def render(source, interpreter, metadata, configuration, user, uid, output, *, m
     output.mkdir(mode=0o700, parents=True)
     checksums = {}
     for name, (module, config_name, timeout) in selected.items():
-        text = ('[Unit]\nDescription=Inactive reviewed MLDSAFAIL operator unit\n'
+        dependency = ('BindsTo=' + owner_unit + '\nAfter=' + owner_unit + '\n') if owner_unit else ''
+        text = ('[Unit]\nDescription=Inactive reviewed MLDSAFAIL operator unit\n' + dependency +
                 '[Service]\nType=oneshot\nDelegate=yes\nUser=' + user + '\nUMask=0077\n'
                 'WorkingDirectory=' + str(source) + '\n'
                 'Environment=DOCKER_HOST=unix://' + (docker_socket or '/run/user/' + str(uid) + '/docker.sock') + '\n'
                 'Environment=XDG_RUNTIME_DIR=/run/user/' + str(uid) + '\n'
-                'Environment=MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT=/sys/fs/cgroup/system.slice/%n\n'
+                'Environment=PYTHONDONTWRITEBYTECODE=1\n'
+                'Environment=MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT=' + cgroup_root + '/%n\n'
                 'ExecStart=' + str(interpreter) + ' -m ' + module +
                 (' check' if config_name == 'recovery' else '') + ' --config ' + str(configurations[config_name]) + '\n')
         if config_name == 'daily-recovery':
@@ -88,16 +99,18 @@ def render(source, interpreter, metadata, configuration, user, uid, output, *, m
         path.chmod(0o600)
         checksums[name] = hashlib.sha256(path.read_bytes()).hexdigest()
     if monitor_only:
-        timer = output / 'mldsafail-monitor.timer'
-        timer.write_text('[Unit]\nDescription=Check service health every five minutes\n[Timer]\nOnBootSec=2min\nOnUnitActiveSec=5min\n[Install]\nWantedBy=timers.target\n')
+        timer = output / (monitor_name + '.timer')
+        timer.write_text('[Unit]\nDescription=Check service health every five minutes\n' +
+                         (('BindsTo=' + owner_unit + '\nAfter=' + owner_unit + '\n') if owner_unit else '') + '[Timer]\nOnBootSec=2min\nOnUnitActiveSec=5min\n[Install]\nWantedBy=timers.target\n')
         timer.chmod(0o600)
         checksums[timer.name] = hashlib.sha256(timer.read_bytes()).hexdigest()
     report = dict(source_commit=metadata['source_commit'], source_directory=str(source),
                   interpreter=str(interpreter), interpreter_version=version, interpreter_sha256=hashlib.sha256(interpreter.read_bytes()).hexdigest(),
                   module_source_verified=True, configuration=config_status, unit_sha256=checksums,
                   installed=False, activated=False, native_systemd_verification_pending=True,
-                  repeat_activation_parent_binding='blocked_requires_persistent_delegated_parent_or_reviewed_per_activation_registration',
-                  operator_client_cgroup='per-unit delegated system.slice unit; separate from benchmark accounting parent')
+                  repeat_activation_parent_binding=('monitor_only_readonly_no_lifecycle_authority' if monitor_only else
+                    'blocked_requires_persistent_delegated_parent_or_reviewed_per_activation_registration'),
+                  operator_client_cgroup=cgroup_root + '/%n; separate from benchmark accounting parent')
     path = output / 'render-report.json'
     path.write_text(json.dumps(report, indent=2) + '\n')
     path.chmod(0o600)
@@ -115,10 +128,14 @@ if __name__ == '__main__':
     parser.add_argument('--output', required=True)
     parser.add_argument('--monitor-only', action='store_true')
     parser.add_argument('--docker-socket')
+    parser.add_argument('--cgroup-root', default='/sys/fs/cgroup/system.slice')
+    parser.add_argument('--monitor-name', default='mldsafail-monitor')
+    parser.add_argument('--owner-unit')
     args = parser.parse_args()
     try:
         result = render(args.source, args.interpreter, json.loads(args.metadata.read_text()),
-                        json.loads(args.configs.read_text()), args.user, args.uid, args.output, monitor_only=args.monitor_only, docker_socket=args.docker_socket)
+                        json.loads(args.configs.read_text()), args.user, args.uid, args.output, monitor_only=args.monitor_only, docker_socket=args.docker_socket, cgroup_root=args.cgroup_root,
+                        monitor_name=args.monitor_name, owner_unit=args.owner_unit)
         print(json.dumps({'operator_units_rendered': True, 'activated': False}))
     except Exception:
         print(json.dumps({'operator_units_render_failed': True}))

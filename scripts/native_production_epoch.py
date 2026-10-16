@@ -13,6 +13,12 @@ from deploy import owned_daemon
 from research.cpu_measurement import native_driver
 
 
+def require_host_floor():
+    from deploy.host_checks import evaluate
+    if evaluate(True, {"host": True}, [], None, [], scope="service"):
+        raise RuntimeError("Host disk/RAM floor or inspection failed before epoch creation")
+
+
 def callback(journal, config, data):
     protocol_path = journal.path.parent.parent / 'production-epoch-protocol.json'
     protocol = owned_daemon.read_private_json(protocol_path)
@@ -26,6 +32,7 @@ def callback(journal, config, data):
     for role in ('worker', 'coordinator'):
         if not re.fullmatch('sha256:[a-f0-9]{64}', protocol[role]) or protocol[role] not in data['loaded_images']:
             raise ValueError('Exact imported epoch controller and unchanged worker required')
+    require_host_floor()
     output = journal.path.parent / 'rehearsal-epoch'
     output.mkdir(mode=0o700)
     evidence = output / 'evaluator'

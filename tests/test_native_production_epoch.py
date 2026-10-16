@@ -8,6 +8,11 @@ from deploy import owned_daemon
 from scripts.native_production_epoch import callback
 
 
+@pytest.fixture(autouse=True)
+def host_floor(monkeypatch):
+    monkeypatch.setattr('scripts.native_production_epoch.require_host_floor', lambda: None)
+
+
 def setup(tmp_path):
     state = tmp_path / 'state'
     state.mkdir()

@@ -83,3 +83,20 @@ def test_monitor_socket_is_explicit_and_private(tmp_path):
     render(str(source), sys.executable, metadata, {'monitor': configs['monitor']},
            'mldsafail', 1001, str(output), monitor_only=True, docker_socket='/tmp/rehearsal/docker.sock')
     assert 'Environment=DOCKER_HOST=unix:///tmp/rehearsal/docker.sock' in (output / 'mldsafail-monitor.service').read_text()
+
+
+def test_rehearsal_monitor_name_owner_and_user_domain_are_bound(tmp_path):
+    source, metadata, configs = inputs(tmp_path)
+    output = tmp_path / 'units'
+    name = 'mldsafail-rehearsal-owned-monitor'
+    owner = 'mldsafail-launch-production-owned.service'
+    parent = '/sys/fs/cgroup/user.slice/user-1001.slice/user@1001.service/app.slice'
+    render(str(source), sys.executable, metadata, {'monitor': configs['monitor']}, 'mldsafail',
+           1001, str(output), monitor_only=True, docker_socket='/tmp/owned/docker.sock',
+           cgroup_root=parent, monitor_name=name, owner_unit=owner)
+    for suffix in ('.service', '.timer'):
+        text = (output / (name + suffix)).read_text()
+        assert 'BindsTo=' + owner in text and 'After=' + owner in text
+    service = (output / (name + '.service')).read_text()
+    assert 'Environment=MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT=' + parent + '/%n' in service
+    assert 'Environment=PYTHONDONTWRITEBYTECODE=1' in service
