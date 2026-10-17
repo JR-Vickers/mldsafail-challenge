@@ -12,7 +12,7 @@ No push or publication is authorized by this receipt.
 | Service-only monitoring | Implemented and locally tested; native delivery/rehearsal outcome pending below. |
 | Immutable releases and private configuration | Native images retained and independently checksum-verified; production cohort remains pending a future activation epoch. |
 | Fresh audited rehearsal epoch | Passed the single-attempt frozen viability workflow, sealing and separate audit; rehearsal-only. |
-| Disposable rehearsal and cleanup | Submission/audit, cohort filtering, rollback and forward repair passed; reachability lost during fault scenarios. Remaining phases and final cleanup unverified. |
+| Disposable rehearsal and cleanup | Submission/audit, cohort filtering, rollback and forward repair passed; retry orchestration deadline failed; independent terminal cleanup passed. Remaining phases not reached. |
 
 ## Frozen source and artifacts
 
@@ -94,18 +94,29 @@ passed independent database/result/evidence audit. All four cohort-filter dimens
 passed. Application rollback and forward repair passed with independent database,
 epoch, accepted-result and worker-identity checks after each switch.
 
-The last verified state was the cancellation fault scenario with 401 total
-application invocation records. After an owner interruption/resume, both root and
-independent reviewer SSH attempts timed out before connection. Current fault/load/
-notification outcomes and final daemon/worker/operator/client/socket cleanup are
-**unverified**. Do not infer completion from the declared runtime limit, start a
-new driver, replace the epoch or overwrite the retained journals. Reconcile exact
-current ownership and terminal evidence when connectivity returns. The source-bound
-nested terminal-cleanup entrypoint is available if reconciliation requires it.
+On 2026-10-17, restored SSH allowed independent terminal verification. Cancellation,
+recorded worker timeout followed by cancellation, invalid-answer, and crash fixture
+scenarios passed their declared assertions. These are scoped outcomes: the timeout
+scenario ends cancelled and crash fixture results can be accepted with the frozen
+penalty; neither label establishes full timeout exhaustion or crash rejection.
+Retry recovery exceeded its 1,200-second coordinator orchestration deadline.
+Exhaustion, stale-lease, load and notification phases were not reached.
 
-The permanent endpoint had not been connected at the last verified state. Its
-current activation state is unknown while SSH is unavailable. Owner delivery
-confirmation and end-of-rehearsal check pausing remain pending. No delivery or
-production acceptance is claimed. The 901-second missed-heartbeat gap, if reached,
-exceeds the local deadline but may not outlast backend polling; actual owner email
-confirmation remains required regardless of automated report completion.
+Independent cleanup passed: all 30 recorded domains, 32 PIDs and the daemon socket
+were absent; no user jobs remained; protected staging identities were unchanged.
+All seven imported image archive checksums matched. The failed PostgreSQL volume,
+epoch, configuration and failed/partial evidence remained retained. Monitoring
+never activated and no synthetic heartbeat was started.
+
+The owner explicitly authorized a new rehearsal epoch after orchestration repairs.
+The [corrected protocol](../../PRODUCTION_REHEARSAL.md) preserves all benchmark
+limits and scoring. Source review covers larger outer deadlines, sparse long-wait
+polling, bounded synthetic lifetimes, and a separate failed-native store-retirement
+path that first preserves offline PostgreSQL bytes. Native inspection/retirement
+and the new exact rehearsal packet still require their own source-bound reviews.
+The first epoch and failed A outcome remain immutable evidence, not replaced passes.
+
+Current resource floor is only just met (5,421,289,472 bytes free), so another
+native run is fenced until scoped evidence retention/cache retirement restores
+headroom. Backups, measurement, historical reproduction, real OAuth/trusted TLS,
+public launch and 0.6.0 adoption remain separate open gates.

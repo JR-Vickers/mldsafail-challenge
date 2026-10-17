@@ -111,8 +111,14 @@ def delete_tree(root, expected, *, special_entries=()):
     return inventory['entries']
 
 
-def terminal_proof(driver, operator):
-    if (driver.get('native_acceptance_passed') is not True
+def terminal_proof(driver, operator, *, failed_native=False):
+    if failed_native:
+        if (driver.get('state') != 'complete' or driver.get('native_acceptance_passed') is not False
+                or driver.get('cleanup', {}).get('cleanup_complete') is not True
+                or driver.get('cleanup', {}).get('daemon_barrier', {}).get('shutdown_proven') is not True
+                or operator.get('cleanup_complete') is not True or operator.get('complete') is not False):
+            raise ValueError('Exact negative native result and positive terminal cleanup required')
+    elif (driver.get('native_acceptance_passed') is not True
             or driver.get('cleanup', {}).get('cleanup_complete') is not True
             or operator.get('cleanup_complete') is not True or operator.get('complete') is not True):
         raise ValueError('Positive completed build/operator cleanup required')
@@ -162,17 +168,43 @@ def child(intent_path):
     action = intent.get('action', 'retire')
     if action not in {'inspect', 'retire'}:
         raise ValueError('Exact cache operation required')
+    volume_evidence = []
+    if intent.get('failed_native'):
+        from scripts import offline_volume_evidence
+        if (Path(offline_volume_evidence.__file__).resolve().parent != Path(__file__).resolve().parent
+                or digest(offline_volume_evidence.__file__) != intent['offline_helper_sha256']):
+            raise ValueError('Exact reviewed offline evidence helper required')
+        archive, verify = offline_volume_evidence.archive, offline_volume_evidence.verify
+        directory = root / 'volumes'
+        actual = set()
+        if directory.exists():
+            for candidate in directory.iterdir():
+                if candidate.is_symlink(): raise ValueError('Volume links forbidden')
+                if candidate.is_dir() and (candidate / '_data').exists(): actual.add(candidate.name)
+        if actual != set(intent['offline_volume_names']):
+            raise ValueError('Complete failed volume inventory changed')
+        for name in sorted(actual):
+            data = directory / name / '_data'
+            if action == 'inspect':
+                receipt = archive(data, Path(intent['volume_archives'][name]))
+            else:
+                entry = intent['volume_receipts'][name]
+                if digest(entry['path']) != entry['sha256']: raise ValueError('Offline volume receipt changed')
+                receipt = owned_daemon.read_private_json(entry['path'], cap=4*1024*1024)
+                verify(data, receipt)
+            volume_evidence.append(dict(name=name, archive=receipt['archive'], archive_sha256=receipt['archive_sha256']))
     inventory = inspect_tree(root, identity)
     count = (delete_tree(root, identity, special_entries=intent.get('special_entries', []))
              if action == 'retire' else 0)
     owned_daemon.publish(Path(intent_path).with_suffix('.complete.json'),
-                         dict(complete=True, action=action, inventory=inventory, removed_entries=count, mount_inspection=mounts,
+                         dict(complete=True, action=action, inventory=inventory, removed_entries=count, offline_volumes=volume_evidence, mount_inspection=mounts,
                               intent_sha256=digest(intent_path)))
 
 
 def retire(protocol_path):
     protocol = owned_daemon.read_private_json(protocol_path)
-    if protocol.get('schema') != 'mldsafail.build-cache-retirement.v1' or not protocol.get('builds'):
+    failed_native = protocol.get('schema') == 'mldsafail.failed-native-cache-retirement.v1'
+    if protocol.get('schema') not in {'mldsafail.build-cache-retirement.v1', 'mldsafail.failed-native-cache-retirement.v1'} or not protocol.get('builds'):
         raise ValueError('Explicit reviewed cache retirement protocol required')
     review = owned_daemon.read_private_json(protocol['review_packet'])
     if (review.get('schema') != 'mldsafail.build-cache-retirement-review.v1'
@@ -181,6 +213,12 @@ def retire(protocol_path):
             or review.get('source_commit') != protocol['source_commit']
             or review.get('helper_sha256') != protocol['helper_sha256']):
         raise ValueError('Exact independent cache retirement review required')
+    if failed_native:
+        helper = Path(__file__).with_name('offline_volume_evidence.py')
+        if (review.get('failed_native_retirement_review_passed') is not True
+                or review.get('offline_helper_sha256') != protocol.get('offline_helper_sha256')
+                or digest(helper) != protocol.get('offline_helper_sha256')):
+            raise ValueError('Separate exact failed-native preservation/retirement review required')
     repository = Path(__file__).resolve().parents[1]
     if subprocess.check_output(['git', '-C', str(repository), 'status', '--porcelain'], timeout=15):
         raise ValueError('Clean frozen retirement source required')
@@ -205,32 +243,54 @@ def retire(protocol_path):
             driver = owned_daemon.read_private_json(driver_path, cap=4*1024*1024)
             operator = owned_daemon.read_private_json(operator_path)
             with provision_lock(driver['provisioning']):
-                proof = terminal_proof(driver, operator)
+                proof = (terminal_proof(driver, operator, failed_native=True) if failed_native
+                         else terminal_proof(driver, operator))
                 root = owned_daemon._canonical(driver['provisioning']['roots']['root_dir']['path'])
+                if output == root or root in output.parents:
+                    raise ValueError('Retention output must remain outside retired stores')
                 expected = {key: driver['provisioning']['roots']['root_dir'][key] for key in ('device', 'inode', 'uid')}
                 if root_identity(root) != expected or root.parent != Path(driver['provisioning']['base']['path']):
                     raise ValueError('Registered cache identity changed')
-                report_path = Path(item['build_report'])
                 config_path = Path(item['driver_config'])
-                if digest(report_path) != item['build_report_sha256'] or digest(config_path) != item['driver_config_sha256']:
-                    raise ValueError('Build receipt/configuration identity changed')
-                built = owned_daemon.read_private_json(report_path, cap=4*1024*1024)
+                if digest(config_path) != item['driver_config_sha256']:
+                    raise ValueError('Configuration identity changed')
                 config = owned_daemon.read_private_json(config_path)
                 if config != driver['config']:
                     raise ValueError('Build configuration differs from execution journal')
-                if built.get('passed') is not True:
-                    raise ValueError('Passing archived build required before cache retirement')
                 retained = [dict(path=config['image_archive'], sha256=config['image_archive_sha256'])]
                 retained.extend(dict(path=value['archive'], sha256=value['archive_sha256']) for value in config.get('additional_images', []))
-                if set(driver['loaded_images']) != {config['image'], *[value['image'] for value in config.get('additional_images', [])]}:
-                    raise ValueError('Loaded image archive inventory differs')
-                for pair in built['pairs'].values():
-                    for image in pair['images'].values():
-                        if Path(image['archive']).name != image['archive']:
-                            raise ValueError('Archive basename required')
-                        retained.append(dict(path=str(report_path.parent / image['archive']), sha256=image['archive_sha256']))
-                retained.extend([dict(path=str(report_path), sha256=item['build_report_sha256']),
-                                 dict(path=str(config_path), sha256=item['driver_config_sha256']),
+                if not failed_native:
+                    report_path = Path(item['build_report'])
+                    if digest(report_path) != item['build_report_sha256']:
+                        raise ValueError('Build receipt identity changed')
+                    built = owned_daemon.read_private_json(report_path, cap=4*1024*1024)
+                    if built.get('passed') is not True:
+                        raise ValueError('Passing archived build required before cache retirement')
+                    if set(driver['loaded_images']) != {config['image'], *[value['image'] for value in config.get('additional_images', [])]}:
+                        raise ValueError('Loaded image archive inventory differs')
+                    for pair in built['pairs'].values():
+                        for image in pair['images'].values():
+                            if Path(image['archive']).name != image['archive']:
+                                raise ValueError('Archive basename required')
+                            retained.append(dict(path=str(report_path.parent / image['archive']), sha256=image['archive_sha256']))
+                    retained.append(dict(path=str(report_path), sha256=item['build_report_sha256']))
+                else:
+                    retained.extend(item['evidence'])
+                    if action == 'retire':
+                        for entry in item.get('volume_receipts', {}).values():
+                            receipt = owned_daemon.read_private_json(entry['path'], cap=4*1024*1024)
+                            retained.extend([dict(path=entry['path'], sha256=entry['sha256']),
+                                dict(path=receipt['archive'], sha256=receipt['archive_sha256'])])
+                    if 'application_report' in item:
+                        application_report = owned_daemon.read_private_json(item['application_report'], cap=4*1024*1024)
+                        if (application_report.get('complete') is not False or application_report.get('cleanup_complete') is not True
+                                or set(application_report['retained_failure_volumes']) != set(item['offline_volume_names'])):
+                            raise ValueError('Failed application volume preservation declaration differs')
+                        if item['application_report'] not in {entry['path'] for entry in item['evidence']}:
+                            raise ValueError('Failed application receipt must be retained')
+                    elif item['offline_volume_names']:
+                        raise ValueError('Volume retention requires the failed application report')
+                retained.extend([dict(path=str(config_path), sha256=item['driver_config_sha256']),
                                  dict(path=str(driver_path), sha256=item['driver_sha256']),
                                  dict(path=str(operator_path), sha256=item['operator_sha256'])])
                 inventories = []
@@ -249,6 +309,16 @@ def retire(protocol_path):
                     parent_user_namespace=os.readlink('/proc/self/ns/user'), terminal_proof=proof,
                     mount_inspection=mounts, retained_artifacts=inventories, permanently_retired=action == 'retire',
                     source_commit=protocol['source_commit'])
+                if failed_native:
+                    names = item['offline_volume_names']
+                    if (not isinstance(names, list) or len(set(names)) != len(names)
+                            or any(not isinstance(name, str) or not re.fullmatch(r'[a-zA-Z0-9_-]+', name) for name in names)):
+                        raise ValueError('Exact unique volume basenames required')
+                    receipts = item.get('volume_receipts', {})
+                    if action == 'retire' and set(receipts) != set(names):
+                        raise ValueError('Every failed volume requires reviewed retained evidence')
+                    intent.update(failed_native=True, offline_helper_sha256=protocol['offline_helper_sha256'], offline_volume_names=names, volume_receipts=receipts,
+                        volume_archives={name: str(output / ('cache-' + str(number) + '-volume-' + name + '.tar.gz')) for name in names})
                 intent_path = output / ('cache-' + str(number) + '.json')
                 owned_daemon.publish(intent_path, intent)
                 report['builds'].append(dict(intent=str(intent_path), complete=False)); publish()

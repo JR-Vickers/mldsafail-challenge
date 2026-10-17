@@ -30,3 +30,14 @@ def test_foreign_or_undelegated_service_cannot_release_command(tmp_path, monkeyp
     with pytest.raises(RuntimeError, match='Actual service/controller identity'):
         runner.execute(unit, journal, ['touch', str(tmp_path / 'mutation')], 30)
     assert not released and not journal.exists() and not (tmp_path / 'mutation').exists()
+
+
+def test_extended_budget_is_explicit_and_restricted_to_reviewed_rehearsal(tmp_path):
+    command = [runner.sys.executable, '-B', '-m', 'scripts.native_production_rehearsal', '--config', str(tmp_path / 'config.json')]
+    runner.validate_timeout(command, 21600, rehearsal_budget=True)
+    with pytest.raises(ValueError, match='Bounded'):
+        runner.validate_timeout(command, 21600)
+    with pytest.raises(ValueError, match='reviewed production'):
+        runner.validate_timeout(['sh', '-c', 'arbitrary'], 21600, rehearsal_budget=True)
+    with pytest.raises(ValueError, match='Bounded'):
+        runner.validate_timeout(command, 21601, rehearsal_budget=True)

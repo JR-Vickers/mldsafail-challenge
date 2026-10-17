@@ -22,6 +22,7 @@ import uuid
 from deploy.recovery_journal import atomic_json, safe_path
 from deploy import owned_client
 from scripts import operator_daemon_lifecycle
+from scripts.native_operator_unit import REHEARSAL_CREDENTIAL_SECONDS
 
 LABEL = 'org.mldsafail.disposable-rehearsal'
 ROLE = 'org.mldsafail.disposable-role'
@@ -301,7 +302,7 @@ def _execute_locked(config, cleanup_only=False):
         report['stages'].append({'stage': name, **(values or {})})
         atomic_json(root / 'report.json', report)
     stage('protocol', dict(fixture_commit=config['fixture_commit'], images=config['images'],
-                          evaluation_ceiling_seconds=1200, epoch_setup_ceiling_seconds=5400,
+                          evaluation_ceiling_seconds=2400, epoch_setup_ceiling_seconds=5400,
                           caller_source_commit=json.loads(Path(config['source_manifest']).read_text())['source_commit'],
                           orchestrator_source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                           operator_source_manifest_sha256=hashlib.sha256(Path(config['source_manifest']).read_bytes()).hexdigest(),
@@ -451,9 +452,10 @@ from mldsafail.web.models import User,utcnow
 from mldsafail.web.services import create_api_token
 with Session(create_engine(os.environ['MLDSAFAIL_DATABASE_URL'])) as session:
  user=User(display_name='synthetic-disposable-participant');session.add(user);session.commit()
- _,token=create_api_token(session,user,'disposable-rehearsal',expires_at=utcnow()+timedelta(hours=2))
+ _,token=create_api_token(session,user,'disposable-rehearsal',expires_at=utcnow()+timedelta(seconds=REHEARSAL_CREDENTIAL_SECONDS))
  print(json.dumps({'token':token}))
 '''
+        token_code = token_code.replace('REHEARSAL_CREDENTIAL_SECONDS', str(REHEARSAL_CREDENTIAL_SECONDS))
         token = json.loads(command(compose + ['exec', '-T', 'web', '/app/.venv/bin/python', '-c', token_code], env=env))['token']
         status, _ = request('/api/v1/me')
         assert status == 200
@@ -470,13 +472,13 @@ with Session(create_engine(os.environ['MLDSAFAIL_DATABASE_URL'])) as session:
             status, submitted = request('/api/v1/submissions', payload, key)
         identifier = submitted['submission']['id']
         atomic_json(root / 'submission-response.json', submitted)
-        deadline = time.monotonic() + 1200
+        deadline = time.monotonic() + 2400
         while True:
             _, state = request('/api/v1/submissions/' + identifier)
             if state['submission']['state'] in {'accepted', 'rejected', 'cancelled', 'infrastructure_failed'}:
                 break
             if time.monotonic() >= deadline:
-                raise RuntimeError('20-minute disposable evaluation ceiling exceeded')
+                raise RuntimeError('40-minute disposable evaluation ceiling exceeded')
             time.sleep(5)
         if state['submission']['state'] != 'accepted':
             raise RuntimeError('Disposable fixture was not accepted')

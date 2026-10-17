@@ -15,6 +15,7 @@ import uuid
 
 from deploy import owned_daemon
 from scripts import hosted_vps_failure_driver as historical
+from scripts.native_operator_unit import REHEARSAL_CREDENTIAL_SECONDS
 from scripts.production_rehearsal import command, LABEL, ROLE
 
 
@@ -80,7 +81,7 @@ class Exercises(historical.Driver):
         for target, options in host['Tmpfs'].items():
             argv += ['--tmpfs', target + ':' + options]
         argv += [template['Image']]
-        argv += ['-m', 'mldsafail.evaluator.coordinator', '--once'] if once else ['-c', 'import time;time.sleep(7200)']
+        argv += ['-m', 'mldsafail.evaluator.coordinator', '--once'] if once else ['-c', 'import time;time.sleep(' + str(REHEARSAL_CREDENTIAL_SECONDS) + ')' ]
         identifier = self.call(argv)
         self.j.setdefault('controllers', []).append(identifier)
         self.touch()
@@ -112,7 +113,20 @@ class Exercises(historical.Driver):
         self.probe('privacy', text=body)
         return json.loads(body)
 
-    def finish_process(self, identifier, seconds=1200):
+    def wait(self, predicate, seconds, allowed=None):
+        deadline = time.monotonic() + seconds
+        interval = 10 if seconds > 150 else 2
+        while True:
+            self.guard(allowed)
+            value = predicate()
+            if value:
+                return value
+            remaining = deadline - time.monotonic()
+            historical.require(remaining > 0, 'Acceptance deadline exceeded')
+            time.sleep(min(interval, remaining))
+
+    def finish_process(self, identifier, seconds=2400):
+        # Outer orchestration only: worker caps, leases and scoring stay frozen.
         self.wait(lambda: not self.inspect(self.process)['State']['Running'], seconds, identifier)
         info = self.inspect(self.process)
         self.probe('privacy', text=self.call(['docker', 'logs', self.process]))

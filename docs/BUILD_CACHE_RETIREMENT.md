@@ -46,3 +46,27 @@ and again immediately before removal. Reject duplicate, absolute or escaping
 paths, changed identities, new nodes, mounts, cross-device entries and unreadable
 traversal. Special entries are never opened; only the safe tree-removal routine
 may unlink individually reviewed entries. There is no automatic type-wide exception.
+
+## Failed native rehearsal stores
+
+`mldsafail.failed-native-cache-retirement.v1` is a separate reviewed branch. It
+requires explicit failed-native review, an exact offline-evidence helper digest,
+negative native/operator acceptance, positive complete cleanup and daemon barrier,
+and the same absent-birth/socket/unit checks. It does not relabel failures as
+passing builds. Retain every imported archive, exact configuration, failed
+application report and declared evidence outside the retired store.
+
+An inspect operation inventories all remaining Docker volume data directories and
+requires exact equality with the failed application's declared retained volumes.
+Inside the bounded original UID/GID namespace it writes exclusive private tar.gz
+archives outside the store and verifies every regular file's bytes, mode, UID/GID
+and size against both the archive and unchanged source inventory. It rejects links,
+special files and cross-filesystem traversal. This preserves offline synthetic
+PostgreSQL evidence; it does not prove a database restore, timestamp/xattr/ACL
+preservation, off-host backup or production recovery acceptance.
+
+A separately frozen retirement protocol binds every volume receipt and archive
+checksum. The mapped child re-verifies the complete source/archive inventories
+before removal; parent checks require private regular artifacts outside the store.
+Exact special-node inspection/allowlist review remains mandatory. Inspect never
+removes nodes. Keep the original failure, archive receipts and retirement markers.

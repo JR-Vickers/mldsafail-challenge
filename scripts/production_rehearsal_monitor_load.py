@@ -186,7 +186,7 @@ def monitor_and_load(*, root, source, compose, env, base, token, images, daemon,
                 raise RuntimeError('Declared load thresholds failed')
             if allowed:
                 runner.wait(lambda: runner.probe('state', submission=allowed)['state'] in
-                            {'accepted', 'rejected', 'infrastructure_failed'}, 900, allowed)
+                            {'accepted', 'rejected', 'infrastructure_failed'}, 2400, allowed)
                 if runner.probe('state', submission=allowed)['state'] != 'accepted':
                     raise RuntimeError('Load reference was not accepted')
                 runner.probe('audit', submission=allowed, kind='reference')
@@ -232,8 +232,8 @@ def monitor_and_load(*, root, source, compose, env, base, token, images, daemon,
         # Five-minute period plus ten-minute grace: deliberately no heartbeat for >900 seconds.
         missed_wall = time.time()
         missed_started = time.monotonic()
-        while time.monotonic() - missed_started < 901:
-            time.sleep(min(30, 901 - (time.monotonic() - missed_started)))
+        while time.monotonic() - missed_started < 960:
+            time.sleep(min(30, 960 - (time.monotonic() - missed_started)))
         missed_recovery_started = time.time()
         command(['systemctl', '--user', 'start', name + '.service'], env=env)
         missed_raw = command(['journalctl', '--user', '-u', name + '.service', '--since', '@' + str(int(missed_wall)), '--output=json', '--no-pager'], env=env).decode()

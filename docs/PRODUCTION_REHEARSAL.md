@@ -53,3 +53,29 @@ Private credentials, generated epochs, raw evidence and image archives stay out
 of git. Record scoped source/artifact identities and independent outcomes in the
 production handoff. Keep backup, measurement, historical reproduction, live
 OAuth/trusted TLS, public launch and 0.6.0 adoption gates separate.
+
+## Authorized orchestration correction — 2026-10-17
+
+Rehearsal A stopped at its retry coordinator deadline. Its audited epoch and scoped
+application passes remain retained; independent terminal cleanup passed. The owner
+explicitly authorized another fresh rehearsal epoch after fixing orchestration.
+This does not authorize replacement of an epoch that fails viability.
+
+Long orchestration waits now poll every ten seconds, with two-second observation
+for short fault waits. Initial/coordinator completion bounds are 2,400 seconds;
+load completion has the same bound after its declared 300-second phase. These are
+outer control budgets; per-invocation benchmark limits, penalties, scoring,
+profiles, leases and retry limits remain unchanged. The missed-heartbeat window is
+960 seconds; backend/email confirmation remains a separate gate.
+
+The normal operator wrapper retains its 7,200-second limit. Explicit
+`--rehearsal-budget` admits up to 21,600 seconds only for the frozen interpreter's
+`-B -m scripts.native_production_rehearsal --config <absolute-path>` entrypoint.
+This is a global failure ceiling, not a guarantee that all worst-case stage bounds
+fit. Synthetic token/probe lifetimes cover that ceiling plus 1,800 seconds.
+Preserve partial evidence on any ceiling failure; never retry automatically.
+
+Before the new run, separately review offline database evidence retention and
+retirement of stopped disposable stores. Observe resource floors again after image
+imports and before epoch generation. No prior epoch, source or failure receipt is
+overwritten, and no retired worker/operator birth is reused.

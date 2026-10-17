@@ -80,3 +80,48 @@ def test_lease_scenario_cannot_fall_back_to_historical_inventory(tmp_path, forbi
     assert attempts == [1, 2]
     assert mutations == [['docker', 'kill', 'owned-coordinator'], ['docker', 'rm', 'owned-coordinator']]
     assert value.j['scenarios']['lease']['passed'] is True
+
+
+def test_full_run_wait_uses_sparse_polling_and_preserves_exit_audit(monkeypatch):
+    from scripts import production_rehearsal_exercises as module
+    runner = object.__new__(module.Exercises)
+    runner.process = 'owned-coordinator'
+    states = iter([True, False, False])
+    monkeypatch.setattr(runner, 'inspect', lambda identifier: dict(State=dict(Running=next(states), ExitCode=0)))
+    guarded, calls, sleeps = [], [], []
+    monkeypatch.setattr(runner, 'guard', guarded.append)
+    monkeypatch.setattr(runner, 'probe', lambda *a, **kw: calls.append(a))
+    monkeypatch.setattr(runner, 'call', lambda argv: calls.append(argv) or '')
+    monkeypatch.setattr(module.time, 'sleep', sleeps.append)
+    runner.finish_process('submission')
+    assert sleeps == [10]
+    assert guarded == ['submission', 'submission']
+    assert ['docker', 'rm', 'owned-coordinator'] in calls
+    assert runner.process is None
+
+
+def test_probe_lifetime_exceeds_explicit_rehearsal_ceiling(tmp_path, monkeypatch):
+    from scripts.native_operator_unit import REHEARSAL_OPERATOR_LIMIT
+    value = runner(tmp_path)
+    calls = []
+    value.call = lambda argv: calls.append(argv) or 'probe'
+    template = dict(HostConfig=dict(Memory=512, CgroupParent='owned', Tmpfs={}),
+        NetworkSettings=dict(Networks={'owned-network': {}}),
+        Config=dict(User='0:0', Labels={}, Env=[]), Mounts=[], Image='sha256:' + 'a' * 64)
+    value.clone(template)
+    code = calls[0][-1]
+    import ast
+    tree = ast.parse(code)
+    duration = tree.body[-1].value.args[0].value
+    assert REHEARSAL_OPERATOR_LIMIT < duration <= REHEARSAL_OPERATOR_LIMIT + 1800
+
+
+def test_short_fault_wait_keeps_two_second_observation_window(tmp_path, monkeypatch):
+    from scripts import production_rehearsal_exercises as module
+    value = runner(tmp_path)
+    value.guard = lambda *a: None
+    results = iter([False, True])
+    sleeps = []
+    monkeypatch.setattr(module.time, 'sleep', sleeps.append)
+    value.wait(lambda: next(results), 90)
+    assert sleeps == [2]

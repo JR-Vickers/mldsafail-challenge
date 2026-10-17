@@ -13,13 +13,25 @@ import subprocess
 import sys
 import traceback
 
+REHEARSAL_OPERATOR_LIMIT = 21600
+REHEARSAL_CREDENTIAL_SECONDS = REHEARSAL_OPERATOR_LIMIT + 1800
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from deploy import owned_client
 from deploy.recovery_journal import atomic_json, safe_path
 
 
-def execute(unit, journal, argv, timeout):
+def validate_timeout(argv, timeout, *, rehearsal_budget=False):
+    limit = REHEARSAL_OPERATOR_LIMIT if rehearsal_budget else 7200
+    if not argv or type(timeout) is not int or not 0 < timeout <= limit:
+        raise ValueError('Bounded operator command required')
+    if rehearsal_budget and (len(argv) != 6 or argv[:5] != [sys.executable, '-B', '-m',
+            'scripts.native_production_rehearsal', '--config'] or not Path(argv[5]).is_absolute()):
+        raise ValueError('Extended budget requires the reviewed production rehearsal entrypoint')
+
+
+def execute(unit, journal, argv, timeout, *, rehearsal_budget=False):
     if sys.platform != 'linux' or os.getuid() == 0:
         raise RuntimeError('Native non-root user service required')
     if not unit.startswith('mldsafail-launch-') or not unit.endswith('.service') or '/' in unit:
@@ -52,8 +64,7 @@ def execute(unit, journal, argv, timeout):
     info = journal.parent.stat()
     if info.st_uid != os.getuid() or info.st_mode & 0o077:
         raise RuntimeError('Private owner-held evidence directory required')
-    if not argv or not 0 < timeout <= 7200:
-        raise ValueError('Bounded operator command required')
+    validate_timeout(argv, timeout, rehearsal_budget=rehearsal_budget)
     source = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True, timeout=30).strip()
     if subprocess.check_output(['git', '-C', str(ROOT), 'status', '--porcelain'], text=True, timeout=30).strip():
         raise RuntimeError('Clean retained source required')
@@ -112,11 +123,12 @@ def main():
     parser.add_argument('--unit', required=True)
     parser.add_argument('--journal', type=Path, required=True)
     parser.add_argument('--timeout', type=int, default=900)
+    parser.add_argument('--rehearsal-budget', action='store_true')
     parser.add_argument('command', nargs=argparse.REMAINDER)
     args = parser.parse_args()
     command = args.command[1:] if args.command[:1] == ['--'] else args.command
     try:
-        result = execute(args.unit, args.journal, command, args.timeout)
+        result = execute(args.unit, args.journal, command, args.timeout, rehearsal_budget=args.rehearsal_budget)
         print(json.dumps({'native_operator_complete': result['complete'], 'cleanup_complete': result['cleanup_complete']}))
         return 0 if result['complete'] else 1
     except BaseException as error:
