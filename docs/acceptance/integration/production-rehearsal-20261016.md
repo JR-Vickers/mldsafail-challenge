@@ -152,3 +152,25 @@ leases and retry semantics remain unchanged. Resource checks after image import
 must pass before the single new epoch is generated. No automatic retry or epoch
 replacement is authorized. Final B runtime outcomes, owner delivery confirmation,
 check pausing and independent cleanup remain pending.
+
+
+### B acceptance fence: fixture labels
+
+The B epoch passed viability, sealing and independent audit. During the first
+application evaluation, further independent source review confirmed that fixture
+clones inherit Compose project/service/config-hash labels. Later coordinator
+convergence can remove the independent probe or retain a sleeping probe instead
+of the real coordinator. The frozen B source remains unchanged and follows its
+existing bounded execution/finally cleanup; there is no reviewed cooperative
+abort hook. **B is ineligible for complete rehearsal, monitor or load acceptance,
+regardless of subsequent automated success fields or heartbeats.** A temporary
+heartbeat could precede the resulting failure and proves neither coordinator
+dispatch nor production acceptance. Earlier independently verified epoch/results
+may be recorded only as scoped evidence. Final runtime and cleanup are pending.
+
+A local correction removes Compose labels from both coordinator/probe and foreign
+web fixtures, retains only the two disposable ownership labels, and requires the
+original Compose coordinator plus a separate live probe before monitoring.
+This correction is not installed into B. Any later native continuation requires a
+new frozen checkpoint, complete import/configuration inventory and independent
+protocol review. No additional epoch is automatically authorized.

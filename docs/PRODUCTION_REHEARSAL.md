@@ -79,3 +79,20 @@ Before the new run, separately review offline database evidence retention and
 retirement of stopped disposable stores. Observe resource floors again after image
 imports and before epoch generation. No prior epoch, source or failure receipt is
 overwritten, and no retired worker/operator birth is reused.
+
+
+## Fixture ownership correction
+
+Fixture containers retain only the disposable run/role labels used for cleanup.
+They must never inherit Compose project/service/config-hash labels: otherwise
+Compose convergence can remove the independent probe or select its sleeping
+process as the coordinator. After restoring the coordinator, require the exact
+original service container, unchanged command, and a distinct live probe outside
+Compose ownership before preparing monitoring. This applies to both one-shot and
+persistent coordinator fixtures and to foreign-cohort web fixtures.
+
+Frozen B source `74c2aa8` predates this correction and is ineligible for complete
+rehearsal/monitor/load acceptance even if it emits heartbeats or reports success.
+Preserve its independently valid epoch and scoped results and its terminal cleanup
+receipts. A later execution needs a new reviewed frozen source/protocol packet;
+no automatic additional epoch or hotpatch is authorized.

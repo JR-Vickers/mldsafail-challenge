@@ -13,6 +13,11 @@ See the [new disposable production integration receipt](acceptance/integration/p
 for independently tracked monitoring, immutable artifacts/configuration, fresh epoch
 and rehearsal/cleanup outcomes. The selected rollback is matching-evaluator source
 `26c5f2f`; original `4602f45` artifacts and incompatibility remain retained.
+The second fresh epoch passed its audit, but frozen rehearsal B is ineligible for
+complete acceptance because fixture clones inherit Compose membership labels.
+The local reviewed correction excludes those labels and verifies the original
+coordinator plus independent probe before monitoring; it is not hotpatched into B.
+Runtime disposition and terminal cleanup are still pending.
 
 The owner is ready to begin guided production setup, superseding the earlier
 setup deferral. Follow [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md), beginning with

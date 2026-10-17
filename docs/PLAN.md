@@ -200,7 +200,11 @@ and disposable rehearsal/cleanup separately. The first operator source `822ba91`
 retry orchestration deadline; independent terminal cleanup passed. The owner
 subsequently authorized a new epoch after repairs. Corrected operator `74c2aa8`
 and its exact second rehearsal packet are independently reviewed. Native builds and exact artifact retention passed;
-rehearsal execution remains subject to its recorded runtime outcome. Backups stay
+B passed its fresh epoch audit, but a subsequently confirmed fixture Compose-label
+defect makes B ineligible for full rehearsal/monitor/load acceptance. Its frozen
+execution and cleanup remain pending; the independently reviewed local fix does
+not alter B. Preserve all partial outcomes and do not generate another epoch
+automatically. Backups stay
 indefinitely deferred and successful service heartbeats cannot imply production acceptance.
 
 On 2026-10-16 the owner confirmed readiness to begin guided production preparation,

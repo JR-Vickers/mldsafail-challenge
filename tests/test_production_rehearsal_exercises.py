@@ -6,7 +6,8 @@ from types import SimpleNamespace
 import pytest
 
 from scripts import hosted_vps_failure_driver as historical
-from scripts.production_rehearsal_exercises import Exercises
+from scripts.production_rehearsal_exercises import Exercises, clone_labels
+from scripts.production_rehearsal import LABEL, ROLE
 
 
 @pytest.fixture
@@ -107,7 +108,7 @@ def test_probe_lifetime_exceeds_explicit_rehearsal_ceiling(tmp_path, monkeypatch
     value.call = lambda argv: calls.append(argv) or 'probe'
     template = dict(HostConfig=dict(Memory=512, CgroupParent='owned', Tmpfs={}),
         NetworkSettings=dict(Networks={'owned-network': {}}),
-        Config=dict(User='0:0', Labels={}, Env=[]), Mounts=[], Image='sha256:' + 'a' * 64)
+        Config=dict(User='0:0', Labels={LABEL: 'run', ROLE: 'coordinator'}, Env=[]), Mounts=[], Image='sha256:' + 'a' * 64)
     value.clone(template)
     code = calls[0][-1]
     import ast
@@ -125,3 +126,70 @@ def test_short_fault_wait_keeps_two_second_observation_window(tmp_path, monkeypa
     monkeypatch.setattr(module.time, 'sleep', sleeps.append)
     value.wait(lambda: next(results), 90)
     assert sleeps == [2]
+
+
+@pytest.mark.parametrize('once', [False, True])
+def test_clones_remain_owned_without_joining_compose_service(tmp_path, once):
+    value = runner(tmp_path)
+    labels = {LABEL: 'run', ROLE: 'coordinator',
+              'com.docker.compose.project': 'disposable',
+              'com.docker.compose.service': 'coordinator',
+              'com.docker.compose.config-hash': 'frozen',
+              'com.docker.compose.oneoff': 'False',
+              'com.docker.compose.container-number': '1',
+              'org.other.unreviewed': 'value'}
+    template = dict(HostConfig=dict(Memory=512, CgroupParent='owned', Tmpfs={}),
+        NetworkSettings=dict(Networks={'owned-network': {}}),
+        Config=dict(User='0:0', Labels=labels, Env=[]), Mounts=[], Image='sha256:' + 'a' * 64)
+    calls = []
+    value.call = lambda argv: calls.append(argv) or 'clone-id'
+    value.clone(template, once=once)
+    argv = calls[0]
+    actual = dict(argv[i + 1].split('=', 1) for i, arg in enumerate(argv) if arg == '--label')
+    assert actual == {LABEL: 'run', ROLE: 'coordinator'}
+    # Compose selects project/service containers carrying its config-hash label.
+    def selected(row):
+        return (row.get('com.docker.compose.project') == 'disposable'
+                and row.get('com.docker.compose.service') == 'coordinator'
+                and 'com.docker.compose.config-hash' in row)
+    assert selected(labels)
+    assert not selected(actual)
+    assert actual[LABEL] == labels[LABEL]  # Still included in terminal cleanup.
+    assert labels['com.docker.compose.project'] == 'disposable'
+
+
+@pytest.mark.parametrize('labels', [None, {}, {LABEL: 'run'}, {LABEL: '', ROLE: 'web'},
+                                    {LABEL: 'run', ROLE: None}])
+def test_clone_labels_fail_before_creation_without_ownership(labels):
+    with pytest.raises(ValueError, match='ownership'):
+        clone_labels({'Config': {'Labels': labels}})
+
+
+def test_foreign_web_clone_uses_same_ownership_allowlist():
+    assert clone_labels({'Config': {'Labels': {
+        LABEL: 'run', ROLE: 'web', 'com.docker.compose.service': 'web'}}}) == {
+            LABEL: 'run', ROLE: 'web'}
+
+
+@pytest.mark.parametrize('failure', [None, 'extra', 'substituted', 'probe_removed', 'command', 'labels', 'same_id'])
+def test_restore_requires_exact_service_and_surviving_independent_probe(failure):
+    from scripts.production_rehearsal_exercises import verify_restored_coordinator
+    value = SimpleNamespace(compose=['compose'], probe_id='probe',
+        template={'Id': 'original', 'Config': {'Entrypoint': ['python'], 'Cmd': ['coordinator']}})
+    identifiers = {'extra': 'original\nprobe', 'substituted': 'probe'}.get(failure, 'original')
+    if failure == 'same_id':
+        value.probe_id = 'original'
+    value.call = lambda argv: identifiers
+    service = {'Config': dict(value.template['Config']), 'State': {'Running': True}}
+    probe = {'Config': {'Labels': {LABEL: 'run', ROLE: 'coordinator'}},
+             'State': {'Running': failure != 'probe_removed'}}
+    if failure == 'command':
+        service['Config']['Cmd'] = ['sleep']
+    if failure == 'labels':
+        probe['Config']['Labels']['com.docker.compose.service'] = 'coordinator'
+    value.inspect = lambda identifier: service if identifier == 'original' else probe
+    if failure:
+        with pytest.raises(RuntimeError):
+            verify_restored_coordinator(value)
+    else:
+        verify_restored_coordinator(value)

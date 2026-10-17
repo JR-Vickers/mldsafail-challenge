@@ -19,6 +19,14 @@ from scripts.native_operator_unit import REHEARSAL_CREDENTIAL_SECONDS
 from scripts.production_rehearsal import command, LABEL, ROLE
 
 
+def clone_labels(template):
+    """Keep cleanup ownership, without admitting fixtures to Compose services."""
+    labels = template['Config'].get('Labels') or {}
+    if any(not isinstance(labels.get(key), str) or not labels[key] for key in (LABEL, ROLE)):
+        raise ValueError('Disposable clone ownership labels required')
+    return {key: labels[key] for key in (LABEL, ROLE)}
+
+
 class Exercises(historical.Driver):
     """Reuse declared scenario assertions with explicit disposable I/O/lifecycle."""
     def __init__(self, root, source, compose, env, base, token, images, config):
@@ -69,7 +77,7 @@ class Exercises(historical.Driver):
                 '--security-opt', 'no-new-privileges', '--user', template['Config']['User'],
                 '--memory', str(host['Memory']), '--restart', 'no',
                 '--cgroup-parent', host['CgroupParent'], '--entrypoint', '/app/.venv/bin/python']
-        for key, value in template['Config']['Labels'].items():
+        for key, value in clone_labels(template).items():
             argv += ['--label', key + '=' + value]
         for value in template['Config']['Env']:
             argv += ['-e', value]
@@ -333,6 +341,22 @@ class Exercises(historical.Driver):
 
 
 
+def verify_restored_coordinator(runner):
+    """Require the original service and independent live probe before monitoring."""
+    identifiers = runner.call(runner.compose + ['ps', '-q', 'coordinator']).splitlines()
+    if runner.probe_id == runner.template['Id'] or identifiers != [runner.template['Id']]:
+        raise RuntimeError('Exactly the original Compose coordinator must be restored')
+    service = runner.inspect(identifiers[0])
+    probe = runner.inspect(runner.probe_id)
+    for key in ('Entrypoint', 'Cmd'):
+        if service['Config'].get(key) != runner.template['Config'].get(key):
+            raise RuntimeError('Restored coordinator command differs')
+    if not service['State']['Running'] or not probe['State']['Running']:
+        raise RuntimeError('Coordinator and independent probe must both be running')
+    if any(key.startswith('com.docker.compose.') for key in probe['Config'].get('Labels', {})):
+        raise RuntimeError('Probe must remain outside Compose service ownership')
+
+
 def exercise(*, root, source, compose, env, base, token, images, daemon, epoch, request, config, stage):
     runner = Exercises(root, source, compose, env, base, token, images, config)
     # The original ordered scenario definitions and frozen penalties remain intact.
@@ -340,6 +364,7 @@ def exercise(*, root, source, compose, env, base, token, images, daemon, epoch, 
         runner.scenario(name, kind)
         stage('failure_' + name, runner.j['scenarios'][name])
     runner.call(compose + ['up', '-d', '--no-deps', 'coordinator'])
+    verify_restored_coordinator(runner)
     from scripts.production_rehearsal_monitor_load import monitor_and_load
     monitor_and_load(root=root, source=source, compose=compose, env=env, base=base, token=token,
                      images=images, daemon=daemon, config=config, stage=stage, runner=runner)
@@ -368,7 +393,7 @@ def check_cohort_filter(*, root, compose, env, images, daemon, token, original_r
                 '--memory', str(template['HostConfig']['Memory']), '--restart', 'no',
                 '--cgroup-parent', daemon['worker_cgroup_parent'], '--publish', '127.0.0.1::8000',
                 '--tmpfs', '/tmp:size=32m,noexec,nosuid,nodev']
-        for key, value in template['Config']['Labels'].items(): argv += ['--label', key + '=' + value]
+        for key, value in clone_labels(template).items(): argv += ['--label', key + '=' + value]
         for key, value in environment.items(): argv += ['-e', key + '=' + value]
         argv += [images['web']]
         identifier = command(argv, env=env).decode().strip()
