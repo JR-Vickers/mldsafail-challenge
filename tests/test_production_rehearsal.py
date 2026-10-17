@@ -155,3 +155,47 @@ def test_recovery_waits_for_docker_health(tmp_path, monkeypatch):
     ([dict(result=dict(healthy=False, backup_status='deferred', checks=['disk']))], False)])
 def test_notification_requires_delivered_phase_specific_health_receipt(rows, healthy):
     with pytest.raises(RuntimeError): monitoring.require_notification(rows, healthy)
+
+
+def test_monitor_receipt_waits_for_journal_ingestion(monkeypatch):
+    from scripts import production_rehearsal_monitor_load as monitoring
+    row = dict(MESSAGE=json.dumps(dict(scope='service', healthy=True, backup_status='deferred')),
+               _SYSTEMD_INVOCATION_ID='fresh', __REALTIME_TIMESTAMP='101000000')
+    outputs = iter([b'', json.dumps(row).encode()])
+    sleeps = []
+    monkeypatch.setattr(monitoring, 'command', lambda *a, **kw: next(outputs))
+    monkeypatch.setattr(monitoring.time, 'sleep', sleeps.append)
+    rows = monitoring.wait_monitor_receipt('owned', {}, since=100.5, healthy=True)
+    assert rows[0]['invocation'] == 'fresh'
+    assert sleeps == [1]
+
+
+def test_monitor_receipt_never_accepts_missing_or_wrong_health(monkeypatch):
+    from scripts import production_rehearsal_monitor_load as monitoring
+    monkeypatch.setattr(monitoring, 'command', lambda *a, **kw: b'')
+    with pytest.raises(RuntimeError, match='not observed'):
+        monitoring.wait_monitor_receipt('owned', {}, since=100, healthy=True, timeout=0)
+    row = dict(MESSAGE=json.dumps(dict(scope='service', healthy=True, backup_status='deferred')),
+               _SYSTEMD_INVOCATION_ID='fresh', __REALTIME_TIMESTAMP='101000000')
+    monkeypatch.setattr(monitoring, 'command', lambda *a, **kw: json.dumps(row).encode())
+    with pytest.raises(RuntimeError, match='delivered monitor receipt'):
+        monitoring.wait_monitor_receipt('owned', {}, since=100, healthy=False)
+
+
+@pytest.mark.parametrize('last', ['inactive', 'failed'])
+def test_manual_monitor_waits_for_prior_oneshot_to_finish(monkeypatch, last):
+    from scripts import production_rehearsal_monitor_load as monitoring
+    states = iter([b'activating', b'active', last.encode()])
+    sleeps = []
+    monkeypatch.setattr(monitoring, 'command', lambda *a, **kw: next(states))
+    monkeypatch.setattr(monitoring.time, 'sleep', sleeps.append)
+    monitoring.wait_monitor_inactive('owned', {})
+    assert sleeps == [1, 1]
+
+
+@pytest.mark.parametrize('state', [b'active', b'unknown'])
+def test_manual_monitor_refuses_unsettled_or_unknown_state(monkeypatch, state):
+    from scripts import production_rehearsal_monitor_load as monitoring
+    monkeypatch.setattr(monitoring, 'command', lambda *a, **kw: state)
+    with pytest.raises(RuntimeError):
+        monitoring.wait_monitor_inactive('owned', {}, timeout=0)

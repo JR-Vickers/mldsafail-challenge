@@ -174,3 +174,16 @@ original Compose coordinator plus a separate live probe before monitoring.
 This correction is not installed into B. Any later native continuation requires a
 new frozen checkpoint, complete import/configuration inventory and independent
 protocol review. No additional epoch is automatically authorized.
+
+
+### Authorized continuation C preparation
+
+The owner explicitly authorized one further fresh epoch after B is stopped and
+independently reconciled. The fixture label correction passed independent source
+review, 40 focused tests and `make check` (1,053 passed, 13 skipped, plus eight
+contract checks) at `01bf15f`. A broader review also identified journal ingestion
+and overlapping monitor oneshot races; bounded receipt polling and prior-invocation
+settlement passed independent source review and 46 focused tests; `make check`
+passed 1,059 tests with 13 skips and eight contract checks. No C epoch or daemon has
+started, and no failed/partial B evidence is replaced. Exact C packet review,
+resource floors and B terminal cleanup remain required before native execution.

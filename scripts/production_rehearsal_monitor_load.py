@@ -82,6 +82,37 @@ def require_notification(rows, healthy):
     return rows
 
 
+def wait_monitor_inactive(name, env, *, timeout=120):
+    """Let an existing oneshot finish before requesting a distinct invocation."""
+    deadline = time.monotonic() + timeout
+    while True:
+        state = command(['systemctl', '--user', 'show', name + '.service',
+                         '--property=ActiveState', '--value'], env=env).decode().strip()
+        if state in {'inactive', 'failed'}:
+            return
+        if state not in {'active', 'activating', 'deactivating'}:
+            raise RuntimeError('Unexpected disposable monitor service state')
+        if time.monotonic() >= deadline:
+            raise RuntimeError('Disposable monitor invocation did not settle')
+        time.sleep(1)
+
+
+def wait_monitor_receipt(name, env, *, since, healthy, excluded=(), timeout=30):
+    """Journal ingestion may lag a completed oneshot; empty is never success."""
+    deadline = time.monotonic() + timeout
+    while True:
+        raw = command(['journalctl', '--user', '-u', name + '.service', '--since',
+                       '@' + str(int(since)), '--output=json', '--no-pager'], env=env).decode()
+        rows = monitor_rows(raw, since=since, excluded=excluded)
+        if rows:
+            if len({row['invocation'] for row in rows}) != 1:
+                raise RuntimeError('One distinct monitor phase invocation required')
+            return require_notification(rows, healthy)
+        if time.monotonic() >= deadline:
+            raise RuntimeError('Complete monitor phase receipt not observed')
+        time.sleep(1)
+
+
 def wait_service_health(compose, env, *, timeout=120):
     deadline = time.monotonic() + timeout
     while True:
@@ -150,12 +181,7 @@ def monitor_and_load(*, root, source, compose, env, base, token, images, daemon,
         owned_daemon.publish(journal_path, journal)
         dry_started = time.time()
         command(['systemctl', '--user', 'start', name + '.service'], env=env)
-        dry_raw = command(['journalctl', '--user', '-u', name + '.service', '--since', '@' + str(int(dry_started)),
-                           '--output=json', '--no-pager'], env=env).decode()
-        dry_rows = monitor_rows(dry_raw, since=dry_started)
-        dry_results = [row['result'] for row in dry_rows]
-        if not dry_results or not all(row.get('healthy') and row.get('backup_status') == 'deferred' for row in dry_results):
-            raise RuntimeError('Complete healthy service inspection must precede permanent heartbeat')
+        dry_rows = wait_monitor_receipt(name, env, since=dry_started, healthy=True)
         owned_daemon.publish(root / 'monitor-dry-inspection.json', dry_rows)
         dry_invocations = {row['invocation'] for row in dry_rows}
         monitor_config['healthchecks']['enabled'] = True
@@ -211,33 +237,34 @@ def monitor_and_load(*, root, source, compose, env, base, token, images, daemon,
         owned_daemon.publish(root / 'scheduled-monitor-invocations.json', rows)
         stage('three_scheduled_monitor_invocations', dict(count=len(invocations)))
         command(['systemctl', '--user', 'stop', name + '.timer'], env=env)
+        wait_monitor_inactive(name, env)
         command(compose + ['stop', 'web'], env=env)
         failure_started = time.time()
         failure = client_run(['systemctl', '--user', 'start', name + '.service'], env=env,
                              timeout=120, check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if failure.returncode == 0:
             raise RuntimeError('Real disposable service failure was not signaled')
-        failure_raw = command(['journalctl', '--user', '-u', name + '.service', '--since', '@' + str(int(failure_started)), '--output=json', '--no-pager'], env=env).decode()
-        failure_rows = require_notification(monitor_rows(failure_raw, since=failure_started), False)
+        failure_rows = wait_monitor_receipt(name, env, since=failure_started, healthy=False)
         owned_daemon.publish(root / 'failure-monitor-receipts.json', failure_rows)
         command(compose + ['up', '-d', '--no-deps', 'web'], env=env)
         wait_service_health(compose, env)
         runner.api('/api/v1/me')
+        wait_monitor_inactive(name, env)
         recovery_started = time.time()
         command(['systemctl', '--user', 'start', name + '.service'], env=env)
-        notification_raw = command(['journalctl', '--user', '-u', name + '.service',
-            '--since', '@' + str(int(started)), '--output=json', '--no-pager'], env=env).decode()
-        owned_daemon.publish(root / 'failure-recovery-monitor-receipts.json', require_notification(monitor_rows(notification_raw, since=recovery_started), True))
+        recovery_rows = wait_monitor_receipt(name, env, since=recovery_started, healthy=True)
+        owned_daemon.publish(root / 'failure-recovery-monitor-receipts.json', recovery_rows)
         stage('real_service_failure_and_recovery_signaled', dict(owner_email_confirmation_pending=True))
         # Five-minute period plus ten-minute grace: deliberately no heartbeat for >900 seconds.
         missed_wall = time.time()
         missed_started = time.monotonic()
         while time.monotonic() - missed_started < 960:
             time.sleep(min(30, 960 - (time.monotonic() - missed_started)))
+        wait_monitor_inactive(name, env)
         missed_recovery_started = time.time()
         command(['systemctl', '--user', 'start', name + '.service'], env=env)
-        missed_raw = command(['journalctl', '--user', '-u', name + '.service', '--since', '@' + str(int(missed_wall)), '--output=json', '--no-pager'], env=env).decode()
-        owned_daemon.publish(root / 'missed-heartbeat-receipts.json', dict(no_heartbeat_since=missed_wall, recovered_at=time.time(), receipts=require_notification(monitor_rows(missed_raw, since=missed_recovery_started), True)))
+        missed_rows = wait_monitor_receipt(name, env, since=missed_recovery_started, healthy=True)
+        owned_daemon.publish(root / 'missed-heartbeat-receipts.json', dict(no_heartbeat_since=missed_wall, recovered_at=time.time(), receipts=missed_rows))
         stage('deliberately_missed_heartbeat_and_recovery', dict(elapsed_seconds=time.monotonic()-missed_started,
               owner_email_confirmation_pending=True, owner_pause_required=True))
     finally:

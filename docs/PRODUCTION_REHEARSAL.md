@@ -96,3 +96,13 @@ rehearsal/monitor/load acceptance even if it emits heartbeats or reports success
 Preserve its independently valid epoch and scoped results and its terminal cleanup
 receipts. A later execution needs a new reviewed frozen source/protocol packet;
 no automatic additional epoch or hotpatch is authorized.
+
+
+The owner authorized one further fresh epoch after independent B cleanup. Before
+freezing that packet, monitor phases now wait up to 30 seconds for asynchronous
+journal ingestion, requiring one distinct invocation after the phase timestamp
+and the expected health/backup status. Before manual failure/recovery requests,
+require the prior oneshot to be inactive (or failed), with a 120-second polling
+bound. Both waits may additionally consume the bounded command timeout.
+Stopping the timer alone does not establish that its service has finished. These
+are orchestration waits; benchmark limits, scoring and phase durations do not change.
