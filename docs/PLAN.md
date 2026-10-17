@@ -196,8 +196,10 @@ manufacture a score to compensate for infrastructure failure.
 
 The [2026-10-16 disposable production receipt](acceptance/integration/production-rehearsal-20261016.md)
 tracks service-only monitoring, immutable release/configuration, one fresh epoch
-and disposable rehearsal/cleanup separately. Operator source `822ba91` is frozen
-and independently reviewed. Native builds and exact artifact retention passed;
+and disposable rehearsal/cleanup separately. The first operator source `822ba91` passed scoped native phases but failed its
+retry orchestration deadline; independent terminal cleanup passed. The owner
+subsequently authorized a new epoch after repairs. Corrected operator `74c2aa8`
+and its exact second rehearsal packet are independently reviewed. Native builds and exact artifact retention passed;
 rehearsal execution remains subject to its recorded runtime outcome. Backups stay
 indefinitely deferred and successful service heartbeats cannot imply production acceptance.
 

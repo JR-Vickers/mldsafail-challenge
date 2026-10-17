@@ -120,3 +120,35 @@ Current resource floor is only just met (5,421,289,472 bytes free), so another
 native run is fenced until scoped evidence retention/cache retirement restores
 headroom. Backups, measurement, historical reproduction, real OAuth/trusted TLS,
 public launch and 0.6.0 adoption remain separate open gates.
+
+## Corrected rehearsal B — 2026-10-17
+
+Source `74c2aa886933612a54b1afdb072112aa75def1f7` passed independent source
+review and `make check` (1,038 passed, 13 skipped, plus eight contract checks).
+Failed build A and failed rehearsal A stores were retired only after a separate
+mapped inspection, byte-verified offline PostgreSQL archive, exact 3/97 whiteout
+allowlist review and independently verified terminal cleanup. Every imported
+archive, volume receipt/archive, configuration and failure journal checksum passed;
+original source checkouts remain unchanged. All 46 recorded domains/PIDs and both
+old sockets were absent. Protected staging identities were unchanged. Disk/RAM
+returned to 7.43 GiB/1.35 GiB. This is evidence retention and cache retirement,
+not backup or recovery acceptance.
+
+The independently reviewed new packet binds 2,460 operator files and unchanged
+release, rollback, worker and service images. A private context hardlinks only
+frozen tracked files to avoid duplicate storage; both full byte inventories and
+actual import origins passed installed preflight. The permanent endpoint identity
+matches the owner's prior five-minute/ten-minute configuration confirmation.
+
+- Rehearsal protocol SHA256: `4afcb80ac312602a64a0a723e094fae060a5bd1653caec74239318c95b96c6af`.
+- Driver configuration SHA256: `8c2be8dd8c4278e775fca9d83affb526f37f605b19a925d15adbfa388c9fa239`.
+- Operator manifest SHA256: `08771408d123155f006c025e13cee1c56e1dd646770e850d5c77236471141f4f`.
+- Epoch protocol remains `8ef1c2a0e84d0b15492a7c9b9b189a76dddffc603db18cf6120952fa0286a723`.
+
+The owner-authorized second rehearsal is launched with a 21,600-second global
+failure ceiling and 22,500-second unit runtime ceiling. These are not a guarantee
+that every worst-case stage bound fits. Worker caps, scoring, profiles, costs,
+leases and retry semantics remain unchanged. Resource checks after image import
+must pass before the single new epoch is generated. No automatic retry or epoch
+replacement is authorized. Final B runtime outcomes, owner delivery confirmation,
+check pausing and independent cleanup remain pending.
