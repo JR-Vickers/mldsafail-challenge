@@ -4,7 +4,6 @@ import json
 import os
 from pathlib import Path
 import pwd
-import subprocess
 import sys
 import time
 import uuid
@@ -113,6 +112,17 @@ def wait_monitor_receipt(name, env, *, since, healthy, excluded=(), timeout=30):
         time.sleep(1)
 
 
+def invoke_monitor(name, env, *, healthy):
+    """One settled phase; owned clients capture output by default."""
+    wait_monitor_inactive(name, env)
+    started = time.time()
+    process = client_run(['systemctl', '--user', 'start', name + '.service'],
+                         env=env, timeout=120, check=False)
+    if (process.returncode == 0) is not healthy:
+        raise RuntimeError('Monitor phase exit status differs from expected health')
+    return wait_monitor_receipt(name, env, since=started, healthy=healthy)
+
+
 def wait_service_health(compose, env, *, timeout=120):
     deadline = time.monotonic() + timeout
     while True:
@@ -179,9 +189,7 @@ def monitor_and_load(*, root, source, compose, env, base, token, images, daemon,
         command(['systemctl', '--user', 'daemon-reload'], env=env)
         journal['monitor_start_intent'] = True
         owned_daemon.publish(journal_path, journal)
-        dry_started = time.time()
-        command(['systemctl', '--user', 'start', name + '.service'], env=env)
-        dry_rows = wait_monitor_receipt(name, env, since=dry_started, healthy=True)
+        dry_rows = invoke_monitor(name, env, healthy=True)
         owned_daemon.publish(root / 'monitor-dry-inspection.json', dry_rows)
         dry_invocations = {row['invocation'] for row in dry_rows}
         monitor_config['healthchecks']['enabled'] = True
@@ -239,20 +247,12 @@ def monitor_and_load(*, root, source, compose, env, base, token, images, daemon,
         command(['systemctl', '--user', 'stop', name + '.timer'], env=env)
         wait_monitor_inactive(name, env)
         command(compose + ['stop', 'web'], env=env)
-        failure_started = time.time()
-        failure = client_run(['systemctl', '--user', 'start', name + '.service'], env=env,
-                             timeout=120, check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if failure.returncode == 0:
-            raise RuntimeError('Real disposable service failure was not signaled')
-        failure_rows = wait_monitor_receipt(name, env, since=failure_started, healthy=False)
+        failure_rows = invoke_monitor(name, env, healthy=False)
         owned_daemon.publish(root / 'failure-monitor-receipts.json', failure_rows)
         command(compose + ['up', '-d', '--no-deps', 'web'], env=env)
         wait_service_health(compose, env)
         runner.api('/api/v1/me')
-        wait_monitor_inactive(name, env)
-        recovery_started = time.time()
-        command(['systemctl', '--user', 'start', name + '.service'], env=env)
-        recovery_rows = wait_monitor_receipt(name, env, since=recovery_started, healthy=True)
+        recovery_rows = invoke_monitor(name, env, healthy=True)
         owned_daemon.publish(root / 'failure-recovery-monitor-receipts.json', recovery_rows)
         stage('real_service_failure_and_recovery_signaled', dict(owner_email_confirmation_pending=True))
         # Five-minute period plus ten-minute grace: deliberately no heartbeat for >900 seconds.
@@ -260,10 +260,7 @@ def monitor_and_load(*, root, source, compose, env, base, token, images, daemon,
         missed_started = time.monotonic()
         while time.monotonic() - missed_started < 960:
             time.sleep(min(30, 960 - (time.monotonic() - missed_started)))
-        wait_monitor_inactive(name, env)
-        missed_recovery_started = time.time()
-        command(['systemctl', '--user', 'start', name + '.service'], env=env)
-        missed_rows = wait_monitor_receipt(name, env, since=missed_recovery_started, healthy=True)
+        missed_rows = invoke_monitor(name, env, healthy=True)
         owned_daemon.publish(root / 'missed-heartbeat-receipts.json', dict(no_heartbeat_since=missed_wall, recovered_at=time.time(), receipts=missed_rows))
         stage('deliberately_missed_heartbeat_and_recovery', dict(elapsed_seconds=time.monotonic()-missed_started,
               owner_email_confirmation_pending=True, owner_pause_required=True))

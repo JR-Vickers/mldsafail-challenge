@@ -199,3 +199,38 @@ def test_manual_monitor_refuses_unsettled_or_unknown_state(monkeypatch, state):
     monkeypatch.setattr(monitoring, 'command', lambda *a, **kw: state)
     with pytest.raises(RuntimeError):
         monitoring.wait_monitor_inactive('owned', {}, timeout=0)
+
+
+
+@pytest.mark.parametrize('healthy,returncode', [(True, 0), (False, 1)])
+def test_monitor_phase_uses_owned_capture_contract_and_expected_receipt(monkeypatch, healthy, returncode):
+    from scripts import production_rehearsal_monitor_load as monitoring
+    from types import SimpleNamespace
+    events = []
+    monkeypatch.setattr(monitoring, 'wait_monitor_inactive', lambda *a: events.append('inactive'))
+    def owned_run(argv, **kwargs):
+        # Custom owned client captures by default; explicit streams must be writable.
+        for key in ('stdout', 'stderr'):
+            if kwargs.get(key) is not None:
+                assert callable(getattr(kwargs[key], 'write', None))
+        assert kwargs['check'] is False
+        events.append('start')
+        return SimpleNamespace(returncode=returncode, stdout=b'', stderr=b'')
+    monkeypatch.setattr(monitoring, 'client_run', owned_run)
+    def receipt(name, env, *, since, healthy):
+        events.append('receipt')
+        return [dict(result=dict(healthy=healthy))]
+    monkeypatch.setattr(monitoring, 'wait_monitor_receipt', receipt)
+    assert monitoring.invoke_monitor('owned', {}, healthy=healthy)[0]['result']['healthy'] is healthy
+    assert events == ['inactive', 'start', 'receipt']
+
+
+@pytest.mark.parametrize('healthy,returncode', [(True, 1), (False, 0)])
+def test_monitor_phase_refuses_wrong_exit_before_accepting_receipt(monkeypatch, healthy, returncode):
+    from scripts import production_rehearsal_monitor_load as monitoring
+    from types import SimpleNamespace
+    monkeypatch.setattr(monitoring, 'wait_monitor_inactive', lambda *a: None)
+    monkeypatch.setattr(monitoring, 'client_run', lambda *a, **kw: SimpleNamespace(returncode=returncode))
+    monkeypatch.setattr(monitoring, 'wait_monitor_receipt', lambda *a, **kw: pytest.fail('Unexpected receipt acceptance'))
+    with pytest.raises(RuntimeError, match='exit status'):
+        monitoring.invoke_monitor('owned', {}, healthy=healthy)

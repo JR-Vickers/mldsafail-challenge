@@ -218,3 +218,18 @@ B-only offline PostgreSQL preservation/cache inspection uses independently revie
 protocol `80fadf3c0a6ebb7756b4fb632068d270e725750bd67a6134cc695239f7f5b72f`.
 It cannot delete the store. Exact archive verification and separate whiteout/node
 allowlist review remain required before any later cache retirement.
+
+### Pre-epoch user-unit canary
+
+Installed source `0296052` matched its complete inventory and actual imports on
+native x86-64 Python 3.12.10, UID 1000. Its independently reviewed negative-health
+canary configures no heartbeat endpoint and no daemon; it failed in the wrapper's
+output forwarding because `subprocess.PIPE` integers are not writable streams in
+the owned-client API. The same unsupported arguments existed in the production
+failure phase. Canary cleanup completed and no C epoch was generated.
+
+Manual monitor phases now share one helper that waits for inactivity, uses the
+owned runner's default byte capture, checks the expected exit status, and waits
+for its phase-specific journal receipt. Independent source review and 61 focused
+tests passed. The failed canary/source remain retained. A fresh reviewed canary
+and final source/packet checks remain required before the authorized C epoch.
