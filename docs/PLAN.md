@@ -204,10 +204,21 @@ Reviewed corrections address fixture Compose labels, monitor journal/phase races
 user-manager identity switching and owned-client output capture. Source `a06bf4a`
 passed 1,068 tests (13 skipped) plus eight contract checks. Its three-invocation
 native monitor canary and exact C prelaunch packet passed independent review.
-The owner-authorized single C epoch/rehearsal is running; its final outcome,
-notification delivery and independent cleanup remain pending. No automatic epoch
-replacement is authorized. Backups stay indefinitely deferred, and successful
-service heartbeats cannot imply production acceptance.
+C's fresh epoch, application/cohort/rollback/forward checks and all seven fault
+assertions passed. Its evaluation load failed: 14/1,560 failed reads and p95
+1.225 seconds (required less than one second). Scheduled monitoring separately
+failed lease inspection. The recorded nominal 300-second duration does not establish
+actual phase timing. Planned notification/recovery and missed-heartbeat tests were
+not reached. Independent terminal cleanup/retention passed; protected staging is
+unchanged and no disposable service or heartbeat remains. The owner confirmed the
+unplanned DOWN email at the exact first negative receipt and paused the permanent
+check. Full rehearsal remains incomplete. No automatic epoch replacement is
+authorized. Backups stay indefinitely deferred, and successful service heartbeats
+cannot imply production acceptance.
+Reviewed diagnostic-only checkpoint `69cbd61` records sanitized inspection/request
+errors and elapsed/pacing metrics without changing the frozen limits or C's result.
+Focused checks passed 123 tests; `make check` passed 1,074 tests with 13 skips plus
+eight contract checks. It has not been executed in another native rehearsal.
 
 On 2026-10-16 the owner confirmed readiness to begin guided production preparation,
 superseding the earlier setup deferral. The [production setup handoff](PRODUCTION_SETUP.md)

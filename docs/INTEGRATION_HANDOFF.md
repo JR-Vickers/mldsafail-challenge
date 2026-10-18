@@ -18,8 +18,21 @@ before Python monitor execution with `216/GROUP`; no heartbeat was sent. Indepen
 terminal cleanup and database-preserving cache retirement passed. Reviewed source
 `a06bf4a` fixes fixture ownership, user-manager rendering, journal/phase races and
 owned-client capture. A three-invocation native canary and complete C prelaunch
-packet passed independently. The single owner-authorized C rehearsal is running;
-final load, notification delivery and cleanup acceptance remain pending.
+packet passed independently. C's fresh epoch and application/cohort/rollback/forward
+checks passed, as did all seven fault assertions. C then failed evaluation load:
+14 of 1,560 reads failed and p95 was 1.225 seconds (required less than one second).
+The scheduled monitor separately reported lease-inspection failures. Phase timing
+and error causes were not fully recorded; full rehearsal acceptance remains open.
+Independent terminal cleanup and retained-artifact verification passed. The owner's
+DOWN email at 15:01:28 +0500 matches the first negative monitor receipt; this was
+not the planned failure/recovery test. The owner confirmed pausing the permanent
+check. No heartbeat or disposable service remains running. No additional epoch is
+authorized. The next work is inspection/load diagnosis and a separately reviewed
+continuation, preserving these failed results and all existing limits.
+Diagnostic-only checkpoint `69cbd61` retains sanitized error classifications and
+elapsed/pacing evidence for future investigation. Independent review and 123 focused
+tests passed; `make check` passed 1,074 tests with 13 skips plus eight contract checks.
+It was not installed into C and does not alter C's failed disposition.
 
 The owner is ready to begin guided production setup, superseding the earlier
 setup deferral. Follow [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md), beginning with

@@ -9,10 +9,10 @@ No push or publication is authorized by this receipt.
 
 | Workstream | Disposition |
 |---|---|
-| Service-only monitoring | Implemented, tested and independently verified by the corrected three-invocation native canary; candidate delivery/load acceptance remains pending C. |
+| Service-only monitoring | Implemented; native canary and C dry inspection passed. Scheduled lease inspection failed; owner confirmed the matching unplanned DOWN email and paused the check. Planned notification/recovery acceptance remains open. |
 | Immutable releases and private configuration | Native images retained and independently checksum-verified; production cohort remains pending a future activation epoch. |
-| Fresh audited rehearsal epoch | A and B passed viability, sealing and separate audits; the explicitly authorized single C attempt is running. All are rehearsal-only. |
-| Disposable rehearsal and cleanup | B passed application/cohort/rollback/forward and all fault assertions; monitor startup failed. Independent cleanup and database-preserving cache retirement passed. C is running. |
+| Fresh audited rehearsal epoch | A, B and the explicitly authorized C epoch passed viability, sealing and separate audits. All are rehearsal-only. |
+| Disposable rehearsal and cleanup | C passed application/cohort/rollback/forward and all seven fault assertions, then failed evaluation load. Independent terminal cleanup/retention passed. Full rehearsal remains incomplete. |
 
 ## Frozen source and artifacts
 
@@ -268,5 +268,87 @@ failures did not consume extra epochs. Actual unit birth/delegation and resource
 floors after image import remain enforced runtime gates before epoch generation.
 No automatic epoch replacement or production activation is authorized. Final
 runtime outcomes, owner email confirmation/check pause and independent cleanup
-remain pending. Backups, measurement, historical reproduction, live OAuth/TLS,
-public launch and 0.6.0 adoption gates remain open.
+remain pending at launch; the terminal disposition below supersedes that status.
+Backups, measurement, historical reproduction, live OAuth/TLS, public launch and
+0.6.0 adoption gates remain open.
+
+## C terminal disposition — 2026-10-18
+
+**Full rehearsal failed; no replacement epoch is authorized.** C's one fresh epoch
+completed the 1,200 frozen baseline records and passed viability, sealing and a
+separate audit. Fresh database initialization, readiness, synthetic authentication,
+the first accepted reference submission and its independent evidence/database audit,
+all four cohort filters, leaderboard output, and application-only rollback/forward
+audits passed. All seven fault assertions passed, including retry recovery,
+three-attempt exhaustion and stale-lease recovery. The timeout assertion remains
+the declared observed timeout followed by cancellation; crash acceptance retains
+the frozen penalty semantics.
+
+The monitor dry inspection passed with heartbeat delivery disabled. Its timer
+activated at 10:01:14 UTC. The first scheduled receipt at 10:01:28 UTC
+reported `healthy=false`, `checks=[scheduled_job]`, `scope=service` and
+`backup_status=deferred`. With no configured service jobs, this identifies a failed
+lease inspection. Later scheduled receipts also failed; there was no healthy
+heartbeat-enabled receipt. The old monitor discards the underlying inspection
+exception, so a Docker/SQL/JSON failure cannot be distinguished conclusively from
+its ten-second subprocess timeout. Inspection errors correctly remained failures.
+
+| Read-load result | Idle | Evaluation |
+|---|---:|---:|
+| Requests | 1,560 | 1,560 |
+| Failed reads | 0 | 14 |
+| p95 seconds (required <1) | 0.844544 | 1.225266 |
+| p99 seconds (required <2) | 1.349496 | 1.973711 |
+| Host floor violations | 0 | 0 |
+| Recorded threshold decision | Passed | Failed |
+
+All 14 failed requests targeted `/api/v1/me`, with recorded elapsed times around
+two seconds. This is consistent with the unchanged two-second request timeout but
+does not prove that cause: HTTP status and exception types were not retained.
+SSH disconnection is not established as a cause of these localhost request failures;
+the same VPS service continued independently. The terminal exception was
+`Declared load thresholds failed`, not an orchestration deadline.
+
+The load report records the requested `duration_seconds=300`, not measured elapsed
+time. Synchronous ownership checks can delay request scheduling and cause catch-up
+bursts; retained file timestamps warrant investigation but do not establish exact
+request windows. Consequently neither phase establishes complete fidelity to the
+declared five-minute pacing protocol. No thresholds, timeout, rate, worker limits,
+profiles, scoring, password costs or authentication policy were weakened to pass.
+Subsequent diagnostic-only source changes add measured elapsed time/pacing lag,
+phase-relative request timing, bounded HTTP/error classifications and sanitized
+lease-inspection error classes. They do not backfill C's missing evidence or change
+its outcome, and were not installed into the frozen native run.
+Diagnostic checkpoint `69cbd61` passed independent source review, 123 focused tests
+and `make check` (1,074 passed, 13 skipped, plus eight contract checks). Request
+latency measurement retains its original sampling point; no native rerun occurred.
+
+The planned three-healthy-scheduled-invocation, deliberate service failure/recovery,
+and missed-heartbeat/recovery acceptance stages were not reached. The timer stopped
+at 10:38:59 UTC and the monitor service stopped during cleanup at 10:39:04 UTC.
+The owner confirmed a DOWN email timestamp of 15:01:28 +0500, exactly matching
+10:01:28 UTC and the first scheduled failure. This confirms delivery of that
+unplanned negative signal only. Recovery delivery remains unverified. The owner
+confirmed pausing the permanent check after the rehearsal; no synthetic heartbeat
+remains running.
+
+Independent final postflight passed: all 2,791 recorded cgroups and 2,793 process
+births were absent, including the old status-reader process. The daemon socket and
+monitor's separate cgroup were absent, monitor MainPID was zero, timer inactive,
+endpoint delivery disabled, and no user jobs remained. All seven archive checksums,
+both 2,460-file source/context inventories, clean frozen source/configuration
+identities, all 1,213 sealed epoch files and six additional completed-run seals
+matched. Failed PostgreSQL state, configurations, sources and failed/partial
+evidence remain private and retained. All four protected staging IDs/images were
+unchanged. Disk/RAM floors passed (5,732,089,856 / 1,510,821,888 available bytes).
+
+- Independent cleanup/retention receipt SHA256: `c6ad518fa8317e3a2c54a97dc07644b035b073e3ea7fa72e12368b8639d801e8`.
+- Independent diagnosis receipt SHA256: `197307219b395639febf303d3ac8540badf3a4d9bb231baa56d709d5f74edd9e`.
+- Driver receipt SHA256: `7333fcb76df49e57bb2ee1967c81db89eb88df43ce286dc39aca9c4b28824b23`.
+- Application report SHA256: `b43119082e15b16ba6daa270e53ddd39047b75779717f19696db8dd1ebd2bb87`.
+
+Further native work requires a concrete reviewed continuation and explicit authority
+for any additional epoch. Retired/terminal ownership cannot simply restart. Actual
+production activation still requires its own fresh epoch and separate acceptance.
+Backups remain indefinitely deferred; measurement, historical reproduction,
+real OAuth/trusted TLS, public launch and 0.6.0 adoption remain open gates.
