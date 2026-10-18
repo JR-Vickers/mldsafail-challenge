@@ -33,6 +33,8 @@ def test_inactive_unit_render_binds_source_interpreter_and_rootless_environment(
     assert 'WorkingDirectory=' + str(source) in backup
     assert 'Environment=DOCKER_HOST=unix:///run/user/1001/docker.sock' in backup
     assert 'Environment=XDG_RUNTIME_DIR=/run/user/1001' in backup
+    assert 'User=mldsafail' in backup
+    assert result['manager_scope'] == 'system'
     assert 'Delegate=yes' in backup
     assert 'Environment=MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT=/sys/fs/cgroup/system.slice/%n' in backup
     assert 'ExecStopPost=' + sys.executable + ' -m deploy.daily_recovery --cleanup' in backup
@@ -100,3 +102,35 @@ def test_rehearsal_monitor_name_owner_and_user_domain_are_bound(tmp_path):
     service = (output / (name + '.service')).read_text()
     assert 'Environment=MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT=' + parent + '/%n' in service
     assert 'Environment=PYTHONDONTWRITEBYTECODE=1' in service
+
+
+
+def test_user_manager_omits_identity_switch_but_binds_current_owner(tmp_path, monkeypatch):
+    from deploy import render_operator_units as module
+    from types import SimpleNamespace
+    monkeypatch.setattr(module.os, 'getuid', lambda: 1001)
+    monkeypatch.setattr(module.pwd, 'getpwnam', lambda user: SimpleNamespace(pw_uid=1001))
+    source, metadata, configs = inputs(tmp_path)
+    output = tmp_path / 'units'
+    result = render(str(source), sys.executable, metadata, {'monitor': configs['monitor']},
+        'mldsafail', 1001, str(output), monitor_only=True, user_manager=True,
+        cgroup_root='/sys/fs/cgroup/user.slice/user-1001.slice/user@1001.service/app.slice')
+    text = (output / 'mldsafail-monitor.service').read_text()
+    assert not any(line.startswith(('User=', 'Group=', 'SupplementaryGroups=')) for line in text.splitlines())
+    assert result['manager_scope'] == 'user' and result['expected_uid'] == 1001
+    assert 'XDG_RUNTIME_DIR=/run/user/1001' in text
+
+
+@pytest.mark.parametrize('wrong', ['caller', 'account', 'hierarchy', 'recovery'])
+def test_user_manager_rejects_wrong_identity_and_unsupported_scope(tmp_path, monkeypatch, wrong):
+    from deploy import render_operator_units as module
+    from types import SimpleNamespace
+    monkeypatch.setattr(module.os, 'getuid', lambda: 1002 if wrong == 'caller' else 1001)
+    monkeypatch.setattr(module.pwd, 'getpwnam', lambda user: SimpleNamespace(pw_uid=1002 if wrong == 'account' else 1001))
+    source, metadata, configs = inputs(tmp_path)
+    with pytest.raises(ValueError, match='current owner'):
+        render(str(source), sys.executable, metadata,
+            configs if wrong == 'recovery' else {'monitor': configs['monitor']},
+            'mldsafail', 1001, str(tmp_path / 'units'), monitor_only=wrong != 'recovery',
+            user_manager=True, cgroup_root='/sys/fs/cgroup/system.slice' if wrong == 'hierarchy' else
+            '/sys/fs/cgroup/user.slice/user-1001.slice/user@1001.service/app.slice')

@@ -187,3 +187,34 @@ settlement passed independent source review and 46 focused tests; `make check`
 passed 1,059 tests with 13 skips and eight contract checks. No C epoch or daemon has
 started, and no failed/partial B evidence is replaced. Exact C packet review,
 resource floors and B terminal cleanup remain required before native execution.
+
+### B terminal verification — 2026-10-18
+
+B completed all seven declared fault assertions, including retry recovery,
+three-attempt exhaustion and stale-lease recovery. Application-only rollback and
+forward repair also passed their audits. It then failed before Python monitor
+execution with systemd `216/GROUP` (supplementary-group setup denied). No dry
+monitor receipt or scheduled heartbeat was emitted; the endpoint remained disabled.
+The independently confirmed Compose-label defect remains a source blocker, but
+was not the observed terminal error. Load/notification acceptance remains open.
+
+Independent terminal verification passed: all 1,906 recorded cgroups and 1,908
+process births, plus the daemon socket, were absent. Monitor service/timer were
+failed/inactive, exact fragments matched, monitoring was disabled, and cleanup
+reported no errors. All seven image archive checksums and all 1,213 sealed epoch
+files matched. Failed PostgreSQL bytes and private configurations/evidence remain
+retained; all four protected staging identities were unchanged. Disk/RAM were
+5.39 GiB/1.39 GiB. Private postflight receipt SHA256:
+`7fa6fbfd2ba6050393ac6fc892dbf4943019bd6301e2105e9cc1fa2dab47b10f`.
+
+C packet `83ff6ac` conditional execution approval was withdrawn before execution
+because it retains the same unit-rendering defect. No C epoch has been generated.
+Explicit user-manager rendering now omits identity-switch directives while binding
+the current non-root account UID and its user cgroup hierarchy. Default system
+units retain `User=`. New source review, checks, exact packet review and a native
+unit canary are required before spending the already authorized C epoch.
+
+B-only offline PostgreSQL preservation/cache inspection uses independently reviewed
+protocol `80fadf3c0a6ebb7756b4fb632068d270e725750bd67a6134cc695239f7f5b72f`.
+It cannot delete the store. Exact archive verification and separate whiteout/node
+allowlist review remain required before any later cache retirement.

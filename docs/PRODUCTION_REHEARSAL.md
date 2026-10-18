@@ -106,3 +106,10 @@ require the prior oneshot to be inactive (or failed), with a 120-second polling
 bound. Both waits may additionally consume the bounded command timeout.
 Stopping the timer alone does not establish that its service has finished. These
 are orchestration waits; benchmark limits, scoring and phase durations do not change.
+
+User-manager rehearsal monitoring explicitly selects user-manager rendering. It
+omits `User=`/group identity switching, requires the caller and account to match
+the declared non-root UID, and requires that UID's user-manager cgroup hierarchy.
+The default renderer remains a system-manager renderer with explicit `User=`.
+Before the next epoch, validate actual user-unit execution without heartbeat or
+benchmark execution; B's `216/GROUP` failure occurred before Python could start.

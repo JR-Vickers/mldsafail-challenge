@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 import os
+import pwd
 from pathlib import Path
 import re
 import subprocess
@@ -21,7 +22,7 @@ def literal_path(value):
     return path
 
 
-def render(source, interpreter, metadata, configuration, user, uid, output, *, monitor_only=False, docker_socket=None, cgroup_root='/sys/fs/cgroup/system.slice', monitor_name='mldsafail-monitor', owner_unit=None):
+def render(source, interpreter, metadata, configuration, user, uid, output, *, monitor_only=False, docker_socket=None, cgroup_root='/sys/fs/cgroup/system.slice', monitor_name='mldsafail-monitor', owner_unit=None, user_manager=False):
     cgroup_root = str(Path(cgroup_root))
     if '..' in Path(cgroup_root).parts or not re.fullmatch(r'/sys/fs/cgroup/[A-Za-z0-9_.@/-]+', cgroup_root):
         raise ValueError('Literal cgroup hierarchy required')
@@ -34,6 +35,13 @@ def render(source, interpreter, metadata, configuration, user, uid, output, *, m
     source, interpreter, output = map(literal_path, (source, interpreter, output))
     if user == 'root' or not re.fullmatch(r'[a-z_][a-z0-9_-]*', user) or type(uid) is not int or uid < 1:
         raise ValueError('Non-root deployment user and UID required')
+    if type(user_manager) is not bool:
+        raise ValueError('Explicit boolean manager scope required')
+    if user_manager:
+        manager = Path('/sys/fs/cgroup/user.slice/user-' + str(uid) + '.slice/user@' + str(uid) + '.service')
+        if (not monitor_only or os.getuid() != uid or pwd.getpwnam(user).pw_uid != uid
+                or not Path(cgroup_root).is_relative_to(manager)):
+            raise ValueError('User-manager monitor requires the current owner UID and hierarchy')
     if not re.fullmatch(r'[a-f0-9]{40}', metadata.get('source_commit', '')):
         raise ValueError('Full operator source identity required')
     if output.exists():
@@ -83,7 +91,8 @@ def render(source, interpreter, metadata, configuration, user, uid, output, *, m
     for name, (module, config_name, timeout) in selected.items():
         dependency = ('BindsTo=' + owner_unit + '\nAfter=' + owner_unit + '\n') if owner_unit else ''
         text = ('[Unit]\nDescription=Inactive reviewed MLDSAFAIL operator unit\n' + dependency +
-                '[Service]\nType=oneshot\nDelegate=yes\nUser=' + user + '\nUMask=0077\n'
+                '[Service]\nType=oneshot\nDelegate=yes\n' +
+                ('' if user_manager else 'User=' + user + '\n') + 'UMask=0077\n'
                 'WorkingDirectory=' + str(source) + '\n'
                 'Environment=DOCKER_HOST=unix://' + (docker_socket or '/run/user/' + str(uid) + '/docker.sock') + '\n'
                 'Environment=XDG_RUNTIME_DIR=/run/user/' + str(uid) + '\n'
@@ -104,7 +113,7 @@ def render(source, interpreter, metadata, configuration, user, uid, output, *, m
                          (('BindsTo=' + owner_unit + '\nAfter=' + owner_unit + '\n') if owner_unit else '') + '[Timer]\nOnBootSec=2min\nOnUnitActiveSec=5min\n[Install]\nWantedBy=timers.target\n')
         timer.chmod(0o600)
         checksums[timer.name] = hashlib.sha256(timer.read_bytes()).hexdigest()
-    report = dict(source_commit=metadata['source_commit'], source_directory=str(source),
+    report = dict(manager_scope='user' if user_manager else 'system', expected_uid=uid, source_commit=metadata['source_commit'], source_directory=str(source),
                   interpreter=str(interpreter), interpreter_version=version, interpreter_sha256=hashlib.sha256(interpreter.read_bytes()).hexdigest(),
                   module_source_verified=True, configuration=config_status, unit_sha256=checksums,
                   installed=False, activated=False, native_systemd_verification_pending=True,
@@ -127,6 +136,7 @@ if __name__ == '__main__':
     parser.add_argument('--uid', type=int, required=True)
     parser.add_argument('--output', required=True)
     parser.add_argument('--monitor-only', action='store_true')
+    parser.add_argument('--user-manager', action='store_true')
     parser.add_argument('--docker-socket')
     parser.add_argument('--cgroup-root', default='/sys/fs/cgroup/system.slice')
     parser.add_argument('--monitor-name', default='mldsafail-monitor')
@@ -135,7 +145,7 @@ if __name__ == '__main__':
     try:
         result = render(args.source, args.interpreter, json.loads(args.metadata.read_text()),
                         json.loads(args.configs.read_text()), args.user, args.uid, args.output, monitor_only=args.monitor_only, docker_socket=args.docker_socket, cgroup_root=args.cgroup_root,
-                        monitor_name=args.monitor_name, owner_unit=args.owner_unit)
+                        monitor_name=args.monitor_name, owner_unit=args.owner_unit, user_manager=args.user_manager)
         print(json.dumps({'operator_units_rendered': True, 'activated': False}))
     except Exception:
         print(json.dumps({'operator_units_render_failed': True}))

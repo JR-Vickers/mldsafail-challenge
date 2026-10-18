@@ -154,7 +154,7 @@ def monitor_and_load(*, root, source, compose, env, base, token, images, daemon,
     parent = str(Path(config['operator_parent']).parent)
     report = render(str(source), sys.executable, metadata, {'monitor': str(path)},
                     pwd.getpwuid(os.getuid()).pw_name, os.getuid(), str(units), monitor_only=True,
-                    docker_socket=daemon['socket'], cgroup_root=parent, monitor_name=name, owner_unit=owner)
+                    docker_socket=daemon['socket'], cgroup_root=parent, monitor_name=name, owner_unit=owner, user_manager=True)
     directory = Path.home() / '.config/systemd/user'
     if not directory.is_dir():
         raise RuntimeError('Existing user unit directory required')
