@@ -13,11 +13,13 @@ See the [new disposable production integration receipt](acceptance/integration/p
 for independently tracked monitoring, immutable artifacts/configuration, fresh epoch
 and rehearsal/cleanup outcomes. The selected rollback is matching-evaluator source
 `26c5f2f`; original `4602f45` artifacts and incompatibility remain retained.
-The second fresh epoch passed its audit, but frozen rehearsal B is ineligible for
-complete acceptance because fixture clones inherit Compose membership labels.
-The local reviewed correction excludes those labels and verifies the original
-coordinator plus independent probe before monitoring; it is not hotpatched into B.
-Runtime disposition and terminal cleanup are still pending.
+A and B epochs passed their audits. B completed all fault assertions, then failed
+before Python monitor execution with `216/GROUP`; no heartbeat was sent. Independent
+terminal cleanup and database-preserving cache retirement passed. Reviewed source
+`a06bf4a` fixes fixture ownership, user-manager rendering, journal/phase races and
+owned-client capture. A three-invocation native canary and complete C prelaunch
+packet passed independently. The single owner-authorized C rehearsal is running;
+final load, notification delivery and cleanup acceptance remain pending.
 
 The owner is ready to begin guided production setup, superseding the earlier
 setup deferral. Follow [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md), beginning with

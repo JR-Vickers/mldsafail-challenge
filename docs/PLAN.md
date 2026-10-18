@@ -195,17 +195,19 @@ manufacture a score to compensate for infrastructure failure.
 ## 10. Production, recovery, notifications and pilot
 
 The [2026-10-16 disposable production receipt](acceptance/integration/production-rehearsal-20261016.md)
-tracks service-only monitoring, immutable release/configuration, one fresh epoch
-and disposable rehearsal/cleanup separately. The first operator source `822ba91` passed scoped native phases but failed its
-retry orchestration deadline; independent terminal cleanup passed. The owner
-subsequently authorized a new epoch after repairs. Corrected operator `74c2aa8`
-and its exact second rehearsal packet are independently reviewed. Native builds and exact artifact retention passed;
-B passed its fresh epoch audit, but a subsequently confirmed fixture Compose-label
-defect makes B ineligible for full rehearsal/monitor/load acceptance. Its frozen
-execution and cleanup remain pending; the independently reviewed local fix does
-not alter B. Preserve all partial outcomes and do not generate another epoch
-automatically. Backups stay
-indefinitely deferred and successful service heartbeats cannot imply production acceptance.
+tracks service-only monitoring, immutable release/configuration, fresh audited epochs
+and disposable rehearsal/cleanup separately. A failed its retry orchestration
+deadline; B passed all seven fault assertions but failed monitor startup with
+systemd `216/GROUP`. Both epochs passed their audits; both terminal cleanups and
+scoped cache retirements passed independent verification with evidence retained.
+Reviewed corrections address fixture Compose labels, monitor journal/phase races,
+user-manager identity switching and owned-client output capture. Source `a06bf4a`
+passed 1,068 tests (13 skipped) plus eight contract checks. Its three-invocation
+native monitor canary and exact C prelaunch packet passed independent review.
+The owner-authorized single C epoch/rehearsal is running; its final outcome,
+notification delivery and independent cleanup remain pending. No automatic epoch
+replacement is authorized. Backups stay indefinitely deferred, and successful
+service heartbeats cannot imply production acceptance.
 
 On 2026-10-16 the owner confirmed readiness to begin guided production preparation,
 superseding the earlier setup deferral. The [production setup handoff](PRODUCTION_SETUP.md)

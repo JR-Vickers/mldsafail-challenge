@@ -9,10 +9,10 @@ No push or publication is authorized by this receipt.
 
 | Workstream | Disposition |
 |---|---|
-| Service-only monitoring | Implemented and locally tested; native delivery/rehearsal outcome pending below. |
+| Service-only monitoring | Implemented, tested and independently verified by the corrected three-invocation native canary; candidate delivery/load acceptance remains pending C. |
 | Immutable releases and private configuration | Native images retained and independently checksum-verified; production cohort remains pending a future activation epoch. |
-| Fresh audited rehearsal epoch | Passed the single-attempt frozen viability workflow, sealing and separate audit; rehearsal-only. |
-| Disposable rehearsal and cleanup | Submission/audit, cohort filtering, rollback and forward repair passed; retry orchestration deadline failed; independent terminal cleanup passed. Remaining phases not reached. |
+| Fresh audited rehearsal epoch | A and B passed viability, sealing and separate audits; the explicitly authorized single C attempt is running. All are rehearsal-only. |
+| Disposable rehearsal and cleanup | B passed application/cohort/rollback/forward and all fault assertions; monitor startup failed. Independent cleanup and database-preserving cache retirement passed. C is running. |
 
 ## Frozen source and artifacts
 
@@ -233,3 +233,40 @@ owned runner's default byte capture, checks the expected exit status, and waits
 for its phase-specific journal receipt. Independent source review and 61 focused
 tests passed. The failed canary/source remain retained. A fresh reviewed canary
 and final source/packet checks remain required before the authorized C epoch.
+
+
+## Authorized corrected C launch — 2026-10-18
+
+Frozen operator source: `a06bf4aa8e29b19fc81841f12cb95388aa1d13e1`.
+Independent source/packet reviews passed. Focused checks passed 61 tests;
+`make check` passed 1,068 tests with 13 skips plus eight contract checks.
+Canary B exercised the actual user-manager monitor three times through the shared
+invocation helper, with distinct journal IDs, UID/cgroup identity, expected Python
+exit status and source-bound cleanup. Heartbeats remained disabled and no daemon
+or epoch was created. Its failed predecessor remains retained.
+
+Independent canary/prelaunch receipt SHA256:
+`44722cb23e16afd2980ca6f398e0e47b738a8dbda039f9012c2d3e23798abd52`.
+B cache retirement postflight SHA256:
+`d10917219fc3cc942b92072452babbbe2bb641a7d8f206c8d4ec113dc9245c5e`.
+The PostgreSQL archive was independently verified against all 1,370 entries before
+removing only B's exact stopped store; all prior epochs, archives, configuration,
+source and failed/partial evidence remain retained. All protected identities and
+resource floors passed. The final native installed preflight matched complete
+source/context/import inventories, Python 3.12.10, interpreter/dependency identities,
+all seven archives and the owner's previously confirmed private endpoint identity.
+
+- Rehearsal protocol SHA256: `263e15c27c13038540b53667943d294fadafed37f4e06fce77bffe64bbd58801`.
+- Driver configuration SHA256: `7c59790ccfbda8b77a917ed757b2db3297abfd58addc5a54a68572164cad785e`.
+- Operator manifest SHA256: `6ad442e0e06cf2b0fedacf2604110744f0da8abd9cff00b29829492c0f5152e3`.
+- Final review packet SHA256: `1006812a19047000404b411acf7e1282228bb59c9bb839710a748f65502e4bd4`.
+- Epoch protocol remains `8ef1c2a0e84d0b15492a7c9b9b189a76dddffc603db18cf6120952fa0286a723`.
+
+The single authorized C rehearsal is launched in a fresh delegated operator unit
+and fresh short state paths. Earlier pre-epoch contexts remain immutable; canary
+failures did not consume extra epochs. Actual unit birth/delegation and resource
+floors after image import remain enforced runtime gates before epoch generation.
+No automatic epoch replacement or production activation is authorized. Final
+runtime outcomes, owner email confirmation/check pause and independent cleanup
+remain pending. Backups, measurement, historical reproduction, live OAuth/TLS,
+public launch and 0.6.0 adoption gates remain open.
