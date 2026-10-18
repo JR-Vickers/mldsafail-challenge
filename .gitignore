@@ -15,3 +15,6 @@ debug*
 # Protected integration bundles, inventories, artifacts and raw receipts.
 results/integration-preservation/
 results/integration-evidence/
+
+# Private disposable diagnostic source drafts, receipts and logs.
+results/production-diagnostics/

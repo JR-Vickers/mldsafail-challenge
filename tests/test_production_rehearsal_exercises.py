@@ -193,3 +193,36 @@ def test_restore_requires_exact_service_and_surviving_independent_probe(failure)
             verify_restored_coordinator(value)
     else:
         verify_restored_coordinator(value)
+
+
+def test_ownership_observer_has_isolated_authority_and_no_lifecycle_writes(tmp_path, monkeypatch):
+    from scripts import production_rehearsal_exercises as module
+    value = runner(tmp_path)
+    value.env = {'MLDSAFAIL_OWNED_CLIENT_ROOT': str(tmp_path)}
+    value.j['owned_attempts'] = [['owned', 1]]
+    value.touch = lambda: pytest.fail('Read-only observer touched main journal')
+    original = value.path.read_bytes()
+    calls = []
+    def inspect(observer, allowed):
+        assert allowed == 'owned'
+        assert observer.j is not value.j and observer.j['owned_attempts'] == [['owned', 1]]
+        observer.j['owned_attempts'].append(['isolated', 2])
+        observer.call(['docker', 'ps', '-aq'])
+        return []
+    monkeypatch.setattr(Exercises, 'inspect_ownership', inspect)
+    def command(argv, **kwargs):
+        assert kwargs['env'] is not value.env
+        assert kwargs['env']['MLDSAFAIL_OWNED_CLIENT_RECEIPT'].startswith('observer-clients-')
+        assert 'cancel' in kwargs
+        calls.append(kwargs)
+        return b''
+    monkeypatch.setattr(module, 'command', command)
+    check = value.ownership_observer(tmp_path, 'owned')
+    assert check()
+    assert value.j['owned_attempts'] == [['owned', 1]]
+    assert value.path.read_bytes() == original
+    assert len(list(tmp_path.glob('observer-observations-*.json'))) == 1
+    check.cancel()
+    with pytest.raises(RuntimeError, match='cancelled'):
+        check()
+    assert len(calls) == 1

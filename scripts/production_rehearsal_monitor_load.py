@@ -211,9 +211,7 @@ def monitor_and_load(*, root, source, compose, env, base, token, images, daemon,
                 runner.j['owned_attempts'].append([allowed, 1]); runner.touch()
                 runner.wait(lambda: runner.probe('state', submission=allowed)['state'] == 'running', 120, allowed)
             rows = []
-            def health():
-                runner.guard(allowed)
-                return True
+            health = runner.ownership_observer(root, allowed)
             measurement = staging_read_load.run(base, token, health, duration=300, progress=rows.append)
             owned_daemon.publish(root / ('load-' + phase + '.json'), dict(measurement=measurement, requests=rows))
             if not measurement['passed'] or measurement['requests'] != 1560:

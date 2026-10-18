@@ -103,7 +103,7 @@ def validate(config):
 def client_run(argv, *, env=None, **kwargs):
     root = Path(env['MLDSAFAIL_OWNED_CLIENT_ROOT'])
     receipt = env.get('MLDSAFAIL_OWNED_CLIENT_RECEIPT', 'clients.json')
-    if not re.fullmatch(r'(clients|cleanup-clients-[a-f0-9]{32})\.json', receipt):
+    if not re.fullmatch(r'(clients|(?:cleanup|observer)-clients-[a-f0-9]{32})\.json', receipt):
         raise ValueError('Invalid client receipt name')
     path = root / receipt
     clients = json.loads(path.read_text()) if path.exists() else []
@@ -123,9 +123,9 @@ def client_run(argv, *, env=None, **kwargs):
     return result
 
 
-def command(argv, *, cwd=None, env=None, timeout=120, input=None):
+def command(argv, *, cwd=None, env=None, timeout=120, input=None, cancel=None):
     return client_run(argv, cwd=cwd, env=env, input=input,
-                      stderr=subprocess.DEVNULL, timeout=timeout).stdout
+                      stderr=subprocess.DEVNULL, timeout=timeout, **({'cancel': cancel} if cancel is not None else {})).stdout
 
 
 def cleanup(root, env, journal=None, errors_out=None):
@@ -133,6 +133,14 @@ def cleanup(root, env, journal=None, errors_out=None):
     journal = journal if journal is not None else json.loads((root / 'journal.json').read_text())
     run_id = journal['run_id']
     errors = list(errors_out or [])
+    from scripts.read_load_observer import quiesce
+    if not quiesce(root):
+        errors.append(dict(kind='observer', step='quiescence', error_type='TimeoutError'))
+        journal.update(cleanup_complete=False, cleanup_errors=errors, cleanup_phase='observer_incomplete')
+        atomic_json(root / 'journal.json', journal)
+        if errors_out is not None:
+            errors_out[:] = errors
+        return False
     if journal.get('monitor_units'):
         try:
             from scripts.production_rehearsal_monitor_load import stop_monitors
@@ -146,7 +154,7 @@ def cleanup(root, env, journal=None, errors_out=None):
         except Exception as error:
             errors.append({'kind': 'journal', 'step': phase, 'error_type': type(error).__name__})
     all_clients = []
-    for client_path in [root / 'clients.json', *root.glob('cleanup-clients-*.json')]:
+    for client_path in [root / 'clients.json', *root.glob('cleanup-clients-*.json'), *root.glob('observer-clients-*.json')]:
         try:
             clients = json.loads(safe_path(client_path).read_text()) if client_path.exists() else []
             if not isinstance(clients, list):

@@ -201,7 +201,9 @@ def secure_created_domain(entry, domain):
 
 
 def run(argv, entries, save, evidence_directory, *, timeout, env=None, stdout=None,
-        stderr=None, text=False, check=True, capture_output=False, input=None, cwd=None, client_cgroup_root=None, stdin=None):
+        stderr=None, text=False, check=True, capture_output=False, input=None, cwd=None, client_cgroup_root=None, stdin=None, cancel=None):
+    if cancel is not None and cancel.is_set():
+        raise RuntimeError('Owned client cancelled')
     if sys.platform != 'linux':
         raise RuntimeError('Durable owned clients require native Linux')
     import shutil
@@ -250,10 +252,14 @@ def run(argv, entries, save, evidence_directory, *, timeout, env=None, stdout=No
         if process.pid not in [int(value) for value in (domain / 'cgroup.procs').read_text().split()]:
             raise RuntimeError('Bootstrap cgroup membership not established')
         save()  # Durable acknowledgement precedes the first possible mutation.
+        if cancel is not None and cancel.is_set():
+            raise RuntimeError('Owned client cancelled')
         os.write(write_fd, b'1')
         os.close(write_fd)
         write_fd = None
         def observe():
+            if cancel is not None and cancel.is_set():
+                raise RuntimeError('Owned client cancelled')
             if verify_domain(entry) is None:
                 raise RuntimeError('Owned client domain disappeared during execution')
         capture(process, payload.encode() if isinstance(payload, str) else payload, timeout, buffers, observe)

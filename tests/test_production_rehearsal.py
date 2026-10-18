@@ -234,3 +234,31 @@ def test_monitor_phase_refuses_wrong_exit_before_accepting_receipt(monkeypatch, 
     monkeypatch.setattr(monitoring, 'wait_monitor_receipt', lambda *a, **kw: pytest.fail('Unexpected receipt acceptance'))
     with pytest.raises(RuntimeError, match='exit status'):
         monitoring.invoke_monitor('owned', {}, healthy=healthy)
+
+
+def test_cleanup_collects_separate_observer_registry_before_settle(tmp_path, monkeypatch):
+    observer = dict(id='observer-client')
+    owned_daemon.publish(tmp_path / ('observer-clients-' + 'a' * 32 + '.json'), [observer])
+    captured = []
+    def settle(journal, clients, *args, **kwargs):
+        captured.extend(clients)
+        return [dict(kind='test_stop')]
+    monkeypatch.setattr(rehearsal.operator_daemon_lifecycle, 'settle', settle)
+    monkeypatch.setattr(rehearsal, 'command', lambda *a, **k: pytest.fail('Mutation after barrier failure'))
+    assert not rehearsal.cleanup(tmp_path, {}, dict(run_id='owned'))
+    assert captured == [observer]
+
+
+def test_observer_client_registry_does_not_write_main_registry(tmp_path, monkeypatch):
+    class Completed:
+        stdout = b'ok'
+    def run(argv, clients, save, root, **kwargs):
+        clients.append(dict(id='observer')); save(); return Completed()
+    monkeypatch.setattr(rehearsal.owned_client, 'run', run)
+    main = tmp_path / 'clients.json'
+    owned_daemon.publish(main, [dict(id='main')])
+    receipt = 'observer-clients-' + 'b' * 32 + '.json'
+    rehearsal.client_run(['docker', 'ps'], env=dict(MLDSAFAIL_OWNED_CLIENT_ROOT=str(tmp_path),
+        MLDSAFAIL_OWNED_CLIENT_RECEIPT=receipt), timeout=1)
+    assert json.loads(main.read_text()) == [dict(id='main')]
+    assert json.loads((tmp_path / receipt).read_text()) == [dict(id='observer')]

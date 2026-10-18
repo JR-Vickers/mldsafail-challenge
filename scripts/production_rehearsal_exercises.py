@@ -173,6 +173,48 @@ class Exercises(historical.Driver):
 
     def guard(self, allowed=None):
         self.touch()
+        return self.inspect_ownership(allowed)
+
+    def ownership_observer(self, root, allowed=None):
+        """Snapshot read-only authority; isolate client and evidence journals."""
+        import copy
+        observer = copy.copy(self)
+        observer.j = copy.deepcopy(self.j)
+        observer.env = {**self.env, 'MLDSAFAIL_OWNED_CLIENT_RECEIPT':
+                        'observer-clients-' + uuid.uuid4().hex + '.json'}
+        observer.low_memory_since = None
+        import threading
+        cancelled = threading.Event()
+        def call(argv, timeout=120, input=None):
+            if cancelled.is_set():
+                raise RuntimeError('Ownership observer cancelled')
+            return command(argv, env=observer.env, timeout=timeout,
+                input=input.encode() if isinstance(input, str) else input,
+                cancel=cancelled).decode().strip()
+        observer.call = call
+        path = root / (observer.env['MLDSAFAIL_OWNED_CLIENT_RECEIPT'].replace('clients', 'observations'))
+        rows = []
+        def check():
+            started = time.monotonic()
+            error_type = None
+            try:
+                if cancelled.is_set():
+                    raise RuntimeError('Ownership observer cancelled')
+                observer.inspect_ownership(allowed)
+                return True
+            except Exception as error:
+                error_type = type(error).__name__[:80]
+                raise
+            finally:
+                rows.append(dict(started=started, seconds=time.monotonic() - started,
+                                 error_type=error_type))
+                owned_daemon.publish(path, rows)
+        check.cancel = cancelled.set
+        check.owner_root = str(root)
+        return check
+
+    def inspect_ownership(self, allowed=None):
+        """Read-only ownership/floor checks; never update the lifecycle journal."""
         active = self.probe('active')['active']
         historical.require(set(active) <= ({allowed} if allowed else set()), 'Unrelated evaluation appeared')
         available = int(next(line.split()[1] for line in Path('/proc/meminfo').read_text().splitlines()

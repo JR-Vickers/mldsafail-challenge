@@ -251,3 +251,29 @@ def test_permission_setup_refuses_preexisting_populated_domain(tmp_path, monkeyp
     with pytest.raises(RuntimeError, match='empty before admission'):
         client.secure_created_domain(entry, domain)
     assert entry['cgroup']['mode'] == 0o700
+
+
+def test_cancelled_client_cannot_create_domain_or_spawn(tmp_path, monkeypatch):
+    import threading
+    cancelled = threading.Event(); cancelled.set()
+    monkeypatch.setattr(client, 'prepare_domain', lambda *a: pytest.fail('Created domain after cancellation'))
+    entries = []
+    with pytest.raises(RuntimeError, match='cancelled'):
+        client.run(['true'], entries, lambda: None, tmp_path, timeout=1, cancel=cancelled)
+    assert entries == []
+
+
+def test_cancel_during_capture_uses_existing_owned_cleanup(emulated_domain, monkeypatch):
+    import threading
+    cancelled = threading.Event()
+    entries = []
+    def capture(process, payload, timeout, buffers, observe):
+        cancelled.set()
+        observe()
+        pytest.fail('Capture ignored cancellation')
+    monkeypatch.setattr(client, 'capture', capture)
+    with pytest.raises(RuntimeError, match='cancelled'):
+        client.run([client.sys.executable, '-c', 'pass'], entries,
+            lambda: None, emulated_domain, timeout=1, cancel=cancelled)
+    assert entries[0]['finished']
+    assert not Path(entries[0]['cgroup']['path']).exists()
