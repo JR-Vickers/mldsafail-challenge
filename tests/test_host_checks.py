@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
+import subprocess
+import pytest
 from deploy import host_checks
 
 
@@ -54,7 +56,11 @@ def test_monitor_configuration_validation():
             host_checks.validate_config({**config, **changes})
 
 
-def test_service_main_skips_backup_jobs_and_reports_scope(tmp_path, monkeypatch, capsys):
+@pytest.mark.parametrize('lease_error', [None,
+    subprocess.TimeoutExpired(['secret-command'], 10, output='secret-output'),
+    subprocess.CalledProcessError(1, ['secret-command'], output='secret-output'),
+    ValueError('secret-value')])
+def test_service_main_skips_backup_jobs_and_reports_scope(tmp_path, monkeypatch, capsys, lease_error):
     import json
     import pytest
     config = tmp_path / 'monitor.json'
@@ -71,6 +77,8 @@ def test_service_main_skips_backup_jobs_and_reports_scope(tmp_path, monkeypatch,
         if 'inspect' in argv:
             return '{"Running":true}'
         if 'exec' in argv:
+            if lease_error is not None:
+                raise lease_error
             return '[]'
         return 'container-id'
     monkeypatch.setattr('subprocess.check_output', command)
@@ -90,10 +98,18 @@ def test_service_main_skips_backup_jobs_and_reports_scope(tmp_path, monkeypatch,
     monkeypatch.setattr('deploy.healthchecks.notify', lambda config, check, healthy: delivered.append(healthy))
     with pytest.raises(SystemExit) as exit:
         host_checks.main()
-    assert exit.value.code == 0 and delivered == [True]
+    assert exit.value.code == (0 if lease_error is None else 1)
+    assert delivered == [lease_error is None]
     assert not any('backup.service' in argv for argv in calls)
     assert any('service-job.service' in argv for argv in calls)
-    assert json.loads(capsys.readouterr().out) == dict(healthy=True, checks=[], scope='service', backup_status='deferred')
+    output = capsys.readouterr().out
+    expected = dict(healthy=lease_error is None,
+                    checks=[] if lease_error is None else ['scheduled_job'],
+                    scope='service', backup_status='deferred')
+    if lease_error is not None:
+        expected['inspection_errors'] = [dict(check='lease_inspection', error_type=type(lease_error).__name__)]
+    assert json.loads(output) == expected
+    assert 'secret' not in output
 
 
 def test_malformed_config_never_sends_heartbeat(tmp_path, monkeypatch):

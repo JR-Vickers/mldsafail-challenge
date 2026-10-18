@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import threading
 import time
+import urllib.error
 import urllib.request
 
 
@@ -22,6 +23,8 @@ def run(server, token, health, duration=300, progress=None, request_open=None):
     def read(path, authenticated=False):
         started = time.monotonic()
         failed = False
+        error_type = None
+        http_status = None
         request = urllib.request.Request(server.rstrip('/') + path,
             headers={'Authorization': 'Bearer ' + token} if authenticated else {})
         try:
@@ -29,23 +32,35 @@ def run(server, token, health, duration=300, progress=None, request_open=None):
                 response.read(1024 * 1024)
                 if response.status != 200:
                     raise RuntimeError()
-        except Exception:
+        except Exception as error:
             failed = True
+            # Retain bounded classifications, never URLs, headers or messages.
+            error_type = type(error).__name__[:80]
+            if isinstance(error, urllib.error.HTTPError) and type(error.code) is int and 100 <= error.code <= 599:
+                http_status = error.code
             with lock:
                 failures.append('read_failed')
         finally:
             with lock:
-                elapsed = time.monotonic() - started
+                finished = time.monotonic()
+                elapsed = finished - started
                 latencies.append(elapsed)
             if progress is not None:
-                progress(dict(route=path, seconds=elapsed, failed=failed))
-    started = time.monotonic()
+                row = dict(route=path, seconds=elapsed, failed=failed,
+                           started_after_seconds=started - phase_started,
+                           finished_after_seconds=finished - phase_started)
+                if failed:
+                    row.update(error_type=error_type, http_status=http_status)
+                progress(row)
+    phase_started = time.monotonic()
+    max_scheduling_lag = 0
     futures = []
     with ThreadPoolExecutor(max_workers=10) as pool:
         for index in range(int(duration * 5)):
-            delay = started + index / 5 - time.monotonic()
+            delay = phase_started + index / 5 - time.monotonic()
             if delay > 0:
                 time.sleep(delay)
+            max_scheduling_lag = max(max_scheduling_lag, time.monotonic() - (phase_started + index / 5))
             # Five aggregate anonymous requests/sec; authenticated one/5 seconds.
             futures.append(pool.submit(read, '/' if index % 2 else '/health/ready'))
             if index % 25 == 0:
@@ -58,7 +73,8 @@ def run(server, token, health, duration=300, progress=None, request_open=None):
     return {'passed': not failures and not floors and p95 < 1 and p99 < 2,
             'requests': len(latencies), 'read_failures': len(failures),
             'host_floor_violations': len(floors), 'p95_seconds': p95, 'p99_seconds': p99,
-            'duration_seconds': duration, 'solver_jobs_submitted': 0}
+            'duration_seconds': duration, 'elapsed_seconds': time.monotonic() - phase_started,
+            'max_scheduling_lag_seconds': max_scheduling_lag, 'solver_jobs_submitted': 0}
 
 
 def main():

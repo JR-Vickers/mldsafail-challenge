@@ -176,14 +176,17 @@ with Session(engine) as session:
  print(json.dumps([value.isoformat() if value is not None else None for value in values]))
 '''
     failed_jobs = []
+    inspection_errors = []
     try:
         if not daemon_ok:
             raise RuntimeError('Dedicated daemon identity inspection failed')
         leases = [datetime.fromisoformat(value) for value in json.loads(command(
             compose + ['exec', '-T', 'coordinator', '/app/.venv/bin/python', '-c', code]))]
-    except Exception:
+    except Exception as error:
         leases = []
         failed_jobs.append('lease_inspection')
+        # Never include subprocess output, SQL, credentials or exception messages.
+        inspection_errors.append(dict(check='lease_inspection', error_type=type(error).__name__[:80]))
     for unit in config.get('service_scheduled_units' if scope == 'service' else 'scheduled_units', []):
         try:
             if command(['systemctl', 'show', unit, '--property=Result', '--value']).strip() != 'success':
@@ -206,8 +209,11 @@ with Session(engine) as session:
     if config.get('alert_enabled'):
         credential = private_file(config['alert_token_file']).read_text().strip()
         deliver(config['alert_url'], credential, Path(config['alert_state']), failures)
-    print(json.dumps({'healthy': not failures, 'checks': sorted(failures), 'scope': scope,
-                      'backup_status': 'deferred' if scope == 'service' else ('failed' if 'backup' in failures else 'verified')}))
+    result = {'healthy': not failures, 'checks': sorted(failures), 'scope': scope,
+              'backup_status': 'deferred' if scope == 'service' else ('failed' if 'backup' in failures else 'verified')}
+    if inspection_errors:
+        result['inspection_errors'] = inspection_errors
+    print(json.dumps(result))
     raise SystemExit(0 if not failures else 1)
 
 if __name__ == '__main__':
