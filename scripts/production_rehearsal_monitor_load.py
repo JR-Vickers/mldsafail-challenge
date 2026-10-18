@@ -212,7 +212,7 @@ def monitor_and_load(*, root, source, compose, env, base, token, images, daemon,
                 runner.wait(lambda: runner.probe('state', submission=allowed)['state'] == 'running', 120, allowed)
             rows = []
             health = runner.ownership_observer(root, allowed)
-            measurement = staging_read_load.run(base, token, health, duration=300, progress=rows.append)
+            measurement = staging_read_load.run(base, token, health, duration=300, progress=rows.append, read_only_health=True)
             owned_daemon.publish(root / ('load-' + phase + '.json'), dict(measurement=measurement, requests=rows))
             if not measurement['passed'] or measurement['requests'] != 1560:
                 raise RuntimeError('Declared load thresholds failed')

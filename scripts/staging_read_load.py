@@ -19,13 +19,19 @@ def percentile(values, quantile):
     return sorted(values)[max(0, math.ceil(len(values) * quantile) - 1)]
 
 
-def run(server, token, health, duration=300, progress=None, request_open=None):
+def run(server, token, health, duration=300, progress=None, request_open=None, *, read_only_health=False):
+    # Older callers mutate lifecycle journals from health(); never thread those
+    # callbacks silently. Reviewed callers explicitly bind read-only observation.
+    if read_only_health is not True:
+        raise ValueError('Read-only asynchronous health callback review required')
     if not 0 < duration <= 300:
         raise ValueError('Maximum load duration is five minutes')
     request_open = urllib.request.urlopen if request_open is None else request_open
     floors = []
     lock = threading.Lock()
     records = {}
+    evidence_errors = []
+    phase_closed = threading.Event()
     def read(identifier, path, authenticated, scheduled, dispatched):
         started = time.monotonic()
         failed = False
@@ -56,7 +62,15 @@ def run(server, token, health, duration=300, progress=None, request_open=None):
             if failed:
                 row.update(error_type=error_type, http_status=http_status)
             with lock:
+                if phase_closed.is_set():
+                    return
                 records[identifier] = row
+            if progress is not None and not phase_closed.is_set():
+                try:
+                    progress(dict(row))
+                except Exception as error:
+                    with lock:
+                        evidence_errors.append(type(error).__name__[:80])
     observer = Observer(health)
     observation_valid = observer.start()
     phase_started = time.monotonic()
@@ -119,13 +133,19 @@ def run(server, token, health, duration=300, progress=None, request_open=None):
         observer_stopped = observer.close()
     elapsed = time.monotonic() - phase_started
     with lock:
+        phase_closed.set()
         rows = [dict(records[item['request_id']]) if item['request_id'] in records else
                 dict(item, incomplete=True) for item in submitted]
         measured = [row['seconds'] for row in rows if not row.get('incomplete')]
         failure_count = sum(bool(row.get('failed')) for row in rows)
+        evidence_failures = list(evidence_errors)
     if progress is not None:
         for row in rows:
-            progress(row)
+            if row.get('incomplete'):
+                try:
+                    progress(row)
+                except Exception as error:
+                    evidence_failures.append(type(error).__name__[:80])
     incomplete = sum(bool(row.get('incomplete')) for row in rows)
     terminated = observer_stopped and workers_stopped and not pending
     p95 = percentile(measured, .95) if measured else None
@@ -133,11 +153,12 @@ def run(server, token, health, duration=300, progress=None, request_open=None):
     if not observation_valid and not floors:
         floors.append('host_floor_failed')
     return {'passed': (observation_valid and pacing_valid and terminated and not incomplete
-                       and len(measured) == expected and not failure_count and not floors
+                       and len(measured) == expected and not failure_count and not floors and not evidence_failures
                        and p95 is not None and p95 < 1 and p99 < 2),
             'requests': len(measured), 'expected_requests': expected,
             'dispatched_requests': len(submitted), 'incomplete_requests': incomplete,
             'undispatched_requests': expected - len(submitted),
+            'evidence_error_types': evidence_failures,
             'read_failures': failure_count, 'host_floor_violations': len(floors),
             'p95_seconds': p95, 'p99_seconds': p99,
             'pacing_valid': pacing_valid, 'observation_valid': observation_valid,
@@ -163,7 +184,7 @@ def main():
         return available >= 128 * 1024**2 and shutil.disk_usage('/srv').free >= 5 * 1024**3
     if not health():
         raise SystemExit('Preflight host floor failed')
-    result = run(args.server, private_token(args.token_file), health)
+    result = run(args.server, private_token(args.token_file), health, read_only_health=True)
     with args.output.open('x') as stream:
         json.dump(result, stream, indent=2)
     raise SystemExit(0 if result['passed'] else 1)

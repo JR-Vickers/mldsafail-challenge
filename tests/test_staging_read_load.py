@@ -47,7 +47,7 @@ def test_failed_read_diagnostics_are_bounded_and_private(scheduled, failure):
     def request_open(request, timeout):
         assert timeout == 2
         raise failure
-    result = staging_read_load.run('http://secret-host', 'secret-token', lambda: True,
+    result = staging_read_load.run('http://secret-host', 'secret-token', lambda: True, read_only_health=True,
                                    duration=.2, progress=rows.append, request_open=request_open)
     assert result['requests'] == result['read_failures'] == 2
     assert not result['passed'] and result['elapsed_seconds'] >= .2
@@ -61,7 +61,7 @@ def test_failed_read_diagnostics_are_bounded_and_private(scheduled, failure):
 
 def test_full_schedule_and_original_thresholds(scheduled):
     rows = []
-    result = staging_read_load.run('http://localhost', 'token', lambda: True,
+    result = staging_read_load.run('http://localhost', 'token', lambda: True, read_only_health=True,
         progress=rows.append, request_open=lambda *a, **k: Response())
     assert result['passed'] and result['requests'] == 1560
     assert result['elapsed_seconds'] == pytest.approx(300)
@@ -74,7 +74,7 @@ def test_deadline_miss_stops_without_catchup(scheduled, monkeypatch):
     now, _ = scheduled
     def oversleep(seconds): now[0] += seconds + .4
     monkeypatch.setattr(staging_read_load.time, 'sleep', oversleep)
-    result = staging_read_load.run('http://localhost', 'token', lambda: True,
+    result = staging_read_load.run('http://localhost', 'token', lambda: True, read_only_health=True,
         duration=1, request_open=lambda *a, **k: Response())
     assert not result['passed'] and not result['pacing_valid']
     assert result['requests'] == 2 and result['undispatched_requests'] == 4
@@ -86,7 +86,7 @@ def test_initial_check_and_stale_observation_stop_dispatch(scheduled, valid):
     now, healthy = scheduled
     healthy.start = lambda self: valid
     healthy.valid = lambda self: now[0] < .5
-    result = staging_read_load.run('http://localhost', 'token', lambda: True,
+    result = staging_read_load.run('http://localhost', 'token', lambda: True, read_only_health=True,
         duration=1, request_open=lambda *a, **k: Response())
     assert not result['passed'] and not result['observation_valid']
     assert result['host_floor_violations'] == 1
@@ -103,7 +103,7 @@ def test_queue_delay_is_separate_from_latency(scheduled, monkeypatch):
         def shutdown(self): return True
     monkeypatch.setattr(staging_read_load, 'RequestPool', DelayedPool)
     rows = []
-    result = staging_read_load.run('http://localhost', 'token', lambda: True,
+    result = staging_read_load.run('http://localhost', 'token', lambda: True, read_only_health=True,
         duration=.2, progress=rows.append, request_open=lambda *a, **k: Response())
     assert result['passed']
     assert all(row['queue_delay_seconds'] > 0 and row['seconds'] == 0 for row in rows)
@@ -149,7 +149,7 @@ def test_pending_reads_are_retained_and_termination_is_bounded(monkeypatch):
     started = time.monotonic()
     rows = []
     try:
-        result = staging_read_load.run('http://localhost', 'token', lambda: True,
+        result = staging_read_load.run('http://localhost', 'token', lambda: True, read_only_health=True,
             duration=.2, progress=rows.append, request_open=blocked)
         assert time.monotonic() - started < 1
         assert not result['passed'] and not result['termination_complete']
@@ -186,7 +186,7 @@ def test_second_paired_dispatch_cannot_hide_a_deadline_miss(scheduled, monkeypat
             return future
         def shutdown(self): return True
     monkeypatch.setattr(staging_read_load, 'RequestPool', SlowSubmit)
-    result = staging_read_load.run('http://localhost', 'token', lambda: True,
+    result = staging_read_load.run('http://localhost', 'token', lambda: True, read_only_health=True,
         duration=.2, request_open=lambda *a, **k: Response())
     assert not result['pacing_valid'] and not result['passed']
     assert result['dispatched_requests'] == 1
@@ -223,3 +223,41 @@ def test_unquiesced_observer_fences_cleanup_before_clients(tmp_path, monkeypatch
         assert report['cleanup_phase'] == 'observer_incomplete'
     finally:
         release.set(); assert real_quiesce(tmp_path, timeout=1)
+
+
+def test_completed_request_progress_survives_unfinished_peer(monkeypatch):
+    published = threading.Event()
+    release = threading.Event()
+    monkeypatch.setattr(staging_read_load, 'DRAIN_SECONDS', .01)
+    def reader(request, **kwargs):
+        if request.has_header('Authorization'):
+            assert published.wait(1), 'Completed read evidence waited for the whole phase'
+            release.wait(1)
+        return Response()
+    rows = []
+    def progress(row):
+        rows.append(row)
+        if not row.get('incomplete'):
+            published.set()
+    try:
+        result = staging_read_load.run('http://localhost', 'token', lambda: True, read_only_health=True,
+            duration=.2, request_open=reader, progress=progress)
+        assert published.is_set() and not result['passed']
+        assert len(rows) == 2 and sum(bool(row.get('incomplete')) for row in rows) == 1
+    finally:
+        release.set()
+
+
+def test_failed_evidence_publication_invalidates_phase_without_secrets(scheduled):
+    def fail(row): raise ValueError('secret-evidence')
+    result = staging_read_load.run('http://localhost', 'token', lambda: True, read_only_health=True,
+        duration=.2, request_open=lambda *a, **k: Response(), progress=fail)
+    assert result['requests'] == 2 and not result['passed']
+    assert result['evidence_error_types'] == ['ValueError', 'ValueError']
+    assert 'secret' not in json.dumps(result)
+
+
+def test_unreviewed_legacy_health_cannot_start_background_observer(monkeypatch):
+    monkeypatch.setattr(staging_read_load, 'Observer', lambda *a: pytest.fail('Started unreviewed observer'))
+    with pytest.raises(ValueError, match='callback review required'):
+        staging_read_load.run('http://localhost', 'token', lambda: pytest.fail('Legacy journal write'))
