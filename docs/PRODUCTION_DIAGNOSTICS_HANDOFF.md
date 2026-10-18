@@ -1,8 +1,43 @@
 # Next session: production diagnostics
 
-Updated 2026-10-18. The owner chose to end the session and investigate in a new
-one. This handoff is the next-session entrypoint from [PLAN.md](PLAN.md).
-No diagnostics or native continuation is left running.
+Updated 2026-10-18 after the bounded diagnostic continuation. Provisioning stopped
+on the disk floor before generation one. This handoff is the next-session
+entrypoint from [PLAN.md](PLAN.md). No diagnostic service was started and no
+native continuation is left running.
+
+## Current continuation outcome
+
+- Local checkpoint `f194bfaa69baff0f47b6137215e02ea5b693d138` fixes load pacing and
+  isolates ownership observation, with cancellation and a cleanup quiescence
+  barrier. Focused tests, independent source review and `make check` pass.
+- A reviewed read-only archive scan proves a storage shortfall: required unpacked
+  regular files total at least 1,184,630,872 bytes; available headroom above the
+  protected floor was 363,184,128 bytes. Provisioning is prohibited without
+  resolving at least the 821,446,744-byte deficit **plus** additional overhead.
+  No evidence deletion, C reuse, lower floor or additional spending is authorized.
+- Read-only final audit: nine retained C receipt hashes match; four protected
+  container/image identities match; C monitor has MainPID 0/no cgroup, timer is
+  inactive, exact daemon socket absent, delivery disabled, no user jobs. This is
+  a scoped audit, not a re-audit of every historical process/domain.
+- No diagnostic generation, image build, worker, synthetic data or private epoch
+  was created. Charge 900 seconds conservatively to the 7,200-second aggregate
+  native budget for all preflights/SSH/audits (not an exact measured runtime);
+  retain this debit on continuation. Local engineering is excluded.
+- Monitor/authentication/legacy comparisons and both corrected native load phases
+  remain unperformed. No monitor/application cause is established and no such
+  production change was made. Native pacing remains unvalidated.
+- The separate diagnostic callback remains incomplete. Its unreviewed draft is
+  retained privately, excluded from tracked runnable code. Complete component
+  timing, common fixture/token identity, actual legacy-source binding and
+  external lifecycle/budget admission before requesting exact-source review.
+  Production's fresh-epoch checks remain intact.
+
+The [dated diagnostic disposition](acceptance/integration/production-diagnostics-20261018.md)
+and [bounded protocol](PRODUCTION_DIAGNOSTIC_PROTOCOL.md) bind evidence, review and
+remaining work. The full-rehearsal approval packet is **not ready**. Do not ask
+for or execute a replacement epoch until diagnostic prerequisites are satisfied.
+
+The following sections retain the terminal C evidence and original open questions.
 
 ## Verified end state
 

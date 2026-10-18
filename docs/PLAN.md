@@ -6,27 +6,29 @@ historical 0.4.0 contracts and dated agendas. Frozen scientific requirements
 remain in [PRIMITIVE_SELECTION_SPEC.md](PRIMITIVE_SELECTION_SPEC.md); this
 consolidation changes supported interfaces, not profiles or score meaning.
 
-## Start here: next session
+## Start here: diagnostic storage stop
 
-The owner ended the 2026-10-18 session with **diagnostics deferred to a new
-session**. Rehearsal C failed acceptance; it is terminal, independently cleaned
-up, and its evidence is retained. No disposable service or heartbeat remains;
-the owner confirmed pausing the permanent Healthchecks check. Existing protected
-staging identities were unchanged at final verification.
+The 2026-10-18 diagnostic continuation stopped **before provisioning generation
+one**: freshly unpacked unchanged images require at least 1,184,630,872 bytes,
+but only 363,184,128 bytes were available above the protected 5 GiB disk floor.
+No new service, daemon, worker, image build or private epoch was started. The
+read-only postflight confirms unchanged protected identities and retained C
+receipts, disabled delivery, stopped C monitor/timer and absent C daemon socket.
 
-Read [the diagnostics handoff](PRODUCTION_DIAGNOSTICS_HANDOFF.md) first, then the
-[C terminal receipt](acceptance/integration/production-rehearsal-20261016.md#c-terminal-disposition--2026-10-18).
-The three open questions are failed monitor lease inspection, failed/slow
-authenticated reads under evaluation load, and load-test pacing/elapsed time.
-Causes remain unproven. Local diagnostic-only checkpoint `69cbd61` passed review
-and checks; it was never installed into C. Terminal outcomes are recorded in
-`a25396b`. These are local commits on `main`; nothing was pushed.
+Checkpoint `f194bfaa69baff0f47b6137215e02ea5b693d138` repairs load pacing locally:
+independent ownership observation/client journals, stale/failure stops, absolute
+deadlines without catch-up, bounded drain and cleanup quiescence. Independent
+source review and focused/full checks pass; native performance is unvalidated.
+Monitor and authentication causes remain unproven, with no speculative app fix.
 
-Begin with retained evidence and source, then prepare a bounded, independently
-reviewed diagnostic protocol. Do not restart C, reuse its ownership, regenerate an
-epoch, weaken limits, or treat historical setup agendas as current instructions.
-No additional epoch is authorized. Backups remain indefinitely deferred;
-production activation and the other acceptance gates remain open.
+Read [the diagnostic disposition](acceptance/integration/production-diagnostics-20261018.md),
+[bounded diagnostic protocol](PRODUCTION_DIAGNOSTIC_PROTOCOL.md) and
+[updated handoff](PRODUCTION_DIAGNOSTICS_HANDOFF.md). A separate complete synthetic
+diagnostic callback still needs implementation and exact independent review after
+capacity is resolved. Do not reuse terminal C or relax production epoch checks.
+No fresh full-rehearsal approval is requested or authorized; its diagnostic
+prerequisites remain incomplete. Backups and all separate activation gates remain
+deferred. Commits are local on `main`; nothing was pushed.
 
 ## 1. Objective
 
