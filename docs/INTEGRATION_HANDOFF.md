@@ -1,5 +1,10 @@
 # Canonical competition integration — 2026-10-13
 
+Current session entrypoint (2026-10-18):
+[production diagnostics handoff](PRODUCTION_DIAGNOSTICS_HANDOFF.md). The owner
+ended this session with diagnostics left for a new one. The dated history below
+does not authorize another epoch or restart of terminal rehearsal C.
+
 `engineering/integration` starts at audited public-launch source
 `6f60782cb7ddc7accc7cb325d1f0c8258082864b`. It incorporates main's package-build
 fix, startup socket-retirement safeguards, bounded lifecycle diagnostics,
@@ -34,11 +39,12 @@ elapsed/pacing evidence for future investigation. Independent review and 123 foc
 tests passed; `make check` passed 1,074 tests with 13 skips plus eight contract checks.
 It was not installed into C and does not alter C's failed disposition.
 
-The owner is ready to begin guided production setup, superseding the earlier
-setup deferral. Follow [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md), beginning with
-monitoring/email setup. The owner subsequently deferred backups indefinitely;
-recovery acceptance remains open. Native acceptance on the
-existing VPS is authorized; measurement and operational gates remain open.
+The owner began production preparation, superseding the earlier setup deferral.
+[PRODUCTION_SETUP.md](PRODUCTION_SETUP.md) records that setup; current next work
+is the diagnostics handoff above. Backups remain indefinitely deferred and
+recovery acceptance remains open. Earlier native acceptance authority does not
+authorize an additional epoch or restart of terminal ownership. Measurement and
+operational gates remain open.
 Production activation, publication and recruitment remain separate decisions.
 
 ## Native continuation — 2026-10-15

@@ -1,40 +1,47 @@
 # Production preparation and session handoff
 
-Updated 2026-10-16. The owner is ready to begin production preparation and wants
-a guided walkthrough. This supersedes the earlier request to defer that setup.
+Updated 2026-10-18. The owner began production preparation, superseding the earlier
+request to defer setup. The disposable rehearsal is now terminal; the owner ended
+the session and deferred diagnostics to a new one. Start with the
+[diagnostics handoff](PRODUCTION_DIAGNOSTICS_HANDOFF.md).
 The authoritative project plan remains [PLAN.md](PLAN.md).
 
 Owner update, 2026-10-16: backup setup is deferred indefinitely. Do not resume
 storage selection, backup provisioning or the credential-custody walkthrough
 unless the owner reopens it. The existing production recovery acceptance gate
-remains open. Next setup work is monitoring/email, followed by OAuth and private
-production configuration. The next engineering experiment is worker bytecode
-precompilation and its unchanged measurement gates.
+remains open. Current engineering work is inspection/load/pacing diagnosis;
+measurement and later OAuth/public setup remain separate gates.
 
 ## Current position
 
 The owner created a Healthchecks notification-test check and confirmed both actual
 missed-heartbeat failure and recovery emails on 2026-10-16. The permanent service
-check URL is saved and validated privately; it is not yet connected to a VPS
-monitor. Pausing the disposable test check has been requested but not confirmed.
+check URL is saved and validated privately. It was connected only to disposable
+rehearsal C after dry inspection. Scheduled checks then reported lease-inspection
+failure; the owner's DOWN email matches the first failure at 10:01:28 UTC on
+2026-10-18. C later failed evaluation load. Its monitor and temporary services are
+stopped and cleanup/retention independently verified; the owner confirmed pausing
+the permanent check. The planned notification/recovery tests were not reached.
+The earlier disposable notification-test check is distinct from that permanent
+check; its pause was requested but not independently recorded.
 Fresh production OAuth fields are populated and privately stored; live OAuth
 login and registration configuration have not been independently verified.
 A private draft production environment has fresh database/session secrets and
-the supplied OAuth fields. Immutable image and audited epoch/cohort identities
-remain pending; the draft is not deployable. Credentials and detailed progress
+the supplied OAuth fields. Immutable release/rollback images are retained and
+verified; production epoch/cohort binding remains pending its own fresh activation
+epoch. The draft is not deployable. Credentials and detailed progress
 receipts live outside Git in the owner's private configuration directory.
 
-The current host monitor includes mandatory backup freshness checks. Before
-connecting the permanent service endpoint, prepare an explicit service-only
-monitoring scope consistent with the indefinite backup deferral; do not fabricate
+The host monitor now supports explicit service scope with backups deferred;
+default full scope retains mandatory backup freshness checks. Do not fabricate
 backup freshness or treat a service heartbeat as production-readiness acceptance.
 No storage provider or recovery custody has been configured. No production
 provisioning or public activation is claimed.
 Use the existing VPS; no additional host purchase is assumed.
 
-The owner has authorized native acceptance protocols on that VPS and a separate
-review agent for the profiling checkpoint. Native source reviews, ownership
-reconciliation and independent cleanup remain required. Public listeners, trusted
+Earlier owner-authorized native protocols do not authorize another epoch or a
+restart of terminal C. Native source reviews, ownership reconciliation and
+independent cleanup remain required for any later concrete protocol. Public listeners, trusted
 certificate issuance, publication, recruitment, measurement-contract adoption and
 default activation still require their applicable evidence and separate decisions.
 
@@ -88,14 +95,17 @@ Production preparation can advance while those gates remain open.
 ## Resume in a new session
 
 Start with the [dated disposable rehearsal receipt](acceptance/integration/production-rehearsal-20261016.md)
-and [new protocol](PRODUCTION_REHEARSAL.md). The owner selected compatible rollback
+and [diagnostics handoff](PRODUCTION_DIAGNOSTICS_HANDOFF.md), then consult the
+[protocol](PRODUCTION_REHEARSAL.md). The owner selected compatible rollback
 source `26c5f2f` after exact `4602f45` proved evaluator-incompatible. Monitoring
 scopes and native release artifacts are implemented; do not repeat completed builds
 or silently replace a failed fresh epoch. Historical acceptance remains separate.
 
 Read [PLAN.md](PLAN.md), this document and the current integration handoff. The next
-engineering tasks are service-only monitoring preparation, exact immutable release
-and fresh audited epoch configuration, and private rehearsal. Account inputs for
+engineering task is diagnosis of C's inspection/load failures and pacing uncertainty;
+completed monitoring implementation, retained builds and audited epochs are not
+pending setup tasks. Another full rehearsal requires a reviewed concrete continuation
+and explicit additional-epoch authority. Account inputs for
 Healthchecks and OAuth have been supplied locally; request more only for a concrete
 missing requirement. Backup setup is indefinitely deferred by owner decision.
 First check for newer committed receipts or owner decisions; do not ask the owner

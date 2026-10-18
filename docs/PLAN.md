@@ -1,10 +1,32 @@
 # MLWE competition implementation and acceptance plan
 
-Updated 2026-10-16. This is the current authoritative implementation plan.
+Updated 2026-10-18. This is the current authoritative implementation plan.
 The [pre-integration plan](archive/PLAN_PRE_INTEGRATION_20261013.md) preserves
 historical 0.4.0 contracts and dated agendas. Frozen scientific requirements
 remain in [PRIMITIVE_SELECTION_SPEC.md](PRIMITIVE_SELECTION_SPEC.md); this
 consolidation changes supported interfaces, not profiles or score meaning.
+
+## Start here: next session
+
+The owner ended the 2026-10-18 session with **diagnostics deferred to a new
+session**. Rehearsal C failed acceptance; it is terminal, independently cleaned
+up, and its evidence is retained. No disposable service or heartbeat remains;
+the owner confirmed pausing the permanent Healthchecks check. Existing protected
+staging identities were unchanged at final verification.
+
+Read [the diagnostics handoff](PRODUCTION_DIAGNOSTICS_HANDOFF.md) first, then the
+[C terminal receipt](acceptance/integration/production-rehearsal-20261016.md#c-terminal-disposition--2026-10-18).
+The three open questions are failed monitor lease inspection, failed/slow
+authenticated reads under evaluation load, and load-test pacing/elapsed time.
+Causes remain unproven. Local diagnostic-only checkpoint `69cbd61` passed review
+and checks; it was never installed into C. Terminal outcomes are recorded in
+`a25396b`. These are local commits on `main`; nothing was pushed.
+
+Begin with retained evidence and source, then prepare a bounded, independently
+reviewed diagnostic protocol. Do not restart C, reuse its ownership, regenerate an
+epoch, weaken limits, or treat historical setup agendas as current instructions.
+No additional epoch is authorized. Backups remain indefinitely deferred;
+production activation and the other acceptance gates remain open.
 
 ## 1. Objective
 
@@ -222,7 +244,8 @@ eight contract checks. It has not been executed in another native rehearsal.
 
 On 2026-10-16 the owner confirmed readiness to begin guided production preparation,
 superseding the earlier setup deferral. The [production setup handoff](PRODUCTION_SETUP.md)
-records the sequence, current decisions and next-session starting point: monitoring and email setup. The owner subsequently deferred backup
+records the setup sequence; its historical monitoring/email agenda is superseded
+by the diagnostics handoff above. The owner subsequently deferred backup
 setup indefinitely; the production recovery acceptance gate remains open. Preparation can proceed alongside
 measurement and native acceptance; public activation remains separately gated.
 
