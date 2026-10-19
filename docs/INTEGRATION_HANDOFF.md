@@ -1,5 +1,13 @@
 # Canonical competition integration — 2026-10-13
 
+Owner update, 2026-10-19: the rehearsal-C diagnostic investigation is abandoned.
+Do not resume its preflights, transfers, generations or corrective research.
+Current launch preparation is in [MVP_LAUNCH_PREPARATION.md](MVP_LAUNCH_PREPARATION.md)
+and [PLAN.md](PLAN.md). Historical failures, 1,255-second charges and partial-upload
+retention remain unchanged; this does not authorize activation or a new epoch.
+The dated material below is historical.
+
+
 Latest diagnostic outcome: correct VPS identity/host snapshot verified; artifact
 admission failed and initial preflight exceeded its ceiling. Aggregate charge
 **1,255 seconds**; no generation started. See [current findings](acceptance/integration/production-diagnostic-continuation-20261019.md).

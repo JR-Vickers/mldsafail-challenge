@@ -1,5 +1,13 @@
 # Production diagnostics: unresolved native admission
 
+Owner update, 2026-10-19: the rehearsal-C diagnostic investigation is abandoned.
+Do not resume its preflights, transfers, generations or corrective research.
+Current launch preparation is in [MVP_LAUNCH_PREPARATION.md](MVP_LAUNCH_PREPARATION.md)
+and [PLAN.md](PLAN.md). Historical failures, 1,255-second charges and partial-upload
+retention remain unchanged; this does not authorize activation or a new epoch.
+The dated material below is historical.
+
+
 Latest continuation: the owner verified VPS **178.128.17.58** and the read-only
 host snapshot passed. Artifact transfer/check then timed out; initial preflight
 charged 355 seconds against 300, aggregate 1,255. Both generation slots remain

@@ -1,5 +1,13 @@
 # Production preparation and session handoff
 
+Owner update, 2026-10-19: the rehearsal-C diagnostic investigation is abandoned.
+Do not resume its preflights, transfers, generations or corrective research.
+Current launch preparation is in [MVP_LAUNCH_PREPARATION.md](MVP_LAUNCH_PREPARATION.md)
+and [PLAN.md](PLAN.md). Historical failures, 1,255-second charges and partial-upload
+retention remain unchanged; this does not authorize activation or a new epoch.
+The dated material below is historical.
+
+
 Updated 2026-10-18. The owner began production preparation, superseding the earlier
 request to defer setup. The disposable rehearsal is now terminal; the owner ended
 the session and deferred diagnostics to a new one. Start with the

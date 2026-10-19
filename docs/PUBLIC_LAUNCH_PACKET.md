@@ -1,5 +1,11 @@
 # Public launch preparation and owner decision packet
 
+Owner update, 2026-10-19: C diagnostics are abandoned. See the current
+[MVP preparation review](MVP_LAUNCH_PREPARATION.md) for the proposed narrower
+release scope and open owner decisions. This historical packet is not an MVP
+approval, and its scientific/security gates are not silently waived.
+
+
 Updated 2026-10-13; historical 2026-10-04 scope preserved in source history. This packet authorizes no publication, public network exposure,
 production activation, spending, account provisioning or recruitment. Native
 acceptance and the canonical launch ledger determine readiness. Historical reports

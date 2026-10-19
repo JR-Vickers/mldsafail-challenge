@@ -8,41 +8,54 @@ outcomes remain unchanged; retain compact records and targeted exceptions. Activ
 resources, one verified rollback and supporting scientific evidence stay protected.
 
 
-Updated 2026-10-18. This is the current authoritative implementation plan.
+Updated 2026-10-19. This is the current authoritative implementation plan.
 The [pre-integration plan](archive/PLAN_PRE_INTEGRATION_20261013.md) preserves
 historical 0.4.0 contracts and dated agendas. Frozen scientific requirements
 remain in [PRIMITIVE_SELECTION_SPEC.md](PRIMITIVE_SELECTION_SPEC.md); this
 consolidation changes supported interfaces, not profiles or score meaning.
 
-## Start here: lean cleanup complete; diagnostics remain pending
+## Start here: prepare an MVP launch; diagnostic investigation abandoned
 
-The owner adopted [lean-launch retention](RETENTION_POLICY.md) on 2026-10-19
-and authorized immediate cleanup. [The completed maintenance receipt](acceptance/integration/lean-launch-cleanup-20261019.md)
-records 26.07 GiB recovered, leaving 31.40 GiB available. Old stopped image
-stores, duplicate source copies and obsolete release artifacts were removed
-with compact run records retained. The running deployment, one compatible
-rollback, unresolved C failure evidence and supporting scientific data remain.
-Live readiness and unchanged protected identities passed final verification.
-The previous storage-floor blocker is resolved; no diagnostic generation,
-private epoch or new rehearsal was started.
+Owner decision, 2026-10-19: abandon the rehearsal-C monitor/authentication/pacing
+investigation and review the remaining public-launch work. Do not resume its
+preflights, transfers, measurements, diagnostic generations or corrective research.
+Retain failed evidence and completed source checkpoints. Abandonment does not
+turn rehearsal C or the interrupted artifact admission into a pass.
 
-Source checkpoint `f194bfaa69baff0f47b6137215e02ea5b693d138` repairs load pacing
-locally; native cadence/performance remain unvalidated. The separate synthetic
-no-epoch diagnostic callback remains incomplete. Complete its instruments,
-common fixture/token identity, actual legacy-source binding, budget/lifecycle
-admission and exact independent source/protocol review before execution. Carry
-forward the existing 900-second diagnostic debit; cleanup does not reset it.
-The authorized aggregate allocation is 900 seconds already debited, one 300-second
-initial preflight, and two 3,000-second generations. Each reserves its final
-900 seconds for cleanup and independent verification; measurements end by second
-2,100. Interrupted starts consume their slot; no retries or third generation.
+The owner considers the observed aggregate read failures acceptable for an MVP.
+Record the scope accurately: 14 failures among 1,560 reads is 99.10% aggregate
+success, but all 14 failures were on `/api/v1/me`. The historical schedule includes
+60 authenticated requests, implying 46/60 (76.67%) authenticated-read success in
+that loaded sample. This is neither a production uptime estimate nor a submission
+success rate. Pacing fidelity and monitor failure causes remain unresolved.
+The route breakdown is recorded here for informed launch review; it does not
+reopen the abandoned investigation or assume a broader waiver of other gates.
 
-Read [the updated handoff](PRODUCTION_DIAGNOSTICS_HANDOFF.md) and
-[bounded diagnostic protocol](PRODUCTION_DIAGNOSTIC_PROTOCOL.md). C remains
-terminal and cannot restart. Monitor/authentication causes remain unproven;
-no speculative application fix was made. No fresh full-rehearsal approval is
-requested or authorized. Backups and separate activation gates remain deferred.
-Commits are local on `main`; nothing was pushed.
+The immediate work is the [MVP launch preparation review](MVP_LAUNCH_PREPARATION.md).
+Select the scoring/release scope, review exact retained artifacts and rollback,
+validate real HTTPS/OAuth and the participant submission flow, decide basic
+monitoring and deferred recovery risk, then present the concrete activation packet.
+The previous full diagnostic/rehearsal sequence is not an automatic prerequisite
+for this owner-directed MVP review. Any replacement acceptance scope must be
+explicit; unresolved historical gates remain failed or deferred.
+
+Production OAuth inputs and private draft secrets were already supplied; validate
+the existing inputs rather than asking for them again. Backups remain indefinitely
+deferred; do not restart storage selection or custody setup. Public activation,
+CA issuance/listeners, publication, recruitment, measurement adoption and creation
+of a production epoch still require their distinct applicable decisions.
+
+Use the documented VPS `178.128.17.58` and deployment SSH identity. The pinned
+console fingerprint and recent host inventory are in the [continuation report](acceptance/integration/production-diagnostic-continuation-20261019.md).
+Diagnostic charges remain 1,255 seconds, including a 55-second initial-preflight
+overrun; neither generation started. The interrupted private source upload at
+`/home/mldsafail/.mlf-diag-20261019` remains a maintenance cleanup item, with no
+absence/deletion claim. Cleanup requires current ownership/inactivity checks and
+must not restart measurements. Preserve the current installation, compatible
+rollback and scientific evidence under [lean-launch retention](RETENTION_POLICY.md).
+
+All historical sections below retain their dated outcomes. Nothing is pushed,
+published, activated or sent to participants by this planning change.
 
 ## 1. Objective
 
@@ -290,15 +303,25 @@ The release/rollback/incident packet and three-participant pilot protocol are in
 Recruitment and public activation are deferred until applicable gates and explicit
 owner decisions. Pilot usability observations cannot adopt a measurement contract.
 
-## 21. Development plan
+## 21. Current development plan
 
-1. Local baseline cleanup ordering and full post-switch epoch/result audits were repaired in source checkpoint `063ab091480df5cd3eda564bedfb31edc303371e`; ledger and disposition updates were committed as `09245fc`. Focused lifecycle/baseline/reproduction tests passed, and `make check` passed with 969 tests, 13 skipped, plus 8 MLWE contract checks. Native rollback acceptance remains deferred pending independent review and exact retained compose/backup/recovery helper inspection; no native operation was run. Exact installation/reproduction prerequisites also remain unresolved; see [current handoff](INTEGRATION_HANDOFF.md). Scoped startup, faults, bounded diagnostics, RPC loss and local encrypted recovery passed; combined acceptance remains incomplete.
-2. Review a separately frozen corrective performance proposal; the single diagnostic completed and G/L failures remain unchanged. The [2026-10-16 in-container profile](acceptance/integration/worker-profile-result-20261016.md) completed its control and instrumented probes and found missing bytecode caches plus repeated source compilation, motivating an independently reviewed build-time bytecode proposal. These observations do not pass measurement acceptance. The owner authorized native acceptance on the existing VPS and is ready to begin guided [production preparation](PRODUCTION_SETUP.md). Exact-source reviews and ownership checks remain prerequisites.
-3. Produce passing exact-source measurement/reference/hosted proof before asking
-   for contract adoption, followed separately by any default activation decision.
-4. Accept owner-supplied off-host custody and email delivery, privately rehearse
-   production and review the exact release/configuration/rollback identities.
-5. Obtain separate approval for public listeners, publication and recruitment.
+1. Close the abandoned investigation administratively; retain compact evidence
+   and inventory/remove only its inactive partial upload under maintenance scope.
+2. Resolve the MVP scoring/release decision. A frozen 0.5.0 research preview needs
+   an explicit cooperative-timing/public-use decision; 0.6.0 remains unadopted
+   with failed measurement gates. Abandoning HTTP diagnostics approves neither.
+3. Freeze the selected application/worker/participant artifacts, production
+   configuration and compatible rollback. Identify evidence that applies to those
+   exact artifacts; do not repeat completed work without an identified gap.
+4. Validate trusted HTTPS and renewal, real OAuth/session/token behavior, and one
+   approved participant install-to-audited-result/cancellation flow in the selected
+   production cohort. Separate owner authority is required for public listeners,
+   CA issuance and any new production epoch; do not rerun rehearsal C.
+5. Choose and verify the minimum monitoring/incident response for MVP. Keep the
+   unreliable lease-inspection monitor deferred unless separately addressed.
+   Record the continuing backup deferral and explicit launch loss/recovery decision.
+6. Present exact activation, publication and small-rollout steps for owner review;
+   execute only the approved scope. See [the actionable review](MVP_LAUNCH_PREPARATION.md).
 
 Before every engineering handoff, run relevant focused tests and `make check`.
 Record unavailable environments and inputs as deferrals, preserve unsuccessful
