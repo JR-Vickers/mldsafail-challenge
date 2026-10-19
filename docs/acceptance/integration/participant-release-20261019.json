@@ -1,0 +1,37 @@
+{
+  "benchmark_version": "0.5.0",
+  "bundle_deterministic": true,
+  "bundle_sha256": "cc8029e28b1846df6fd53debefb0d1f7f70bad82fed2f63440fbbbbe2263feac",
+  "date": "2026-10-19",
+  "distribution_version": "0.5.1",
+  "entry_points_identical": true,
+  "installation_checks": {
+    "platform": "macOS-15.7.7-arm64-arm-64bit",
+    "python": "3.12.10",
+    "sdist_derived": true,
+    "selected": true
+  },
+  "make_check": {
+    "contract_passed": 8,
+    "passed": 1176,
+    "skipped": 15
+  },
+  "metadata_headers_identical": true,
+  "native_acceptance": false,
+  "package_payload_identical": true,
+  "packaging_commit": "8fd91c3545ac4555bd83c9a7f1751f8e2b778852",
+  "packaging_tree": "dd28edbbf49f1e44905ffb9891ce2a263c05bc9d",
+  "publication_approved": false,
+  "rebuilt_wheel_sha256": "489b586fc51c43f2c4aa2c319799c16004af0c93039bc36a95727faa632a7d82",
+  "schema": "mldsafail.participant-release-review.v1",
+  "sdist_members": 115,
+  "sdist_sha256": "0ff3e1761efdf1bdc13ba6242763953c02327c60304f3f47cf05c7f35875c851",
+  "solver_execution": false,
+  "starter_sha256": "4d8df806feb996e35f7d99db71d8aa86154c3901dde786edccc4d3f80b207ed7",
+  "wheel_differences": [
+    "mldsafail_challenge-0.5.1.dist-info/METADATA",
+    "mldsafail_challenge-0.5.1.dist-info/RECORD"
+  ],
+  "wheel_sha256": "ed002b7b2440efdf99936a9eb81df3010fa5d1b3f77c25b7e546eb15f7d62194",
+  "wheel_source_commit": "26c5f2f4bc771b319ffccc2cdcb1c735eaab4176"
+}

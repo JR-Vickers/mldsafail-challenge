@@ -1,5 +1,9 @@
 # Retained MVP artifact inventory — 2026-10-19
 
+Session 2 [participant release review](participant-release-20261019.md) resolves
+the historical wheel/checksum conflict and records the new clean sdist and bundle.
+The observations below remain the original inventory, not current release selection.
+
 Subsequent [remote verification](mvp-artifact-verification-20261019.md) confirms
 all seven selected archives and their Linux amd64 content at recorded VPS
 locations. Item 1 remains partial because original worker Git build provenance

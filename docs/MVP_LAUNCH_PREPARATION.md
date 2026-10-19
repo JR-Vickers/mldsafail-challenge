@@ -30,6 +30,13 @@ Recover that original build/source binding or obtain an explicit owner resolutio
 of the documented provenance limitation before closing item 1. No remote state
 was intentionally changed. Session 2 participant packaging can proceed independently.
 
+## Session 2 participant release
+
+The [participant release report](acceptance/integration/participant-release-20261019.md)
+records the selected wheel, clean source distribution, deterministic download bundle
+and fresh installation checks. Item 2 is complete locally. Session 3 may prepare
+production configuration; original worker provenance and all later launch gates remain open.
+
 ## Fresh-agent starting point
 
 Owner direction in the current session: prepare the **0.5.0 research preview**;
@@ -74,13 +81,13 @@ and the continuing data-loss/recovery risk. No historical failure is relabeled.
 
 ## Eight remaining public-release items
 
-All eight items remain open; completed local inventory and historical scoped
-passes are reusable evidence, not completion of the outstanding production checks.
+Item 2 is complete locally; the other seven items remain open or partial.
+Historical scoped passes do not complete outstanding production checks.
 
 | Item | Work | Completion evidence |
 | --- | --- | --- |
 | 1. Verify retained release artifacts | Recheck candidate `1c9ca9e`, matching rollback `26c5f2f`, frozen 0.5.0 worker, database and proxy on the VPS; recover worker provenance. | Partial: [remote archive checks passed](acceptance/integration/mvp-artifact-verification-20261019.md); original worker Git build provenance remains unresolved. No silent replacement. |
-| 2. Finish participant packaging | Resolve wheel/checksum conflict; prepare clean source excluding diagnostic/operator tooling; align starter and quickstart. | Exact source/hashes, privacy/archive review and clean install/starter checks for the selected release. Nothing published. |
+| 2. Finish participant packaging | Resolve wheel/checksum conflict; prepare clean source excluding diagnostic/operator tooling; align starter and quickstart. | Complete locally: [release manifest and review](acceptance/integration/participant-release-20261019.md), clean source/bundle and fresh install/starter checks. Nothing published. |
 | 3. Complete production configuration | Validate existing supplied OAuth inputs and private draft secrets, isolated database/volumes/evaluator paths, exact images, quotas and supported version. | Private source-bound preflight passes with no placeholders or unintended staging reuse. Do not request already supplied secrets again. |
 | 4. Establish production benchmark | Prepare and, under separate authority, create one fresh 0.5.0 production epoch, independently audit/seal it and bind reference costs/cohort. | Viability and audit pass on the exact selected host/worker; no staging/C epoch reuse or automatic replacement after failure. |
 | 5. Validate HTTPS and authentication | Establish trusted TLS and renewal/reload; verify real GitHub callback/login, secure sessions, CSRF and token creation/revocation/expiry. | Actual selected-deployment receipts with secrets redacted; synthetic rehearsal authentication is insufficient. |

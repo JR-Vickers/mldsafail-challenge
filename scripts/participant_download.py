@@ -25,9 +25,12 @@ SDIST_DOCS = ('PRIMITIVE_SELECTION_SPEC.md', 'MLWE_LOCAL.md', 'MLWE_PILOT.md',
 def prepare_source(source, revision, destination):
     """Stage historical package bytes with separately identified packaging overlays.
 
-    Run the normal PEP 517 build on this directory; this is not a second backend.
+    Use a destination outside the checkout and run the normal PEP 517 build
+    there, preventing parent repository ignore files from entering the sdist.
     """
     source, destination = Path(source), Path(destination)
+    if destination.resolve().is_relative_to(source.resolve()):
+        raise ValueError('Source destination must be outside the checkout')
     if destination.exists() or not re.fullmatch(r'[a-f0-9]{40}', revision):
         raise ValueError('New destination and full historical revision required')
     def git(*args):

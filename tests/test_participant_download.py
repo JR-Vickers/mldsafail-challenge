@@ -74,6 +74,8 @@ def test_source_export_uses_historical_allowlist(tmp_path):
                     'commit', '-qm', 'fixture'], check=True)
     revision = subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD']).decode().strip()
     (source / 'src/mldsafail/__init__.py').write_text('uncommitted replacement')
+    with pytest.raises(ValueError, match='outside the checkout'):
+        prepare_source(source, revision, source / 'export')
     destination = tmp_path / 'export'
     identity = prepare_source(source, revision, destination)
     assert (destination / 'src/mldsafail/__init__.py').read_text() == '# fixture\n'
