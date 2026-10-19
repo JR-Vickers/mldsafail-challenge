@@ -149,3 +149,50 @@ def test_cleanup_evidence_is_revalidated_before_next_start(tmp_path):
         owned_daemon.publish(tmp_path / 'preflight-independent.json', dict(passed=False))
         with pytest.raises(ValueError, match='evidence changed'):
             budget.start('baseline', boot_id='boot')
+
+
+def test_owner_authorized_preflight_resolution_preserves_failed_records(tmp_path):
+    root = state.create(tmp_path/'budget')
+    with state.locked(root) as budget:
+        budget.start('preflight', boot_id='boot', clock=lambda:100)
+        finish(budget,'preflight',tmp_path,133,complete=False)
+        original=(root/'preflight-terminal.json').read_bytes()
+        names=['preflight-continuation','correct-target-preflight']
+        for name,seconds,limit,passed in zip(names,[32,187],[267,235],[False,True]):
+            start=dict(monotonic_started=1000,limit_seconds=limit,boot_id='boot')
+            state._exclusive(root/(name+'-start.json'),start)
+            path=tmp_path/(name+'-receipt.json')
+            owned_daemon.publish(path,dict(independent=True,passed=True,budget_start_sha256=diagnostic.digest(start)))
+            state._exclusive(root/(name+'-terminal.json'),dict(start_sha256=diagnostic.digest(start),
+                elapsed_seconds=seconds,charged_seconds=seconds,complete=passed,cleanup_verified=True,
+                cleanup_receipt_path=str(path),cleanup_receipt_sha256=diagnostic.digest(json.loads(path.read_text()))))
+        state._exclusive(root/'preflight-resolution.json',dict(authorization='Owner explicit continuation after correcting target',
+            original_terminal_sha256=diagnostic.file_digest(root/'preflight-terminal.json'),continuations=names))
+        result=budget.inspect()
+        assert result['charged_seconds']==1152 and result['slots'][0]['complete']
+        assert (root/'preflight-terminal.json').read_bytes()==original
+        budget.start('baseline',boot_id='boot',clock=lambda:2000)
+        with pytest.raises(ValueError,match='retry'):budget.start('baseline',boot_id='boot')
+
+
+def test_unresolved_continuation_reserves_all_preflight_and_fences_baseline(tmp_path):
+    root=state.create(tmp_path/'budget')
+    with state.locked(root) as budget:
+        budget.start('preflight',boot_id='boot',clock=lambda:100)
+        finish(budget,'preflight',tmp_path,133,complete=False)
+        state._exclusive(root/'preflight-continuation-start.json',dict(monotonic_started=200,limit_seconds=267,boot_id='boot'))
+        assert budget.inspect()['charged_seconds']==1200
+        with pytest.raises(ValueError,match='Verified'):budget.start('baseline',boot_id='boot')
+        state._exclusive(root/'preflight-resolution.json',dict(authorization='resume',
+            original_terminal_sha256=diagnostic.file_digest(root/'preflight-terminal.json'),continuations=['preflight-continuation']))
+        assert budget.inspect()['charged_seconds']==1200
+        state._exclusive(root/'artifact-preflight-start.json',dict(monotonic_started=300,limit_seconds=48,boot_id='boot'))
+        with pytest.raises(ValueError,match='Ordered'):budget.inspect()
+
+
+def test_orphan_continuation_cannot_create_new_preflight(tmp_path):
+    root=state.create(tmp_path/'budget')
+    state._exclusive(root/'correct-target-preflight-start.json',dict(monotonic_started=1,limit_seconds=235,boot_id='boot'))
+    with state.locked(root) as budget:
+        with pytest.raises(ValueError,match='Original'):budget.inspect()
+        with pytest.raises(ValueError,match='Original'):budget.start('preflight',boot_id='boot')

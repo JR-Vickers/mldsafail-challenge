@@ -77,6 +77,17 @@ class Budget:
             raise ValueError('Existing debit and budget identity required')
 
     def inspect(self):
+        continuation_names = ['preflight-continuation', 'correct-target-preflight', 'artifact-preflight']
+        valid_names = set(SLOTS) | set(continuation_names)
+        for suffix in ('-start.json', '-terminal.json'):
+            if any(path.name[:-len(suffix)] not in valid_names for path in self.root.glob('*'+suffix)):
+                raise ValueError('Unknown budget operation record')
+        actual_continuations = [name for name in continuation_names if (self.root/(name+'-start.json')).exists()]
+        if (actual_continuations or (self.root/'preflight-resolution.json').exists()) and not all(
+                (self.root/('preflight'+suffix)).exists() for suffix in ('-start.json','-terminal.json')):
+            raise ValueError('Original failed preflight history required')
+        if any((self.root/(name+'-terminal.json')).exists() and name not in actual_continuations for name in continuation_names):
+            raise ValueError('Continuation terminal without start')
         rows = []
         for index, (slot, limit) in enumerate(zip(SLOTS, LIMITS)):
             path = self.root / (slot + '-start.json')
@@ -102,7 +113,7 @@ class Budget:
                         or type(charge) is not int or charge != math.ceil(elapsed)
                         or type(end.get('complete')) is not bool or type(end.get('cleanup_verified')) is not bool):
                     raise ValueError('Ambiguous diagnostic terminal record')
-                receipt = owned_daemon.read_private_json(end['cleanup_receipt_path'])
+                receipt = self.receipt(end['cleanup_receipt_path'])
                 if (diagnostic.digest(receipt) != end.get('cleanup_receipt_sha256')
                         or receipt.get('budget_start_sha256') != diagnostic.digest(start)
                         or receipt.get('independent') is not True or receipt.get('passed') is not True):
@@ -110,9 +121,57 @@ class Budget:
                 row.update(end)
                 if charge > limit:
                     row.update(complete=False, cleanup_verified=False)
+            if slot == 'preflight' and (self.root/'preflight-resolution.json').exists():
+                resolution = owned_daemon.read_private_json(self.root/'preflight-resolution.json')
+                if set(resolution) != {'original_terminal_sha256','continuations','authorization'} or not resolution['authorization']:
+                    raise ValueError('Explicit append-only preflight reconciliation required')
+                if diagnostic.file_digest(terminal) != resolution['original_terminal_sha256'] or row['complete']:
+                    raise ValueError('Original failed preflight must remain immutable')
+                expected_names = continuation_names
+                if (resolution['continuations'] != actual_continuations or
+                        resolution['continuations'] != expected_names[:len(resolution['continuations'])] or not resolution['continuations']):
+                    raise ValueError('Ordered bounded preflight continuations required')
+                total = row['charged_seconds']
+                complete = False
+                for name in resolution['continuations']:
+                    if name not in ('preflight-continuation', 'correct-target-preflight', 'artifact-preflight'):
+                        raise ValueError('Unknown preflight continuation')
+                    began = owned_daemon.read_private_json(self.root/(name+'-start.json'))
+                    if not (self.root/(name+'-terminal.json')).exists():
+                        total = 300
+                        complete = False
+                        break  # An interrupted start reserves the remaining preflight allocation.
+                    ended = owned_daemon.read_private_json(self.root/(name+'-terminal.json'))
+                    receipt = self.receipt(ended['cleanup_receipt_path'])
+                    if (not finite(began.get('monotonic_started')) or not finite(began.get('limit_seconds'))
+                            or began['limit_seconds'] <= 0 or type(ended.get('charged_seconds')) is not int
+                            or type(ended.get('complete')) is not bool
+                            or began['limit_seconds'] > 300-total or not began.get('boot_id')
+                            or ended['start_sha256'] != diagnostic.digest(began)
+                            or not finite(ended['elapsed_seconds'])
+                            or ended['charged_seconds'] != math.ceil(ended['elapsed_seconds'])
+                            or ended['charged_seconds'] > began['limit_seconds']
+                            or receipt.get('budget_start_sha256') != diagnostic.digest(began)
+                            or diagnostic.digest(receipt) != ended['cleanup_receipt_sha256']
+                            or receipt.get('independent') is not True or receipt.get('passed') is not True
+                            or ended['cleanup_verified'] is not True):
+                        raise ValueError('Unverified preflight continuation')
+                    total += ended['charged_seconds']
+                    complete = ended['complete'] is True
+                if len(resolution['continuations']) != len(set(resolution['continuations'])) or total > 300:
+                    raise ValueError('Preflight allocation exceeded or duplicated')
+                row.update(charged_seconds=total, complete=complete, cleanup_verified=complete)
+            elif slot == 'preflight' and actual_continuations:
+                row.update(charged_seconds=300, complete=False, cleanup_verified=False)
             rows.append(row)
         return dict(initial_debit_seconds=900, slots=rows,
                     charged_seconds=900 + sum(row['charged_seconds'] for row in rows))
+
+    def receipt(self, path):
+        # A portable private evidence bundle retains original absolute references.
+        # Relocated bytes must still match the immutable terminal's receipt digest.
+        original = Path(path)
+        return owned_daemon.read_private_json(original if original.exists() else self.root.parent/original.name)
 
     def start(self, slot, *, boot_id, clock=time.monotonic):
         state = self.inspect()

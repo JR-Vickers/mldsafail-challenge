@@ -40,8 +40,25 @@ def snapshot(expected, *, seconds=60):
     if command(['systemctl','--user','list-jobs','--no-legend']).strip():
         raise RuntimeError('Current user jobs prohibit admission')
     active = json.loads(command(['systemctl','--user','list-units','--state=active','--output=json','--no-legend']))
-    if any(row['unit'].startswith('mldsafail-') for row in active):
+    allowed = expected.get('reconciled_active_units', {})
+    selected = {row['unit']: row for row in active if row['unit'].startswith('mldsafail-')}
+    if set(selected) != set(allowed):
         raise RuntimeError('Active application operator or maintenance requires reconciliation')
+    for name, evidence in allowed.items():
+        details = dict(line.split('=',1) for line in command(['systemctl','--user','show',name,
+            '--property=ControlGroup','--property=ActiveState','--property=SubState',
+            '--property=NextElapseUSecRealtime']).decode().splitlines() if '=' in line)
+        if name.endswith('.slice'):
+            group = Path('/sys/fs/cgroup')/details['ControlGroup'].lstrip('/')
+            if (not group.is_dir() or not (group/'cgroup.procs').is_file()
+                    or details['ControlGroup'] != evidence['control_group']) or any(
+                    path.read_text().strip() for path in group.rglob('cgroup.procs')):
+                raise RuntimeError('Reconciled slice is populated or changed')
+        elif name.endswith('.timer'):
+            if details != evidence:
+                raise RuntimeError('Reconciled timer changed')
+        else:
+            raise RuntimeError('Active executable unit prohibits admission')
     coordinator = next(row for row in actual if row['Name']=='/mldsafail-private-coordinator-1')
     query = '''import os
 from sqlalchemy import create_engine,select,func,text
@@ -90,14 +107,14 @@ with Session(create_engine(os.environ['MLDSAFAIL_DATABASE_URL'])) as session:
     for base in [Path('/srv/mldsafail/current'),*Path.home().iterdir()]:
         if base.name in ('.local','.cache','.ssh','.config') or not base.is_dir():
             continue
-        candidates.extend([base/'.venv/bin/python',base/'bin/python'])
+        candidates.extend([base/'.venv/bin/python',base/'venv/bin/python',base/'bin/python'])
     valid=[]
     for path in candidates:
         if not path.is_file():
             continue
         try:
             probe = command([str(path),'-B','-c',
-                "import platform,sqlalchemy,psycopg,flask,fpylll; print(platform.python_version())"],ceiling=10).decode().strip()
+                "import platform,sqlalchemy,psycopg,flask; print(platform.python_version())"],ceiling=10).decode().strip()
         except RuntimeError:
             continue
         if probe == '3.12.10':
