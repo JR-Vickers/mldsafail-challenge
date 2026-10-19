@@ -136,6 +136,15 @@ full rehearsal. That later protocol repeats fresh-epoch application, rollback,
 fault, load, scheduled monitor, notification and cleanup checks; it preserves owner
 email confirmation/check-pausing steps. Backups remain indefinitely deferred.
 
+## Capacity update — 2026-10-19
+
+[Owner-authorized lean-launch cleanup](acceptance/integration/lean-launch-cleanup-20261019.md)
+resolved the disk-floor stop: 31.40 GiB free at final audit. Required unchanged
+images and targeted unresolved evidence remain. No diagnostic callback or
+rehearsal was executed. The separate callback and its exact protocol remain
+incomplete; complete/review them before native admission. Carry forward the
+900-second aggregate diagnostic debit. The following disposition is historical.
+
 ## Implementation disposition — 2026-10-18
 
 Native provisioning stopped before generation one. A reviewed, read-only scan of

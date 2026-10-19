@@ -8,6 +8,24 @@ outcomes remain unchanged; retain compact records and targeted exceptions. Activ
 resources, one verified rollback and supporting scientific evidence stay protected.
 
 
+Updated 2026-10-19 after owner-authorized lean-launch cleanup. The disk blocker
+is resolved: 26.07 GiB recovered and 31.40 GiB available at final verification.
+Read [the cleanup receipt](acceptance/integration/lean-launch-cleanup-20261019.md)
+and [current retention policy](RETENTION_POLICY.md). Completed trial image stores,
+redundant source copies and obsolete release artifacts are now retired; their
+compact metadata remains. Do not infer that historical paths still exist from
+older receipts. Current deployment and compatible rollback, unresolved C logs/
+database and supporting scientific evidence remain protected. Private exceptions
+have a 2026-10-26 review date.
+
+Live readiness and unchanged deployment identities passed the final maintenance
+audit. C stays terminal, delivery disabled, no new diagnostic generation or epoch.
+The separate diagnostic callback remains incomplete and the existing diagnostic
+budget debit stays 900 seconds. Continue implementation/review before native
+execution; do not jump directly to a fresh rehearsal.
+
+The following dated outcomes preserve the prior diagnostic stop and C history.
+
 Updated 2026-10-18 after the bounded diagnostic continuation. Provisioning stopped
 on the disk floor before generation one. This handoff is the next-session
 entrypoint from [PLAN.md](PLAN.md). No diagnostic service was started and no
@@ -60,7 +78,9 @@ The following sections retain the terminal C evidence and original open question
   to infer future host ownership from an old receipt.
 - Seven image archives, both complete source/context inventories, the sealed
   epoch, six completed-run seals, failed PostgreSQL state and private evidence
-  remain retained. No further cache retirement or deletion is needed for handoff.
+  were retained at the dated C close. Later lean-launch maintenance retired
+  eligible caches/duplicates while retaining needed evidence; use its manifest
+  for current artifact availability.
 - The owner confirmed the permanent Healthchecks check is paused. Their DOWN
   email at 15:01:28 +0500 matches the first negative receipt at 10:01:28 UTC.
   That was an unplanned inspection failure; planned failure/recovery and missed

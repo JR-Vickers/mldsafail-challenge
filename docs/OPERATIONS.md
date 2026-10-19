@@ -369,6 +369,17 @@ service-health and S3 acceptance remain pending.
 
 ## Durable application release retention
 
+Current lean-launch minimum: keep the running application packet at
+`/srv/mldsafail/releases/6b332cdb051a9da5651a2fc1e1e1bac0f7df0acf`, the
+existing host configuration target `/srv/mldsafail/releases/b4d212d`, and the
+verified compatible b4d212d rollback/worker archives. The running image source
+and host configuration symlink are different; preserve both. Older trial release
+packets may intentionally have retired images/unpacked sources. Their original
+manifests document history, not present availability; consult the
+[2026-10-19 cleanup manifest](acceptance/integration/lean-launch-cleanup-20261019.md).
+The historical multi-release examples below do not require keeping every version.
+
+
 Run `python -m scripts.retain_release --inventory /PRIVATE/release-inventory.json`.
 The inventory contains full `source_commit`, `artifacts` mapping safe basenames to
 absolute source `path` and expected `sha256`, and `roles` mapping `manifest`,

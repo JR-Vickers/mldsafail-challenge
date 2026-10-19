@@ -14,29 +14,31 @@ historical 0.4.0 contracts and dated agendas. Frozen scientific requirements
 remain in [PRIMITIVE_SELECTION_SPEC.md](PRIMITIVE_SELECTION_SPEC.md); this
 consolidation changes supported interfaces, not profiles or score meaning.
 
-## Start here: diagnostic storage stop
+## Start here: lean cleanup complete; diagnostics remain pending
 
-The 2026-10-18 diagnostic continuation stopped **before provisioning generation
-one**: freshly unpacked unchanged images require at least 1,184,630,872 bytes,
-but only 363,184,128 bytes were available above the protected 5 GiB disk floor.
-No new service, daemon, worker, image build or private epoch was started. The
-read-only postflight confirms unchanged protected identities and retained C
-receipts, disabled delivery, stopped C monitor/timer and absent C daemon socket.
+The owner adopted [lean-launch retention](RETENTION_POLICY.md) on 2026-10-19
+and authorized immediate cleanup. [The completed maintenance receipt](acceptance/integration/lean-launch-cleanup-20261019.md)
+records 26.07 GiB recovered, leaving 31.40 GiB available. Old stopped image
+stores, duplicate source copies and obsolete release artifacts were removed
+with compact run records retained. The running deployment, one compatible
+rollback, unresolved C failure evidence and supporting scientific data remain.
+Live readiness and unchanged protected identities passed final verification.
+The previous storage-floor blocker is resolved; no diagnostic generation,
+private epoch or new rehearsal was started.
 
-Checkpoint `f194bfaa69baff0f47b6137215e02ea5b693d138` repairs load pacing locally:
-independent ownership observation/client journals, stale/failure stops, absolute
-deadlines without catch-up, bounded drain and cleanup quiescence. Independent
-source review and focused/full checks pass; native performance is unvalidated.
-Monitor and authentication causes remain unproven, with no speculative app fix.
+Source checkpoint `f194bfaa69baff0f47b6137215e02ea5b693d138` repairs load pacing
+locally; native cadence/performance remain unvalidated. The separate synthetic
+no-epoch diagnostic callback remains incomplete. Complete its instruments,
+common fixture/token identity, actual legacy-source binding, budget/lifecycle
+admission and exact independent source/protocol review before execution. Carry
+forward the existing 900-second diagnostic debit; cleanup does not reset it.
 
-Read [the diagnostic disposition](acceptance/integration/production-diagnostics-20261018.md),
-[bounded diagnostic protocol](PRODUCTION_DIAGNOSTIC_PROTOCOL.md) and
-[updated handoff](PRODUCTION_DIAGNOSTICS_HANDOFF.md). A separate complete synthetic
-diagnostic callback still needs implementation and exact independent review after
-capacity is resolved. Do not reuse terminal C or relax production epoch checks.
-No fresh full-rehearsal approval is requested or authorized; its diagnostic
-prerequisites remain incomplete. Backups and all separate activation gates remain
-deferred. Commits are local on `main`; nothing was pushed.
+Read [the updated handoff](PRODUCTION_DIAGNOSTICS_HANDOFF.md) and
+[bounded diagnostic protocol](PRODUCTION_DIAGNOSTIC_PROTOCOL.md). C remains
+terminal and cannot restart. Monitor/authentication causes remain unproven;
+no speculative application fix was made. No fresh full-rehearsal approval is
+requested or authorized. Backups and separate activation gates remain deferred.
+Commits are local on `main`; nothing was pushed.
 
 ## 1. Objective
 
