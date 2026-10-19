@@ -19,6 +19,17 @@ The packet lists the concrete remaining tasks and separates owner decisions from
 engineering gaps. This completes the local inventory portion of step 1 below;
 it does not freeze a production configuration or authorize any launch operation.
 
+## Session 1 remote verification
+
+The [2026-10-19 verification report](acceptance/integration/mvp-artifact-verification-20261019.md)
+confirms all seven selected archive hashes, saved-image identities and complete
+Linux amd64 content. Candidate/compatible rollback source labels and worker
+release/trusted bindings match retained manifests. Item 1 is **partial**: the
+worker export source is known, but its original Git build commit is unsupported.
+Recover that original build/source binding or obtain an explicit owner resolution
+of the documented provenance limitation before closing item 1. No remote state
+was intentionally changed. Session 2 participant packaging can proceed independently.
+
 ## Fresh-agent starting point
 
 Owner direction in the current session: prepare the **0.5.0 research preview**;
@@ -28,8 +39,8 @@ or a claim of tamper-resistant timing. Distribution 0.5.1 supports benchmark 0.5
 C diagnostics remain abandoned and backups remain indefinitely deferred.
 
 Use the eight-item checklist below as the current launch backlog. The local
-inventory is complete; start with current remote artifact verification or local
-participant packaging. Read the linked inventory and recommendation before
+inventory and remote archive checks are complete; resolve the documented worker
+provenance gap or proceed with independent local participant packaging. Read the linked inventory and recommendation before
 choosing artifacts. Historical acceptance packets retain their original outcomes;
 do not turn their obsolete agendas into additional automatic launch tasks.
 
@@ -68,7 +79,7 @@ passes are reusable evidence, not completion of the outstanding production check
 
 | Item | Work | Completion evidence |
 | --- | --- | --- |
-| 1. Verify retained release artifacts | Recheck candidate `1c9ca9e`, matching rollback `26c5f2f`, frozen 0.5.0 worker, database and proxy on the VPS; recover worker provenance. | Current full hashes, image/source identities and compatibility match the [inventory](acceptance/integration/mvp-artifact-inventory-20261019.md); missing/mismatched artifacts are explicit gaps. No silent replacement. |
+| 1. Verify retained release artifacts | Recheck candidate `1c9ca9e`, matching rollback `26c5f2f`, frozen 0.5.0 worker, database and proxy on the VPS; recover worker provenance. | Partial: [remote archive checks passed](acceptance/integration/mvp-artifact-verification-20261019.md); original worker Git build provenance remains unresolved. No silent replacement. |
 | 2. Finish participant packaging | Resolve wheel/checksum conflict; prepare clean source excluding diagnostic/operator tooling; align starter and quickstart. | Exact source/hashes, privacy/archive review and clean install/starter checks for the selected release. Nothing published. |
 | 3. Complete production configuration | Validate existing supplied OAuth inputs and private draft secrets, isolated database/volumes/evaluator paths, exact images, quotas and supported version. | Private source-bound preflight passes with no placeholders or unintended staging reuse. Do not request already supplied secrets again. |
 | 4. Establish production benchmark | Prepare and, under separate authority, create one fresh 0.5.0 production epoch, independently audit/seal it and bind reference costs/cohort. | Viability and audit pass on the exact selected host/worker; no staging/C epoch reuse or automatic replacement after failure. |

@@ -1,5 +1,11 @@
 # Retained MVP artifact inventory — 2026-10-19
 
+Subsequent [remote verification](mvp-artifact-verification-20261019.md) confirms
+all seven selected archives and their Linux amd64 content at recorded VPS
+locations. Item 1 remains partial because original worker Git build provenance
+is unresolved. The local-only observations below remain historical; current
+remote availability is recorded in the linked report.
+
 Local read-only inventory against main `89ffc7918c33c753326b6bcbbf3ca6727a42340f`.
 No VPS contact, transfer, image build/load, evaluation, epoch, activation or
 notification occurred. Archive members were read in place, never executed or
