@@ -19,7 +19,7 @@ def percentile(values, quantile):
     return sorted(values)[max(0, math.ceil(len(values) * quantile) - 1)]
 
 
-def run(server, token, health, duration=300, progress=None, request_open=None, *, read_only_health=False):
+def run(server, token, health, duration=300, progress=None, request_open=None, *, read_only_health=False, intent=None):
     # Older callers mutate lifecycle journals from health(); never thread those
     # callbacks silently. Reviewed callers explicitly bind read-only observation.
     if read_only_health is not True:
@@ -112,6 +112,26 @@ def run(server, token, health, duration=300, progress=None, request_open=None, *
                 submitted.append(dict(request_id=identifier, route=path,
                     scheduled_after_seconds=deadline - phase_started,
                     dispatched_after_seconds=dispatched - phase_started))
+                if intent is not None:
+                    try:
+                        intent(dict(request_id=identifier, route=path,
+                            scheduled_after_seconds=deadline-phase_started,
+                            intent_after_seconds=dispatched-phase_started, incomplete=True))
+                    except Exception as error:
+                        evidence_errors.append(type(error).__name__[:80])
+                        submitted.pop()
+                        pacing_valid = False
+                        break
+                    # Durable publication may be slow; never dispatch a late or
+                    # stale request after writing its partial intent.
+                    dispatched = time.monotonic()
+                    lag = max(0, dispatched-deadline)
+                    max_scheduling_lag = max(max_scheduling_lag, lag)
+                    if lag > .1 or not observer.valid():
+                        submitted.pop()
+                        pacing_valid = False
+                        break
+                    submitted[-1]['dispatched_after_seconds'] = dispatched-phase_started
                 futures.append(pool.submit(read, identifier, path, authenticated, deadline, dispatched))
             if not pacing_valid or not observation_valid:
                 break

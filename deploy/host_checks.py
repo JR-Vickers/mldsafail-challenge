@@ -123,7 +123,20 @@ def evaluate(readiness, services, leases, verified_backup, failed_jobs, now=None
     return failures
 
 
-def main():
+LEASE_QUERY_CODE = '''import json,os
+from datetime import datetime,timezone
+from sqlalchemy import create_engine,select,text
+from sqlalchemy.orm import Session
+from mldsafail.web.models import EvaluationJob
+engine=create_engine(os.environ['MLDSAFAIL_DATABASE_URL'])
+with Session(engine) as session:
+ if engine.dialect.name == 'postgresql': session.execute(text('SET TRANSACTION READ ONLY'))
+ values=session.scalars(select(EvaluationJob.lease_expires_at).where(EvaluationJob.status.in_(['claimed','running']))).all()
+ print(json.dumps([value.isoformat() if value is not None else None for value in values]))
+'''
+
+
+def main(*, diagnostic=None):
     import argparse
     import json
     import subprocess
@@ -137,7 +150,24 @@ def main():
     scope = validate_config(config)
     compose = ['docker', 'compose', '--env-file', config['env_file'], '-f', config['compose']]
     def command(argv):
-        return subprocess.check_output(argv, timeout=10, stderr=subprocess.DEVNULL, text=True)
+        import time
+        started = time.monotonic()
+        classification = 'ok'
+        try:
+            return subprocess.check_output(argv, timeout=10, stderr=subprocess.DEVNULL, text=True)
+        except subprocess.TimeoutExpired:
+            classification = 'timeout'
+            raise
+        except subprocess.CalledProcessError as error:
+            classification = ('query' if error.output == 'mldsafail_diagnostic_query_failed\n' else 'command')
+            raise
+        except Exception:
+            classification = 'command'
+            raise
+        finally:
+            if diagnostic is not None:
+                kind = 'lease_query' if '-c' in argv else 'inspect' if 'inspect' in argv else 'command'
+                diagnostic(dict(kind=kind, classification=classification, seconds=time.monotonic()-started))
     daemon_ok = True
     if config.get('daemon_manifest'):
         try:
@@ -164,24 +194,28 @@ def main():
     except Exception:
         readiness = False
     # Read-only lease inspection from the deployed coordinator environment.
-    code = '''import json,os
-from datetime import datetime,timezone
-from sqlalchemy import create_engine,select,text
-from sqlalchemy.orm import Session
-from mldsafail.web.models import EvaluationJob
-engine=create_engine(os.environ['MLDSAFAIL_DATABASE_URL'])
-with Session(engine) as session:
- if engine.dialect.name == 'postgresql': session.execute(text('SET TRANSACTION READ ONLY'))
- values=session.scalars(select(EvaluationJob.lease_expires_at).where(EvaluationJob.status.in_(['claimed','running']))).all()
- print(json.dumps([value.isoformat() if value is not None else None for value in values]))
-'''
+    code = LEASE_QUERY_CODE
+    if diagnostic is not None:
+        # The identical read-only payload runs unchanged. Only a known SQLAlchemy
+        # failure receives a fixed marker; Docker/import failures remain unknown
+        # command failures. No SQL text, parameters or exception output is kept.
+        code = ('try:\n exec(' + repr(code) + ')\n'
+                'except Exception as error:\n'
+                ' from sqlalchemy.exc import SQLAlchemyError\n'
+                ' if isinstance(error,SQLAlchemyError): print("mldsafail_diagnostic_query_failed")\n'
+                ' raise\n')
     failed_jobs = []
     inspection_errors = []
     try:
         if not daemon_ok:
             raise RuntimeError('Dedicated daemon identity inspection failed')
-        leases = [datetime.fromisoformat(value) for value in json.loads(command(
-            compose + ['exec', '-T', 'coordinator', '/app/.venv/bin/python', '-c', code]))]
+        raw_leases = command(compose + ['exec', '-T', 'coordinator', '/app/.venv/bin/python', '-c', code])
+        try:
+            leases = [datetime.fromisoformat(value) for value in json.loads(raw_leases)]
+        except Exception:
+            if diagnostic is not None:
+                diagnostic(dict(kind='lease_parse', classification='parsing', seconds=0.0))
+            raise
     except Exception as error:
         leases = []
         failed_jobs.append('lease_inspection')

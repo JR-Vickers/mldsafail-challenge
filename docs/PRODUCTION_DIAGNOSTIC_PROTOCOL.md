@@ -189,3 +189,38 @@ comparisons and exact executable full-rehearsal packet do not yet exist.
 
 See [the dated disposition](acceptance/integration/production-diagnostics-20261018.md)
 for retained evidence hashes, end-state checks and the remaining gate.
+
+## Executable controller checkpoint
+
+The separate implementation is `scripts.production_diagnostic_controller` with
+explicit `--configuration`, `--preflight`, `--execute`, `--cleanup-state` (and
+`--controller-config`) and read-only `--report` operations. The internal engine
+requires its supervisor's same-process-birth gated authority and an exclusive
+entry marker. Neither cleanup nor reporting can call provisioning or a phase.
+This source checkpoint alone does not admit native work: freeze the actual
+source/configuration/fixture/archive packet and obtain matching independent review.
+
+The private packet binds one immutable budget root, the actual source/import
+manifest, configuration inventory, fixture and exact historical scheduler bytes,
+reference solver inventory, five image IDs and archive paths/checksums, protected
+host/domain/process/container identities, resource floors, serialization lock,
+current deployment and the explicit ordered phase ceilings. The fixture's token,
+hash, IDs and UTC timestamps are exported once before either environment. The
+canonical expiry must cover the investigation; a setup/export failure stops it.
+
+The supervisor persists the start under serialization before configuration
+verification, provisioning or imports. Engine setup has one absolute outer
+ceiling covering all those operations. Each measured phase receives its absolute
+ceiling, including restoration, readiness, monitor transitions, workload startup
+and draining. No owned-command setup/publication resets its execution deadline.
+The final phases publish durable request intents before dispatch and retain
+completed requests separately; delayed publication never permits a catch-up burst.
+
+Terminal timeout handling freezes recorded dispatchers before ownership snapshots,
+proves the exact daemon/worker barrier, then cancels creators. Unproved ownership
+leaves a retained cancellation fence. Cleanup substeps use the shared absolute
+terminal deadline; expiry cannot authorize new mutations. Independent postflight
+in `scripts.production_diagnostic_audit` checks retained process/domain/socket
+absence, unit inactivity and unchanged protected deployment before writing a
+start-bound cleanup receipt and terminating the budget slot. A failed audit leaves
+its full conservative reservation and blocks the second generation.

@@ -91,12 +91,18 @@ class Journal:
     def __init__(self,path,data): self.path,self.data=Path(path),data
     def save(self): owned_daemon.publish(self.path,self.data)
     def command(self,argv,*,kind='read',timeout=45,**kwargs):
+        # Optional absolute diagnostic deadline; existing callers retain ceilings.
+        from scripts.production_diagnostic_deadline import timeout as bounded_timeout
+        timeout=bounded_timeout(timeout)
+        if self.data.get('command_deadline') is not None:
+            from scripts.production_diagnostic_deadline import remaining
+            timeout=remaining(self.data['command_deadline'], timeout)
         intent=dict(id=uuid.uuid4().hex,argv=list(argv),kind=kind,state='running')
         self.data['commands'].append(intent);self.save()
         original=None
         try:
             result=owned_client.run(argv,self.data['clients'],self.save,self.path.parent,timeout=timeout,
-                                    capture_output=True,**kwargs)
+                                    capture_output=True,**({'absolute_deadline':self.data['command_deadline']} if self.data.get('command_deadline') is not None else {}),**kwargs)
             intent.update(state='passed',returncode=result.returncode,
                           stdout_sha256=hashlib.sha256(result.stdout or b'').hexdigest(),stderr_sha256=hashlib.sha256(result.stderr or b'').hexdigest())
             return result
@@ -240,7 +246,7 @@ def validate_worker_admission(parent):
         raise RuntimeError('Authoritative CPU usage counter missing before daemon admission')
 
 
-def execute(config,repository,*,acceptance=None,daemon_kind='cpu'):
+def execute(config,repository,*,acceptance=None,daemon_kind='cpu',diagnostic_deadlines=None,diagnostic_setup_deadline=None):
     if daemon_kind not in {'cpu','owned'} or (daemon_kind=='owned' and acceptance is None):
         raise ValueError('Explicit reviewed dedicated daemon purpose required')
     if acceptance is not None:
@@ -257,6 +263,13 @@ def execute(config,repository,*,acceptance=None,daemon_kind='cpu'):
     root.mkdir(mode=0o700)
     data=dict(schema='mldsafail.cpu-native-driver-state.v1',id=uuid.uuid4().hex,config=config,
               state='provisioning',commands=[],clients=[],units=[],native_acceptance_passed=False,daemon_kind=daemon_kind)
+    if diagnostic_deadlines is not None:
+        from scripts.production_diagnostic_deadline import remaining
+        work, terminal = diagnostic_deadlines
+        remaining(work, 1);remaining(terminal, 1)
+        if terminal - work != 900:
+            raise ValueError('Exact diagnostic cleanup reserve required')
+        data.update(command_deadline=min(work,diagnostic_setup_deadline) if diagnostic_setup_deadline is not None else work, diagnostic_terminal_deadline=terminal)
     journal=Journal(root/'driver.json',data);journal.save();original=None;lease=None;lease_entered=False
     try:
         unit='mldsafail-'+daemon_kind+'-daemon-'+data['id']+'.service'
@@ -317,6 +330,8 @@ def execute(config,repository,*,acceptance=None,daemon_kind='cpu'):
             if loaded['Id']!=artifact['image']: raise RuntimeError('Loaded worker digest mismatch')
             data['loaded_images'].append(artifact['image']);journal.save()
         if acceptance is not None:
+            if diagnostic_deadlines is not None:
+                data['command_deadline']=diagnostic_deadlines[0]
             data['state']='operator_acceptance';journal.save()
             result=acceptance(journal,config,data)
             if not isinstance(result,dict) or set(result)!={'schema','passed','native_executed','evidence_refs','source_sha256'} or result.get('schema')!='mldsafail.owned-native-acceptance.v1' or result.get('source_sha256')!=config['acceptance_source_sha256'] or result.get('passed') is not True or result.get('native_executed') is not True or not result.get('evidence_refs'):
@@ -343,6 +358,8 @@ def execute(config,repository,*,acceptance=None,daemon_kind='cpu'):
         except BaseException as publication: error.add_note('Native failure publication failed: '+repr(publication))
         raise
     finally:
+        if data.get('diagnostic_terminal_deadline') is not None:
+            data['command_deadline']=data['diagnostic_terminal_deadline']
         try: cleanup(journal)
         except BaseException as error:
             if original is not None: original.add_note('Independent native driver cleanup failed: '+repr(error))

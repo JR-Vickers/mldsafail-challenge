@@ -61,6 +61,10 @@ def request_comparison(server, token, health, publish, *, request_open=None,
             completed.update(failed=True, error_type=type(error).__name__[:80])
             if isinstance(error, urllib.error.HTTPError):
                 completed['status'] = error.code
+                correlation = error.headers.get('X-Diagnostic-ID') if error.headers is not None else None
+                import re
+                if isinstance(correlation,str) and re.fullmatch('[a-f0-9]{32}',correlation):
+                    completed['correlation_id'] = correlation
         completed.update(seconds=time.monotonic()-begin, finished_after_seconds=time.monotonic()-started)
         with lock:
             if closed.is_set():

@@ -1,5 +1,10 @@
 # Next session: production diagnostics
 
+The [separate executable checkpoint](acceptance/integration/production-diagnostic-executable-20261019.md)
+implements the controller/callback, supervised phases and independent audit.
+Exact source/artifact packet review and native measurements follow separately;
+this engineering checkpoint alone grants no native admission.
+
 The [latest admission engineering checkpoint](acceptance/integration/production-diagnostic-admission-20261019.md)
 adds durable consumed-slot budgeting and actual artifact/schedule verification.
 Independent helper review passes; native controller/callback and all measurements

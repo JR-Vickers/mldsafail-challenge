@@ -26,7 +26,7 @@ def _snapshot(session):
     rows = {}
     for name in TABLES:
         table = Base.metadata.tables[name]
-        rows[name] = [{key: value.isoformat() if isinstance(value, datetime) else value
+        rows[name] = [{key: (value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)).isoformat() if isinstance(value, datetime) else value
                        for key, value in row.items()}
                       for row in session.execute(select(table).order_by(table.c.id)).mappings()]
     return rows

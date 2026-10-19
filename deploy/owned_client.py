@@ -55,6 +55,8 @@ def populated(path):
 
 
 def stop(entry):
+    from scripts.production_diagnostic_deadline import timeout as bounded_timeout
+    stop_seconds = bounded_timeout(15)
     if 'cgroup' not in entry:
         intent = entry.get('cgroup_intent')
         if intent is None or intent['parent']['boot_id'] != boot_id():
@@ -79,7 +81,7 @@ def stop(entry):
     # exact kernel domain, regardless of CLI exit or process/session changes.
     try:
         (path / 'cgroup.kill').write_text('1')
-        deadline = time.monotonic() + 15
+        deadline = time.monotonic() + stop_seconds
         while populated(path):
             if time.monotonic() >= deadline:
                 raise RuntimeError('Owned client cgroup remains populated')
@@ -201,7 +203,10 @@ def secure_created_domain(entry, domain):
 
 
 def run(argv, entries, save, evidence_directory, *, timeout, env=None, stdout=None,
-        stderr=None, text=False, check=True, capture_output=False, input=None, cwd=None, client_cgroup_root=None, stdin=None, cancel=None):
+        stderr=None, text=False, check=True, capture_output=False, input=None, cwd=None, client_cgroup_root=None, stdin=None, cancel=None, before_cancel=None, absolute_deadline=None):
+    if absolute_deadline is not None:
+        from scripts.production_diagnostic_deadline import remaining
+        timeout = remaining(absolute_deadline, timeout)
     if cancel is not None and cancel.is_set():
         raise RuntimeError('Owned client cancelled')
     if sys.platform != 'linux':
@@ -237,6 +242,9 @@ def run(argv, entries, save, evidence_directory, *, timeout, env=None, stdout=No
     original = None
     result = None
     cleanup_errors = []
+    cancellation_permitted = True
+    release_intent = False
+    cancellation_checked = False
     buffers = {'stdout': bytearray(), 'stderr': bytearray()}
     try:
         process = subprocess.Popen([sys.executable, '-I', '-c', code, str(read_fd), *argv],
@@ -254,6 +262,9 @@ def run(argv, entries, save, evidence_directory, *, timeout, env=None, stdout=No
         save()  # Durable acknowledgement precedes the first possible mutation.
         if cancel is not None and cancel.is_set():
             raise RuntimeError('Owned client cancelled')
+        if absolute_deadline is not None:
+            remaining(absolute_deadline, timeout)  # Setup/publication consumed the same clock.
+        release_intent = True
         os.write(write_fd, b'1')
         os.close(write_fd)
         write_fd = None
@@ -262,6 +273,8 @@ def run(argv, entries, save, evidence_directory, *, timeout, env=None, stdout=No
                 raise RuntimeError('Owned client cancelled')
             if verify_domain(entry) is None:
                 raise RuntimeError('Owned client domain disappeared during execution')
+        if absolute_deadline is not None:
+            timeout = remaining(absolute_deadline, timeout)
         capture(process, payload.encode() if isinstance(payload, str) else payload, timeout, buffers, observe)
         if process.returncode and check:
             raise RuntimeError('Owned native command failed; bounded private logs retained')
@@ -280,12 +293,24 @@ def run(argv, entries, save, evidence_directory, *, timeout, env=None, stdout=No
             if descriptor is not None:
                 attempt('gate_close', lambda descriptor=descriptor: os.close(descriptor))
         if process is not None:
+            # Diagnostic controllers may have independent Docker creators. Their
+            # identity-bound terminal barrier must precede every cancellation,
+            # including timeout/error fallbacks. Failed authority stays fenced.
+            if original is not None and release_intent and before_cancel is not None:
+                cancellation_checked = True
+                try:
+                    before_cancel(entry)
+                except BaseException as error:
+                    cancellation_permitted = False
+                    entry['cancellation_fenced'] = True
+                    cleanup_errors.append(dict(step='terminal_barrier',error_type=type(error).__name__))
             # Failed acknowledgement leaves a bootstrap blocked at its gate.
-            if entry.get('pid') is None or original is not None:
+            if cancellation_permitted and (entry.get('pid') is None or original is not None):
                 attempt('session_cancel', lambda: stop(entry))
                 if process.poll() is None:
                     attempt('direct_child_cancel', process.kill)
-            attempt('client_wait', lambda: process.wait(timeout=15))
+            if cancellation_permitted:
+                attempt('client_wait', lambda: process.wait(timeout=15))
             for stream in (process.stdin, process.stdout, process.stderr):
                 if stream is not None:
                     attempt('stream_close', stream.close)
@@ -294,6 +319,12 @@ def run(argv, entries, save, evidence_directory, *, timeout, env=None, stdout=No
                 if path is not None:
                     if populated(path):
                         # Leader exit never proves descendant exit.
+                        if before_cancel is not None and not cancellation_checked:
+                            try:
+                                before_cancel(entry)
+                            except BaseException:
+                                entry['cancellation_fenced'] = True
+                                raise
                         stop(entry)
                     else:
                         try:
@@ -304,7 +335,8 @@ def run(argv, entries, save, evidence_directory, *, timeout, env=None, stdout=No
                 if process.poll() is None:
                     raise RuntimeError('Owned client is not reaped')
                 entry['finished'] = True
-            attempt('domain_empty_proof', prove_domain)
+            if cancellation_permitted:
+                attempt('domain_empty_proof', prove_domain)
         for name, destination in [('stdout', stdout), ('stderr', stdout if stderr == subprocess.STDOUT else stderr)]:
             if destination not in (None, subprocess.DEVNULL):
                 attempt(name + '_stream_write', lambda name=name, destination=destination: write_stream(destination, bytes(buffers[name])))

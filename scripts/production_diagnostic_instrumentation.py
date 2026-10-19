@@ -112,3 +112,33 @@ def install(app, emit, on_error):
                     # secondary evidence sink also fails.
                     pass
     app.extensions['production_diagnostic_instrumentation'] = True
+
+
+def validate_snapshot(snapshot, requests):
+    """Controller-side coverage catches sink failure even if its marker failed."""
+    import math
+    import re
+    if set(snapshot) != {'failed','rows'} or snapshot['failed'] is not False:
+        raise ValueError('Instrumentation evidence failed')
+    identities = set()
+    indexed = {}
+    routes = set()
+    for row in snapshot['rows']:
+        if (set(row) != TIMINGS | {'request_id','route','status','seconds'}
+                or not re.fullmatch('[a-f0-9]{32}',row['request_id'])
+                or row['request_id'] in identities or row['route'] not in ROUTES
+                or type(row['status']) is not int or not 100 <= row['status'] <= 599
+                or any(type(row[key]) not in (int,float) or not math.isfinite(row[key]) or row[key] < 0
+                       for key in TIMINGS | {'seconds'})):
+            raise ValueError('Invalid or nonsanitized instrumentation evidence')
+        identities.add(row['request_id'])
+        indexed[row['request_id']] = row
+        routes.add(row['route'])
+    if routes != ROUTES:
+        raise ValueError('Both instrumented routes must be observed')
+    for row in requests:
+        if row.get('status') is not None:
+            server = indexed.get(row.get('correlation_id'))
+            if server is None or server['route'] != row.get('route') or server['status'] != row['status']:
+                raise ValueError('HTTP response lacks durable matching server timing evidence')
+    return snapshot

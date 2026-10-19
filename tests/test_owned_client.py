@@ -277,3 +277,69 @@ def test_cancel_during_capture_uses_existing_owned_cleanup(emulated_domain, monk
             lambda: None, emulated_domain, timeout=1, cancel=cancelled)
     assert entries[0]['finished']
     assert not Path(entries[0]['cgroup']['path']).exists()
+
+
+def test_terminal_barrier_failure_never_falls_back_to_killing_creator(emulated_domain, monkeypatch):
+    import signal
+    processes=[]
+    original_spawn=client.subprocess.Popen
+    def spawn(*args,**kwargs):
+        process=original_spawn(*args,**kwargs)
+        processes.append(process)
+        return process
+    monkeypatch.setattr(client.subprocess,'Popen',spawn)
+    def fail_capture(*args): raise TimeoutError('work allowance exhausted')
+    monkeypatch.setattr(client,'capture',fail_capture)
+    entries=[]
+    def reject(_entry): raise RuntimeError('Unknown daemon ownership')
+    try:
+        with pytest.raises(TimeoutError,match='allowance'):
+            client.run([client.sys.executable,'-c','import time; time.sleep(10)'],entries,
+                lambda:None,emulated_domain,timeout=1,before_cancel=reject)
+        assert entries[0]['cancellation_fenced']
+        assert not entries[0]['finished']
+        assert processes[0].poll() is None
+        assert Path(entries[0]['cgroup']['path']).exists()
+    finally:
+        for process in processes:
+            if process.poll() is None:process.kill()
+            process.wait(timeout=5)
+        for entry in entries:client.stop(entry)
+
+
+def test_terminal_barrier_precedes_timeout_cancellation(emulated_domain, monkeypatch):
+    order=[]
+    original_stop=client.stop
+    def stop(entry):
+        order.append('cancel')
+        return original_stop(entry)
+    monkeypatch.setattr(client,'stop',stop)
+    def fail_capture(*args):raise TimeoutError('deadline')
+    monkeypatch.setattr(client,'capture',fail_capture)
+    with pytest.raises(TimeoutError):
+        client.run([client.sys.executable,'-c','pass'],[],lambda:None,emulated_domain,
+            timeout=1,before_cancel=lambda entry:order.append('barrier'))
+    assert order[0]=='barrier' and 'cancel' in order[1:]
+
+
+def test_absolute_deadline_charges_slow_setup_before_gate_release(emulated_domain):
+    import time
+    entries=[]
+    def slow_save():time.sleep(.02)
+    with pytest.raises(TimeoutError,match='deadline'):
+        client.run([client.sys.executable,'-c','raise RuntimeError("must never execute")'],entries,
+            slow_save,emulated_domain,timeout=10,absolute_deadline=time.monotonic()+.01)
+    assert entries[0]['finished']
+    assert not Path(entries[0]['cgroup']['path']).exists()
+
+
+def test_absolute_capture_timeout_does_not_restart_after_saves(emulated_domain,monkeypatch):
+    import time
+    received=[]
+    def capture(process,payload,timeout,buffers,observe):
+        received.append(timeout)
+        process.wait(timeout=1)
+    monkeypatch.setattr(client,'capture',capture)
+    client.run([client.sys.executable,'-c','pass'],[],lambda:time.sleep(.01),emulated_domain,
+        timeout=10,absolute_deadline=time.monotonic()+1)
+    assert received and 0 < received[0] < .99

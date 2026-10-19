@@ -152,7 +152,7 @@ def file_digest(path):
     return value
 
 
-def verify_inventory(root, expected):
+def verify_inventory(root, expected, *, exclude_git_metadata=False):
     """Exact actual closure: missing, extra and linked inputs all fail admission."""
     from pathlib import Path
     from deploy import owned_daemon
@@ -161,6 +161,8 @@ def verify_inventory(root, expected):
         raise ValueError('Complete nonempty artifact inventory required')
     actual = {}
     for path in root.rglob('*'):
+        if exclude_git_metadata and path.relative_to(root).parts[0] == '.git':
+            continue
         if path.is_symlink():
             raise ValueError('Artifact links forbidden')
         if path.is_dir():
@@ -213,7 +215,7 @@ def validate_artifacts(protocol, bindings):
         raise ValueError('Exact actual artifact bindings required')
     for name, field in trees.items():
         entry = bindings[name]
-        if set(entry) != {'root', 'files'} or verify_inventory(entry['root'], entry['files']) != protocol[field]:
+        if set(entry) != {'root', 'files'} or verify_inventory(entry['root'], entry['files'], exclude_git_metadata=name == 'source') != protocol[field]:
             raise ValueError('Reviewed tree identity differs: ' + name)
     for name, field in files.items():
         if file_digest(bindings[name]) != protocol[field]:

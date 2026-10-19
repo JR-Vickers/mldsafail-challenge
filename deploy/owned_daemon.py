@@ -17,6 +17,12 @@ import time
 import uuid
 from deploy import owned_client
 
+def _bounded(seconds):
+    # Inert for ordinary consumers; diagnostic terminal substeps share one clock.
+    from scripts.production_diagnostic_deadline import timeout
+    return timeout(seconds)
+
+
 SCHEMA='mldsafail.owned-daemon.v1'
 
 
@@ -168,7 +174,7 @@ def _unit(unit):
         raise RuntimeError('Explicit dedicated daemon unit required')
     values=subprocess.check_output(['systemctl','--user','show',unit,'--property=MainPID',
         '--property=ControlGroup','--property=Restart','--property=KillMode','--property=Delegate',
-        '--property=FragmentPath','--property=ActiveState'],timeout=15,text=True)
+        '--property=FragmentPath','--property=ActiveState'],timeout=_bounded(15),text=True)
     state=dict(line.split('=',1) for line in values.splitlines() if '=' in line)
     if state.get('Restart')!='no' or state.get('KillMode')!='control-group' or state.get('Delegate')!='yes':
         raise RuntimeError('Dedicated unit requires Restart=no/KillMode=control-group/Delegate=yes')
@@ -248,8 +254,8 @@ def register(*, unit, socket, root_dir, exec_root, rootless_state, manifest_path
     expected_env=os.fsencode('DOCKERD_ROOTLESS_ROOTLESSKIT_STATE_DIR='+str(rootless_state))
     if expected_env not in leader_environment:
         raise RuntimeError('Explicit isolated rootlesskit state required')
-    info=json.loads(subprocess.check_output(['docker','info','--format','{{json .}}'],timeout=30))
-    version=json.loads(subprocess.check_output(['docker','version','--format','{{json .Server}}'],timeout=30))
+    info=json.loads(subprocess.check_output(['docker','info','--format','{{json .}}'],timeout=_bounded(30)))
+    version=json.loads(subprocess.check_output(['docker','version','--format','{{json .Server}}'],timeout=_bounded(30)))
     if info.get('DockerRootDir')!=str(root_dir) or info.get('ServerVersion')!=expected_server_version or version.get('GitCommit')!=expected_server_git_commit:
         raise RuntimeError('Dedicated daemon root/version/build mismatch')
     if info.get('LiveRestoreEnabled') is not False or str(info.get('CgroupVersion'))!='2' or info.get('CgroupDriver')!='systemd' or not any('rootless' in option for option in info.get('SecurityOptions',[])):
@@ -352,6 +358,7 @@ def shutdown_barrier(manifest, *, worker_domains=(), evidence_directory, attempt
     if not re.fullmatch('[a-zA-Z0-9_-]{1,128}',attempt_id): raise ValueError('Safe attempt identity required')
     errors=[]
     control_safe=False
+    _bounded(1)
     try:
         if fingerprint(load_manifest())!=fingerprint(manifest):
             raise RuntimeError('Current dedicated manifest authority differs from old epoch')
@@ -362,13 +369,14 @@ def shutdown_barrier(manifest, *, worker_domains=(), evidence_directory, attempt
             if int(state['MainPID'])!=manifest['leader']['pid'] or state['domain_path']!=manifest['domain']['path'] or owned_client.identity(manifest['leader']['pid'])!=manifest['leader']:
                 raise RuntimeError('Dedicated unit epoch changed; control prohibited')
             control_safe=True
-            subprocess.run(['systemctl','--user','stop',manifest['unit']],check=True,timeout=45,capture_output=True)
+            subprocess.run(['systemctl','--user','stop',manifest['unit']],check=True,timeout=_bounded(45),capture_output=True)
         elif state['ActiveState'] not in {'inactive','failed'}:
             raise RuntimeError('Dedicated unit state is not reconciled')
         else:
             control_safe=True
     except BaseException as error: errors.append(dict(step='dedicated_unit_stop',error=repr(error)))
     try:
+        _bounded(1)
         if not control_safe: raise RuntimeError('Daemon control identity was not proved')
         owned_client.stop({'cgroup':manifest['domain']})
     except BaseException as error: errors.append(dict(step='dedicated_daemon_domain_stop',error=repr(error)))
@@ -378,11 +386,12 @@ def shutdown_barrier(manifest, *, worker_domains=(), evidence_directory, attempt
     # and explicit operator overrides, so the complete parent is mandatory.
     for domain in [manifest['worker_domain']]:
         try:
+            _bounded(1)
             if not control_safe: raise RuntimeError('Old daemon epoch authority not proved; worker control prohibited')
             path=owned_client.verify_domain({'cgroup':domain})
             if path is not None:
                 (path/'cgroup.kill').write_text('1')
-                deadline=time.monotonic()+15
+                deadline=time.monotonic()+_bounded(15)
                 while owned_client.populated(path):
                     if time.monotonic()>deadline: raise RuntimeError('Owned worker domain remains populated')
                     time.sleep(.05)
@@ -429,8 +438,8 @@ def restart_and_refresh(manifest, shutdown_receipt, *, manifest_path, client_ent
         raise RuntimeError('Dedicated unit changed before restart')
     if previous_intent is None: publish(intent_path,intent)
     if state['ActiveState']!='active':
-        subprocess.run(['systemctl','--user','start',manifest['unit']],check=True,timeout=45,capture_output=True)
-    deadline=time.monotonic()+45
+        subprocess.run(['systemctl','--user','start',manifest['unit']],check=True,timeout=_bounded(45),capture_output=True)
+    deadline=time.monotonic()+_bounded(45)
     while True:
         try:
             refreshed=register(unit=manifest['unit'],socket=manifest['socket'],
@@ -494,7 +503,7 @@ def _failed_startup_authority(state):
         raise RuntimeError('Fresh unit fragment identity changed')
     if unit['ActiveState'] not in {'inactive','failed'} or int(unit['MainPID'])!=0:
         raise RuntimeError('Never-admitted daemon must be inactive with no leader')
-    jobs=_parse_jobs(subprocess.check_output(JOB_QUERY,timeout=15))
+    jobs=_parse_jobs(subprocess.check_output(JOB_QUERY,timeout=_bounded(15)))
     if any(row['unit']==state['daemon_unit'] for row in jobs):
         raise RuntimeError('Fresh daemon startup jobs remain pending')
     group=unit.get('ControlGroup','')
@@ -526,7 +535,7 @@ def _socket_identity(path):
 
 def _refused_socket(path):
     with socket_module.socket(socket_module.AF_UNIX,socket_module.SOCK_STREAM) as probe:
-        probe.settimeout(1)
+        probe.settimeout(_bounded(1))
         try: probe.connect(str(path))
         except ConnectionRefusedError: return
         raise RuntimeError('Failed-start socket still accepts connections')
