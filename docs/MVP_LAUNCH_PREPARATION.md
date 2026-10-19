@@ -19,6 +19,20 @@ The packet lists the concrete remaining tasks and separates owner decisions from
 engineering gaps. This completes the local inventory portion of step 1 below;
 it does not freeze a production configuration or authorize any launch operation.
 
+## Fresh-agent starting point
+
+Owner direction in the current session: prepare the **0.5.0 research preview**;
+ignore experimental 0.6.0 for this launch. Do not reopen its measurements,
+adoption or migration. This selects the preparation scope, not public activation
+or a claim of tamper-resistant timing. Distribution 0.5.1 supports benchmark 0.5.0.
+C diagnostics remain abandoned and backups remain indefinitely deferred.
+
+Use the eight-item checklist below as the current launch backlog. The local
+inventory is complete; start with current remote artifact verification or local
+participant packaging. Read the linked inventory and recommendation before
+choosing artifacts. Historical acceptance packets retain their original outcomes;
+do not turn their obsolete agendas into additional automatic launch tasks.
+
 ## What the owner has decided
 
 Stop investigating C's monitor inspection, authenticated-read latency and load
@@ -38,53 +52,51 @@ or new private/production epoch is approved by abandoning diagnostics.
 
 | Decision | Existing evidence | Needed for MVP |
 | --- | --- | --- |
-| Scoring/version | 0.5.0 is the supported frozen private contract; timing is cooperative. 0.6.0 whole-worker accounting failed its gates and is unadopted. | Explicitly choose a 0.5.0 research preview with its timing limitations, or keep public scored competition gated on separately approved accounting. Do not claim tamper-resistant timing or silently adopt 0.6.0. |
+| Scoring/version | Owner selected 0.5.0 preview preparation and directed that 0.6.0 be ignored for now. | Publish accurate cooperative-timing limitations in the final approved packet; no 0.6.0 work is a prerequisite for this release. |
 | Operational acceptance | C passed application/cohort/rollback/forward and seven fault assertions, but failed loaded reads and monitoring; load pacing is uncertain. | Record the narrower MVP risk acceptance and a small functional launch check instead of requiring the abandoned root-cause investigation. Functional correctness/privacy evidence still applies only to its exact release. |
 | Recovery | Compatible application rollback is retained. Off-host backup and independent recovery custody are not configured. | Keep setup deferred; decide explicitly whether launch may proceed with unresolved data-loss risk. Application rollback does not restore a lost database, epoch or evaluation evidence. |
 | Monitoring | Test-check failure/recovery emails were confirmed historically. Permanent service check is paused; its lease monitor failed. | Choose a basic HTTPS availability check and verify its signal/recovery, or explicitly accept manual checks for the initial rollout. Do not label lease/worker monitoring healthy from HTTP readiness alone. |
 
-Recommendation: prepare a small 0.5.0 research preview if the owner accepts its
-cooperative scoring limitation, with the known loaded-read risk documented. Keep
-0.6.0 work separate. This recommendation does not supply the owner decision or
-silently change the existing public scoring requirements.
+The preparation scope is settled. Final activation still requires a concrete
+owner-reviewed packet recording applicable acceptance evidence, minimum monitoring
+and the continuing data-loss/recovery risk. No historical failure is relabeled.
 
-## Essential preparation, in order
+## Eight remaining public-release items
 
-1. **Select and freeze the release.** Inventory the intended application, worker
-   and participant wheel/source/checksum artifacts and compatible rollback. Match
-   retained build/install/scientific evidence to those identities. The running
-   private deployment is not automatically the intended public release. Prefer
-   verified retained artifacts; build only for an identified source/artifact gap.
-2. **Finish production configuration.** Use the existing private OAuth inputs and
-   draft secrets on VPS 178.128.17.58. Verify fresh production secrets, separate
-   database/volumes/evaluator paths, supported version and exact image IDs.
-   Production epoch/cohort binding is still pending; any required generation and
-   audit needs a concrete separately authorized operation. Never reuse C by
-   rewriting its ownership or treat the diagnostic fixture as launch data.
-3. **Validate the public identity and login.** The prepared origin is
-   `https://178.128.17.58` with callback `/auth/callback`. Under explicit activation
-   authority, establish trusted HTTPS, certificate renewal/reload and real GitHub
-   OAuth; check secure sessions, CSRF and token creation/revocation/expiry. OAuth
-   fields are already supplied; live login/callback acceptance remains unverified.
-4. **Check the participant journey once on the selected release.** Install the
-   exact distribution in a clean environment, clone/run the starter, submit an
-   immutable approved tiny-instance solver with an idempotency key, follow status,
-   verify the independently audited result and correct leaderboard cohort, and
-   check cancellation. Keep private inputs/credentials/evidence inaccessible and
-   out of public artifacts. This is a scoped functional check, not another load
-   investigation or authority to run a full rehearsal.
-5. **Prepare operations for a small rollout.** Confirm basic availability checking
-   or the explicit manual alternative, an incident contact/procedure, queue pause
-   and application rollback instructions, current disk/RAM and worker isolation.
-   Respect the deferred lease investigation and backup decision. Inventory the
-   interrupted upload before removing eligible inactive files; it is not a runtime
-   service and must never be executed as an approved release.
-6. **Review and publish only the approved material.** Review wheel/source,
-   checksums, quickstart, score meaning/limitations and sanitized examples. Remove
-   secrets, private epochs, raw candidates/database dumps and operator evidence.
-   Present the exact activation commands, release identities and remaining risks.
-   Obtain distinct approval for public activation, publication and recruitment;
-   begin with a small owner-approved cohort rather than an unbounded rollout.
+All eight items remain open; completed local inventory and historical scoped
+passes are reusable evidence, not completion of the outstanding production checks.
+
+| Item | Work | Completion evidence |
+| --- | --- | --- |
+| 1. Verify retained release artifacts | Recheck candidate `1c9ca9e`, matching rollback `26c5f2f`, frozen 0.5.0 worker, database and proxy on the VPS; recover worker provenance. | Current full hashes, image/source identities and compatibility match the [inventory](acceptance/integration/mvp-artifact-inventory-20261019.md); missing/mismatched artifacts are explicit gaps. No silent replacement. |
+| 2. Finish participant packaging | Resolve wheel/checksum conflict; prepare clean source excluding diagnostic/operator tooling; align starter and quickstart. | Exact source/hashes, privacy/archive review and clean install/starter checks for the selected release. Nothing published. |
+| 3. Complete production configuration | Validate existing supplied OAuth inputs and private draft secrets, isolated database/volumes/evaluator paths, exact images, quotas and supported version. | Private source-bound preflight passes with no placeholders or unintended staging reuse. Do not request already supplied secrets again. |
+| 4. Establish production benchmark | Prepare and, under separate authority, create one fresh 0.5.0 production epoch, independently audit/seal it and bind reference costs/cohort. | Viability and audit pass on the exact selected host/worker; no staging/C epoch reuse or automatic replacement after failure. |
+| 5. Validate HTTPS and authentication | Establish trusted TLS and renewal/reload; verify real GitHub callback/login, secure sessions, CSRF and token creation/revocation/expiry. | Actual selected-deployment receipts with secrets redacted; synthetic rehearsal authentication is insufficient. |
+| 6. Complete participant journey | Clean install, starter/public validation, immutable tiny solver submission with idempotency key, status, audited result, correct leaderboard cohort and cancellation. | One end-to-end receipt on the final package/application/worker/production cohort. No new load campaign or full C rehearsal. |
+| 7. Finish minimum operations | Choose verified basic availability monitoring or explicit manual responsibility/cadence; prepare incident contact, queue pause, exact rollback/forward steps and refresh resources/isolation checks. | Chosen monitoring/procedure verified, image-bound recovery instructions and current resource receipt; backup deferral/data-loss risk recorded. HTTP readiness does not prove lease health. |
+| 8. Review and execute approved rollout | Assemble exact release identities, evidence, limitations and activation/publication/small-cohort commands; obtain applicable owner approval before executing. | Concrete go/no-go record, approved live checks and publication/recruitment scope. Owner handles pushes/publication; no unsolicited invitations. |
+
+## Suggested agent sessions
+
+| Session | Items / deliverable |
+| --- | --- |
+| 1. Retained artifacts | Item 1; current availability/identity report, explicit gaps; no builds/evaluations. |
+| 2. Participant release | Item 2; reviewed, checksummed local release and clean-install evidence. |
+| 3. Production preparation | Item 3 and item 4 procedure preparation; reviewable private configuration and exact proposed epoch operation, without creating it. |
+| 4. Production benchmark | Item 4 after authorization; audited epoch/reference/cohort or preserved failed attempt with blocker. |
+| 5. Deployment and operations | Items 5 and 7 under applicable authority; TLS/authentication and minimum operations evidence. |
+| 6. Participant validation and launch packet | Items 6 and 8; final functional receipt and owner-reviewable rollout packet, followed only by approved execution. |
+
+Sessions 1 and 2 are independent work packages. Later sessions proceed in order;
+resolve identified artifact gaps before production execution. These are handoffs
+between sessions, not an instruction to spawn parallel agents.
+
+Each handoff records exact commits/artifacts/configuration identities, checks and
+failures, remaining gaps, next authorized scope and concrete procedures. Keep
+sensitive paths/evidence private, run relevant checks plus `make check`, and commit
+validated checkpoints without pushing. Start every handoff with the settled scope:
+**0.5.0 preview; 0.6.0 ignored; C diagnostics abandoned; backups deferred**.
 
 ## Completed work to reuse
 
@@ -107,7 +119,8 @@ unchanged. The old launch ledger and dated packets retain their original stricte
 scope; before executing an MVP launch, bind an explicitly approved narrower packet
 instead of falsifying those gates as passed.
 
-The immediate next preparation task is a read-only local release/evidence inventory
-and concrete 0.5.0-preview decision packet. That resolves the scoring/release scope
-before provisioning or transferring another environment. Remaining questions about
-new inputs should be asked only after inspecting the already supplied private setup.
+The immediate next work packages are sessions 1 and 2 above. The local inventory
+and recommendation are complete. Inspect already supplied private setup before
+asking for new inputs. The inactive partial diagnostic upload is a separate
+maintenance item requiring current ownership/inactivity checks, not permission
+to resume diagnostics or an automatic launch blocker.

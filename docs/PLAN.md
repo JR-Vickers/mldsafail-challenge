@@ -32,7 +32,9 @@ The route breakdown is recorded here for informed launch review; it does not
 reopen the abandoned investigation or assume a broader waiver of other gates.
 
 The immediate work is the [MVP launch preparation review](MVP_LAUNCH_PREPARATION.md).
-Select the scoring/release scope, review exact retained artifacts and rollback,
+The owner selected 0.5.0 preview preparation and directed that 0.6.0 be ignored
+for this release. Follow the [eight-item checklist and six-session handoff map](MVP_LAUNCH_PREPARATION.md#eight-remaining-public-release-items):
+review exact retained artifacts and rollback,
 validate real HTTPS/OAuth and the participant submission flow, decide basic
 monitoring and deferred recovery risk, then present the concrete activation packet.
 The previous full diagnostic/rehearsal sequence is not an automatic prerequisite
@@ -305,27 +307,26 @@ owner decisions. Pilot usability observations cannot adopt a measurement contrac
 
 ## 21. Current development plan
 
-1. Close the abandoned investigation administratively; retain compact evidence
-   and inventory/remove only its inactive partial upload under maintenance scope.
-2. Resolve the MVP scoring/release decision. A frozen 0.5.0 research preview needs
-   an explicit cooperative-timing/public-use decision; 0.6.0 remains unadopted
-   with failed measurement gates. Abandoning HTTP diagnostics approves neither.
-3. Use the completed [local inventory](acceptance/integration/mvp-artifact-inventory-20261019.md)
-   and [owner recommendation](acceptance/integration/mvp-recommendation-20261019.md)
-   for the retained candidate/worker/compatible rollback. Next verify current VPS
-   artifact identities, resolve the participant checksum/source-package gaps and
-   bind production configuration to the approved cohort. Local partial transfers
-   do not prove remote availability; no application rebuild is currently indicated.
-   Keep diagnostic tooling outside the participant release and preserve failures.
-4. Validate trusted HTTPS and renewal, real OAuth/session/token behavior, and one
-   approved participant install-to-audited-result/cancellation flow in the selected
-   production cohort. Separate owner authority is required for public listeners,
-   CA issuance and any new production epoch; do not rerun rehearsal C.
-5. Choose and verify the minimum monitoring/incident response for MVP. Keep the
-   unreliable lease-inspection monitor deferred unless separately addressed.
-   Record the continuing backup deferral and explicit launch loss/recovery decision.
-6. Present exact activation, publication and small-rollout steps for owner review;
-   execute only the approved scope. See [the actionable review](MVP_LAUNCH_PREPARATION.md).
+The current backlog is the [eight public-release items](MVP_LAUNCH_PREPARATION.md#eight-remaining-public-release-items),
+with [six suggested agent sessions](MVP_LAUNCH_PREPARATION.md#suggested-agent-sessions).
+Use these as the fresh-agent entry point; 0.6.0 is outside this release scope.
+
+1. Verify retained release artifacts on the VPS against the completed local inventory.
+2. Finish participant packaging, checksums, clean source, starter and quickstart.
+3. Complete private production configuration using already supplied inputs.
+4. Prepare and execute the separately authorized fresh 0.5.0 epoch/audit/cohort operation.
+5. Validate trusted HTTPS/renewal and real OAuth/session/token behavior.
+6. Complete one selected-release participant submission/audit/leaderboard/cancellation flow.
+7. Finish minimum monitoring/manual checks, incident response and exact rollback steps;
+   record deferred backups and launch data-loss risk.
+8. Present the exact go/no-go and rollout packet; activate, publish and recruit only
+   within applicable explicit owner approval.
+
+Keep abandoned diagnostic evidence and budget history unchanged. The inactive
+partial upload is separate maintenance, requiring ownership/inactivity checks;
+it does not reopen diagnostics or require a full rehearsal. Historical gates
+remain recorded with their original disposition. The final preview packet must
+state the applicable acceptance scope rather than silently waiving failed gates.
 
 Before every engineering handoff, run relevant focused tests and `make check`.
 Record unavailable environments and inputs as deferrals, preserve unsuccessful
