@@ -17,7 +17,7 @@ def digest(data):
 
 
 # Source export is deliberately based on Git objects, never the broad worktree.
-SDIST_FILES = ('pyproject.toml', 'LICENSE', 'examples/mlwe/primal-lll/solver.py')
+SDIST_FILES = ('pyproject.toml', 'examples/mlwe/primal-lll/solver.py')
 SDIST_DOCS = ('PRIMITIVE_SELECTION_SPEC.md', 'MLWE_LOCAL.md', 'MLWE_PILOT.md',
               'MLWE_REPRODUCTION.md', 'AGENT_WORKFLOW.md')
 
@@ -53,7 +53,15 @@ def prepare_source(source, revision, destination):
         original[name] = digest(data)
     metadata = destination / 'pyproject.toml'
     metadata.write_text(metadata.read_text() + '\n[tool.hatch.build.targets.sdist]\ninclude = ["/src/mldsafail", "/examples/mlwe/primal-lll/solver.py", "/docs", "/README.md", "/LICENSE", "/pyproject.toml", "/SOURCE.json"]\n')
-    (destination / 'README.md').write_bytes((source / 'docs/PARTICIPANT_DOWNLOAD_README.md').read_bytes())
+    (destination / 'README.md').write_text(
+        '# Participant source distribution 0.5.1 / benchmark 0.5.0\n\n'
+        'This is an unpublished allowlisted source export. SOURCE.json records the\n'
+        'historical package source and separately identified packaging overlays.\n'
+        'Build with Python 3.12.10 using `python -m build --wheel`. Package payload\n'
+        'equality requires verification; wheel archive equality is not claimed.\n'
+        'The companion download bundle contains the selected wheel, installer and\n'
+        'participant quickstart. Docker and a compatible reviewed worker are required\n'
+        'for evaluation, which is separate from installation checks.\n')
     identity = {'wheel_source_commit': revision, 'historical_files_sha256': original,
                 'packaging_source_commit': git('rev-parse', 'HEAD').decode().strip(),
                 'overlays': ['pyproject.toml: explicit sdist allowlist',
