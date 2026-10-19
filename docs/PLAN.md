@@ -299,3 +299,14 @@ owner decisions. Pilot usability observations cannot adopt a measurement contrac
 Before every engineering handoff, run relevant focused tests and `make check`.
 Record unavailable environments and inputs as deferrals, preserve unsuccessful
 attempts, commit checkpoints, and leave publication to the repository owner.
+
+### Diagnostic engineering checkpoint, 2026-10-19
+
+The disk blocker is resolved by lean-launch cleanup. Separate no-epoch diagnostic
+budget/protocol, canonical fixture, sanitized timing and request/legacy probe
+helpers now have local tests and independent helper review. The native callback/
+controller, source-bound admission, workload/monitor integration and independent
+cleanup remain incomplete; no new generation or native comparison has run. The
+[concrete remaining-work report](acceptance/integration/production-diagnostic-engineering-20261019.md)
+records the unchanged 900-second debit, scope and unresolved monitor/authentication
+causes. This checkpoint does not admit a native generation or full rehearsal.

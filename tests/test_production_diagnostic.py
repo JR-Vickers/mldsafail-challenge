@@ -175,7 +175,7 @@ def test_http_comparison_alternates_and_sanitizes():
         calls.append((request.full_url, request.has_header('Authorization'), timeout))
         raise TimeoutError('sensitive-token')
     result = request_comparison('http://127.0.0.1:1234', 'sensitive-token', lambda: True,
-        snapshots.append, request_open=opener, duration=.2, count=4)
+        snapshots.append, request_open=opener, duration=.2, count=4, read_only_health=True)
     assert result['complete'] and result['termination_complete']
     assert len(result['requests']) == 4
     assert [row[1] for row in calls] == [False, True, False, True]
@@ -189,7 +189,7 @@ def test_failed_initial_observation_prevents_http_dispatch():
     from scripts.production_diagnostic_probes import request_comparison
     def forbidden(*args, **kwargs): raise AssertionError('dispatched')
     result = request_comparison('http://127.0.0.1', 'unused', lambda: False,
-        lambda rows: None, request_open=forbidden, duration=.1, count=2)
+        lambda rows: None, request_open=forbidden, duration=.1, count=2, read_only_health=True)
     assert not result['complete'] and not result['observation_valid']
     assert result['undispatched_requests'] == 2 and not result['requests']
 
@@ -254,7 +254,7 @@ def test_http_evidence_failure_invalidates_and_stops_dispatch():
     from scripts.production_diagnostic_probes import request_comparison
     def fail(_rows): raise OSError('private pathname')
     result = request_comparison('http://127.0.0.1:1234', 'unused', lambda: True,
-        fail, duration=.1, count=2)
+        fail, duration=.1, count=2, read_only_health=True)
     assert not result['complete'] and not result['evidence_complete']
     assert len(result['requests']) == 1 and result['requests'][0]['incomplete']
     assert 'private pathname' not in json.dumps(result)
@@ -295,7 +295,7 @@ def test_slow_intent_publication_cannot_admit_late_http():
         calls.append(True)
         raise AssertionError('Late HTTP dispatch')
     result = request_comparison('http://127.0.0.1', 'unused', lambda: True,
-        lambda rows: time.sleep(.15), request_open=forbidden, duration=.4, count=2)
+        lambda rows: time.sleep(.15), request_open=forbidden, duration=.4, count=2, read_only_health=True)
     assert not result['complete'] and not result['pacing_valid']
     assert not calls and result['undispatched_requests'] == 2
     assert 'dispatched_after_seconds' not in result['requests'][0]
@@ -319,3 +319,10 @@ def test_restore_clears_authenticated_read_rate_state(database):
     assert fixture._snapshot(database)['rate_limit_states']
     fixture.restore(database, encoded, metadata)
     assert fixture._snapshot(database)['rate_limit_states'] == []
+
+
+def test_request_comparison_requires_reviewed_read_only_observer():
+    from scripts.production_diagnostic_probes import request_comparison
+    def forbidden(): raise AssertionError('Observer started without review')
+    with pytest.raises(ValueError, match='Read-only'):
+        request_comparison('http://127.0.0.1', 'unused', forbidden, lambda rows: None)

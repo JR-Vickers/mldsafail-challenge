@@ -11,12 +11,14 @@ from scripts.read_load_observer import Observer, RequestPool
 
 
 def request_comparison(server, token, health, publish, *, request_open=None,
-                       duration=60, count=120):
+                       duration=60, count=120, read_only_health=False):
     """Alternating readiness/authentication, absolute deadlines, ten threads.
 
     Shorter schedules are allowed only for engineering tests; native admission
     must bind duration=60/count=120. publish must durably write each snapshot.
     """
+    if read_only_health is not True:
+        raise ValueError('Read-only asynchronous health callback review required')
     if duration <= 0 or count <= 0 or count % 2 or duration > 60 or count > 120:
         raise ValueError('Bounded paired comparison required')
     opener = request_open or urllib.request.urlopen
