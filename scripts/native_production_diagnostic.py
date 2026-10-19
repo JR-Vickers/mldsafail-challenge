@@ -19,6 +19,19 @@ from scripts.production_diagnostic_deadline import remaining, interrupt_at
 
 
 def preflight(packet, config, repository):
+    if diagnostic.file_digest(packet['driver_config']) != packet['driver_configuration_sha256']:
+        raise ValueError('Actual driver configuration changed')
+    config_root = Path(packet['bindings']['configuration']['root'])
+    environment = Path(packet['synthetic_environment'])
+    if not environment.is_relative_to(config_root) or environment.relative_to(config_root).as_posix() not in packet['bindings']['configuration']['files']:
+        raise ValueError('Synthetic configuration must belong to frozen inventory')
+    if packet['legacy_source'] != packet['bindings']['legacy_source']:
+        raise ValueError('Actual legacy execution path differs from frozen source')
+    artifacts = [dict(image=config['image'], archive=config['image_archive'], archive_sha256=config['image_archive_sha256']), *config.get('additional_images',[])]
+    expected = {(identity,packet['bindings']['archive_'+role],packet['protocol']['archives'][role])
+        for role,identity in packet['protocol']['images'].items()}
+    if len(artifacts) != 5 or {(row['image'],row['archive'],row['archive_sha256']) for row in artifacts} != expected:
+        raise ValueError('Driver image imports differ from reviewed artifact bindings')
     diagnostic.validate_artifacts(packet['protocol'], packet['bindings'])
     from scripts.native_production_rehearsal import verify_sources
     manifest = owned_daemon.read_private_json(packet['source_manifest'], cap=4*1024*1024)
@@ -87,10 +100,44 @@ def wait_ready(packet, client):
         time.sleep(.1)
 
 
+def compose_environment(values):
+    """Override every interpolation, retaining owned-client authority variables."""
+    import re
+    template = Path(__file__).resolve().parents[1]/'compose.production.yaml'
+    variables = set(re.findall(r'\$\{([A-Z_][A-Z_0-9]*)', template.read_text()))
+    frozen = dict(values, MLDSAFAIL_OUTSTANDING_PER_ACCOUNT='1',
+                  MLDSAFAIL_SUBMISSIONS_PER_DAY='2', MLDSAFAIL_QUEUED_GLOBALLY='10')
+    if variables != set(frozen):
+        raise ValueError('Compose substitution inventory changed')
+    return dict(os.environ, **frozen)
+
+
+def verify_rendered_configuration(generated, values, images):
+    services = generated['services']
+    roles = dict(migrate='web', web='web', coordinator='coordinator', db='postgres', proxy='caddy')
+    if set(services) != set(roles) or any(services[role]['image'] != images[image] for role,image in roles.items()):
+        raise ValueError('Rendered image identities differ')
+    database = 'postgresql+psycopg://mldsafail:'+values['POSTGRES_PASSWORD']+'@db/mldsafail'
+    expected = {key:value for key,value in values.items() if key.startswith('GITHUB_') or
+                key in ('MLDSAFAIL_SECRET_KEY','MLDSAFAIL_BENCHMARK_VERSION',
+                        'MLDSAFAIL_EVALUATOR_FINGERPRINT','MLDSAFAIL_HIDDEN_SUITE_VERSION',
+                        'MLDSAFAIL_WORKER_CLASS','MLDSAFAIL_MLWE_EPOCH_ID')}
+    expected.update(MLDSAFAIL_DATABASE_URL=database, MLDSAFAIL_ENV='production',
+        MLDSAFAIL_ADMISSION_LIMITS_ENABLED='1', MLDSAFAIL_OUTSTANDING_PER_ACCOUNT='1',
+        MLDSAFAIL_SUBMISSIONS_PER_DAY='2', MLDSAFAIL_QUEUED_GLOBALLY='10', MLDSAFAIL_SKIP_MIGRATIONS='1')
+    if any(services[role]['environment'] != expected for role in ('web','migrate')):
+        raise ValueError('Rendered application environment differs')
+    if (services['coordinator']['environment']['MLDSAFAIL_DATABASE_URL'] != database or
+            services['db']['environment'] != dict(POSTGRES_DB='mldsafail', POSTGRES_USER='mldsafail',
+                                                POSTGRES_PASSWORD=values['POSTGRES_PASSWORD']) or
+            services['proxy']['environment'] != dict(MLDSAFAIL_DOMAIN=values['MLDSAFAIL_DOMAIN'])):
+        raise ValueError('Rendered service environment differs')
+
+
 def bootstrap(packet, root, data, client):
     images = packet['protocol']['images']
     cohort = 'synthetic-diagnostic-' + packet['run_id']
-    values = dict(POSTGRES_PASSWORD=secrets.token_hex(32), MLDSAFAIL_SECRET_KEY=secrets.token_hex(32),
+    expected = dict(POSTGRES_PASSWORD=None, MLDSAFAIL_SECRET_KEY=None,
         GITHUB_CLIENT_ID='synthetic-diagnostic', GITHUB_CLIENT_SECRET='synthetic-diagnostic',
         MLDSAFAIL_DOMAIN='diagnostic.invalid', MLDSAFAIL_BENCHMARK_VERSION='0.5.0',
         PRODUCTION_TLS_ROOT=str(root/'no-tls'), PRODUCTION_ACME_WEBROOT=str(root/'no-acme'),
@@ -98,6 +145,13 @@ def bootstrap(packet, root, data, client):
         WEB_IMAGE=images['web'], COORDINATOR_IMAGE=images['coordinator'], WORKER_IMAGE=images['worker'],
         POSTGRES_IMAGE=images['postgres'], CADDY_IMAGE=images['caddy'], MLDSAFAIL_EVALUATOR_FINGERPRINT=cohort,
         MLDSAFAIL_HIDDEN_SUITE_VERSION=cohort, MLDSAFAIL_WORKER_CLASS=cohort, MLDSAFAIL_MLWE_EPOCH_ID=cohort)
+    values = owned_daemon.read_private_json(packet['synthetic_environment'])
+    import re
+    if (set(values) != set(expected)
+            or any(values[key] != value for key,value in expected.items() if value is not None)
+            or any(not isinstance(values[key],str) or not re.fullmatch('[0-9a-f]{64}',values[key])
+                   for key in ('POSTGRES_PASSWORD','MLDSAFAIL_SECRET_KEY'))):
+        raise ValueError('Actual synthetic configuration differs from reviewed inventory')
     env_file = root/'synthetic.env'
     from research.cpu_measurement.native_driver import install
     install(env_file, ''.join(key+'='+value+'\n' for key,value in values.items()))
@@ -111,7 +165,8 @@ def bootstrap(packet, root, data, client):
         target.write_bytes((source/'scripts'/name).read_bytes())
         target.chmod(0o444)
     generated = json.loads(client.docker(['compose', '--env-file', str(env_file), '-f',
-        str(source/'compose.production.yaml'), 'config', '--format', 'json']))
+        str(source/'compose.production.yaml'), 'config', '--format', 'json'], env=compose_environment(values)))
+    verify_rendered_configuration(generated, values, images)
     generated = compose_configuration(generated, root, source, packet['run_id'], data['worker_slice'])
     owned_daemon.publish(root/'compose.json', generated)
     compose = ['docker', 'compose', '-p', generated['name'], '-f', str(root/'compose.json')]
@@ -193,6 +248,16 @@ def stopped_monitor(packet, client):
             raise RuntimeError('Monitor remains active')
 
 
+def configuration_inventory(root, phase):
+    root = Path(root)
+    paths = [root/'synthetic.env',root/'compose.json',root/'monitor.json']
+    paths += [path for path in (root/'helpers').rglob('*') if path.is_file()]
+    journal = owned_daemon.read_private_json(root/'journal.json')
+    paths += [Path(item['path']) for item in journal['monitor_units']]
+    owned_daemon.publish(root/('configuration-'+phase+'.json'), dict(
+        files_sha256={str(path):diagnostic.file_digest(path) for path in paths}))
+
+
 def run_phase(packet, config, client, name, phase_deadline, terminal_deadline):
     from scripts.production_diagnostic_controller import quiesce_engine
     phase_client = Client(Path(packet['root'])/(name+'-controller'), phase_deadline)
@@ -243,6 +308,7 @@ def callback(driver, config, data):
         # as this callback. Only completed setup releases it for measured phases.
         from scripts.production_diagnostic_deadline import release_setup
         release_setup()
+        configuration_inventory(root, 'setup')
         packet['sample_domains'] = dict(worker=data['worker_parent'], daemon=data['registered_manifest']['domain']['path'])
         client.deadline = work_deadline
         for phase in packet['protocol']['phases'][1:]:
@@ -257,6 +323,8 @@ def callback(driver, config, data):
                     stopped_monitor(packet, client)
             if phase['name'] == 'final-idle':
                 # Recreate the same application image/settings without the hook.
+                (root/'compose-before-final.json').write_bytes((root/'compose.json').read_bytes())
+                (root/'compose-before-final.json').chmod(0o600)
                 generated = owned_daemon.read_private_json(root/'compose.json')
                 generated['services']['web']['environment'].pop('GUNICORN_CMD_ARGS')
                 # Preserve the actual allocated loopback endpoint on recreation.
@@ -268,6 +336,7 @@ def callback(driver, config, data):
                     "from pathlib import Path; assert not Path('/tmp/diagnostic-timings').exists(); print('instrumentation_disabled')"]).stdout.decode().strip()
                 if proof != 'instrumentation_disabled':
                     raise RuntimeError('Heavy instrumentation remains active')
+            configuration_inventory(root, phase['name'])
             owned_daemon.publish(root/'phase-packet.json', packet)
             run_phase(packet, config, client, phase['name'], phase_deadline, started+3000)
             if phase['name'].startswith('http-'):

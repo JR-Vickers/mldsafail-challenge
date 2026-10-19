@@ -58,7 +58,11 @@ def audit(packet, slot, root):
             units = [driver['daemon_unit'], driver['worker_slice']]
             monitor_journal = Path(config['state_root'])/'diagnostic/journal.json'
             if monitor_journal.exists():
-                units += [Path(item['path']).name for item in owned_daemon.read_private_json(monitor_journal)['monitor_units']]
+                items = owned_daemon.read_private_json(monitor_journal)['monitor_units']
+                for item in items:
+                    if diagnostic.file_digest(item['path']) != item['sha256']:
+                        raise RuntimeError('Recorded monitor fragment changed')
+                units += [Path(item['path']).name for item in items]
             for unit in units:
                 raw = client.run(['systemctl','--user','show',unit,'--property=ActiveState,MainPID,ControlGroup']).stdout.decode()
                 values = dict(line.split('=',1) for line in raw.splitlines() if '=' in line)

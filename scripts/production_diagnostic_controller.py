@@ -42,6 +42,8 @@ def engine(path):
     # Only the already registered gated child may enter this internal operation.
     # Replaying --engine in a new process cannot reuse an interrupted slot.
     config = owned_daemon.read_private_json(packet['driver_config'])
+    if diagnostic.file_digest(packet['driver_config']) != packet['driver_configuration_sha256']:
+        raise ValueError('Actual driver configuration changed before engine entry')
     root = Path(config['state_root']).parent
     authority = owned_daemon.read_private_json(root/'supervisor-clients.json')
     actual = owned_client.identity(os.getpid())

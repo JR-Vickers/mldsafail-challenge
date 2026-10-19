@@ -281,3 +281,22 @@ def test_preflight_rejects_foreign_build_and_accepts_protected_process(tmp_path)
     with pytest.raises(RuntimeError,match='Unreconciled'):
         assert_no_foreign_jobs([],proc_root=tmp_path)
     assert_no_foreign_jobs([dict(path='/sys/fs/cgroup/user.slice/unknown.service')],proc_root=tmp_path)
+
+
+def test_compose_parent_cannot_override_frozen_substitutions(monkeypatch):
+    import re
+    template = Path(native.__file__).resolve().parents[1]/'compose.production.yaml'
+    keys = set(re.findall(r'\$\{([A-Z_][A-Z_0-9]*)', template.read_text()))
+    limits = {'MLDSAFAIL_OUTSTANDING_PER_ACCOUNT', 'MLDSAFAIL_SUBMISSIONS_PER_DAY', 'MLDSAFAIL_QUEUED_GLOBALLY'}
+    values = {key:'frozen' for key in keys-limits}
+    for key in keys:
+        monkeypatch.setenv(key,'hostile')
+    monkeypatch.setenv('MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT','/owned/domain')
+    actual = native.compose_environment(values)
+    assert all(actual[key] == 'frozen' for key in values)
+    assert actual['MLDSAFAIL_OUTSTANDING_PER_ACCOUNT'] == '1'
+    assert actual['MLDSAFAIL_SUBMISSIONS_PER_DAY'] == '2'
+    assert actual['MLDSAFAIL_QUEUED_GLOBALLY'] == '10'
+    assert actual['MLDSAFAIL_OPERATOR_CLIENT_CGROUP_ROOT'] == '/owned/domain'
+    with pytest.raises(ValueError, match='inventory'):
+        native.compose_environment(dict(values, UNREVIEWED='extra'))
