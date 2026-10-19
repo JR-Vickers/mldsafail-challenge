@@ -51,6 +51,11 @@ def prepare_source(source, revision, destination):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(data)
         original[name] = digest(data)
+        if name.startswith('docs/'):
+            presentation = re.sub(r'\[([^\]]+)\]\(([^)]+)\)',
+                                  lambda m: m.group(0) if re.match(r'https?://|#', m.group(2)) else m.group(1),
+                                  data.decode())
+            path.write_text(presentation)
     metadata = destination / 'pyproject.toml'
     metadata.write_text(metadata.read_text() + '\n[tool.hatch.build.targets.sdist]\ninclude = ["/src/mldsafail", "/examples/mlwe/primal-lll/solver.py", "/docs", "/README.md", "/LICENSE", "/pyproject.toml", "/SOURCE.json"]\n')
     (destination / 'README.md').write_text(
@@ -65,7 +70,7 @@ def prepare_source(source, revision, destination):
     identity = {'wheel_source_commit': revision, 'historical_files_sha256': original,
                 'packaging_source_commit': git('rev-parse', 'HEAD').decode().strip(),
                 'overlays': ['pyproject.toml: explicit sdist allowlist',
-                             'README.md: participant quickstart', 'SOURCE.json: provenance'],
+                             'README.md: source quickstart', 'docs: local links rendered as text', 'SOURCE.json: provenance'],
                 'wheel_reproduction_claim': 'package payload comparison required; archive equality not claimed'}
     (destination / 'SOURCE.json').write_text(json.dumps(identity, sort_keys=True, indent=2) + '\n')
     return identity
