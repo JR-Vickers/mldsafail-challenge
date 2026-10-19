@@ -87,3 +87,28 @@ does not authorize a retry, new fixture, private epoch or full rehearsal.
 Additional spending: $0. No notification delivery, public activation, publication,
 recruitment or Measurement 0.6.0 adoption occurred. Backups remain a separate
 workstream. Commits remain local and unpushed.
+
+## Owner-requested SSH continuation — 2026-10-19 11:06 UTC
+
+The owner reported restoring SSH and explicitly requested continuation. A single
+bounded read-only connection check was recorded before dispatch in a separate
+append-only continuation record, binding the prior terminal hash and retaining
+its 33-second charge. No original ledger entry was reset or overwritten.
+Strict SSH again returned 255 with the same unverified offered ED25519 fingerprint
+and empty stdout. The remote payload did not run. Independent review verified
+transport/payload hashes and this limited no-execution conclusion; existing
+remote identity and resource state remain unverified.
+
+Continuation elapsed 31.421516834 seconds including independent verification;
+rounded charge **32 seconds**. Aggregate charge is now **965 seconds**
+(900 + 33 + 32), with **235 seconds** left in the original 300-second initial
+preflight allocation. Both generation slots remain unstarted. Private evidence
+includes `budget/preflight-continuation-{start,terminal}.json`, transport output
+and `preflight-continuation-independent-cleanup.json`. The original failed
+preflight fence remains in force; any successful continuation must explicitly
+reconcile these appended records without resetting charges.
+
+The next required input is provider-console verification of the offered host
+fingerprint before updating SSH trust. No further native connection, provisioning,
+measurement, cleanup mutation, spending or delivery was attempted. The canonical
+fixture remains unchanged and its original expiry still applies.

@@ -311,7 +311,7 @@ complete at checkpoints `a29c553` and `544dead`. Independent source review passe
 `make check` passed with 1,170 tests, 14 skipped, plus eight contract checks.
 The sole fresh native preflight failed strict SSH host identity verification
 before remote execution. Neither generation started. The durable ledger charges
-933 seconds including the existing debit and fences continuation after failed
+965 seconds including the existing debit and fences continuation after failed
 preflight. Monitor/authentication/legacy causes and native pacing remain unresolved.
 The [final findings report](acceptance/integration/production-diagnostic-findings-20261019.md)
 records required identity evidence, unchanged fixture expiry, independent cleanup
