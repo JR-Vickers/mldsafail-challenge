@@ -119,6 +119,12 @@ def _restore(session, encoded, metadata, *, now=None, required_until=None):
         raise ValueError('Canonical fixture row identity changed')
     _validate_rows(data, metadata)
     _assert_empty_elsewhere(session)
+    existing = _snapshot(session)
+    identities = [({row['id'] for row in existing[name]}, {row['id'] for row in data['rows'][name]})
+                  for name in TABLES if name != 'rate_limit_states']
+    fresh = all(not current for current, _expected in identities)
+    if (fresh and existing['rate_limit_states']) or (not fresh and any(current != expected for current, expected in identities)):
+        raise ValueError('Database contains unowned fixture identities; restoration prohibited')
     for table in reversed(Base.metadata.sorted_tables):
         if table.name in TABLES:
             session.execute(table.delete())

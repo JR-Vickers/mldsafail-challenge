@@ -285,3 +285,37 @@ def test_exact_legacy_source_instrumentation(tmp_path, monkeypatch):
     assert all(row['queue_delay_seconds'] >= 0 for row in rows)
     assert snapshots[-1]['observations']
     assert 'synthetic-secret' not in json.dumps(snapshots)
+
+
+def test_slow_intent_publication_cannot_admit_late_http():
+    import time
+    from scripts.production_diagnostic_probes import request_comparison
+    calls = []
+    def forbidden(*args, **kwargs):
+        calls.append(True)
+        raise AssertionError('Late HTTP dispatch')
+    result = request_comparison('http://127.0.0.1', 'unused', lambda: True,
+        lambda rows: time.sleep(.15), request_open=forbidden, duration=.4, count=2)
+    assert not result['complete'] and not result['pacing_valid']
+    assert not calls and result['undispatched_requests'] == 2
+    assert 'dispatched_after_seconds' not in result['requests'][0]
+
+
+def test_restore_refuses_unowned_user_and_preserves_rows(database):
+    encoded, metadata = fixture.create(database)
+    database.add(User(display_name='unrelated owner'))
+    database.commit()
+    before = fixture._snapshot(database)
+    with pytest.raises(ValueError, match='unowned'):
+        fixture.restore(database, encoded, metadata)
+    assert fixture._snapshot(database) == before
+
+
+def test_restore_clears_authenticated_read_rate_state(database):
+    from mldsafail.web.models import RateLimitState
+    encoded, metadata = fixture.create(database)
+    database.add(RateLimitState(bucket='authentication:127.0.0.1', count=60))
+    database.commit()
+    assert fixture._snapshot(database)['rate_limit_states']
+    fixture.restore(database, encoded, metadata)
+    assert fixture._snapshot(database)['rate_limit_states'] == []

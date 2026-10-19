@@ -81,13 +81,19 @@ def request_comparison(server, token, health, publish, *, request_open=None,
                 pacing = False
                 break
             row = dict(request_id=index, route='/api/v1/me' if index % 2 else '/health/ready',
-                scheduled_after_seconds=target-started, dispatched_after_seconds=dispatched-started)
+                scheduled_after_seconds=target-started, intent_after_seconds=dispatched-started)
             with lock:
                 submitted.append(row)
             emit()
-            if publication_failed.is_set():
-                healthy = False
+            healthy = observer.valid() and not publication_failed.is_set()
+            dispatched = time.monotonic()
+            if not healthy:
                 break
+            if dispatched-target > .1:
+                pacing = False
+                break
+            with lock:
+                row['dispatched_after_seconds'] = dispatched-started
             futures.append(pool.submit(read, row))
         end = started + duration
         while healthy and pacing and time.monotonic() < end:
@@ -109,19 +115,22 @@ def request_comparison(server, token, health, publish, *, request_open=None,
         requests=snapshot(), observation_valid=healthy, pacing_valid=pacing,
         termination_complete=workers_stopped and observer_stopped and not pending,
         evidence_complete=not publication_failed.is_set(), expected_requests=count,
-        undispatched_requests=count-len(submitted), elapsed_seconds=time.monotonic()-started)
+        undispatched_requests=count-len(futures), elapsed_seconds=time.monotonic()-started)
 
 
 def legacy_module(path, expected_sha256):
     """Load the frozen legacy source bytes; never reconstruct its scheduler."""
     path = Path(path)
-    if path.is_symlink() or not path.is_absolute() or hashlib.sha256(path.read_bytes()).hexdigest() != expected_sha256:
+    if path.is_symlink() or not path.is_absolute():
+        raise ValueError('Actual frozen legacy source required')
+    source = path.read_bytes()
+    if hashlib.sha256(source).hexdigest() != expected_sha256:
         raise ValueError('Actual frozen legacy source required')
     # Compile checked bytes directly, avoiding an unbound stale pyc file.
     import types
     module = types.ModuleType('diagnostic_frozen_legacy')
     module.__file__ = str(path)
-    exec(compile(path.read_bytes(), str(path), 'exec'), module.__dict__)
+    exec(compile(source, str(path), 'exec'), module.__dict__)
     return module
 
 
