@@ -326,3 +326,33 @@ def test_request_comparison_requires_reviewed_read_only_observer():
     def forbidden(): raise AssertionError('Observer started without review')
     with pytest.raises(ValueError, match='Read-only'):
         request_comparison('http://127.0.0.1', 'unused', forbidden, lambda rows: None)
+
+
+def test_artifacts_require_actual_bytes_not_digest_syntax(frozen_protocol, tmp_path):
+    import hashlib
+    frozen_protocol['phases'] = [dict(name=name, outer_seconds=ceiling) for name, ceiling in
+        [('setup', 400), ('monitor-idle', 100), ('monitor-loaded', 100),
+         ('http-idle', 100), ('http-loaded', 100), ('legacy', 600)]]
+    bindings = {}
+    for name in ('source', 'configuration'):
+        root = tmp_path / name
+        root.mkdir()
+        path = root / 'input'
+        path.write_bytes(name.encode())
+        files = {'input': diagnostic.file_digest(path)}
+        bindings[name] = dict(root=str(root), files=files)
+        frozen_protocol[name + '_sha256'] = diagnostic.digest(files)
+    for name in ('instrumentation', 'legacy_source', 'cleanup_protocol', 'fixture'):
+        path = tmp_path / name
+        path.write_bytes(name.encode())
+        bindings[name] = str(path)
+        frozen_protocol[name + '_sha256'] = diagnostic.file_digest(path)
+    for name in frozen_protocol['archives']:
+        path = tmp_path / ('archive_' + name)
+        path.write_bytes(name.encode())
+        bindings['archive_' + name] = str(path)
+        frozen_protocol['archives'][name] = diagnostic.file_digest(path)
+    diagnostic.validate_artifacts(frozen_protocol, bindings)
+    (tmp_path / 'archive_web').write_bytes(b'changed archive')
+    with pytest.raises(ValueError, match='archive differs'):
+        diagnostic.validate_artifacts(frozen_protocol, bindings)

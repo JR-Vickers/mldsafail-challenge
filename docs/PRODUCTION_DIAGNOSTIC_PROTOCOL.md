@@ -25,10 +25,12 @@ receipts establish retained evidence, not current host absence or ownership.
 ## Admission and budget
 
 Use only the existing VPS, at zero additional spending. Admit at most two fresh
-generations: baseline and post-fix. Each has a 3,600-second native wall budget
-including provisioning and cleanup; prohibit new work after second 2,700 and
-reserve the final 900 seconds for cleanup. Charge partial/failed generations and
-all setup/cleanup to the 7,200-second aggregate ledger. Image builds and local
+generations: baseline and post-fix. Carry forward the existing 900-second debit and allocate at most 300 seconds
+for one fresh initial ownership/resource preflight. Each generation has a
+3,000-second native wall budget including provisioning and cleanup; measurement
+work ends by second 2,100, reserving the final 900 seconds for cleanup and
+independent verification. The aggregate is 900 + 300 + 3,000 + 3,000 = 7,200
+seconds. Charge partial/failed generations and all setup/cleanup to this ledger. Image builds and local
 engineering are excluded. No automatic retries or third generation are allowed.
 Use monotonic deadlines in the controller; native callbacks must receive the
 remaining budget rather than resetting it. Loss of ownership, insufficient budget
@@ -104,7 +106,7 @@ Never submit this workload through the private acceptance path. All receipts say
 4. Only in post-fix generation, after isolated probes, run the corrected harness
    sequentially idle and under the fixed worker sequence: each schedules 1,500
    anonymous and 60 authenticated reads across 300 seconds, ten request threads,
-   two-second HTTP timeout. Include both full phases in the 2,700-second work
+   two-second HTTP timeout. Include both full phases in the 2,100-second work
    allowance. Do not start either without enough time to finish and clean up.
 
 A corrected phase requires initial complete ownership inspection; one observer with

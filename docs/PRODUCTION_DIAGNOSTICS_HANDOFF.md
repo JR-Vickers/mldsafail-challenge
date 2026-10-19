@@ -1,5 +1,10 @@
 # Next session: production diagnostics
 
+The [latest admission engineering checkpoint](acceptance/integration/production-diagnostic-admission-20261019.md)
+adds durable consumed-slot budgeting and actual artifact/schedule verification.
+Independent helper review passes; native controller/callback and all measurements
+remain incomplete. No native budget beyond the prior 900 seconds was consumed.
+
 Retention update, 2026-10-19: the owner adopted
 [lean-launch retention](RETENTION_POLICY.md) and explicitly authorized immediate
 cleanup. That policy supersedes blanket requirements below to retain complete

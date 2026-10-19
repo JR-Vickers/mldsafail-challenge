@@ -129,3 +129,96 @@ def validate_ledger(ledger, generation):
     if used + GENERATION_SECONDS > AGGREGATE_SECONDS:
         raise ValueError('Aggregate diagnostic allowance exhausted')
     return used
+
+
+def file_digest(path):
+    """Hash actual regular bytes, rejecting links and concurrent replacement."""
+    import os
+    import stat
+    from pathlib import Path
+    from deploy import owned_daemon
+    path = owned_daemon._canonical(Path(path))
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    before = os.fstat(descriptor)
+    if not stat.S_ISREG(before.st_mode):
+        os.close(descriptor)
+        raise ValueError('Regular diagnostic artifact required')
+    with os.fdopen(descriptor, 'rb') as stream:
+        value = hashlib.file_digest(stream, 'sha256').hexdigest()
+        after = os.fstat(stream.fileno())
+    fields = ('st_dev', 'st_ino', 'st_size', 'st_mtime_ns', 'st_ctime_ns')
+    if any(getattr(before, key) != getattr(after, key) for key in fields) or path.stat() != after:
+        raise ValueError('Diagnostic artifact changed while hashing')
+    return value
+
+
+def verify_inventory(root, expected):
+    """Exact actual closure: missing, extra and linked inputs all fail admission."""
+    from pathlib import Path
+    from deploy import owned_daemon
+    root = owned_daemon._canonical(Path(root))
+    if not root.is_dir() or not isinstance(expected, dict) or not expected:
+        raise ValueError('Complete nonempty artifact inventory required')
+    actual = {}
+    for path in root.rglob('*'):
+        if path.is_symlink():
+            raise ValueError('Artifact links forbidden')
+        if path.is_dir():
+            continue
+        actual[path.relative_to(root).as_posix()] = file_digest(path)
+    if actual != expected:
+        raise ValueError('Actual diagnostic inventory differs')
+    return digest(actual)
+
+
+def validate_schedule(protocol):
+    """Every outer ceiling includes its transition, cancellation and draining."""
+    import math
+    names = ['setup', 'monitor-idle', 'monitor-loaded', 'http-idle', 'http-loaded']
+    names += ['legacy'] if protocol['generation'] == 'baseline' else ['final-idle', 'final-loaded']
+    phases = protocol.get('phases')
+    if not isinstance(phases, list) or [row.get('name') for row in phases] != names:
+        raise ValueError('Complete ordered phase schedule required')
+    for row in phases:
+        ceiling = row.get('outer_seconds')
+        if (set(row) != {'name', 'outer_seconds'} or type(ceiling) not in (int, float)
+                or not math.isfinite(ceiling) or ceiling <= 0):
+            raise ValueError('Finite frozen outer ceiling required')
+        if row['name'] == 'legacy':
+            if ceiling != 600:
+                raise ValueError('Legacy outer ceiling must remain 600 seconds')
+            continue
+        minimum = 300 if row['name'].startswith('final-') else 60 if row['name'].startswith('http-') else 30 if row['name'].startswith('monitor-') else 0
+        if ceiling <= minimum:
+            raise ValueError('Phase ceiling must include transitions and termination')
+    if sum(row['outer_seconds'] for row in phases) > GENERATION_SECONDS - CLEANUP_SECONDS:
+        raise ValueError('Complete schedule exceeds measurement allowance')
+    return phases
+
+
+def validate_artifacts(protocol, bindings):
+    """Supplement schema validation with actual reviewed inputs, never syntax alone.
+
+    Source and configuration are complete directory inventories. Other entries
+    bind regular files. Call again immediately before use; this is admission,
+    not a substitute for immutable private copies during execution.
+    """
+    validate_protocol(protocol)
+    validate_schedule(protocol)
+    trees = {'source': 'source_sha256', 'configuration': 'configuration_sha256'}
+    files = {name: name + '_sha256' for name in
+             ('instrumentation', 'legacy_source', 'cleanup_protocol', 'fixture')}
+    required = set(trees) | set(files) | {'archive_' + name for name in protocol['archives']}
+    if set(bindings) != required:
+        raise ValueError('Exact actual artifact bindings required')
+    for name, field in trees.items():
+        entry = bindings[name]
+        if set(entry) != {'root', 'files'} or verify_inventory(entry['root'], entry['files']) != protocol[field]:
+            raise ValueError('Reviewed tree identity differs: ' + name)
+    for name, field in files.items():
+        if file_digest(bindings[name]) != protocol[field]:
+            raise ValueError('Reviewed file identity differs: ' + name)
+    for name, expected in protocol['archives'].items():
+        if file_digest(bindings['archive_' + name]) != expected:
+            raise ValueError('Reviewed image archive differs: ' + name)
+    return protocol

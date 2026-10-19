@@ -32,6 +32,10 @@ no-epoch diagnostic callback remains incomplete. Complete its instruments,
 common fixture/token identity, actual legacy-source binding, budget/lifecycle
 admission and exact independent source/protocol review before execution. Carry
 forward the existing 900-second diagnostic debit; cleanup does not reset it.
+The authorized aggregate allocation is 900 seconds already debited, one 300-second
+initial preflight, and two 3,000-second generations. Each reserves its final
+900 seconds for cleanup and independent verification; measurements end by second
+2,100. Interrupted starts consume their slot; no retries or third generation.
 
 Read [the updated handoff](PRODUCTION_DIAGNOSTICS_HANDOFF.md) and
 [bounded diagnostic protocol](PRODUCTION_DIAGNOSTIC_PROTOCOL.md). C remains
