@@ -1,5 +1,14 @@
 # Production diagnostics: unresolved native admission
 
+Latest continuation: the owner verified VPS **178.128.17.58** and the read-only
+host snapshot passed. Artifact transfer/check then timed out; initial preflight
+charged 355 seconds against 300, aggregate 1,255. Both generation slots remain
+unstarted and fenced. The partial remote source root is retained without a
+cleanup-success claim. See the [current findings](acceptance/integration/production-diagnostic-continuation-20261019.md)
+for source/test checkpoints, actual budget overrun, cleanup limits and required
+revised bounded continuation. The dated material below is historical.
+
+
 
 Current outcome (2026-10-19): the separate implementation and independent source
 review are complete, but the sole fresh native preflight failed strict SSH host

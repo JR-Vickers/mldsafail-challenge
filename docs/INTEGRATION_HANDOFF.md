@@ -1,5 +1,10 @@
 # Canonical competition integration — 2026-10-13
 
+Latest diagnostic outcome: correct VPS identity/host snapshot verified; artifact
+admission failed and initial preflight exceeded its ceiling. Aggregate charge
+**1,255 seconds**; no generation started. See [current findings](acceptance/integration/production-diagnostic-continuation-20261019.md).
+
+
 Retention update, 2026-10-19: the owner adopted
 [lean-launch retention](RETENTION_POLICY.md) and explicitly authorized immediate
 cleanup. That policy supersedes blanket requirements below to retain complete

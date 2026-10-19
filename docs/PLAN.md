@@ -316,3 +316,18 @@ preflight. Monitor/authentication/legacy causes and native pacing remain unresol
 The [final findings report](acceptance/integration/production-diagnostic-findings-20261019.md)
 records required identity evidence, unchanged fixture expiry, independent cleanup
 and retention. No full-rehearsal approval packet is warranted.
+
+
+### Verified-VPS diagnostic continuation, 2026-10-19
+
+The correct 178.128.17.58 console fingerprint and read-only host snapshot passed.
+Source `8351bab` adds independently reviewed operational evaluation fencing;
+make check passed 1,175 tests/15 skipped plus 8 contract checks, with 3 separate
+real PostgreSQL guard tests. Artifact admission then timed out. The agent's
+initial-preflight interval totals 355 seconds against 300 (55-second overrun);
+aggregate charge is 1,255. Neither generation started. The partial remote source
+root remains a targeted retained exception, not verified cleanup. No application
+cause or native performance gain is established. The [current findings](acceptance/integration/production-diagnostic-continuation-20261019.md)
+record actual charges, original fixture expiry and next required evidence. Stop
+native work pending an explicitly revised bounded continuation; no ledger reset,
+fixture renewal, third generation or full rehearsal is admitted.
