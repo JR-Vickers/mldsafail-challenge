@@ -1,5 +1,13 @@
 # Disposable diagnostics protocol
 
+Retention update, 2026-10-19: the owner adopted
+[lean-launch retention](RETENTION_POLICY.md) and explicitly authorized immediate
+cleanup. That policy supersedes blanket requirements below to retain complete
+answered trials, duplicate source copies, old caches or every release. Historical
+outcomes remain unchanged; retain compact records and targeted exceptions. Active
+resources, one verified rollback and supporting scientific evidence stay protected.
+
+
 This is the bounded preparation specification for diagnosing failed rehearsal C.
 It authorizes no replacement epoch, private evaluation, notification delivery or
 production activation. The final native protocol must name a separately reviewed
@@ -135,8 +143,9 @@ all five required retained image archives found 1,184,630,872 bytes of distinct
 nonsparse regular-file content after decompression. The host had 5,731,893,248
 bytes free, only 363,184,128 above the protected 5 GiB floor. The lower bound
 exceeds headroom by 821,446,744 bytes before image content-store copies, metadata,
-PostgreSQL or transient writes. This is a resource-floor stop, not permission to
-retire evidence, reuse C, lower floors or buy another host. No generation,
+PostgreSQL or transient writes. This was a resource-floor stop. The later owner directive authorizes lean-launch
+retirement of eligible trial artifacts; it does not authorize C reuse, lower
+floors or another host. No generation,
 service, monitor, worker, image build or epoch was started.
 
 Checkpoint `f194bfaa69baff0f47b6137215e02ea5b693d138` implements the corrected

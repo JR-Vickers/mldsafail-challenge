@@ -1,5 +1,13 @@
 # Private staging operations
 
+Retention update, 2026-10-19: the owner adopted
+[lean-launch retention](RETENTION_POLICY.md) and explicitly authorized immediate
+cleanup. That policy supersedes blanket requirements below to retain complete
+answered trials, duplicate source copies, old caches or every release. Historical
+outcomes remain unchanged; retain compact records and targeted exceptions. Active
+resources, one verified rollback and supporting scientific evidence stay protected.
+
+
 As of 2026-10-01, the native Linux amd64 VPS runs private MLWE 0.5.0 staging.
 Authenticated immutable-source evaluation and a verified leaderboard result are
 documented in [PRIVATE_STAGING_STATUS.md](PRIVATE_STAGING_STATUS.md). Integrated

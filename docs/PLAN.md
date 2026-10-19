@@ -1,5 +1,13 @@
 # MLWE competition implementation and acceptance plan
 
+Retention update, 2026-10-19: the owner adopted
+[lean-launch retention](RETENTION_POLICY.md) and explicitly authorized immediate
+cleanup. That policy supersedes blanket requirements below to retain complete
+answered trials, duplicate source copies, old caches or every release. Historical
+outcomes remain unchanged; retain compact records and targeted exceptions. Active
+resources, one verified rollback and supporting scientific evidence stay protected.
+
+
 Updated 2026-10-18. This is the current authoritative implementation plan.
 The [pre-integration plan](archive/PLAN_PRE_INTEGRATION_20261013.md) preserves
 historical 0.4.0 contracts and dated agendas. Frozen scientific requirements
@@ -151,8 +159,8 @@ source/artifact identities, local checks and explicit limitations.
 All audited branch tips matched their prior inventory. A verified standalone
 Git bundle, original inventory and metadata-only ignored/worktree inventory are
 retained in protected ignored storage. Existing worktrees, successful/failed/partial
-evidence and rollback artifacts were retained. Cleanup means a reviewable retention
-manifest, not deletion. Each claimed milestone must name source, artifact,
+evidence and rollback artifacts were retained. Cleanup follows the lean-launch retention policy: retain a reviewable record
+and remove eligible bulky trial artifacts after ownership checks. Each claimed milestone must name source, artifact,
 environment, protocol and limitations.
 
 Local focused tests, complete checks, wheel/import/starter verification and a clean

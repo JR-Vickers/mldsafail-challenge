@@ -1,5 +1,13 @@
 # Canonical competition integration — 2026-10-13
 
+Retention update, 2026-10-19: the owner adopted
+[lean-launch retention](RETENTION_POLICY.md) and explicitly authorized immediate
+cleanup. That policy supersedes blanket requirements below to retain complete
+answered trials, duplicate source copies, old caches or every release. Historical
+outcomes remain unchanged; retain compact records and targeted exceptions. Active
+resources, one verified rollback and supporting scientific evidence stay protected.
+
+
 Current session entrypoint (2026-10-18):
 [production diagnostics handoff](PRODUCTION_DIAGNOSTICS_HANDOFF.md). The owner
 ended this session with diagnostics left for a new one. The dated history below

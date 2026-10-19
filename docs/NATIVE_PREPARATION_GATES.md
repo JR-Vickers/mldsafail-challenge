@@ -1,5 +1,13 @@
 # Disposable native preparation gates
 
+Retention update, 2026-10-19: the owner adopted
+[lean-launch retention](RETENTION_POLICY.md) and explicitly authorized immediate
+cleanup. That policy supersedes blanket requirements below to retain complete
+answered trials, duplicate source copies, old caches or every release. Historical
+outcomes remain unchanged; retain compact records and targeted exceptions. Active
+resources, one verified rollback and supporting scientific evidence stay protected.
+
+
 These commands are for the primary native operator only. Record exact source,
 interpreter, database/worker image and protocol before execution; preserve failed
 logs. Serial execution on an idle host is required. They do not mutate staging.

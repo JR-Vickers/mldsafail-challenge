@@ -1,5 +1,13 @@
 # Next session: production diagnostics
 
+Retention update, 2026-10-19: the owner adopted
+[lean-launch retention](RETENTION_POLICY.md) and explicitly authorized immediate
+cleanup. That policy supersedes blanket requirements below to retain complete
+answered trials, duplicate source copies, old caches or every release. Historical
+outcomes remain unchanged; retain compact records and targeted exceptions. Active
+resources, one verified rollback and supporting scientific evidence stay protected.
+
+
 Updated 2026-10-18 after the bounded diagnostic continuation. Provisioning stopped
 on the disk floor before generation one. This handoff is the next-session
 entrypoint from [PLAN.md](PLAN.md). No diagnostic service was started and no
@@ -14,7 +22,8 @@ native continuation is left running.
   regular files total at least 1,184,630,872 bytes; available headroom above the
   protected floor was 363,184,128 bytes. Provisioning is prohibited without
   resolving at least the 821,446,744-byte deficit **plus** additional overhead.
-  No evidence deletion, C reuse, lower floor or additional spending is authorized.
+  Lean-launch cleanup is now authorized for eligible trial artifacts. C reuse,
+  lower resource floors and additional spending remain unauthorized.
 - Read-only final audit: nine retained C receipt hashes match; four protected
   container/image identities match; C monitor has MainPID 0/no cgroup, timer is
   inactive, exact daemon socket absent, delivery disabled, no user jobs. This is

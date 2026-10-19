@@ -3,6 +3,18 @@
 ## Behaviors
 Make regular, descriptive git commits upon reaching sensible checkpoints.  Don't push them to main, let me do that manually.
 
+## Lean-launch retention (owner authorized 2026-10-19)
+
+[docs/RETENTION_POLICY.md](docs/RETENTION_POLICY.md) governs deployment trials and
+supersedes older blanket requirements to preserve entire trial environments,
+all caches, duplicate source contexts or every historical release indefinitely.
+Keep compact permanent run records; remove bulky answered-trial artifacts once
+ownership, inactivity and retained-record checks pass. Preserve the current
+installation, one verified compatible rollback, targeted evidence for unresolved
+failures and scientific data supporting retained research claims. Do not alter
+scientific results, active resources or retained files through shared hardlinks.
+This authorizes cleanup, not new evaluations, epochs, notifications or launch.
+
 ## Project Overview
 
 This repository is an experimental benchmarking platform inspired by
