@@ -39,6 +39,7 @@ def audit(packet, slot, root):
             if Path(driver['socket']).exists() or Path(driver['socket']).is_symlink():
                 raise RuntimeError('Owned socket remains')
             registries = list(Path(config['state_root']).rglob('clients.json'))
+            registries += list((root/'evaluation-guard').rglob('clients.json'))
             registries.append(root/'supervisor-clients.json')
             entries = list(driver['clients'])
             for path in registries:
@@ -55,6 +56,14 @@ def audit(packet, slot, root):
                     if actual['start_ticks'] == entry.get('start_ticks'):
                         raise RuntimeError('Recorded process birth remains')
             client = Client(root/('independent-'+slot)/'unit-client', deadline)
+            from scripts.production_diagnostic_guard import identity_query,query
+            guard = owned_daemon.read_private_json(root/'evaluation-guard/intent.json')
+            if guard['tag'] != 'diagnostic-'+packet['run_id']:
+                raise RuntimeError('Guard intent differs from reviewed generation')
+            if json.loads(query(packet,client,identity_query(guard['tag']))):
+                raise RuntimeError('Owned evaluation serialization lock remains')
+            if not owned_daemon.read_private_json(root/'evaluation-guard/cleanup.json')['complete']:
+                raise RuntimeError('Evaluation guard cleanup is unverified')
             units = [driver['daemon_unit'], driver['worker_slice']]
             monitor_journal = Path(config['state_root'])/'diagnostic/journal.json'
             if monitor_journal.exists():
@@ -72,8 +81,8 @@ def audit(packet, slot, root):
             for key in ('domain','worker_domain'):
                 if Path(driver['registered_manifest'][key]['path']).exists():
                     raise RuntimeError('Recorded daemon/worker domain remains')
-            report = owned_daemon.read_private_json(Path(config['state_root'])/'diagnostic/report.json')
-            complete = report.get('complete') is True
+            report_path=Path(config['state_root'])/'diagnostic/report.json'
+            complete = report_path.exists() and owned_daemon.read_private_json(report_path).get('complete') is True
         receipt = dict(independent=True, passed=True, budget_start_sha256=diagnostic.digest(start),
             slot=slot, verified_at_monotonic=time.monotonic(), measurements_complete=complete,
             source_sha256=diagnostic.file_digest(__file__))

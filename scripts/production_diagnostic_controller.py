@@ -140,8 +140,8 @@ def quiesce_engine(config, root, entry, deadline):
 def execute(path, *, preflight_only=False):
     packet = owned_daemon.read_private_json(path, cap=4*1024*1024)
     config = owned_daemon.read_private_json(packet['driver_config'])
-    # This is the existing host-wide evaluation/maintenance/build serialization
-    # lock, supplied explicitly by the independently reviewed private packet.
+    # Hold the existing host load mutex. The owned database guard separately
+    # fences deployed evaluation claims; admission reconciles maintenance/builds.
     lock = owned_daemon._canonical(packet['host_operation_lock'])
     fd = os.open(lock, os.O_RDWR | os.O_NOFOLLOW)
     try:
@@ -167,30 +167,38 @@ def execute(path, *, preflight_only=False):
                 owned_daemon.publish(root/'supervisor-clients.json', dict(clients=clients))
             save()
             error = None
+            from scripts.production_diagnostic_guard import Guard
+            guard = Guard(packet,root/'evaluation-guard',allowance.started+3000)
             os.environ['MLDSAFAIL_OPERATOR_DAEMON_MANIFEST'] = str(Path(config['state_root'])/'daemon-manifest.json')
             os.environ['DOCKER_HOST'] = 'unix://'+str(Path(config['state_root'])/'daemon/docker.sock')
             try:
+                with interrupt_at(allowance.started+2100):
+                    guard.acquire()
                 # The independent parent terminates the engine by second 2,100,
                 # leaving the entire reserved 900 seconds for terminal cleanup.
                 owned_client.run([sys.executable,'-B','-m','scripts.production_diagnostic_controller','--engine',str(path)],
                     clients, save, root, timeout=remaining(allowance.started+2100, 2100),
                     absolute_deadline=allowance.started+2100,
+                    cancel=guard.failed,
                     before_cancel=lambda entry: quiesce_engine(config,root,entry,allowance.started+3000),
                     stdout=open(root/'engine.stdout','xb'), stderr=open(root/'engine.stderr','xb'))
             except BaseException as caught:
                 error = caught
             finally:
-                state = Path(config['state_root'])/'driver.json'
-                if state.exists():
-                    from scripts.native_production_diagnostic import terminal_cleanup
-                    from scripts.production_diagnostic_deadline import interrupt_at
+                try:
+                    state = Path(config['state_root'])/'driver.json'
+                    if state.exists():
+                        from scripts.native_production_diagnostic import terminal_cleanup
+                        with interrupt_at(allowance.started+3000):
+                            cleanup = terminal_cleanup(state, config, Path(__file__).resolve().parents[1],cleanup_guard=False)
+                    else:
+                        cleanup = dict(cleanup_complete=not Path(config['state_root']).exists())
+                    owned_daemon.publish(root/'supervisor-cleanup.json', cleanup)
+                    if not cleanup['cleanup_complete']:
+                        raise RuntimeError('Terminal cleanup remains fenced') from error
+                finally:
                     with interrupt_at(allowance.started+3000):
-                        cleanup = terminal_cleanup(state, config, Path(__file__).resolve().parents[1])
-                else:
-                    cleanup = dict(cleanup_complete=not Path(config['state_root']).exists())
-                owned_daemon.publish(root/'supervisor-cleanup.json', cleanup)
-                if not cleanup['cleanup_complete']:
-                    raise RuntimeError('Terminal cleanup remains fenced') from error
+                        guard.release()
             if error is not None:
                 raise error
             # Independent actual postflight must produce the start-bound receipt;

@@ -224,3 +224,26 @@ in `scripts.production_diagnostic_audit` checks retained process/domain/socket
 absence, unit inactivity and unchanged protected deployment before writing a
 start-bound cleanup receipt and terminating the budget slot. A failed audit leaves
 its full conservative reservation and blocks the second generation.
+
+
+### Diagnostic admission guard (2026-10-19 continuation)
+
+Use the existing `/run/user/1000/mldsafail-staging-read-load.lock` for host load
+serialization. A new private lock alone does not fence deployed consumers.
+Within each generation, an owned PostgreSQL transaction holds advisory mutex
+1296843841 and a SHARE lock on the protected `evaluation_jobs` table, followed by
+a zero-pending-job check. The table lock also fences historical deployed claim
+implementations that predate the advisory mutex: claim updates cannot commit,
+and the coordinator starts a worker only after committing the claim. No row or
+lease is created or modified by this guard. Read-only observations remain possible.
+Record unique connection correlation, backend PID/birth and both granted locks.
+
+The guard uses one bounded server statement and the controller's absolute client
+deadline. Unexpected holder exit cancels dependent work through the existing
+owned daemon barrier. Normal cleanup cancels only the same owned backend birth,
+settles its client and independently proves lock absence. Cleanup-only can recover
+positive backend authority from retained intent; missing acknowledgement with no
+positive backend remains fenced because delayed Docker exec creation cannot be
+ruled out. It must never become a successful cleanup assertion. Verify old slices
+present and recursively empty, no jobs/builds, and the exact backup timer outside
+the window; do not disable or replace the protected timer or deployment.

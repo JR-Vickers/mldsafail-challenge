@@ -273,6 +273,10 @@ def callback(driver, config, data):
     packet = owned_daemon.read_private_json(packet_path, cap=4*1024*1024)
     packet['packet_path'] = str(packet_path)
     metadata = preflight(packet, config, Path(__file__).resolve().parents[1])
+    packet['evaluation_guard'] = owned_daemon.read_private_json(
+        Path(config['state_root']).parent/'evaluation-guard/authority.json')
+    if packet['evaluation_guard']['tag'] != 'diagnostic-'+packet['run_id']:
+        raise ValueError('Evaluation guard belongs to another generation')
     if set(packet['protocol']['images'].values()) - set(data['loaded_images']):
         raise ValueError('Exact imported diagnostic images required')
     start = owned_daemon.read_private_json(Path(packet['budget_root'])/(packet['protocol']['generation']+'-start.json'))
@@ -371,7 +375,7 @@ def callback(driver, config, data):
         evidence_refs=[str(root/'report.json')], source_sha256=config['acceptance_source_sha256'])
 
 
-def terminal_cleanup(path, controller_config, repository):
+def terminal_cleanup(path, controller_config, repository, *, cleanup_guard=True):
     """Retained ownership only: never provision, import, restore or resume."""
     native_driver.validate(controller_config, repository)
     review = owned_daemon.read_private_json(controller_config['review_packet'])
@@ -404,5 +408,14 @@ def terminal_cleanup(path, controller_config, repository):
                     owned_client.stop(entry)
                 except BaseException as error:
                     errors.append(dict(step='client', error_type=type(error).__name__))
+    guard_root=path.parent.parent/'evaluation-guard'
+    if cleanup_guard and receipt.get('cleanup_complete') is True and (guard_root/'intent.json').exists():
+        from scripts.production_diagnostic_guard import cleanup_retained
+        from scripts.production_diagnostic_deadline import timeout
+        packet=owned_daemon.read_private_json(path.parent.parent/'packet.json',cap=4*1024*1024)
+        try:
+            cleanup_retained(packet,guard_root,time.monotonic()+timeout(30))
+        except BaseException as error:
+            errors.append(dict(step='evaluation_guard',error_type=type(error).__name__))
     return dict(cleanup_complete=receipt.get('cleanup_complete') is True and not errors,
                 daemon_cleanup=receipt, errors=errors)

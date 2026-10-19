@@ -37,6 +37,8 @@ class Health:
             # client domain. Never mutate the lifecycle evidence journal here.
             manifest = owned_daemon.load_manifest(self.packet['manifest_path'])
             owned_daemon.verify_environment(manifest)
+            from scripts.production_diagnostic_guard import verify
+            verify(self.packet,self.client)
             for entry in self.packet['protected_domains']:
                 if owned_client.domain_identity(entry['path']) != entry:
                     raise RuntimeError('Protected domain changed')
