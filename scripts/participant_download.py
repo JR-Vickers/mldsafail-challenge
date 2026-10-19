@@ -16,6 +16,53 @@ def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
+# Source export is deliberately based on Git objects, never the broad worktree.
+SDIST_FILES = ('pyproject.toml', 'LICENSE', 'examples/mlwe/primal-lll/solver.py')
+SDIST_DOCS = ('PRIMITIVE_SELECTION_SPEC.md', 'MLWE_LOCAL.md', 'MLWE_PILOT.md',
+              'MLWE_REPRODUCTION.md', 'AGENT_WORKFLOW.md')
+
+
+def prepare_source(source, revision, destination):
+    """Stage historical package bytes with separately identified packaging overlays.
+
+    Run the normal PEP 517 build on this directory; this is not a second backend.
+    """
+    source, destination = Path(source), Path(destination)
+    if destination.exists() or not re.fullmatch(r'[a-f0-9]{40}', revision):
+        raise ValueError('New destination and full historical revision required')
+    def git(*args):
+        return subprocess.check_output(['git', '-C', str(source), *args])
+    listing = git('ls-tree', '-r', revision).decode().splitlines()
+    selected = []
+    for row in listing:
+        attributes, name = row.split('\t', 1)
+        if name.startswith('src/mldsafail/') or name in SDIST_FILES or name in {
+                'docs/' + doc for doc in SDIST_DOCS}:
+            if attributes.split()[0] != '100644':
+                raise ValueError('Only regular source files allowed: ' + name)
+            selected.append(name)
+    if not set(SDIST_FILES).issubset(selected):
+        raise ValueError('Required historical source missing')
+    destination.mkdir(mode=0o700, parents=True)
+    original = {}
+    for name in selected:
+        data = git('show', revision + ':' + name)
+        path = destination / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+        original[name] = digest(data)
+    metadata = destination / 'pyproject.toml'
+    metadata.write_text(metadata.read_text() + '\n[tool.hatch.build.targets.sdist]\ninclude = ["/src/mldsafail", "/examples/mlwe/primal-lll/solver.py", "/docs", "/README.md", "/LICENSE", "/pyproject.toml", "/SOURCE.json"]\n')
+    (destination / 'README.md').write_bytes((source / 'docs/PARTICIPANT_DOWNLOAD_README.md').read_bytes())
+    identity = {'wheel_source_commit': revision, 'historical_files_sha256': original,
+                'packaging_source_commit': git('rev-parse', 'HEAD').decode().strip(),
+                'overlays': ['pyproject.toml: explicit sdist allowlist',
+                             'README.md: participant quickstart', 'SOURCE.json: provenance'],
+                'wheel_reproduction_claim': 'package payload comparison required; archive equality not claimed'}
+    (destination / 'SOURCE.json').write_text(json.dumps(identity, sort_keys=True, indent=2) + '\n')
+    return identity
+
+
 def build(source, wheel, destination, expected_wheel_sha256, wheel_manifest):
     source, wheel, destination = map(Path, (source, wheel, destination))
     if destination.exists():

@@ -30,6 +30,7 @@ does not change local or global Git settings. Configure your own Git identity
 before committing subsequent solver changes.
 
 ```sh
+shasum -a 256 -c SHA256SUMS
 sh scripts/install.sh mldsafail_challenge-0.5.1-py3-none-any.whl VERIFIED_WHEEL_SHA256 NEW_INSTALL_DIRECTORY
 NEW_INSTALL_DIRECTORY/bin/mldsafail --help
 NEW_INSTALL_DIRECTORY/bin/mldsafail clone NEW_SOLVER_DIRECTORY
@@ -76,28 +77,16 @@ host identities must match the epoch. Obtain the reviewed image/source artifact
 from the approved release channel; this participant archive does not contain
 worker image layers and does not silently select another architecture.
 
-The installed wheel includes `mldsafail-mlwe`. On a compatible idle host with the
-reviewed `mldsafail-mlwe:0.5.0` image:
+Installation checks stop at CLI help, cloning and public fixture verification.
+Use `mldsafail run --help` to inspect the required public-development metadata
+without executing a solver. Public development requires a ledger, hypothesis,
+mechanism, parent revision and model, plus the compatible reviewed worker.
 
-```sh
-NEW_INSTALL_DIRECTORY/bin/mldsafail-mlwe smoke --output NEW_PUBLIC_SMOKE_DIRECTORY
-NEW_INSTALL_DIRECTORY/bin/mldsafail-mlwe epoch create --output NEW_PRIVATE_EPOCH_DIRECTORY
-NEW_INSTALL_DIRECTORY/bin/mldsafail-mlwe run --epoch NEW_PRIVATE_EPOCH_DIRECTORY \
-  --solver-dir NEW_SOLVER_DIRECTORY --output NEW_PRIVATE_RUN_DIRECTORY
-NEW_INSTALL_DIRECTORY/bin/mldsafail-mlwe audit --epoch NEW_PRIVATE_EPOCH_DIRECTORY \
-  --run NEW_PRIVATE_RUN_DIRECTORY
-NEW_INSTALL_DIRECTORY/bin/mldsafail-mlwe rank --epoch NEW_PRIVATE_EPOCH_DIRECTORY \
-  --run NEW_PRIVATE_RUN_DIRECTORY
-```
-
-Every output directory must be new. Epoch creation is a costly evaluator setup,
-not a contestant optimization loop. Never replace failed viability seeds to get
-a passing epoch. Keep nonce, seeds, witnesses, candidates and raw evidence private;
-share only independently audited summaries. Public fixtures allow mathematical
-input/correctness reproduction; timing equality across machines is not promised.
-A complete source release also supplies the public-development pilot and two-clean-
-worker normalized-output reproduction procedures. Their native results remain
-separate from wheel installation smoke.
+Evaluation, epoch creation, auditing, ranking and hosted submission are later,
+separately authorized operations. Do not create an epoch as an installation test.
+Keep evaluator nonces, seeds, witnesses and raw evidence outside the contestant
+workspace. Public fixtures support input/correctness checks; installation on a
+local machine establishes no native amd64 or timing acceptance.
 
 ## Authorized hosted submission
 

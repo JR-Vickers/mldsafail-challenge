@@ -54,3 +54,31 @@ def test_participant_archive_rejects_broken_links_and_wrong_wheel(tmp_path, monk
     (source / 'docs/PARTICIPANT_DOWNLOAD_README.md').write_text('[missing](missing.md)\n')
     with pytest.raises(ValueError, match='Broken'):
         build(source, wheel, tmp_path / 'broken', checksum, {'source_commit':'b'*40,'wheel_sha256':checksum})
+
+
+def test_source_export_uses_historical_allowlist(tmp_path):
+    import subprocess
+    from scripts.participant_download import prepare_source
+    source = tmp_path / 'repo'
+    source.mkdir()
+    subprocess.run(['git', 'init', '-q', str(source)], check=True)
+    for name in ('pyproject.toml', 'LICENSE', 'examples/mlwe/primal-lll/solver.py',
+                 'src/mldsafail/__init__.py', 'results/private.json',
+                 'scripts/operator.py', 'docs/PARTICIPANT_DOWNLOAD_README.md'):
+        path = source / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text('# fixture\n')
+    subprocess.run(['git', '-C', str(source), 'add', '.'], check=True)
+    subprocess.run(['git', '-C', str(source), '-c', 'user.name=Test', '-c',
+                    'user.email=test@example.invalid', '-c', 'commit.gpgsign=false',
+                    'commit', '-qm', 'fixture'], check=True)
+    revision = subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD']).decode().strip()
+    (source / 'src/mldsafail/__init__.py').write_text('uncommitted replacement')
+    destination = tmp_path / 'export'
+    identity = prepare_source(source, revision, destination)
+    assert (destination / 'src/mldsafail/__init__.py').read_text() == '# fixture\n'
+    assert not (destination / 'results').exists()
+    assert not (destination / 'scripts').exists()
+    assert identity['wheel_source_commit'] == revision
+    with pytest.raises(ValueError, match='New destination'):
+        prepare_source(source, revision, destination)
