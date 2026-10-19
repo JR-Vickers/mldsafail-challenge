@@ -164,3 +164,18 @@ neither a runtime rollback nor host/interpreter/reference/cohort production bind
 Validation: `make check` passed (**1,175 passed, 15 skipped**, then **8 contract
 tests passed**). Documentation links and `git diff --check` were checked locally.
 No public API, schema, scoring or application behavior changed.
+
+## Bounded provenance recovery follow-up
+
+The owner requested a recovery attempt, stopping if trouble arose. A read-only
+follow-up listed the retained release locations and checked local build-history
+references. No direct original-worker Git binding was recovered. Reading older
+retained release manifests exceeded the 35-second local SSH deadline (the remote
+command also had a 20-second limit). Captured partial manifest output was not
+saved before the timeout, so none is counted as evidence. No retry or wider
+investigation followed, and no remote state was intentionally changed.
+
+The provenance recovery is skipped for now under that instruction. Item 1 remains
+partial; this does not invalidate the seven verified archives or establish an
+original build commit. The owner has not been treated as accepting the missing
+provenance for production execution. Session 2 remains independent.
