@@ -57,7 +57,7 @@ def prepare_source(source, revision, destination):
                                   data.decode())
             path.write_text(presentation)
     metadata = destination / 'pyproject.toml'
-    metadata.write_text(metadata.read_text() + '\n[tool.hatch.build.targets.sdist]\ninclude = ["/src/mldsafail", "/examples/mlwe/primal-lll/solver.py", "/docs", "/README.md", "/LICENSE", "/pyproject.toml", "/SOURCE.json"]\n')
+    metadata.write_text(metadata.read_text() + '\n[tool.hatch.build.targets.sdist]\nexclude = ["/.gitignore"]\ninclude = ["/src/mldsafail", "/examples/mlwe/primal-lll/solver.py", "/docs", "/README.md", "/LICENSE", "/pyproject.toml", "/SOURCE.json"]\n')
     (destination / 'README.md').write_text(
         '# Participant source distribution 0.5.1 / benchmark 0.5.0\n\n'
         'This is an unpublished allowlisted source export. SOURCE.json records the\n'
