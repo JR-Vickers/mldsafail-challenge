@@ -222,6 +222,7 @@ def install_monitor(packet, config, data, client, metadata):
         text = path.read_text()
         if unit.endswith('.service'):
             text = text.replace(' -m deploy.host_checks ', ' -m scripts.production_diagnostic_service monitor ')
+            text += 'Environment=PYTHONPATH='+str(source)+':'+str(source/'src')+'\n'
             text += 'Environment=MLDSAFAIL_DIAGNOSTIC_MONITOR_EVIDENCE='+str(root/'monitor-commands.jsonl')+'\n'
         destination = Path.home()/'.config/systemd/user'/unit
         checksum = hashlib.sha256(text.encode()).hexdigest()
