@@ -37,6 +37,17 @@ records the selected wheel, clean source distribution, deterministic download bu
 and fresh installation checks. Item 2 is complete locally. Session 3 may prepare
 production configuration; original worker provenance and all later launch gates remain open.
 
+## Session 3 production preparation
+
+The [preparation report](acceptance/integration/production-preparation-20261019.md)
+and [status](acceptance/integration/production-preparation-20261019.json) record a
+new private candidate and explicit preparation-mode checks. Item 3 is partial:
+the selected web/coordinator are not locally resolvable in the current rootless
+daemon, and trial-secret/OAuth-registration/isolation checks remain incomplete.
+The [epoch procedure](PRODUCTION_EPOCH_PROCEDURE.md) is a draft; no production
+wrapper, epoch, deployment or activation was performed. Resolve the exact blocker
+under separate authority; do not substitute or load images during preparation.
+
 ## Fresh-agent starting point
 
 Owner direction in the current session: prepare the **0.5.0 research preview**;

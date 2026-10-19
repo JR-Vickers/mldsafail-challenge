@@ -1,6 +1,7 @@
 """Read-only production configuration checks; never emit configuration values."""
 import argparse
 import ipaddress
+import os
 import re
 from urllib.parse import urlsplit
 from pathlib import Path
@@ -17,10 +18,12 @@ REQUIRED = IMAGES + SECRETS + IDENTITIES + (
 )
 
 
-def check(environment, staging):
+def check(environment, staging, *, preparation=False):
     """Return fixed diagnostic codes. A passing result is not activation approval."""
     errors = []
     for key in REQUIRED:
+        if preparation and key == 'MLDSAFAIL_MLWE_EPOCH_ID' and key not in environment:
+            continue
         value = environment.get(key, '')
         if not value or any(marker in value.upper() for marker in ('CHANGE_ME', 'PLACEHOLDER')):
             errors.append('missing_or_placeholder:' + key)
@@ -71,7 +74,9 @@ def check(environment, staging):
 
 def read_private_env(path):
     path = Path(path)
-    if path.is_symlink() or not path.is_file() or path.stat().st_mode & 0o077:
+    if (any(p.is_symlink() for p in (path, *path.parents)) or not path.is_file()
+            or path.stat().st_mode & 0o077 or path.stat().st_uid != os.getuid()
+            or path.stat().st_nlink != 1 or path.parent.stat().st_mode & 0o077):
         raise ValueError('private_env_permissions_required')
     result = {}
     for line in path.read_text().splitlines():
@@ -91,15 +96,25 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--production-env', required=True)
     parser.add_argument('--staging-env', required=True)
+    parser.add_argument('--preparation', action='store_true')
+    parser.add_argument('--preparation-manifest', type=Path)
     args = parser.parse_args()
     try:
-        errors = check(read_private_env(args.production_env), read_private_env(args.staging_env))
-    except (ValueError, OSError):
+        environment = read_private_env(args.production_env)
+        errors = check(environment, read_private_env(args.staging_env), preparation=args.preparation)
+        if args.preparation or args.preparation_manifest:
+            from deploy.production_preparation import check_manifest, read_manifest
+            errors += check_manifest(environment, read_manifest(args.preparation_manifest), preparation=args.preparation)
+    except (ValueError, OSError, TypeError, KeyError):
         errors = ['private_configuration_unreadable_or_invalid']
     for error in errors:
         print(error)
     if not errors:
-        print('configuration_preflight_passed_activation_not_authorized')
+        if args.preparation:
+            print('unresolved_dependency:MLDSAFAIL_MLWE_EPOCH_ID')
+            print('preparation_checks_passed_full_readiness_pending_epoch')
+        else:
+            print('configuration_preflight_passed_activation_not_authorized')
     return bool(errors)
 
 

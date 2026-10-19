@@ -1,0 +1,20 @@
+{
+  "schema": "mldsafail.production-preparation-status.v1",
+  "date": "2026-10-19",
+  "starting_revision": "cb4c2561477f4ed16247293c199b3f23d54b2812",
+  "starting_worktree_clean": true,
+  "benchmark_version": "0.5.0",
+  "item_3": "partial_blocked",
+  "configuration_preparation_passed": false,
+  "item_4": "procedure_draft_only",
+  "epoch_created": false,
+  "deployed": false,
+  "blockers": [
+    "selected_web_and_coordinator_not_locally_resolvable",
+    "retained_trial_secret_separation_not_fully_verified",
+    "oauth_registration_evidence_not_independently_verified",
+    "future_audited_epoch_and_final_cohort_binding",
+    "production_wrapper_and_exact_operation_packet_not_prepared"
+  ],
+  "independent_gate": "original_worker_git_build_provenance_unresolved"
+}
