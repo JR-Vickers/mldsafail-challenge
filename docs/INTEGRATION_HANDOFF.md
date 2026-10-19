@@ -7,7 +7,8 @@ answered trials, duplicate source copies, old caches or every release. Historica
 outcomes remain unchanged; retain compact records and targeted exceptions.
 [Completed cleanup](acceptance/integration/lean-launch-cleanup-20261019.md)
 recovered 26.07 GiB; the former disk blocker is resolved, with diagnostic
-implementation/review still pending. Active
+implementation/source review complete but fresh admission blocked by SSH host
+identity mismatch; see the [final findings](acceptance/integration/production-diagnostic-findings-20261019.md). Active
 resources, one verified rollback and supporting scientific evidence stay protected.
 
 

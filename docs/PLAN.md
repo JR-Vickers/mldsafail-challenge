@@ -306,11 +306,13 @@ attempts, commit checkpoints, and leave publication to the repository owner.
 
 ### Diagnostic engineering checkpoint, 2026-10-19
 
-The disk blocker is resolved by lean-launch cleanup. Separate no-epoch diagnostic
-budget/protocol, canonical fixture, sanitized timing and request/legacy probe
-helpers now have local tests and independent helper review. The native callback/
-controller, source-bound admission, workload/monitor integration and independent
-cleanup remain incomplete; no new generation or native comparison has run. The
-[concrete remaining-work report](acceptance/integration/production-diagnostic-engineering-20261019.md)
-records the unchanged 900-second debit, scope and unresolved monitor/authentication
-causes. This checkpoint does not admit a native generation or full rehearsal.
+The separate no-epoch diagnostic controller/callback and local verification are
+complete at checkpoints `a29c553` and `544dead`. Independent source review passed;
+`make check` passed with 1,170 tests, 14 skipped, plus eight contract checks.
+The sole fresh native preflight failed strict SSH host identity verification
+before remote execution. Neither generation started. The durable ledger charges
+933 seconds including the existing debit and fences continuation after failed
+preflight. Monitor/authentication/legacy causes and native pacing remain unresolved.
+The [final findings report](acceptance/integration/production-diagnostic-findings-20261019.md)
+records required identity evidence, unchanged fixture expiry, independent cleanup
+and retention. No full-rehearsal approval packet is warranted.

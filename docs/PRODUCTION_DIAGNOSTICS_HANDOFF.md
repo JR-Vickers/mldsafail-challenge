@@ -1,4 +1,15 @@
-# Next session: production diagnostics
+# Production diagnostics: unresolved native admission
+
+
+Current outcome (2026-10-19): the separate implementation and independent source
+review are complete, but the sole fresh native preflight failed strict SSH host
+identity verification before remote execution. Neither generation started.
+The ledger retains 933 seconds charged and fences continuation; no retries or
+ledger resets. See the [final unresolved-findings report](acceptance/integration/production-diagnostic-findings-20261019.md)
+for the failed measurement dispositions, independent receipt, fixture expiry,
+cleanup and exact next evidence. No full-rehearsal approval packet is warranted.
+
+The material below records earlier checkpoints and historical outcomes.
 
 The [separate executable checkpoint](acceptance/integration/production-diagnostic-executable-20261019.md)
 implements the controller/callback, supervised phases and independent audit.
