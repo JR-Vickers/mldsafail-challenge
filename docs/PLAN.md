@@ -310,9 +310,13 @@ owner decisions. Pilot usability observations cannot adopt a measurement contrac
 2. Resolve the MVP scoring/release decision. A frozen 0.5.0 research preview needs
    an explicit cooperative-timing/public-use decision; 0.6.0 remains unadopted
    with failed measurement gates. Abandoning HTTP diagnostics approves neither.
-3. Freeze the selected application/worker/participant artifacts, production
-   configuration and compatible rollback. Identify evidence that applies to those
-   exact artifacts; do not repeat completed work without an identified gap.
+3. Use the completed [local inventory](acceptance/integration/mvp-artifact-inventory-20261019.md)
+   and [owner recommendation](acceptance/integration/mvp-recommendation-20261019.md)
+   for the retained candidate/worker/compatible rollback. Next verify current VPS
+   artifact identities, resolve the participant checksum/source-package gaps and
+   bind production configuration to the approved cohort. Local partial transfers
+   do not prove remote availability; no application rebuild is currently indicated.
+   Keep diagnostic tooling outside the participant release and preserve failures.
 4. Validate trusted HTTPS and renewal, real OAuth/session/token behavior, and one
    approved participant install-to-audited-result/cancellation flow in the selected
    production cohort. Separate owner authority is required for public listeners,

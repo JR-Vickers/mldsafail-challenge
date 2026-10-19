@@ -6,6 +6,19 @@ The rehearsal-C diagnostic investigation is abandoned. Its outcome and budget
 remain in the [continuation report](acceptance/integration/production-diagnostic-continuation-20261019.md).
 The [canonical plan](PLAN.md) records the current owner decision.
 
+## Retained-artifact review completed
+
+The [local artifact inventory](acceptance/integration/mvp-artifact-inventory-20261019.md)
+and [owner decision packet](acceptance/integration/mvp-recommendation-20261019.md)
+recommend the retained 0.5.0 candidate/compatible rollback subject to current
+remote identity verification and explicit preview approval. The candidate
+coordinator and integration participant artifacts verify locally; other image
+transfers are truncated. Participant wheel checksums conflict and the retained
+sdist includes diagnostic tooling, so publication preparation remains open.
+The packet lists the concrete remaining tasks and separates owner decisions from
+engineering gaps. This completes the local inventory portion of step 1 below;
+it does not freeze a production configuration or authorize any launch operation.
+
 ## What the owner has decided
 
 Stop investigating C's monitor inspection, authenticated-read latency and load
