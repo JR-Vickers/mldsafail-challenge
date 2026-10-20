@@ -188,3 +188,10 @@ Maintenance prerequisite decision update (2026-10-20): the [v7 owner decision re
 
 
 2026-10-20 maintenance update: [v8 prerequisites](acceptance/integration/maintenance-prerequisites-v8-20261020.md) and [capacity protocol](MAINTENANCE_CAPACITY_PROTOCOL.md) add local control engineering and protocol preparation. Item 4 remains blocked; the proposal is nontransferable and cannot execute. Epoch mutations require a live reviewed maintenance fence; no production adapter or maintenance window is approved. Historical results remain unchanged.
+
+The [v9 capacity preparation](acceptance/integration/maintenance-prerequisites-v9-20261020.md)
+is a blocked local engineering packet. `python -m scripts.prepare_capacity_packet
+validate PRIVATE_PACKET` verifies proposal hashes only and never authorizes transfer
+or execution. Capacity investigation uses `capacity_investigation_only`; it cannot
+reuse `production_maintenance` or `production_epoch_only`. No capacity execution
+request is ready until the v9 blockers and exact isolated-host bindings close.

@@ -237,3 +237,11 @@ epoch execution is authorized by preparation.
 
 
 2026-10-20 maintenance update: [v8 prerequisites](acceptance/integration/maintenance-prerequisites-v8-20261020.md) and [capacity protocol](MAINTENANCE_CAPACITY_PROTOCOL.md) add local control engineering and protocol preparation. Item 4 remains blocked; the proposal is nontransferable and cannot execute. Epoch mutations require a live reviewed maintenance fence; no production adapter or maintenance window is approved. Historical results remain unchanged.
+
+Item 4 capacity approval remains blocked by the
+[v9 preparation gates](acceptance/integration/maintenance-prerequisites-v9-20261020.md).
+Local sampler/transport/supervisor primitives are available; Linux acceptance,
+production adapters, scheduling/transfer closure and isolated host identity/size/
+window bindings remain incomplete. Proposal integrity does not establish execution
+readiness. No capacity, provisioning, maintenance/transfer or epoch approval is
+requested by this engineering update.

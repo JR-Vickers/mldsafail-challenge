@@ -402,3 +402,10 @@ Maintenance prerequisite decision update (2026-10-20): the [v7 owner decision re
 
 
 Maintenance prerequisite engineering update (2026-10-20): [v8 disposition](acceptance/integration/maintenance-prerequisites-v8-20261020.md) prepares a [bounded capacity protocol](MAINTENANCE_CAPACITY_PROTOCOL.md) and a separate local zero-pending fence with guarded epoch integration. Item 4 remains blocked: no compatible capacity measurements, complete scheduling/transfer closure, approved delegation or production supervisor/transport exists. The private v8 proposal remains nontransferable and rejects execution. Read-only valid template-instance and cgroup inspection ran; no probe, epoch, transfer, provisioning or VPS service change ran. Historical outcomes remain unchanged.
+
+2026-10-20 capacity preparation: [v9 engineering disposition](acceptance/integration/maintenance-prerequisites-v9-20261020.md)
+adds local sampler, SQL helper protocol, supervisor/investigation contracts and
+exclusive offline packet tooling. Item 4 remains blocked. Production adapters,
+Linux acceptance, complete scheduling/transfer dependencies and an owner-bound
+isolated host/window remain unresolved. No capacity workload, provisioning,
+service mutation, transfer or epoch ran; no execution approval is requested.
