@@ -48,7 +48,7 @@ def read_packet(path):
         packet[key] = str(safe_path(Path(path).absolute().parent / packet[key]))
     return packet
 
-def validate(packet):
+def validate(packet, *, local_outputs=False):
     require(packet['schema'] == 'mldsafail.production-operation.v1')
     require(packet['purpose'] == PURPOSE and packet['source'] == SOURCE)
     require(packet['helper_hashes'] == source_hashes())
@@ -75,21 +75,30 @@ def validate(packet):
     require(packet['limits'] == {'memory': '512m', 'cpus': '1', 'pids': '256', 'create_timeout': 5400, 'audit_timeout': 600, 'inspection_timeout': 20, 'process_timeout': 10})
     require(re.fullmatch('[a-f0-9]{32}', packet['operation_id']))
     require(re.fullmatch('[A-Za-z0-9_.-]+', packet['worker_cgroup']))
-    operation = safe_path(packet['operation'])
-    epoch = safe_path(packet['epoch'])
-    require(epoch == safe_path(read_private_env(packet['candidate'])['PRODUCTION_EVALUATOR_ROOT']) / 'epoch')
-    require(safe_path(packet['lock']) == operation.parent / 'production-epoch.lock')
-    require(safe_path(packet['attempt']) == operation.parent / 'production-epoch.attempt.json')
-    final = safe_path(packet['final_destination'])
+    def output_path(value):
+        path = Path(value)
+        require(path.is_absolute() and '..' not in path.parts)
+        return safe_path(path) if local_outputs else path
+    operation = output_path(packet['operation'])
+    epoch = output_path(packet['epoch'])
+    require(epoch == output_path(read_private_env(packet['candidate'])['PRODUCTION_EVALUATOR_ROOT']) / 'epoch')
+    require(output_path(packet['lock']) == operation.parent / 'production-epoch.lock')
+    require(output_path(packet['attempt']) == operation.parent / 'production-epoch.attempt.json')
+    final = output_path(packet['final_destination'])
     require(not final.is_relative_to(operation) and not operation.is_relative_to(final))
     return operation
+
+
+def local_host(packet):
+    return os.getuid() == packet['host']['uid'] and socket.gethostname() == packet['hostname']
 
 
 def prepare(packet_path):
     packet = read_packet(packet_path)
     operation = validate(packet)
-    require(not operation.exists() and not Path(packet['attempt']).exists())
-    require(not Path(packet['epoch']).parent.exists())
+    if local_host(packet):
+        require(not operation.exists() and not Path(packet['attempt']).exists())
+        require(not Path(packet['epoch']).parent.exists())
     env = read_private_env(packet['candidate'])
     from deploy.production_preparation import check_manifest
     errors = check(env, read_private_env(packet['staging']), preparation=True)
@@ -223,7 +232,7 @@ def stream(packet, audit=False):
 def execute(packet_path, authorization_path):
     os.umask(0o077)
     packet = read_packet(packet_path)
-    operation = validate(packet)
+    operation = validate(packet, local_outputs=True)
     require(str(Path(packet_path).absolute().parent) == packet['remote_bundle'])
     authorization = read_manifest(authorization_path)
     review = read_manifest(authorization['review_file'])
@@ -258,7 +267,7 @@ def execute(packet_path, authorization_path):
 
 def audit(packet_path):
     os.umask(0o077)
-    packet = read_packet(packet_path); operation = validate(packet)
+    packet = read_packet(packet_path); operation = validate(packet, local_outputs=True)
     with locked(packet):
         journal = read_manifest(operation / 'journal.json')
         require(journal == {'packet_sha256': digest(packet_path), 'state': 'created'})
@@ -287,7 +296,7 @@ def audit(packet_path):
 
 def finalize(packet_path, destination):
     """Create a new final candidate; full preflight must pass before readiness."""
-    packet = read_packet(packet_path); operation = validate(packet)
+    packet = read_packet(packet_path); operation = validate(packet, local_outputs=True)
     with locked(packet):
         journal = read_manifest(operation / 'journal.json')
         require(journal == {'packet_sha256': digest(packet_path), 'state': 'audited'})
