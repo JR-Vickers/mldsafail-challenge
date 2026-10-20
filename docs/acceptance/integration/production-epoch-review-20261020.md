@@ -49,3 +49,11 @@ Validation: 93 focused synthetic tests passed. `make check` passed 1,244 tests
 with 15 skipped and 12 existing warnings, plus 8 frozen contract tests. All 48
 local documentation file links checked and `git diff --check` passed. Private
 logs are retained with the inspection. No scientific evaluation ran.
+
+Independent follow-up verified the corrections against committed operator revision
+`ab0926320a2bc96a1f31d39ba023d9c81e74d901` and independently reran the 59
+operation tests. The private `independent-review.json` decision is
+`execution_blocked`: source corrections are verified, but actual scheduling and
+delegation, concrete maintenance/restoration, authorized transfer and an exact
+fresh reviewed execution packet remain unresolved. This is source review only,
+not final-packet approval or epoch authority.
