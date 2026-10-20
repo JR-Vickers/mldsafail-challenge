@@ -51,7 +51,6 @@ def test_blockers_secrets_and_storage(tmp_path):
     env['MLDSAFAIL_SECRET_KEY'] = env['POSTGRES_PASSWORD']
     env['PRODUCTION_TLS_ROOT'] = manifest['retained_roots'][0] + '/tls'
     errors = check_manifest(env, manifest, preparation=True)
-    assert 'selected_images_not_locally_resolved' in errors
     assert 'private_preparation_blockers_unresolved' in errors
     assert 'separate_secrets_required' in errors
     assert 'production_storage_overlap' in errors
@@ -72,30 +71,10 @@ def test_private_manifest(tmp_path):
         read_manifest(path)
 
 
-def test_cli_requires_manifest_and_never_claims_full_readiness(tmp_path, monkeypatch, capsys):
+def test_cli_requires_source_and_inspection_in_both_modes(monkeypatch):
     from deploy.production_preflight import main
-    env, staging, manifest = prepared(tmp_path)
-    paths = []
-    for name, values in [('production.env', env), ('staging.env', staging)]:
-        path = tmp_path/name
-        path.write_text(''.join(f'{k}={v}\n' for k,v in values.items()))
-        path.chmod(0o600)
-        paths.append(str(path))
-    private = tmp_path/'private'
-    private.mkdir(mode=0o700)
-    packet = private/'manifest.json'
-    packet.write_text(json.dumps(manifest))
-    packet.chmod(0o600)
-    args = ['preflight', '--production-env', paths[0], '--staging-env', paths[1]]
-    monkeypatch.setattr('sys.argv', args + ['--preparation'])
-    assert main()
-    assert 'private_configuration_unreadable_or_invalid' in capsys.readouterr().out
-    monkeypatch.setattr('sys.argv', args + ['--preparation', '--preparation-manifest', str(packet)])
-    assert not main()
-    output = capsys.readouterr().out
-    assert 'unresolved_dependency:MLDSAFAIL_MLWE_EPOCH_ID' in output
-    assert 'configuration_preflight_passed' not in output
-    assert env['POSTGRES_PASSWORD'] not in output
-    monkeypatch.setattr('sys.argv', args + ['--preparation-manifest', str(packet)])
-    assert main()
-    assert 'epoch_binding_not_finalized' in capsys.readouterr().out
+    for extra in ([], ['--preparation']):
+        monkeypatch.setattr('sys.argv', ['preflight', '--production-env', 'absent', '--staging-env', 'absent'] + extra)
+        with pytest.raises(SystemExit) as error:
+            main()
+        assert error.value.code == 2

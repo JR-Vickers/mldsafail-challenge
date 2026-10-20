@@ -97,14 +97,19 @@ def main():
     parser.add_argument('--production-env', required=True)
     parser.add_argument('--staging-env', required=True)
     parser.add_argument('--preparation', action='store_true')
-    parser.add_argument('--preparation-manifest', type=Path)
+    parser.add_argument('--preparation-manifest', type=Path, required=True)
+    parser.add_argument('--inspection-receipt', type=Path, required=True)
     args = parser.parse_args()
     try:
         environment = read_private_env(args.production_env)
         errors = check(environment, read_private_env(args.staging_env), preparation=args.preparation)
-        if args.preparation or args.preparation_manifest:
+        if args.preparation_manifest:
             from deploy.production_preparation import check_manifest, read_manifest
             errors += check_manifest(environment, read_manifest(args.preparation_manifest), preparation=args.preparation)
+        from deploy.production_receipts import validate_receipt, render
+        errors += validate_receipt(environment, args.production_env, args.inspection_receipt, preparation=args.preparation)
+        if not errors:
+            errors += render(environment, preparation=args.preparation)
     except (ValueError, OSError, TypeError, KeyError):
         errors = ['private_configuration_unreadable_or_invalid']
     for error in errors:

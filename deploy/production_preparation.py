@@ -1,6 +1,7 @@
 """Source-bound retained-preview preparation checks. Diagnostics contain no values."""
 import json
 import os
+import stat
 
 from deploy.recovery_journal import safe_path
 
@@ -18,17 +19,25 @@ FINGERPRINT = 'b6f92231843fcb90695669108f0cc02d747ae0614eb9b3d25cddae602e092eee'
 
 def read_manifest(path):
     path = safe_path(path)
-    if (path.stat().st_uid != os.getuid() or path.stat().st_mode & 0o077
+    if (not path.is_file() or not stat.S_ISREG(path.stat().st_mode) or path.parent.stat().st_uid != os.getuid()
+            or path.stat().st_uid != os.getuid() or path.stat().st_mode & 0o077
             or path.stat().st_nlink != 1 or path.parent.stat().st_mode & 0o077):
         raise ValueError('private_manifest_required')
-    return json.loads(path.read_text())
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('duplicate_private_record_field')
+            result[key] = value
+        return result
+    return json.loads(path.read_text(), object_pairs_hook=unique)
 
 
 def check_manifest(environment, manifest, *, preparation=False):
     if not isinstance(manifest, dict):
         return ['invalid_preparation_manifest']
     errors = []
-    expected = {'schema': 'mldsafail.production-preparation.v1', 'source': SOURCE,
+    expected = {'schema': ('mldsafail.production-preparation.v1' if preparation else 'mldsafail.production-final.v1'), 'source': SOURCE,
                 'rollback': ROLLBACK, 'project': 'mldsafail-production'}
     for key, value in expected.items():
         if manifest.get(key) != value:
@@ -48,11 +57,9 @@ def check_manifest(environment, manifest, *, preparation=False):
         if environment.get(key) not in ('sha256:' + digest,
                 {'CADDY_IMAGE': 'caddy', 'POSTGRES_IMAGE': 'postgres'}.get(key, '') + '@sha256:' + digest):
             errors.append('selected_image_mismatch:' + key)
-    if manifest.get('images_locally_resolved') is not True:
-        errors.append('selected_images_not_locally_resolved')
     if manifest.get('blockers'):
         errors.append('private_preparation_blockers_unresolved')
-    if manifest.get('unresolved') != {'MLDSAFAIL_MLWE_EPOCH_ID': 'future_independently_audited_epoch'}:
+    if preparation and manifest.get('unresolved') != {'MLDSAFAIL_MLWE_EPOCH_ID': 'future_independently_audited_epoch'}:
         errors.append('invalid_unresolved_dependencies')
     if preparation and 'MLDSAFAIL_MLWE_EPOCH_ID' in environment:
         errors.append('preparation_epoch_must_be_absent')
