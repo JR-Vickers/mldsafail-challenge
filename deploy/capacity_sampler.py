@@ -72,7 +72,9 @@ class Sampler:
                 fields = (self.proc / str(birth['pid']) / 'stat').read_text().rsplit(')', 1)[1].split()
                 require(int(fields[19]) == birth['start_ticks'], 'process_replaced')
                 membership = (self.proc / str(birth['pid']) / 'cgroup').read_text().splitlines()
-                require('0::/' + str(path.relative_to(self.root)) in membership, 'process_scope_changed')
+                anchor=Path(birth.get('cgroup_path',str(path)))
+                require(anchor.is_relative_to(path) and '..' not in anchor.parts, 'process_scope_changed')
+                require('0::/' + str(anchor.relative_to(self.root)) in membership, 'process_scope_changed')
                 row = dict(inode=self.inodes[key], birth=birth,
                            gauges={f: int((path / f).read_text()) for f in GAUGES},
                            counters={f: counters((path / f).read_text()) for f in COUNTERS})
@@ -97,7 +99,7 @@ class Sampler:
         memory = counters((self.proc / 'meminfo').read_text().replace(':', '').replace(' kB', ''))
         memory = {k: v * 1024 for k, v in memory.items()}
         fs = os.statvfs(self.filesystem)
-        sample = dict(boot_id=self.boot, monotonic_ns=now, phase=phase, scopes=self.scopes,
+        sample = dict(boot_id=self.boot, hostname=os.uname().nodename, cgroup_root=str(self.root), monotonic_ns=now, phase=phase, scopes=self.scopes,
                       cgroups=rows, ancestors=ancestors, host=memory,
                       filesystem_available=fs.f_bavail * fs.f_frsize)
         require(memory['MemAvailable'] >= 256 * 1024**2, 'host_memory_floor')
@@ -109,10 +111,12 @@ class Sampler:
             require(not row['events']['memory.events'].get('oom', 0)
                     and not row['events']['memory.events'].get('oom_kill', 0), 'oom_evidence')
         if self.previous:
+            require(memory['SwapFree'] >= self.previous['host']['SwapFree'], 'host_swap_growth')
             require(ancestors.keys() == self.previous['ancestors'].keys(), 'ancestor_changed')
             for key, row in ancestors.items():
                 old = self.previous['ancestors'][key]
-                require(row['inode'] == old['inode'] and row['limits'] == old['limits'], 'ancestor_changed')
+                require(row['inode'] == old['inode'] and row['limits'] == old['limits']
+                        and row.get('absent_controls', []) == old.get('absent_controls', []), 'ancestor_changed')
                 require(row['gauges']['memory.swap.current'] <= old['gauges']['memory.swap.current'], 'swap_growth')
                 for field, values in row['events'].items():
                     require(values == old['events'][field], 'memory_event_changed')

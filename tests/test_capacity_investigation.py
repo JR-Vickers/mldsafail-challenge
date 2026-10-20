@@ -148,7 +148,7 @@ def test_investigation_authorization_cannot_reuse_production():
             admission(dict(state='maintenance_proposal'), dict(purpose=purpose))
     wrapper = worker_wrapper('a' * 32, 'isolated.slice', 'sha256:' + 'b' * 64)
     compile(wrapper, 'docker', 'exec')
-    assert 'org.mldsafail.capacity-investigation=' in wrapper
+    assert 'investigation_docker.py' in wrapper and 'isolated.slice' in wrapper
 
 
 def test_packet_relocation_and_tamper(tmp_path):

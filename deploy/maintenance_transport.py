@@ -147,6 +147,9 @@ class OwnedHelper:
         self.runner = runner
         self.container = None
         self.connection = None
+        self.birth = None
+        self.parent = None
+        self.name = None
 
     def command(self, args):
         import subprocess
@@ -200,7 +203,11 @@ class OwnedHelper:
             raise ValueError('maintenance_helper_authorization_required')
         if not parent or not self.expected['database_container']:
             raise ValueError('maintenance_helper_scope_required')
-        name = 'maintenance-sql-' + uuid.uuid4().hex
+        authority = {k: credentials.get(k) for k in ('host', 'port', 'dbname', 'user')}
+        if authority != self.expected['connection_authority']:
+            raise ValueError('maintenance_helper_credentials_authority_mismatch')
+        self.parent = parent
+        name = self.name = 'maintenance-sql-' + uuid.uuid4().hex
         self.root.mkdir(mode=0o700)
         atomic_json(self.root / 'helper.json', dict(state='create_intent', name=name, identity=self.expected))
         # Only the database's inspected network namespace is shared; no port map.
@@ -217,6 +224,7 @@ class OwnedHelper:
         import re
         if not re.fullmatch('[a-f0-9]{64}', self.container):
             raise RuntimeError('maintenance_helper_create_ambiguous')
+        self._inspect_admission()
         atomic_json(self.root / 'helper.json', dict(state='start_intent', name=name, container=self.container, identity=self.expected))
         process = subprocess.Popen(self.docker + ['start', '--attach', '--interactive', self.container],
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
@@ -231,9 +239,35 @@ class OwnedHelper:
                 raise RuntimeError('maintenance_helper_bootstrap_ambiguous')
             written = os.write(process.stdin.fileno(), data)
             data = data[written:]
+        deadline = time.monotonic() + 2
+        while True:
+            container = self._inspect_admission()
+            if container['State']['Running']:
+                break
+            if process.poll() is not None or time.monotonic() > deadline:
+                raise RuntimeError('maintenance_helper_start_ambiguous')
+            time.sleep(.02)
+        self.birth = helper_identity(container)
+        self.connection.identity = self.verify
         atomic_json(self.root / 'helper.json', dict(state='started', name=name, container=self.container,
-                                                   client_pid=process.pid, identity=self.expected))
+                                                   birth=self.birth, client_pid=process.pid, identity=self.expected))
         return self.connection
+
+    def _inspect_admission(self):
+        rows = json.loads(self.command(['inspect', self.container]))
+        if len(rows) != 1 or rows[0]['Id'] != self.container:
+            raise RuntimeError('maintenance_helper_identity_changed')
+        admit_helper(rows[0], name=self.name, image=self.image,
+                     database=self.expected['database_container'], parent=self.parent, source=self.source)
+        return rows[0]
+
+    def verify(self):
+        if self.probe() != self.expected:
+            raise RuntimeError('maintenance_connection_authority_changed')
+        container = self._inspect_admission()
+        if not container['State']['Running'] or helper_identity(container) != self.birth:
+            raise RuntimeError('maintenance_helper_birth_changed')
+        return self.expected
 
     def cleanup(self):
         """Exact owned resource only. Missing create ack remains reconciliation."""
@@ -242,7 +276,10 @@ class OwnedHelper:
         if not self.container or self.probe() != self.expected:
             raise RuntimeError('maintenance_helper_cleanup_ambiguous')
         record = read_manifest(self.root / 'helper.json')
-        state = json.loads(self.command(['inspect', self.container]))[0]
+        state = self._inspect_admission()
+        if self.birth and (state['State']['StartedAt'] != self.birth['started_at']
+                           or state['Image'] != self.birth['image']):
+            raise RuntimeError('maintenance_helper_birth_changed')
         if (state['Id'] != self.container or state['Config']['Image'] != self.image
                 or state['Config']['Labels'].get('org.mldsafail.maintenance-helper') != record['name']):
             raise RuntimeError('maintenance_helper_ownership_lost')
@@ -255,4 +292,92 @@ class OwnedHelper:
             self.connection.close()
         atomic_json(self.root / 'cleanup.json', dict(state='terminated', container=self.container,
                                                    client_terminated=True, removed=False))
+        return True
+
+
+class InspectedAuthority:
+    """Uncached Docker/database/source identity checks with bounded CLI responses."""
+    def __init__(self, command, expected, source):
+        self.command, self.expected, self.source = command, expected, source
+
+    def __call__(self):
+        import hashlib
+        from pathlib import Path
+        info = json.loads(self.command(['info', '--format', '{{json .}}']))
+        rows = json.loads(self.command(['inspect', self.expected['database_container']]))
+        if len(rows) != 1:
+            raise RuntimeError('maintenance_database_container_changed')
+        database = rows[0]
+        value = dict(database_container=database['Id'], daemon=info['ID'],
+                     database_started_at=database['State']['StartedAt'],
+                     database_image=database['Image'],
+                     operator_sha256=hashlib.sha256(Path(self.source).read_bytes()).hexdigest(),
+                     connection_authority=self.expected['connection_authority'])
+        if not database['State']['Running'] or value != self.expected:
+            raise RuntimeError('maintenance_connection_authority_changed')
+        return value
+
+
+def helper_identity(container):
+    """Container birth plus exact namespace/resource/configuration admission."""
+    return dict(container_id=container['Id'], image=container['Image'],
+                started_at=container['State']['StartedAt'], pid=container['State']['Pid'],
+                name=container['Name'], network=container['HostConfig']['NetworkMode'])
+
+
+def admit_helper(container, *, name, image, database, parent, source):
+    host, config = container['HostConfig'], container['Config']
+    mount = [m for m in container['Mounts'] if m['Destination'] == '/maintenance_transport.py']
+    if (container['Name'] != '/' + name or config['Image'] != image
+            or config['Labels'].get('org.mldsafail.maintenance-helper') != name
+            or host['NetworkMode'] != 'container:' + database or host.get('PortBindings')
+            or not host['ReadonlyRootfs'] or host['Memory'] != 64 * 1024**2
+            or host['MemorySwap'] != 64 * 1024**2 or host['NanoCpus'] != 100000000
+            or host['PidsLimit'] != 16 or host['CgroupParent'] != parent
+            or host.get('Privileged') or 'ALL' not in host['CapDrop']
+            or not any(v.startswith('no-new-privileges') for v in host['SecurityOpt'])
+            or len(mount) != 1 or mount[0]['Source'] != source or mount[0]['RW']
+            or any(m['Destination'] != '/maintenance_transport.py' for m in container['Mounts'])
+            or host['LogConfig']['Type'] != 'none'):
+        raise RuntimeError('maintenance_helper_configuration_changed')
+    return helper_identity(container)
+
+
+class Transport:
+    """Fence-compatible separate holder/verifier helpers with explicit cleanup."""
+    def __init__(self, root, expected, docker, source, parent, authorization, *, lifetime):
+        from pathlib import Path
+        import sys
+        if sys.platform != 'linux' or not 0 < lifetime <= 9000:
+            raise ValueError('maintenance_transport_requires_native_linux')
+        self.root, self.expected, self.docker = Path(root), expected, list(docker)
+        self.source, self.parent, self.authorization = source, parent, authorization
+        self.lifetime, self.helpers, self.count = lifetime, [], 0
+        self.command_helper = object.__new__(OwnedHelper)
+        self.command_helper.docker, self.command_helper.runner = self.docker, None
+        self.probe = InspectedAuthority(self.command_helper.command, expected, source)
+
+    def connect(self, credentials):
+        from deploy.production_preparation import IMAGES
+        # Fence creates verifier, holder, and finally cleanup verifier in order.
+        index = self.count
+        self.count += 1
+        helper = OwnedHelper(self.root / ('connection-' + str(index)), self.expected,
+                             self.probe, self.docker, 'sha256:' + IMAGES['COORDINATOR_IMAGE'], self.source)
+        self.helpers.append(helper)  # Register before any create/start mutation.
+        return helper.open(credentials, self.authorization, parent=self.parent,
+                           timeout=self.lifetime + 2 if index == 1 else .5)
+
+    def identity(self):
+        return self.probe()['database_container']
+
+    def cleanup(self):
+        failures = []
+        for helper in self.helpers:
+            try:
+                helper.cleanup()
+            except BaseException as error:
+                failures.append(type(error).__name__)
+        if failures:
+            raise RuntimeError('maintenance_helper_reconciliation_required')
         return True

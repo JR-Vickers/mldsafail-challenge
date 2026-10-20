@@ -10,7 +10,7 @@ from deploy.production_preparation import read_manifest
 
 
 def worker_wrapper(operation, parent, worker_image):
-    """Exact Docker argv shim: reject all actions except the frozen worker run.
+    """Frozen Docker command router with exact ownership on lifecycle operations.
 
     The controller's Docker API surface and wrapper invocation require Linux
     acceptance before use. This shim provides no authority to launch by itself.
@@ -19,15 +19,19 @@ def worker_wrapper(operation, parent, worker_image):
         raise ValueError('investigation_identity_invalid')
     if not re.fullmatch('sha256:[a-f0-9]{64}', worker_image):
         raise ValueError('investigation_image_invalid')
-    return '''#!/usr/bin/python3
-import os, sys
-args = sys.argv[1:]
-if not args or args[0] != 'run' or args[-1] != %r:
-    raise SystemExit('frozen worker run required')
-if any(a == '--privileged' or a.startswith('--cgroup-parent') or a.startswith('--label') for a in args):
-    raise SystemExit('worker ownership override rejected')
-os.execv('/usr/bin/docker', ['/usr/bin/docker', 'run', '--label', %r, '--cgroup-parent', %r] + args[1:])
-''' % (worker_image, 'org.mldsafail.capacity-investigation=' + operation, parent)
+    return '''#!/app/.venv/bin/python
+# org.mldsafail.capacity-investigation ownership is enforced by the router.
+import json, runpy, sys
+sys.path.insert(0, '/operation-tools')
+config = '/operation-tools/router.json'
+with open(config) as stream:
+    values = json.load(stream)
+if (values['operation_id'], values['parent'], values['image']) != %r:
+    raise SystemExit('investigation router binding changed')
+sys.argv = ['investigation_docker', '--config', config] + sys.argv[1:]
+runpy.run_path('/operation-tools/investigation_docker.py', run_name='__main__')
+''' % ((operation, parent, worker_image),)
+
 
 
 def admission(packet, authorization, *, now=None):
@@ -50,33 +54,60 @@ class Runner:
     launch, stop and inspect are reviewed bounded owned-resource adapters. No
     default Docker adapter is supplied: preparation cannot silently become launch.
     """
-    def __init__(self, root, packet, launch, stop, inspect, guard):
+    def __init__(self, root, packet, launch, stop, inspect, guard, *, monitor=None):
         self.root, self.packet = Path(root), packet
         self.launch, self.stop, self.inspect, self.guard = launch, stop, inspect, guard
+        self.monitor = monitor
+        self.client = None
 
     def run(self, authorization):
         admission(self.packet, authorization)
+        if self.monitor is None or self.monitor.operation_id != self.packet['operation_id']:
+            raise ValueError('capacity_continuous_monitor_required')
+        if [c['phase'] for c in self.packet['commands']] != ['create_and_reference', 'audit']:
+            raise ValueError('capacity_phase_protocol_invalid')
         attempt = self.root / 'attempt.json'
         # Exclusive publication protects against retry after lost acknowledgement.
         from scripts.production_epoch_operation import publish
         publish(attempt, dict(state='intent', operation_id=self.packet['operation_id']))
         try:
+            self.monitor.start()
             for command in self.packet['commands']:
-                if self.guard() is not True:
+                if self.guard() is not True or self.monitor.guard() is not True:
                     raise RuntimeError('investigation_guard_rejected')
+                self.monitor.transition('create' if command['phase'] == 'create_and_reference' else 'audit')
                 atomic_json(self.root / 'phase.json', dict(phase=command['phase'], state='launch_intent'))
-                client = self.launch(command)
-                result = client.wait(timeout=command['timeout'])
-                if self.guard() is not True:
-                    raise RuntimeError('investigation_guard_rejected')
-                if result != 0:
+                self.client = self.launch(command)
+                deadline = time.monotonic() + command['timeout']
+                while self.client.poll() is None:
+                    if self.guard() is not True or self.monitor.guard() is not True:
+                        raise RuntimeError('investigation_guard_rejected')
+                    if time.monotonic() >= deadline:
+                        raise RuntimeError('investigation_phase_deadline')
+                    time.sleep(.05)
+                self.monitor.guard()
+                if self.client.poll() != 0:
                     raise RuntimeError('investigation_phase_failed')
                 if self.stop() is not True or self.inspect() is not True:
                     raise RuntimeError('investigation_termination_unverified')
-            atomic_json(attempt, dict(state='terminated', measured=False, capacity='unresolved'))
+            self.monitor.transition('cleanup')
+            if self.stop() is not True or self.inspect() is not True:
+                raise RuntimeError('investigation_termination_unverified')
+            self.monitor.finish()
+            atomic_json(attempt, dict(state='terminated', operation_id=self.packet['operation_id'], capture_complete=True,
+                                           validated=False, capacity='unresolved'))
         except BaseException:
-            atomic_json(attempt, dict(state='reconciliation_required', capacity='unresolved'))
-            self.stop()
+            atomic_json(attempt, dict(state='termination_intent', capacity='unresolved'))
+            stopped = False
+            try:
+                stopped = self.stop() is True and self.inspect() is True
+                stopped = stopped and (self.client is None or self.client.poll() is not None)
+            finally:
+                try:
+                    self.monitor.abort()
+                finally:
+                    atomic_json(attempt, dict(state='reconciliation_required', capacity='unresolved',
+                                             resources_stopped=stopped))
             raise
 
     def reconcile(self):
@@ -89,10 +120,16 @@ class Runner:
 def output_budget(root, logs, samples):
     """Bound exclusive generation bytes; reject links and nonregular artifacts."""
     import stat
+    import os
     root = Path(root)
     total = 0
-    for path in root.rglob('*'):
+    deadline = time.monotonic() + .1
+    for index, path in enumerate(root.rglob('*')):
+        if index >= 16384 or time.monotonic() > deadline:
+            raise ValueError('investigation_output_scan_bound')
         st = path.lstat()
+        if st.st_dev != root.stat().st_dev or st.st_uid != os.getuid():
+            raise ValueError('investigation_output_ownership_ambiguous')
         if stat.S_ISDIR(st.st_mode):
             continue
         if not stat.S_ISREG(st.st_mode) or st.st_nlink != 1 or st.st_dev != root.stat().st_dev:
