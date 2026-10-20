@@ -103,3 +103,20 @@ manual reconciliation. Preparation freshness remains 24 hours and execution
 freshness five minutes; refresh later under execution authority, not repeatedly
 during proposal review. After separately approved maintenance/transfer, final
 packet review and distinct `production_epoch_only` authority are still required.
+
+## Validation and independent review
+
+Independent review accepted committed operator `bc57f34` and the private v6
+proposal as a blocked disposition, with no corrections required. Private review
+and validation artifacts are bound in its final file manifest. Local verification
+checked 11 raw sections, all 353 path evidence identities, 310 file-content hashes,
+62 documentation links, retained-file hashes, exact collector source binding,
+private ownership/modes, unresolved capacity and proposal execution rejection.
+Focused scheduling/maintenance/operation/inspection/guard tests passed.
+
+`make check` passed 1,282 tests (15 skipped, 12 existing warnings) and 8 frozen
+contract tests. The initial run used umask 077 and failed an existing test whose
+0755 fixture was consequently created as 0700; both the failure and successful
+standard-umask rerun are retained. No code change was needed. `git diff --check`
+passed. No push, provisioning, lock acquisition, service change, operation-bundle
+transfer, evaluation, epoch creation or publication occurred.
