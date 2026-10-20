@@ -95,3 +95,19 @@ operation-resource termination and fresh postflight; ambiguous launch states nee
 manual reconciliation. No maintenance-and-transfer approval is requested until
 these dependencies close. Final packet review and `production_epoch_only`
 authorization remain separate later gates.
+
+## Verification and review
+
+Committed operator `f53a257` and the owner-only private proposal at
+`$HOME/.config/mldsafail-production/maintenance-20261020-v5` received independent
+review. The reviewer verified collector bytes, operator hashes/revision, private
+manifest hashes/modes/ownership and rejection of proposal execution; 38 focused
+tests passed. Accepted only as blocked local preparation. Review findings about
+legacy receipt fallback, failed-command raw evidence and swallowed deadline
+exceptions were fixed before this disposition.
+
+Final validation: `make check` passed 1,282 tests (15 skipped, 12 existing warnings)
+and 8 frozen contract tests. The combined focused suite passed 97 tests;
+44 local documentation links and `git diff --check` passed. Private logs,
+validation, review, handoff and file manifest are retained in v5. No push,
+remote inspection, lock acquisition, database writes, transfer or evaluation ran.
