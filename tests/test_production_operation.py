@@ -326,3 +326,10 @@ def test_timeout_cleanup_skips_stopped_owned_resources(packet,monkeypatch):
     monkeypatch.setattr(op,'docker',docker)
     op.terminate_owned(p)
     assert killed==['running']
+
+
+def test_final_destination_cannot_alias_scientific_evidence(packet):
+    path,p,_,_=packet
+    p['final_destination']=str(Path(p['epoch'])/'final-config')
+    private(path,p)
+    with pytest.raises(ValueError):op.prepare(path)

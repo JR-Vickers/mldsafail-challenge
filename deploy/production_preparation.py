@@ -66,6 +66,13 @@ def check_manifest(environment, manifest, *, preparation=False):
         errors.append('preparation_epoch_must_be_absent')
     if not preparation and manifest.get('unresolved'):
         errors.append('epoch_binding_not_finalized')
+    if not preparation:
+        if (not environment.get('MLDSAFAIL_MLWE_EPOCH_ID')
+                or manifest.get('epoch_id') != environment.get('MLDSAFAIL_MLWE_EPOCH_ID')
+                or not isinstance(manifest.get('environment'), dict)
+                or manifest['environment'].get('trusted_fingerprint') != FINGERPRINT
+                or manifest['environment'].get('image_id') != 'sha256:' + IMAGES['WORKER_IMAGE']):
+            errors.append('audited_final_manifest_binding_required')
     for key in ('POSTGRES_PASSWORD', 'MLDSAFAIL_SECRET_KEY'):
         if len(environment.get(key, '')) < 32:
             errors.append('secret_strength_required:' + key)

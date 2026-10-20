@@ -85,7 +85,9 @@ def validate(packet, *, local_outputs=False):
     require(output_path(packet['lock']) == operation.parent / 'production-epoch.lock')
     require(output_path(packet['attempt']) == operation.parent / 'production-epoch.attempt.json')
     final = output_path(packet['final_destination'])
-    require(not final.is_relative_to(operation) and not operation.is_relative_to(final))
+    destinations = (operation, epoch.parent, final)
+    require(not any(a.is_relative_to(b) or b.is_relative_to(a)
+                    for i, a in enumerate(destinations) for b in destinations[i+1:]))
     return operation
 
 
@@ -316,7 +318,9 @@ def finalize(packet_path, destination):
             out.write(''.join(k + '=' + v + '\n' for k, v in env.items()))
             out.flush(); os.fsync(out.fileno())
         manifest = read_manifest(packet['manifest'])
-        manifest.update(schema='mldsafail.production-final.v1', unresolved={})
+        manifest.update(schema='mldsafail.production-final.v1', unresolved={}, epoch_id=audited['epoch_id'],
+                        environment=audited['environment'], epoch_manifest_sha256=audited['manifest_sha256'],
+                        reference_sha256=audited['reference_sha256'], seal_sha256=audited['seal_sha256'])
         publish(destination / 'manifest.json', manifest)
         audited['candidate_sha256'] = digest(candidate)
         publish(destination / 'binding.json', audited)
