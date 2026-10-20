@@ -196,7 +196,8 @@ def terminate_owned(packet):
     for identifier in ids:
         row = json.loads(docker(packet, ['container', 'inspect', identifier]).stdout)[0]
         require(row['Config']['Labels']['org.mldsafail.production-epoch'] == packet['operation_id'])
-        docker(packet, ['kill', identifier])
+        if row['State']['Running']:
+            docker(packet, ['kill', identifier])
 
 
 def stream(packet, audit=False):

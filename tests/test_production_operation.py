@@ -311,3 +311,18 @@ def test_preflight_cli_reports_only_future_epoch_for_valid_preparation(packet,mo
     monkeypatch.setattr('sys.argv',args)
     assert main()
     assert 'epoch_binding_not_finalized' in capsys.readouterr().out
+
+
+def test_timeout_cleanup_skips_stopped_owned_resources(packet,monkeypatch):
+    _,p,_,_=packet
+    killed=[]
+    def docker(p,args,**kwargs):
+        if args[0]=='ps':value='stopped\nrunning\n'
+        elif args[0]=='container':
+            value=json.dumps([{'Config':{'Labels':{'org.mldsafail.production-epoch':p['operation_id']}},'State':{'Running':args[-1]=='running'}}])
+        else:
+            assert args==['kill','running'];killed.append('running');value=''
+        return subprocess.CompletedProcess(args,0,stdout=value)
+    monkeypatch.setattr(op,'docker',docker)
+    op.terminate_owned(p)
+    assert killed==['running']
