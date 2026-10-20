@@ -2,6 +2,7 @@
 import json
 import os
 import stat
+from pathlib import Path
 
 from deploy.recovery_journal import safe_path
 
@@ -73,8 +74,14 @@ def check_manifest(environment, manifest, *, preparation=False):
     paths = [environment.get(key, '') for key in
              ('PRODUCTION_EVALUATOR_ROOT', 'PRODUCTION_TLS_ROOT', 'PRODUCTION_ACME_WEBROOT')]
     try:
-        paths = [safe_path(p) for p in paths]
-        retained = [safe_path(p) for p in manifest['retained_roots']]
+        def remote_path(value):
+            path = Path(value)
+            if not path.is_absolute() or '..' in path.parts:
+                raise ValueError('absolute_inspected_host_path_required')
+            return path
+        # Host paths are reconciled against remote mount/symlink evidence by the receipt validator.
+        paths = [remote_path(p) for p in paths]
+        retained = [remote_path(p) for p in manifest['retained_roots']]
         if not retained:
             raise ValueError('retained roots required')
         for i, path in enumerate(paths):

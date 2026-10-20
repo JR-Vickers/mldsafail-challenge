@@ -76,7 +76,8 @@ def read_private_env(path):
     path = Path(path)
     if (any(p.is_symlink() for p in (path, *path.parents)) or not path.is_file()
             or path.stat().st_mode & 0o077 or path.stat().st_uid != os.getuid()
-            or path.stat().st_nlink != 1 or path.parent.stat().st_mode & 0o077):
+            or path.stat().st_nlink != 1 or path.parent.stat().st_mode & 0o077
+            or path.parent.stat().st_uid != os.getuid()):
         raise ValueError('private_env_permissions_required')
     result = {}
     for line in path.read_text().splitlines():

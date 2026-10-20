@@ -42,6 +42,7 @@ def validate_receipt(environment, candidate, receipt_path, *, preparation, now=N
         require(receipt['candidate_sha256'] == digest(candidate))
         require(receipt['inspection_sha256'] == digest(receipt['inspection']))
         require(receipt['source'] == SOURCE)
+        require(receipt['inspection_helper_sha256'] == digest('deploy/production_inspection.py'))
         require(0 <= (time.time() if now is None else now) - host['time'] <= 86400)
         require(host['uid'] == 1000 and host['account'] == 'mldsafail')
         require(host['info']['ID'] == receipt['daemon_id'])
@@ -59,7 +60,16 @@ def validate_receipt(environment, candidate, receipt_path, *, preparation, now=N
             identity = receipt['images'][key]
             require(identity['index'] == image['Id'])
             artifact = next(a for a in artifacts if a['image'] == image['Id'])
-            require(artifact['whole_hash_matches'] and not artifact['bad_blobs'] and not artifact['descriptor_errors'])
+            require(artifact['whole_hash_matches'] and not artifact['bad_blobs'])
+            missing = artifact['descriptor_errors']
+            if missing:
+                # Verified amd64-only upstream archives retain absent non-amd64 index entries.
+                require(key in ('CADDY_IMAGE', 'POSTGRES_IMAGE'))
+                require(len(missing) == {'CADDY_IMAGE': 12, 'POSTGRES_IMAGE': 8}[key])
+                require(all(d.get('platform', {}).get('architecture') in ('386', 'arm', 'arm64', 'ppc64le', 'riscv64', 's390x', 'unknown')
+                    and d.get('mediaType') == 'application/vnd.oci.image.manifest.v1+json'
+                    and d['digest'] != identity['platform_manifest']
+                    and d.get('annotations', {}).get('vnd.docker.reference.digest') != identity['platform_manifest'] for d in missing))
             require(identity['platform_manifest'] in [d['digest'] for d in artifact['descriptors'] if d.get('platform') == {'architecture': 'amd64', 'os': 'linux'}])
             require(identity['configuration'] in ['sha256:' + c['digest'].split('/')[-1] for c in artifact['configs'] if c['architecture'] == 'amd64' and c['os'] == 'linux'])
             require(all(__import__('re').fullmatch('sha256:[a-f0-9]{64}', identity[k])
@@ -125,7 +135,7 @@ def validate_receipt(environment, candidate, receipt_path, *, preparation, now=N
             manifest = read_manifest(Path(final['epoch']) / 'manifest.json')
             require(manifest['id'] == final['epoch_id'] and manifest['environment'] == final['environment'])
         return []
-    except (AssertionError, KeyError, ValueError, OSError, TypeError, StopIteration):
+    except (AttributeError, IndexError, KeyError, ValueError, OSError, TypeError, StopIteration):
         return ['inspection_receipt_invalid_or_stale']
 
 
@@ -148,7 +158,7 @@ def render(environment, *, preparation=False, runner=None):
         require(data['services']['db']['environment']['POSTGRES_DB'] == 'mldsafail')
         require(data['services']['web']['environment']['MLDSAFAIL_DATABASE_URL'].endswith('@db/mldsafail'))
         return []
-    except (OSError, ValueError, KeyError, AssertionError, subprocess.SubprocessError):
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, subprocess.SubprocessError):
         return ['private_compose_render_failed']
 
 
@@ -161,7 +171,7 @@ def verify_seal(epoch):
     for p in root.rglob('*'):
         safe_path(p)
         if p.is_file() and p.name != 'COMPLETE.json':
-            if p.stat().st_nlink != 1 or p.stat().st_uid != __import__('os').getuid():
+            if p.stat().st_nlink != 1 or p.stat().st_uid != __import__('os').getuid() or p.stat().st_mode & 0o077:
                 raise ValueError('private_epoch_file_required')
             actual[str(p.relative_to(root))] = digest(p)
     if marker.get('benchmark_version') != '0.5.0' or marker.get('files') != actual:

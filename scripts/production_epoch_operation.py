@@ -17,7 +17,7 @@ from deploy.production_receipts import digest, validate_receipt, render, verify_
 from deploy.recovery_journal import atomic_json, safe_path, sync_directory
 
 HELPERS = tuple('src/mldsafail/benchmark_v050/' + n + '.py' for n in ('cli', 'evidence', 'execution'))
-OPERATOR_FILES = ('deploy/production_preparation.py', 'deploy/production_preflight.py', 'deploy/production_receipts.py', 'deploy/recovery_journal.py', 'deploy/host_checks.py')
+OPERATOR_FILES = ('deploy/production_inspection.py', 'deploy/production_preparation.py', 'deploy/production_preflight.py', 'deploy/production_receipts.py', 'deploy/recovery_journal.py', 'deploy/host_checks.py')
 PURPOSE = 'production_epoch_only'
 
 
@@ -239,6 +239,7 @@ def execute(packet_path, authorization_path):
     require(authorization == {'purpose': PURPOSE, 'packet_sha256': digest(packet_path), 'authorized_by': 'owner', 'review_file': authorization['review_file'], 'review_sha256': digest(authorization['review_file'])})
     require(review['packet_sha256'] == digest(packet_path) and review['decision'] == 'approved' and review['reviewer'] != 'implementation_agent')
     with locked(packet):
+        require(not operation.exists() and not Path(packet['attempt']).exists() and not Path(packet['epoch']).parent.exists())
         prepare(packet_path)
         gate = live_gate(packet)
         # Global durable marker precedes output creation and every evaluation. Never removed.

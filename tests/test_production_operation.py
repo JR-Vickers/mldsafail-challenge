@@ -20,7 +20,16 @@ def private(path, value):
 
 
 @pytest.fixture
-def packet(tmp_path):
+def packet(tmp_path, monkeypatch):
+    original_output = subprocess.check_output
+    revision = original_output(['git','rev-parse','HEAD'],text=True).strip()
+    def source_output(args, **kwargs):
+        if args[:2] == ['git','show'] and args[2].startswith(revision + ':'):
+            source = args[2].split(':', 1)[1]
+            if source in (*op.OPERATOR_FILES, 'scripts/production_epoch_operation.py', 'docs/PRODUCTION_EPOCH_PROCEDURE.md'):
+                return Path(source).read_bytes()
+        return original_output(args, **kwargs)
+    monkeypatch.setattr(subprocess, 'check_output', source_output)
     tmp_path.chmod(0o700)
     env, staging, manifest = prepared(tmp_path)
     env['ROOTLESS_DOCKER_SOCKET'] = '/run/user/1000/docker.sock'
@@ -38,7 +47,7 @@ def packet(tmp_path):
         containers=[],volumes=[],mountinfo='1 2 0:1 / / rw - ext4 /dev/root rw\n')
     artifact_inventory = private(tmp_path/'artifacts.json', [dict(image=i['index'],whole_hash_matches=True,bad_blobs=[],descriptor_errors=[],descriptors=[dict(digest=i['platform_manifest'],platform=dict(architecture='amd64',os='linux'))],configs=[dict(digest='blobs/sha256/'+i['configuration'].split(':')[1],architecture='amd64',os='linux')]) for i in images.values()])
     inspection = private(tmp_path/'inspection.json',host)
-    receipt = dict(schema='mldsafail.production-inspection.v1',candidate_sha256=digest(paths['candidate']),inspection=str(inspection),inspection_sha256=digest(inspection),source=SOURCE,daemon_id='daemon',images=images,artifact_inventory=str(artifact_inventory),artifact_inventory_sha256=digest(artifact_inventory),retained_inventory=str(inventory),retained_inventory_sha256=digest(inventory),
+    receipt = dict(inspection_helper_sha256=digest('deploy/production_inspection.py'),schema='mldsafail.production-inspection.v1',candidate_sha256=digest(paths['candidate']),inspection=str(inspection),inspection_sha256=digest(inspection),source=SOURCE,daemon_id='daemon',images=images,artifact_inventory=str(artifact_inventory),artifact_inventory_sha256=digest(artifact_inventory),retained_inventory=str(inventory),retained_inventory_sha256=digest(inventory),
         retained_environments=[paths['retained']],retained_sha256={paths['retained']:digest(paths['retained'])},retained_roots=[str(tmp_path/'retained-root')],compose_sha256=digest('compose.production.yaml'))
     receipt_path = private(tmp_path/'receipt.json',receipt)
     manifest_path = private(tmp_path/'manifest.json',manifest)
@@ -184,3 +193,121 @@ def test_audit_mount_is_readonly_and_has_no_socket(packet):
     assert not any('/var/run/docker.sock' in x for x in command)
     assert any(x.endswith(',readonly') and str(Path(p['epoch']).parent) in x for x in command)
     assert 'audit_epoch' in command[-1] and 'seal(' not in command[-1]
+
+
+@pytest.mark.parametrize('running,restart', [(True,'no'),(False,'always'),(False,'unless-stopped')])
+def test_live_gate_rejects_unfenced_existing_coordinator(packet, monkeypatch, running, restart):
+    _,p,_,_=packet
+    monkeypatch.setattr(op.os,'getuid',lambda:1000)
+    monkeypatch.setattr(op.socket,'gethostname',lambda:'fixture')
+    class Endpoint:
+        def stat(self):
+            return type('Status',(),{'st_mode':0o140600,'st_uid':1000})()
+    monkeypatch.setattr(op,'safe_path',lambda _:Endpoint())
+    monkeypatch.setattr(op,'read_receipt',lambda _:dict(inspection='fixture'))
+    monkeypatch.setattr(op,'read_manifest',lambda _:dict(time=time.time()))
+    monkeypatch.setattr('deploy.production_receipts.validate_receipt',lambda *a,**k:[])
+    def docker(p,args,**kwargs):
+        if args[0]=='info':value={'ID':'daemon','SecurityOptions':['rootless']}
+        elif args[0]=='image':value=[{'Id':args[-1],'Os':'linux','Architecture':'amd64'}]
+        elif args[0]=='container':value=[{'State':{'Running':running},'HostConfig':{'RestartPolicy':{'Name':restart}}}]
+        else:pytest.fail('Unfenced coordinator must be rejected before further work')
+        return subprocess.CompletedProcess(args,0,stdout=json.dumps(value))
+    monkeypatch.setattr(op,'docker',docker)
+    with pytest.raises(ValueError):op.live_gate(p)
+
+
+def test_changed_sealed_evidence_cannot_finalize(packet,monkeypatch):
+    path,p,auth=mock_execution(packet,monkeypatch)
+    operation=Path(p['operation']);operation.mkdir(mode=0o700)
+    epoch=Path(p['epoch']);epoch.mkdir(parents=True,mode=0o700)
+    private(epoch/'manifest.json',{'id':'actual'})
+    private(epoch/'COMPLETE.json',{'benchmark_version':'0.5.0','files':{'manifest.json':digest(epoch/'manifest.json')}})
+    private(operation/'journal.json',dict(packet_sha256=digest(path),state='audited'))
+    private(operation/'audited.json',dict(seal_sha256=digest(epoch/'COMPLETE.json'),packet_sha256=digest(path)))
+    private(epoch/'manifest.json',{'id':'altered'})
+    with pytest.raises(ValueError):op.finalize(path,Path(p['final_destination']))
+    assert not Path(p['final_destination']).exists()
+
+
+def test_private_records_reject_hardlinks_symlinks_and_duplicate_fields(tmp_path):
+    from deploy.production_preparation import read_manifest
+    tmp_path.chmod(0o700)
+    path=private(tmp_path/'receipt.json',{})
+    alias=tmp_path/'alias.json';os.link(path,alias)
+    with pytest.raises(ValueError):read_manifest(path)
+    alias.unlink();alias.symlink_to(path)
+    with pytest.raises(ValueError):read_manifest(alias)
+    path.write_text('{"schema":1,"schema":2}')
+    with pytest.raises(ValueError):read_manifest(path)
+
+
+def test_unavailable_retained_record_does_not_become_readiness_boolean(packet):
+    _,p,env,r=packet
+    inventory=json.loads(Path(r['retained_inventory']).read_text());inventory[0]['exists']=False
+    private(Path(r['retained_inventory']),inventory)
+    r['retained_inventory_sha256']=digest(r['retained_inventory']);r['images_locally_resolved']=True
+    private(Path(p['receipt']),r)
+    assert validate_receipt(env,p['candidate'],p['receipt'],preparation=True)
+
+
+def test_relative_bundle_bindings_survive_relocation(packet,monkeypatch):
+    import shutil
+    path,p,env,r=packet
+    for key in ('inspection','artifact_inventory','retained_inventory'):
+        r[key]=Path(r[key]).name
+    r['retained_environments']=[Path(x).name for x in r['retained_environments']]
+    r['retained_sha256']={Path(k).name:v for k,v in r['retained_sha256'].items()}
+    private(Path(p['receipt']),r)
+    p['receipt_sha256']=digest(p['receipt'])
+    for key in ('candidate','manifest','receipt','staging'):p[key]=Path(p[key]).name
+    private(path,p)
+    moved=path.parent/'bundle-copy';shutil.copytree(path.parent,moved,ignore=lambda root,names:['bundle-copy'])
+    moved.chmod(0o700)
+    assert digest(path)==digest(moved/path.name)
+    loaded=op.read_packet(moved/path.name)
+    assert op.validate(loaded)
+    assert validate_receipt(env,loaded['candidate'],loaded['receipt'],preparation=True)==[]
+
+
+def test_unexecuted_trial_requires_bound_withdrawal_and_empty_lifecycle(packet):
+    _,p,env,r=packet
+    inventory=json.loads(Path(r['retained_inventory']).read_text())
+    inventory[2]['exists']=False
+    private(Path(r['retained_inventory']),inventory);r['retained_inventory_sha256']=digest(r['retained_inventory'])
+    cleanup=private(Path(p['receipt']).parent/'cleanup.json',{'trial_roots':[{'path':'/home/mldsafail/.mlf-production-rehearsal-20261017-c','journals':[],'daemon_roots':[]}]})
+    withdrawal=private(Path(p['receipt']).parent/'withdrawal.json',{'text':'approval was withdrawn before execution. No C epoch has been generated.'})
+    r['unstarted_trial_evidence']=dict(cleanup_inventory=str(cleanup),cleanup_sha256=digest(cleanup),withdrawal_record=str(withdrawal),withdrawal_sha256=digest(withdrawal))
+    private(Path(p['receipt']),r)
+    assert not validate_receipt(env,p['candidate'],p['receipt'],preparation=True)
+    private(cleanup,{'trial_roots':[{'path':'/home/mldsafail/.mlf-production-rehearsal-20261017-c','journals':['started'],'daemon_roots':[]}]})
+    r['unstarted_trial_evidence']['cleanup_sha256']=digest(cleanup);private(Path(p['receipt']),r)
+    assert validate_receipt(env,p['candidate'],p['receipt'],preparation=True)
+
+
+def test_only_verified_upstream_non_amd64_absences_are_allowed(packet):
+    _,p,env,r=packet
+    artifacts=json.loads(Path(r['artifact_inventory']).read_text())
+    caddy=next(a for a in artifacts if a['image']=='sha256:'+IMAGES['CADDY_IMAGE'])
+    caddy['descriptor_errors']=[{'digest':'sha256:'+'f'*64,'mediaType':'application/vnd.oci.image.manifest.v1+json','platform':{'architecture':'arm64','os':'linux'}} for _ in range(12)]
+    private(Path(r['artifact_inventory']),artifacts);r['artifact_inventory_sha256']=digest(r['artifact_inventory']);private(Path(p['receipt']),r)
+    assert not validate_receipt(env,p['candidate'],p['receipt'],preparation=True)
+    caddy['descriptor_errors'][0]['platform']['architecture']='amd64'
+    private(Path(r['artifact_inventory']),artifacts);r['artifact_inventory_sha256']=digest(r['artifact_inventory']);private(Path(p['receipt']),r)
+    assert validate_receipt(env,p['candidate'],p['receipt'],preparation=True)
+
+
+def test_preflight_cli_reports_only_future_epoch_for_valid_preparation(packet,monkeypatch,capsys):
+    from deploy.production_preflight import main
+    _,p,env,_=packet
+    monkeypatch.setattr('deploy.production_receipts.render',lambda *a,**k:[])
+    args=['preflight','--production-env',p['candidate'],'--staging-env',p['staging'],
+          '--preparation-manifest',p['manifest'],'--inspection-receipt',p['receipt']]
+    monkeypatch.setattr('sys.argv',args+['--preparation'])
+    assert not main()
+    result=capsys.readouterr().out
+    assert result=='unresolved_dependency:MLDSAFAIL_MLWE_EPOCH_ID\npreparation_checks_passed_full_readiness_pending_epoch\n'
+    assert all(env[k] not in result for k in ('POSTGRES_PASSWORD','MLDSAFAIL_SECRET_KEY'))
+    monkeypatch.setattr('sys.argv',args)
+    assert main()
+    assert 'epoch_binding_not_finalized' in capsys.readouterr().out
