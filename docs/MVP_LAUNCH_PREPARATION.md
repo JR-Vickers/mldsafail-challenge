@@ -57,6 +57,20 @@ build-commit limitation for this preview and confirmed the OAuth homepage/callba
 Historical evidence is not relabeled. Secret/storage checks, production tooling,
 audited epoch/final cohort binding and later live gates remain open.
 
+## Session 3 configuration and operation preparation — 2026-10-20
+
+The [current report](acceptance/integration/production-preparation-20261020.md)
+records passing source-bound configuration preparation with only the future
+audited epoch unresolved. Loaded images and the accepted worker-provenance
+limitation remain settled; supplied OAuth values match and URLs are confirmed.
+Secrets differ from active and executed retained trials; withdrawn unexecuted C
+has bound nonexecution evidence. Host mounts, storage and Compose namespaces
+reconcile. The [production procedure](PRODUCTION_EPOCH_PROCEDURE.md) now has a
+separate tested executable wrapper and a versioned private review packet.
+Item 3 remains **partial pending item 4**. Independent review, separate owner
+authorization, fresh execution receipts and scheduling/cgroup prerequisites are
+still required. No epoch, deployment or live-service change occurred.
+
 ## Fresh-agent starting point
 
 Owner direction in the current session: prepare the **0.5.0 research preview**;
@@ -66,8 +80,9 @@ or a claim of tamper-resistant timing. Distribution 0.5.1 supports benchmark 0.5
 C diagnostics remain abandoned and backups remain indefinitely deferred.
 
 Use the eight-item checklist below as the current launch backlog. The local
-inventory and remote archive checks are complete; resolve the documented worker
-provenance gap or proceed with independent local participant packaging. Read the linked inventory and recommendation before
+inventory, remote archive checks and participant packaging are complete; the owner
+accepted the documented original-worker provenance limitation for this preview.
+Read the linked inventory and recommendation before
 choosing artifacts. Historical acceptance packets retain their original outcomes;
 do not turn their obsolete agendas into additional automatic launch tasks.
 
@@ -101,15 +116,16 @@ and the continuing data-loss/recovery risk. No historical failure is relabeled.
 
 ## Eight remaining public-release items
 
-Item 2 is complete locally; the other seven items remain open or partial.
+Items 1 and 2 have their preparation evidence and owner provenance resolution;
+item 3 is partial pending item 4. Later runtime/launch gates remain open.
 Historical scoped passes do not complete outstanding production checks.
 
 | Item | Work | Completion evidence |
 | --- | --- | --- |
-| 1. Verify retained release artifacts | Recheck candidate `1c9ca9e`, matching rollback `26c5f2f`, frozen 0.5.0 worker, database and proxy on the VPS; recover worker provenance. | Partial: [remote archive checks passed](acceptance/integration/mvp-artifact-verification-20261019.md); original worker Git build provenance remains unresolved. No silent replacement. |
+| 1. Verify retained release artifacts | Recheck candidate `1c9ca9e`, matching rollback `26c5f2f`, frozen 0.5.0 worker, database and proxy on the VPS; record the owner provenance decision. | [Remote archive checks passed](acceptance/integration/mvp-artifact-verification-20261019.md); [candidate images loaded and worker-provenance limitation accepted](acceptance/integration/candidate-image-load-20261020.md). Original build commit remains unknown; no runtime rollback acceptance is invented. |
 | 2. Finish participant packaging | Resolve wheel/checksum conflict; prepare clean source excluding diagnostic/operator tooling; align starter and quickstart. | Complete locally: [release manifest and review](acceptance/integration/participant-release-20261019.md), clean source/bundle and fresh install/starter checks. Nothing published. |
-| 3. Complete production configuration | Validate existing supplied OAuth inputs and private draft secrets, isolated database/volumes/evaluator paths, exact images, quotas and supported version. | Private source-bound preflight passes with no placeholders or unintended staging reuse. Do not request already supplied secrets again. |
-| 4. Establish production benchmark | Prepare and, under separate authority, create one fresh 0.5.0 production epoch, independently audit/seal it and bind reference costs/cohort. | Viability and audit pass on the exact selected host/worker; no staging/C epoch reuse or automatic replacement after failure. |
+| 3. Complete production configuration | Validate existing supplied OAuth inputs and private draft secrets, isolated database/volumes/evaluator paths, exact images, quotas and supported version. | [Preparation passed](acceptance/integration/production-preparation-20261020.md) with only the future audited epoch unresolved. Item 3 remains partial pending item 4; full mode refuses the preparation manifest. Supplied secrets are retained. |
+| 4. Establish production benchmark | Prepare and, under separate authority, create one fresh 0.5.0 production epoch, independently audit/seal it and bind reference costs/cohort. | Separate wrapper, synthetic verification and private review packet prepared; independent review/owner execution authority and scheduling/cgroup gates pending. Completion still requires actual viability and independent audit on the selected host/worker; no retries or staging/C epoch reuse. |
 | 5. Validate HTTPS and authentication | Establish trusted TLS and renewal/reload; verify real GitHub callback/login, secure sessions, CSRF and token creation/revocation/expiry. | Actual selected-deployment receipts with secrets redacted; synthetic rehearsal authentication is insufficient. |
 | 6. Complete participant journey | Clean install, starter/public validation, immutable tiny solver submission with idempotency key, status, audited result, correct leaderboard cohort and cancellation. | One end-to-end receipt on the final package/application/worker/production cohort. No new load campaign or full C rehearsal. |
 | 7. Finish minimum operations | Choose verified basic availability monitoring or explicit manual responsibility/cadence; prepare incident contact, queue pause, exact rollback/forward steps and refresh resources/isolation checks. | Chosen monitoring/procedure verified, image-bound recovery instructions and current resource receipt; backup deferral/data-loss risk recorded. HTTP readiness does not prove lease health. |

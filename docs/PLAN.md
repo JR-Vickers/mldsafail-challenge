@@ -8,7 +8,7 @@ outcomes remain unchanged; retain compact records and targeted exceptions. Activ
 resources, one verified rollback and supporting scientific evidence stay protected.
 
 
-Updated 2026-10-19. This is the current authoritative implementation plan.
+Updated 2026-10-20. This is the current authoritative implementation plan.
 The [pre-integration plan](archive/PLAN_PRE_INTEGRATION_20261013.md) preserves
 historical 0.4.0 contracts and dated agendas. Frozen scientific requirements
 remain in [PRIMITIVE_SELECTION_SPEC.md](PRIMITIVE_SELECTION_SPEC.md); this
@@ -46,6 +46,16 @@ the existing inputs rather than asking for them again. Backups remain indefinite
 deferred; do not restart storage selection or custody setup. Public activation,
 CA issuance/listeners, publication, recruitment, measurement adoption and creation
 of a production epoch still require their distinct applicable decisions.
+
+Production preparation, 2026-10-20: the [loaded-image/owner-decision receipt](acceptance/integration/candidate-image-load-20261020.md)
+records resolved candidate images, the accepted original-worker provenance limitation
+and confirmed OAuth URLs. The [current preparation report](acceptance/integration/production-preparation-20261020.md)
+records passing source-bound configuration preparation and tested separate
+production epoch tooling. Item 3 remains **partial pending item 4**: the actual
+audited epoch and final cohort do not exist. The private packet is ready for owner
+review; independent review and execution authorization remain absent. Scheduling
+fencing and worker-cgroup delegation require later scoped authority. No epoch,
+deployment, listener, OAuth login or notification occurred.
 
 Use the documented VPS `178.128.17.58` and deployment SSH identity. The pinned
 console fingerprint and recent host inventory are in the [continuation report](acceptance/integration/production-diagnostic-continuation-20261019.md).

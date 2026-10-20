@@ -1,0 +1,45 @@
+{
+  "schema": "mldsafail.production-preparation-status.v1",
+  "date": "2026-10-20",
+  "benchmark_version": "0.5.0",
+  "operator_revision": "8404409",
+  "item_3": "partial_pending_item_4",
+  "configuration_preparation_passed": true,
+  "unresolved_preparation_dependencies": [
+    "future_independently_audited_epoch"
+  ],
+  "item_4": "tooling_and_private_packet_prepared_for_review",
+  "independent_review": "pending",
+  "execution_authorization": "absent",
+  "execution_prerequisites": [
+    "fresh_source_bound_receipts_and_exact_packet_approval",
+    "separate_owner_authorized_scheduling_fence",
+    "verified_existing_worker_cgroup_delegation",
+    "verified_transfer_to_bound_remote_bundle_destination"
+  ],
+  "selected_images_locally_resolved": true,
+  "original_worker_provenance_limitation": "accepted_by_owner_build_commit_still_unknown",
+  "oauth_urls": "confirmed_by_owner_live_acceptance_pending",
+  "full_preflight_passed": false,
+  "full_preflight_disposition": "correctly_rejects_epoch_free_preparation_manifest",
+  "epoch_created": false,
+  "production_evaluation_executed": false,
+  "deployed": false,
+  "live_services_changed": false,
+  "images_loaded_in_this_phase": false,
+  "independent_audit_executed": false,
+  "finalization_verification": "synthetic_fixtures_only",
+  "synthetic_compose_render_passed": true,
+  "backups": "deferred",
+  "diagnostics_c": "abandoned",
+  "v060": "ignored",
+  "validation": {
+    "focused_passed": 79,
+    "make_check_passed": 1226,
+    "skipped": 15,
+    "contract_passed": 8,
+    "existing_warnings": 12,
+    "documentation_file_links": 50,
+    "diff_check_passed": true
+  }
+}
