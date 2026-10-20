@@ -150,11 +150,42 @@ class OwnedHelper:
 
     def command(self, args):
         import subprocess
-        runner = self.runner or subprocess.run
-        result = runner(self.docker + args, check=True, capture_output=True, timeout=2)
-        if len(result.stdout) > MAX_MESSAGE or len(result.stderr) > MAX_MESSAGE:
-            raise RuntimeError('maintenance_helper_inspection_limit')
-        return result.stdout
+        if self.runner is not None:
+            result = self.runner(self.docker + args, check=True, capture_output=True, timeout=2)
+            if len(result.stdout) + len(result.stderr) > MAX_MESSAGE:
+                raise RuntimeError('maintenance_helper_inspection_limit')
+            return result.stdout
+        import os
+        import selectors
+        process = subprocess.Popen(self.docker + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        selector = selectors.DefaultSelector()
+        buffers = [bytearray(), bytearray()]
+        for index, stream in enumerate((process.stdout, process.stderr)):
+            os.set_blocking(stream.fileno(), False)
+            selector.register(stream, selectors.EVENT_READ, index)
+        deadline = time.monotonic() + 2
+        try:
+            while selector.get_map():
+                if time.monotonic() >= deadline:
+                    raise RuntimeError('maintenance_helper_inspection_timeout')
+                for key, _ in selector.select(max(0, deadline - time.monotonic())):
+                    data = os.read(key.fileobj.fileno(), 4096)
+                    if not data:
+                        selector.unregister(key.fileobj)
+                    else:
+                        buffers[key.data].extend(data)
+                        if sum(map(len, buffers)) > MAX_MESSAGE:
+                            raise RuntimeError('maintenance_helper_inspection_limit')
+            if process.wait(timeout=max(.001, deadline - time.monotonic())) != 0:
+                raise RuntimeError('maintenance_helper_command_failed')
+            return bytes(buffers[0])
+        finally:
+            selector.close()
+            if process.poll() is None:
+                process.kill()
+                process.wait(timeout=2)
+            process.stdout.close()
+            process.stderr.close()
 
     def open(self, credentials, authorization, *, timeout=.5, parent):
         import hashlib

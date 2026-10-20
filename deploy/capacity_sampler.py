@@ -84,9 +84,11 @@ class Sampler:
                         break
                     if ancestor == self.root:
                         ancestors[str(ancestor)] = dict(inode=ancestor.stat().st_ino,
-                            limits={f: 'max' for f in LIMITS}, gauges={f: 0 for f in GAUGES},
-                            events={f: {} for f in ('memory.events', 'memory.swap.events')},
-                            disposition='cgroup_root_host_constraints_apply')
+                            limits={f: (ancestor / f).read_text().strip() if (ancestor / f).exists() else 'max' for f in LIMITS},
+                            gauges={f: int((ancestor / f).read_text()) if (ancestor / f).exists() else 0 for f in GAUGES},
+                            events={f: counters((ancestor / f).read_text()) if (ancestor / f).exists() else {} for f in ('memory.events', 'memory.swap.events')},
+                            absent_controls=[f for f in (*LIMITS, *GAUGES, 'memory.events', 'memory.swap.events') if not (ancestor / f).exists()],
+                            disposition='root_present_controls_and_host_constraints_apply')
                         continue
                     ancestors[str(ancestor)] = dict(inode=ancestor.stat().st_ino,
                         limits={f: (ancestor / f).read_text().strip() for f in LIMITS},

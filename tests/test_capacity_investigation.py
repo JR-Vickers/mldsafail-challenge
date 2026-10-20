@@ -172,3 +172,59 @@ def test_packet_relocation_and_tamper(tmp_path):
     (moved / 'packet.json').write_text('{}')
     with pytest.raises(ValueError, match='hash'):
         validate(moved)
+
+
+def test_root_present_limits_are_enforced(tmp_path):
+    sampler, operation, retained, proc = fixture(tmp_path)
+    (operation.parent / 'memory.max').write_text('100')
+    (operation.parent / 'memory.current').write_text('99')
+    with pytest.raises(ValueError, match='threshold'):
+        sampler.sample('setup')
+
+
+def test_real_root_missing_controls_are_explicit(tmp_path):
+    sampler, operation, retained, proc = fixture(tmp_path)
+    for path in operation.parent.iterdir():
+        if path.is_file(): path.unlink()
+    row = sampler.sample('setup')
+    root = row['ancestors'][str(operation.parent)]
+    assert 'memory.max' in root['absent_controls']
+
+
+def test_output_budget_and_links(tmp_path):
+    from deploy.capacity_investigation import output_budget
+    log = tmp_path / 'log'
+    log.write_bytes(b'hello')
+    assert output_budget(tmp_path, [log], []) == 5
+    (tmp_path / 'link').symlink_to(log)
+    with pytest.raises(ValueError, match='ownership'):
+        output_budget(tmp_path, [log], [])
+
+
+def test_supervisor_preserves_ambiguous_restoration_during_cleanup(tmp_path):
+    supervisor = Supervisor(tmp_path, None, dict(operation_id='o', state='execution_ready'), {})
+    supervisor.restoration_attempted = True
+    # Failure after restoration must never create a definitive false receipt.
+    class Fence:
+        def acquire(self): raise RuntimeError('lost after restore')
+    supervisor.fence = Fence()
+    def interrupted(): raise KeyboardInterrupt()
+    supervisor.actions = dict(terminate=interrupted)
+    with pytest.raises(RuntimeError):
+        supervisor.run(dict(purpose='production_maintenance', state='execution_ready'))
+    state = json.loads((tmp_path / 'supervisor.json').read_text())
+    assert state['scheduling_restored'] is None
+    assert state['restoration_status'] == 'ambiguous'
+
+
+def test_helper_inspection_output_and_deadline():
+    import sys
+    from deploy.maintenance_transport import OwnedHelper
+    helper = object.__new__(OwnedHelper)
+    helper.runner = None
+    helper.docker = [sys.executable, '-c']
+    assert helper.command(['print("ok")']).strip() == b'ok'
+    with pytest.raises(RuntimeError, match='inspection_limit'):
+        helper.command(['print("x" * 100000)'])
+    with pytest.raises(RuntimeError, match='inspection_timeout'):
+        helper.command(['import time; time.sleep(10)'])

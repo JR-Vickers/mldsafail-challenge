@@ -115,7 +115,11 @@ def validate(destination):
     for name, digest in manifest.items():
         if Path(name).name != name or sha(safe_path(destination.absolute() / name)) != digest:
             raise ValueError('packet_hash_mismatch')
-        read_manifest(destination / name)
+        private = safe_path(destination.absolute() / name).stat()
+        if private.st_uid != os.getuid() or private.st_mode & 0o077 or private.st_nlink != 1:
+            raise ValueError('private_packet_file_required')
+        if name.endswith('.json'):
+            read_manifest(destination / name)
     packet = read_manifest(destination / 'packet.json')
     if (packet['state'] != 'maintenance_proposal' or packet['execution_authority'] is not False
             or packet['scheduling_exclusion_verified'] is not False or packet['transferable'] is not False):

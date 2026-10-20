@@ -14,6 +14,7 @@ class Supervisor:
     def __init__(self, root, fence, packet, actions):
         self.root, self.fence, self.packet, self.actions = Path(root), fence, packet, actions
         self.path = self.root / 'supervisor.json'
+        self.restoration_attempted = False
         if self.path.exists():
             raise RuntimeError('maintenance_reconciliation_required')
 
@@ -23,6 +24,8 @@ class Supervisor:
 
     def action(self, name):
         self.fence.verify()
+        if name == 'restore':
+            self.restoration_attempted = True
         self.record(name + '_intent')
         if self.actions[name]() is not True:
             raise RuntimeError('maintenance_supervisor_action_unverified')
@@ -53,13 +56,18 @@ class Supervisor:
             self.fence.release()
             self.record('complete')
         except BaseException:
-            self.record('termination_intent', scheduling_restored=False)
+            self.record('termination_intent', restoration_attempted=self.restoration_attempted,
+                        restoration_status='ambiguous' if self.restoration_attempted else 'not_attempted',
+                        scheduling_restored=None if self.restoration_attempted else False)
             try:
                 # Deadline/ownership enforcement belongs to the bounded adapter.
                 stopped = self.actions['terminate']() is True and self.actions['resources_stopped']() is True
             except BaseException:
                 stopped = False
-            self.record('reconciliation_required', scheduling_restored=False, resources_stopped=stopped)
+            self.record('reconciliation_required',
+                        restoration_attempted=self.restoration_attempted,
+                        restoration_status='ambiguous' if self.restoration_attempted else 'not_attempted',
+                        scheduling_restored=None if self.restoration_attempted else False, resources_stopped=stopped)
             # Never restore after an ambiguous launch or failed postflight.
             raise
 
@@ -69,4 +77,6 @@ class Supervisor:
         state = read_manifest(path)
         if cleanup() is not True:
             raise RuntimeError('maintenance_cleanup_unverified')
-        atomic_json(path, dict(state, phase='cleanup_only', scheduling_restored=False))
+        atomic_json(path, dict(state, phase='cleanup_only',
+                              scheduling_restored=state.get('scheduling_restored'),
+                              restoration_status=state.get('restoration_status', 'unknown')))

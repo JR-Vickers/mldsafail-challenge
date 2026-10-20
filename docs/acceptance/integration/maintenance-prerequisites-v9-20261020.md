@@ -70,3 +70,15 @@ review exact provisioning/admission/termination commands and approve a separatel
 scoped investigation generation. Capacity execution is not requested by this
 packet. Maintenance/transfer, delegation provisioning and `production_epoch_only`
 remain separate subsequent approvals.
+
+Validation: independent review passed this blocked checkpoint with 23 focused
+primitive tests. The broader focused run passed 133 tests with one opt-in guard
+test skipped; a separate dedicated-loopback guard run passed all three tests.
+Standard-umask `make check` passed 1,309 tests with 43 opt-in skips and 12 existing
+warnings, followed by eight frozen contract tests. The initial disposable database
+used SQL_ASCII and caused 28 fixture setup errors; the UTF-8 rerun passed. Both
+disposable PostgreSQL clusters were stopped and removed; failure logs remain in
+the private packet. Documentation links and `git diff --check` passed. Linux amd64
+container acceptance remains unavailable and blocks execution readiness. This work
+completes a local preparation checkpoint, not the plan's full execution-package
+success criterion.

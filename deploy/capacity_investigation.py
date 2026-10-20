@@ -22,7 +22,7 @@ def worker_wrapper(operation, parent, worker_image):
     return '''#!/usr/bin/python3
 import os, sys
 args = sys.argv[1:]
-if not args or args[0] != 'run' or %r not in args:
+if not args or args[0] != 'run' or args[-1] != %r:
     raise SystemExit('frozen worker run required')
 if any(a == '--privileged' or a.startswith('--cgroup-parent') or a.startswith('--label') for a in args):
     raise SystemExit('worker ownership override rejected')
@@ -62,11 +62,13 @@ class Runner:
         publish(attempt, dict(state='intent', operation_id=self.packet['operation_id']))
         try:
             for command in self.packet['commands']:
-                self.guard()  # Must certify sampler, scheduling and host health.
+                if self.guard() is not True:
+                    raise RuntimeError('investigation_guard_rejected')
                 atomic_json(self.root / 'phase.json', dict(phase=command['phase'], state='launch_intent'))
                 client = self.launch(command)
                 result = client.wait(timeout=command['timeout'])
-                self.guard()
+                if self.guard() is not True:
+                    raise RuntimeError('investigation_guard_rejected')
                 if result != 0:
                     raise RuntimeError('investigation_phase_failed')
                 if self.stop() is not True or self.inspect() is not True:
