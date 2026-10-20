@@ -395,3 +395,5 @@ before satisfying the current execution validator. Deployed fence compatibility,
 compatible capacity and inspected delegation also remain required. Scheduling
 exclusion remains unverified. No maintenance, operation-bundle transfer or epoch
 execution is authorized by preparation.
+
+Maintenance feasibility update (2026-10-20): [v6 host-feasibility disposition](acceptance/integration/maintenance-feasibility-20261020.md) records read-only host RAM/cgroup and deployed-source/queue inspection. Capacity remains unresolved; the coordinator is restarting and deployed checkout admission/claim sources lack the reviewed mutex. Scheduling/reference closure and delegation remain incomplete. The [separate control proposal](acceptance/integration/maintenance-control-proposal-20261020.md) requires its own authorization; no control was implemented/acquired. Item 4 remains blocked, with no maintenance/transfer approval requested. Historical receipts stay unchanged.
