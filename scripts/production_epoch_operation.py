@@ -238,7 +238,9 @@ SCHEDULER_COMMANDS = (
     ('systemctl', '--user', 'list-unit-files', '--type=timer', '--no-pager', '--no-legend'),
     ('systemctl', 'list-unit-files', '--no-pager', '--no-legend'),
     ('systemctl', 'list-unit-files', '--type=timer', '--no-pager', '--no-legend'),
-    ('crontab', '-l'), ('sudo', '-n', 'crontab', '-l'),
+    ('systemctl', '--user', 'list-units', '--all', '--plain', '--no-pager', '--no-legend'),
+    ('systemctl', 'list-units', '--all', '--plain', '--no-pager', '--no-legend'),
+    ('atq',), ('crontab', '-l'), ('sudo', '-n', 'crontab', '-l'),
 )
 
 
@@ -256,7 +258,8 @@ def scheduling_gate(packet):
 
 def terminate_owned(packet):
     """Stop the controller first, then prove the operation's resources are quiescent."""
-    record = {'stopped': [], 'remaining': [], 'errors': [], 'verified_stopped': False}
+    record = {'stopped': [], 'remaining': [], 'errors': [], 'verified_stopped': False, 'controller_observed': False}
+    expected = packet.get('cleanup_controller', 'production-epoch-' + packet['operation_id'] + '-create')
     def owned():
         ids = docker(packet, ['ps', '-aq', '--filter', 'label=org.mldsafail.production-epoch=' + packet['operation_id']]).stdout.split()
         rows = []
@@ -268,6 +271,7 @@ def terminate_owned(packet):
     try:
         for attempt in range(3):
             rows = owned()
+            record['controller_observed'] |= any(r.get('Name', '').lstrip('/') == expected for _, r in rows)
             rows.sort(key=lambda item: not item[1].get('Name', '').lstrip('/').startswith('production-epoch-'))
             for identifier, row in rows:
                 if row['State']['Running']:
@@ -276,7 +280,7 @@ def terminate_owned(packet):
                     require(not check['State']['Running'])
                     record['stopped'].append(identifier)
             record['remaining'] = [i for i, r in owned() if r['State']['Running']]
-            if not record['remaining']:
+            if not record['remaining'] and record['controller_observed']:
                 record['verified_stopped'] = True
                 break
         require(record['verified_stopped'])
@@ -302,8 +306,6 @@ def stream(packet, audit=False):
                 raise RuntimeError('controller_failed')
         except BaseException:
             try:
-                terminate_owned(packet)
-            finally:
                 if process is not None and process.poll() is None:
                     process.terminate()
                     try:
@@ -311,6 +313,10 @@ def stream(packet, audit=False):
                     except subprocess.TimeoutExpired:
                         process.kill()
                         process.wait(timeout=10)
+                # A stopped client alone cannot disprove an in-flight daemon request.
+                # Require the exact non-auto-removed controller in the cleanup inventory.
+                terminate_owned({**packet, 'cleanup_controller': 'production-epoch-' + packet['operation_id'] + '-' + name})
+            finally:
                 atomic_json(operation / (name + '.exit.json'), {'returncode': process.returncode if process is not None else None, 'terminal': True})
             raise
         finally:

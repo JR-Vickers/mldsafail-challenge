@@ -38,7 +38,9 @@ host capacity separately. No evaluator probe is authorized for preparation.
 
 SIGTERM is handled as a terminal interruption. Cleanup stops and verifies the
 controller before remaining labelled resources, reinspects quiescence and writes
-`termination.json`, including failures. A failed operation must not have scheduling
+`termination.json`, including failures. Cleanup first stops the launch client and requires the exact
+phase controller to have been observed; an unobserved launch is indeterminate and
+never certified stopped. A failed operation must not have scheduling
 restored until `verified_stopped` is true and fresh postflight confirms no owned
 resources remain running. Logs and terminal receipts also survive spawn failures.
 

@@ -325,7 +325,7 @@ def test_timeout_cleanup_skips_stopped_owned_resources(packet,monkeypatch):
     def docker(p,args,**kwargs):
         if args[0]=='ps':value='stopped\nrunning\n'
         elif args[0]=='container':
-            value=json.dumps([{'Config':{'Labels':{'org.mldsafail.production-epoch':p['operation_id']}},'State':{'Running':args[-1]=='running' and not killed}}])
+            value=json.dumps([{'Name':'/production-epoch-'+p['operation_id']+'-create','Config':{'Labels':{'org.mldsafail.production-epoch':p['operation_id']}},'State':{'Running':args[-1]=='running' and not killed}}])
         else:
             assert args==['kill','running'];killed.append('running');value=''
         return subprocess.CompletedProcess(args,0,stdout=value)
@@ -417,3 +417,12 @@ def test_delegation_checks_effective_limits_and_mapping(monkeypatch, issue):
     if issue:
         with pytest.raises(ValueError):op.delegation_gate(packet)
     else:op.delegation_gate(packet)
+
+
+def test_cleanup_never_certifies_an_unobserved_launch(packet,monkeypatch):
+    _,p,_,_=packet
+    Path(p['operation']).mkdir(mode=0o700)
+    monkeypatch.setattr(op,'docker',lambda p,args,**kw:subprocess.CompletedProcess(args,0,stdout=''))
+    with pytest.raises(ValueError):op.terminate_owned(p)
+    receipt=json.loads((Path(p['operation'])/'termination.json').read_text())
+    assert not receipt['verified_stopped'] and not receipt['controller_observed']

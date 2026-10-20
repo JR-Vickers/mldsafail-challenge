@@ -16,7 +16,12 @@ Operator corrections bind staging bytes and a maintenance/restoration record,
 require restart policy `no`, inspect stable user/system scheduler inventories,
 distinguish the Docker slice name from the delegated path and verify mapping,
 ownership, controllers and ancestor capacity. They handle SIGTERM, preserve spawn
-failure receipts and record positively verified owned-resource termination.
+failure receipts and record positively verified owned-resource termination. Follow-up review closed a
+launch-client race: cleanup stops the client first and refuses to certify an
+unobserved phase controller. Active/transient systemd units and the at queue are
+also required inventory inputs. Cron-file coverage and the classification of all
+scheduler owners remain execution-critical maintenance review dependencies; the
+command inventory alone is insufficient to approve an execution packet.
 Frozen benchmark/evaluator/worker/scoring and contestant contracts are unchanged.
 
 Fresh bounded read-only SSH inspection reused the recorded account/key and pinned
@@ -40,7 +45,7 @@ Completion requires actual successful creation, independent audit, full final
 configuration preflight, postflight and safe scheduling restoration. None is
 claimed by this review checkpoint. See the [procedure](../../PRODUCTION_EPOCH_PROCEDURE.md).
 
-Validation: 92 focused synthetic tests passed. `make check` passed 1,243 tests
+Validation: 93 focused synthetic tests passed. `make check` passed 1,244 tests
 with 15 skipped and 12 existing warnings, plus 8 frozen contract tests. All 48
 local documentation file links checked and `git diff --check` passed. Private
 logs are retained with the inspection. No scientific evaluation ran.
