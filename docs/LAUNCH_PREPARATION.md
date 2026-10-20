@@ -245,3 +245,8 @@ production adapters, scheduling/transfer closure and isolated host identity/size
 window bindings remain incomplete. Proposal integrity does not establish execution
 readiness. No capacity, provisioning, maintenance/transfer or epoch approval is
 requested by this engineering update.
+
+[V10 blocker follow-up](acceptance/integration/maintenance-prerequisites-v10-20261020.md)
+advances local runtime/control/dependency tooling. Item 4 remains blocked by native
+acceptance and concrete host/delegation/evidence bindings. No capacity workload,
+production mutation, transfer, epoch or launch is authorized by this update.

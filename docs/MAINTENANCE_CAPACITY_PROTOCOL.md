@@ -84,3 +84,25 @@ Exact production stop, transfer, provisioning and restoration commands remain
 withheld until scheduling, capacity, delegation and reviewed transport prerequisites
 close. Proposed investigation argv in the private packet is review material and
 must not be pasted as an execution authorization.
+
+## V10 preparation amendment, 2026-10-20
+
+For the [v10 follow-up](acceptance/integration/maintenance-prerequisites-v10-20261020.md)
+only, the proposed common operation envelope supersedes the provisional 2.5 GiB/
+1 CPU/320 PID proposal above: **3 GiB, 1.25 CPUs, 448 PIDs, zero swap**. The frozen
+512 MiB controller and 2 GiB worker bounds remain unchanged. Planning reserves
+128 MiB for two SQL helpers, 128 MiB for monitoring and 64 MiB for clients, plus
+192 MiB remaining inside the common bound. These are unmeasured reserves; common
+ancestor admission and actual sampling must verify adequacy. Retained services
+and positive host sizing headroom are additional. This still rejects a 2 GiB host
+and certifies no replacement host size.
+
+The monitor and clients use a generation-owned control leaf beneath the common
+parent. Gzip evidence retains raw JSON samples under the existing 64 MiB stored
+limit, with bounded decompression during validation. Coverage and raw evidence
+bind an exclusive operation attempt. Separate operation/epoch filesystems must
+both meet the free-space floor. Isolated measurements cannot borrow production
+availability, retained-service or ancestor evidence. Same-host replay/assessment
+tooling does not itself supply a cross-host compatibility disposition. No change
+to a frozen evaluator, scoring rule or execution authorization follows from this
+amendment; older private proposals remain historical and unchanged.

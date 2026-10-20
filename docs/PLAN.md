@@ -409,3 +409,12 @@ exclusive offline packet tooling. Item 4 remains blocked. Production adapters,
 Linux acceptance, complete scheduling/transfer dependencies and an owner-bound
 isolated host/window remain unresolved. No capacity workload, provisioning,
 service mutation, transfer or epoch ran; no execution approval is requested.
+
+2026-10-20 blocker follow-up: [v10 engineering and evidence](acceptance/integration/maintenance-prerequisites-v10-20261020.md)
+adds the frozen worker lifecycle router, continuous bounded phase monitoring,
+raw replay checks, native action adapters, crash cleanup and dependency relocation
+tooling. Read-only service/runtime inspection and a bounded emulated worker-image
+control smoke ran; no evaluation or capacity workload ran. Native end-to-end
+acceptance, owner-only scheduling/runtime evidence, installed delegation and an
+owner-bound host/window remain gates. The private v10 proposal remains blocked,
+nontransferable and unauthorized; no capacity execution approval is requested.

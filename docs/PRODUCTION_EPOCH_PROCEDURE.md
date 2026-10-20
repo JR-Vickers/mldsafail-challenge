@@ -195,3 +195,11 @@ validate PRIVATE_PACKET` verifies proposal hashes only and never authorizes tran
 or execution. Capacity investigation uses `capacity_investigation_only`; it cannot
 reuse `production_maintenance` or `production_epoch_only`. No capacity execution
 request is ready until the v9 blockers and exact isolated-host bindings close.
+
+[V10](acceptance/integration/maintenance-prerequisites-v10-20261020.md) supplies
+further local control engineering and explicit investigation execute/cleanup-only
+interfaces. Proposal state still rejects execution. Native acceptance and actual
+host/evidence/delegation bindings remain mandatory; an emulated worker-image smoke
+is not a capacity measurement. The proposed common investigation envelope now
+includes explicit control overhead under the amended capacity protocol. Existing
+`production_epoch_only` and live-fence gates are unchanged.

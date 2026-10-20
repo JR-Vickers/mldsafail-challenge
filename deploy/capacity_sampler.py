@@ -1,5 +1,6 @@
 """Bounded Linux cgroup-v2 evidence capture; importing never samples or mutates."""
 import hashlib
+import copy
 import json
 import os
 from pathlib import Path
@@ -51,7 +52,7 @@ class Sampler:
                         for i, a in enumerate(paths) for b in paths[i+1:]), 'overlapping_scopes')
         require(set(identities) == {str(p) for p in paths}, 'birth_identity_missing')
         require(all(v.get('container_id') and v.get('pid') and v.get('start_ticks') for v in identities.values()), 'birth_identity_missing')
-        self.identities = identities
+        self.identities = copy.deepcopy(identities)
         self.filesystem = filesystem
         self.previous = None
         self.inodes = {str(p): p.stat().st_ino for p in paths}
@@ -108,8 +109,6 @@ class Sampler:
             for field, gauge, fraction in (('memory.max', 'memory.current', .95), ('pids.max', 'pids.current', .9)):
                 limit = row['limits'][field]
                 require(limit == 'max' or row['gauges'][gauge] <= int(limit) * fraction, 'ancestor_abort_threshold')
-            require(not row['events']['memory.events'].get('oom', 0)
-                    and not row['events']['memory.events'].get('oom_kill', 0), 'oom_evidence')
         if self.previous:
             require(memory['SwapFree'] >= self.previous['host']['SwapFree'], 'host_swap_growth')
             require(ancestors.keys() == self.previous['ancestors'].keys(), 'ancestor_changed')
@@ -121,6 +120,8 @@ class Sampler:
                 for field, values in row['events'].items():
                     require(values == old['events'][field], 'memory_event_changed')
             for key, row in rows.items():
+                old_peak=self.previous['cgroups'][key]['memory.peak']
+                require(old_peak is None or (row['memory.peak'] is not None and row['memory.peak'] >= old_peak), 'counter_reset')
                 for field, values in row['counters'].items():
                     old = self.previous['cgroups'][key]['counters'][field]
                     require(values.keys() == old.keys() and all(values[k] >= old[k] for k in old), 'counter_reset')

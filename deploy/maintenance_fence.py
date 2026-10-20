@@ -97,8 +97,17 @@ class Fence:
         self.query_lock = threading.Lock()
         self.verification_serial = threading.Lock()
         self.io_threads = []
+        self.io_registry_lock = threading.Lock()
         self.clients = []
         self.operation_cleanup_required = False
+
+    def _start_io(self, thread):
+        # Keep unresolved readers, but do not retain tens of thousands of dead
+        # verification Thread objects over an 8,000-second maintenance window.
+        with self.io_registry_lock:
+            self.io_threads[:] = [item for item in self.io_threads if item.is_alive()]
+            self.io_threads.append(thread)
+            thread.start()
 
     def _record(self, state, **extra):
         atomic_json(self.root / 'state.json', dict(state=state, **extra))
@@ -137,8 +146,7 @@ class Fence:
                 finally:
                     done.set()
             thread = threading.Thread(target=check, name='maintenance-query', daemon=True)
-            self.io_threads.append(thread)
-            thread.start()
+            self._start_io(thread)
             require(done.wait(max(0, .8 - (time.monotonic() - started))), 'maintenance_verification_timeout')
             if errors:
                 raise errors[0]
@@ -245,8 +253,7 @@ class Fence:
                 finally:
                     self.abort_done.set()
             thread = threading.Thread(target=cleanup, name='maintenance-cleanup', daemon=True)
-            self.io_threads.append(thread)
-            thread.start()
+            self._start_io(thread)
         if not self.abort_done.wait(self.intent['ceilings']['cleanup']):
             self.cleanup_error = 'maintenance_cleanup_timeout'
         require(self.cleanup_error is None, 'maintenance_cleanup_reconciliation_required')
@@ -316,9 +323,12 @@ class Fence:
         if self.monitor:
             self.monitor.join(timeout=2)
             require(not self.monitor.is_alive(), 'maintenance_verifier_not_terminated')
-        for thread in self.io_threads:
+        with self.io_registry_lock:
+            readers = tuple(self.io_threads)
+        for thread in readers:
             thread.join(timeout=.1)
-        require(all(not thread.is_alive() for thread in self.io_threads), 'maintenance_client_reconciliation_required')
+        with self.io_registry_lock:
+            require(all(not thread.is_alive() for thread in self.io_threads), 'maintenance_client_reconciliation_required')
         try:
             reconcile(self.root, self.connect, self.identity)
             if self.holder:

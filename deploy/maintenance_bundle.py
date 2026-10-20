@@ -43,7 +43,7 @@ def materialize(destination, files, references, *, unresolved):
         target.chmod(0o600)
         digests[relative]=row['sha256']
     manifest=dict(schema='mldsafail.maintenance-bundle.v1',files=digests,references=references,
-                  unresolved=unresolved,complete=not unresolved,transferable=False)
+                  unresolved=unresolved,static_mapping_complete=not unresolved,complete=False,transferable=False)
     atomic_json(destination/'bundle.json',manifest)
     validate(destination)
     return manifest

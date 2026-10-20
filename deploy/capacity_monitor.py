@@ -1,6 +1,7 @@
 """Continuous bounded investigation monitoring and hash-bound phase coverage."""
 from contextlib import contextmanager
 import hashlib
+import gzip
 import json
 import os
 from pathlib import Path
@@ -13,6 +14,18 @@ from deploy.production_preparation import read_manifest
 from deploy.recovery_journal import atomic_json, safe_path
 
 PHASES = ('setup', 'create', 'audit', 'cleanup')
+
+
+class LimitedOutput:
+    def __init__(self, raw):
+        self.raw=raw
+    def write(self, data):
+        require(self.raw.tell()+len(data) <= 64*1024**2, 'sample_output_exhausted')
+        return self.raw.write(data)
+    def flush(self):
+        return self.raw.flush()
+    def tell(self):
+        return self.raw.tell()
 
 
 class Monitor:
@@ -41,8 +54,9 @@ class Monitor:
 
     def start(self):
         require(self.thread is None and self.stream is None, 'monitor_already_started')
-        self.stream = (self.root / 'samples.jsonl').open('xb')
-        os.chmod(self.stream.name, 0o600)
+        self.raw = (self.root / 'samples.jsonl.gz').open('xb')
+        os.chmod(self.raw.name, 0o600)
+        self.stream = gzip.GzipFile(filename='',fileobj=LimitedOutput(self.raw),mode='wb',mtime=0)
         self.started = time.monotonic()
         self.transition('setup')
         self.thread = threading.Thread(target=self._loop, name='capacity-sampler', daemon=True)
@@ -89,8 +103,8 @@ class Monitor:
             row['live_identity_verified'] = True
             row['operation_id'] = self.operation_id
             data = (json.dumps(row, sort_keys=True) + '\n').encode()
-            require(self.byte_count + len(data) <= 64 * 1024**2, 'sample_output_exhausted')
-            total=output_budget(self.root, self.logs, [Path(self.stream.name)])
+            require(self.raw.tell() < 64 * 1024**2, 'sample_output_exhausted')
+            total=output_budget(self.root, self.logs, [Path(self.raw.name)])
             for root in self.additional_roots:
                 if root.exists():
                     total+=output_budget(root,[],[])
@@ -149,13 +163,15 @@ class Monitor:
                 require(tuple(e['phase'] for e in self.events) == PHASES, 'monitor_incomplete_phases')
                 require(not any(t.is_alive() for t in self.active_readers), 'monitor_reader_remains')
                 def finish_io():
-                    self.stream.flush()
-                    os.fsync(self.stream.fileno())
+                    self.stream.close()
+                    self.raw.flush()
+                    os.fsync(self.raw.fileno())
+                    self.raw.close()
                     atomic_json(self.root / 'coverage.json', dict(operation_id=self.operation_id, complete=True, phases=self.events))
                 self.bounded(finish_io)
             finally:
                 if self.stream and not any(t.is_alive() for t in self.active_readers):
-                    self.bounded(self.stream.close)
+                    self.bounded(lambda:(self.stream.close(),self.raw.close()))
 
     def abort(self):
         """Preserve partial evidence; never promote incomplete coverage."""
@@ -166,7 +182,7 @@ class Monitor:
         if self.thread is not None and self.thread.is_alive():
             raise RuntimeError('monitor_reconciliation_required')
         if self.stream and not self.stream.closed and not any(t.is_alive() for t in self.active_readers):
-            self.bounded(self.stream.close)
+            self.bounded(lambda:(self.stream.close(),self.raw.close()))
         self.bounded(lambda: atomic_json(self.root / 'coverage.json', dict(operation_id=self.operation_id, complete=False, phases=self.events,
                                                      reader_remains=any(t.is_alive() for t in self.active_readers[:-1]))))
 
@@ -195,11 +211,19 @@ def validate_capture(root):
     shared_ancestors = None
     digest = hashlib.sha256()
     count = 0
-    path = root / 'samples.jsonl'
+    candidates=[root/name for name in ('samples.jsonl','samples.jsonl.gz') if (root/name).exists()]
+    require(len(candidates)==1, 'measurement_raw_file_ambiguous')
+    path=candidates[0]
+    with path.open('rb') as raw_stream:
+        for block in iter(lambda:raw_stream.read(65536),b''):
+            digest.update(block)
     require(path.stat().st_size <= 64 * 1024**2, 'sample_output_exhausted')
-    with path.open('rb') as stream:
-        for line in stream:
-            digest.update(line)
+    opener=gzip.open if path.suffix=='.gz' else open
+    with opener(path,'rb') as stream:
+        decoded_bytes=0
+        for line in iter(lambda:stream.readline(1024**2+1),b''):
+            decoded_bytes+=len(line)
+            require(decoded_bytes <= 1024**3 and len(line) <= 1024**2, 'measurement_decoded_output_limit')
             row = json.loads(line)
             require(row.get('operation_id') == coverage['operation_id'], 'measurement_operation_changed')
             identities_verified = identities_verified and row.get('live_identity_verified') is True
@@ -212,6 +236,7 @@ def validate_capture(root):
             boot = boot or row['boot_id']
             require(row['boot_id'] == boot, 'measurement_boot_changed')
             timestamp = row['monotonic_ns']
+            require(type(timestamp) is int and timestamp >= 0, 'measurement_timestamp_invalid')
             require(previous is None or 0 < timestamp - previous['monotonic_ns'] <= 1_000_000_000, 'sampling_gap')
             phase = windows[row['phase']]
             require(phase['start_ns'] <= timestamp <= phase['end_ns'], 'measurement_sample_outside_phase')
@@ -244,6 +269,7 @@ def validate_capture(root):
                 if previous:
                     old = previous['cgroups'][cg]
                     require(values['inode'] == old['inode'] and values['birth'] == old['birth'], 'measurement_identity_changed')
+                    require(old.get('memory.peak') is None or (values.get('memory.peak') is not None and values['memory.peak'] >= old['memory.peak']), 'measurement_counter_reset')
                     for field, counters in old['counters'].items():
                         require(counters.keys() == values['counters'][field].keys()
                                 and all(values['counters'][field][k] >= v for k, v in counters.items()), 'measurement_counter_reset')
@@ -265,8 +291,6 @@ def validate_capture(root):
                     ancestor_limits.add(limit if limit == 'max' else int(limit))
                 ancestor_peaks[cg]=dict(limit=limit,shared=cg in shared_ancestors,
                     peak=max(values['gauges']['memory.current'],ancestor_peaks.get(cg,{}).get('peak',0)))
-                require(not values['events']['memory.events'].get('oom', 0)
-                        and not values['events']['memory.events'].get('oom_kill', 0), 'measurement_oom')
             operation = sum(row['cgroups'][p]['gauges']['memory.current'] for p in row['scopes']['operation_resources'])
             retained = sum(row['cgroups'][p]['gauges']['memory.current'] for p in row['scopes']['retained_services_excluding_operation'])
             operation_peak = max(operation_peak, operation)
@@ -285,7 +309,7 @@ def validate_capture(root):
         times = seen.get(name, [])
         require(len(times) >= 2 and times[0] - window['start_ns'] <= 1_000_000_000
                 and window['end_ns'] - times[-1] <= 1_000_000_000, 'measurement_boundary_coverage_missing')
-    return dict(measurement='samples.jsonl', measurement_sha256=digest.hexdigest(),
+    return dict(measurement=path.name, measurement_sha256=digest.hexdigest(),
                 coverage='coverage.json', coverage_sha256=hashlib.sha256((root/'coverage.json').read_bytes()).hexdigest(),
                 measurement_scopes=SCOPES, operation_id=coverage['operation_id'], samples=count, boot_id=boot,
                 hostname=hostname, identities_verified=identities_verified,

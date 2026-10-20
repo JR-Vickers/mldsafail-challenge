@@ -104,3 +104,24 @@ def test_blackholed_monitor_fails_and_preserves_reader(tmp_path):
         assert json.loads((root/'coverage.json').read_text())['reader_remains'] is True
     finally:
         gate.set()
+
+
+def test_finite_disjoint_caps_do_not_become_total_host_limits(tmp_path):
+    root=complete(tmp_path)
+    rows=[json.loads(line) for line in (root/'samples.jsonl').read_text().splitlines()]
+    operation=rows[0]['scopes']['operation_resources'][0]
+    retained=rows[0]['scopes']['retained_services_excluding_operation'][0]
+    for row in rows:
+        row['ancestors'][operation]['limits']['memory.max']='1000'
+        row['ancestors'][retained]['limits']['memory.max']='1000'
+    (root/'samples.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+    result=validate_capture(root)
+    assert result['ancestor_memory_limits']==['max']
+    assert result['ancestor_applicability'][operation]['shared'] is False
+
+
+def test_interrupted_attempt_cannot_promote_complete_coverage(tmp_path):
+    root=complete(tmp_path)
+    atomic_json(root/'attempt.json',dict(state='reconciliation_required',operation_id='a'*32,capture_complete=True))
+    with pytest.raises(ValueError,match='attempt'):
+        validate_capture(root)

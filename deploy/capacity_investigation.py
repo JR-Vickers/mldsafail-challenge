@@ -43,6 +43,14 @@ def admission(packet, authorization, *, now=None):
             or not packet.get('host') or not packet.get('provider_size') or not packet.get('execution_window')
             or not 0 <= now - authorization.get('time', 0) < 300):
         raise ValueError('capacity_investigation_not_authorized')
+    window=packet['execution_window']
+    if (not isinstance(window,dict) or set(window)!={'start','end'}
+            or any(type(window[k]) not in (int,float) for k in window)
+            or not window['start'] <= now < window['end']
+            or window['end']-now < packet.get('lifetime',8000)):
+        raise ValueError('capacity_investigation_window_invalid')
+    if authorization.get('authorized_by')!='owner':
+        raise ValueError('capacity_investigation_owner_approval_required')
     digest = hashlib.sha256(json.dumps(packet, sort_keys=True).encode()).hexdigest()
     if authorization.get('packet_sha256') != digest:
         raise ValueError('capacity_investigation_packet_changed')

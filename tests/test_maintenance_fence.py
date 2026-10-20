@@ -429,3 +429,20 @@ def test_partial_launch_without_acknowledgement_requires_reconciliation(database
         fence.resources_stopped(lambda: True)  # fixture-only: no daemon exists
         fence.cleanup_error = None
         fence.release()
+
+
+def test_completed_verification_readers_do_not_accumulate():
+    fence=object.__new__(control.Fence)
+    fence.io_threads=[]
+    fence.io_registry_lock=threading.Lock()
+    gate=threading.Event()
+    unresolved=threading.Thread(target=gate.wait,daemon=True)
+    fence._start_io(unresolved)
+    try:
+        for _ in range(50):
+            thread=threading.Thread(target=lambda:None)
+            fence._start_io(thread)
+            thread.join(timeout=1)
+        assert unresolved in fence.io_threads and len(fence.io_threads)<=2
+    finally:
+        gate.set();unresolved.join(timeout=1)

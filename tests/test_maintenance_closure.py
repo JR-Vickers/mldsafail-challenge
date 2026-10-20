@@ -124,3 +124,27 @@ def test_supervisor_hung_action_cannot_certify_cleanup(tmp_path):
     finally:
         gate.set()
         for thread in supervisor.pending: thread.join(timeout=1)
+
+
+def test_helper_journal_keeps_cleanup_authority(tmp_path):
+    from deploy.maintenance_transport import OwnedHelper
+    helper=object.__new__(OwnedHelper)
+    helper.root=tmp_path
+    tmp_path.chmod(0o700)
+    helper._persist(dict(state='create_intent',name='helper',image='image',parent='parent',source='source'))
+    helper._persist(dict(state='started',container='container',birth={'pid':1}))
+    value=json.loads((tmp_path/'helper.json').read_text())
+    assert value['image']=='image' and value['parent']=='parent' and value['source']=='source'
+
+
+def test_transport_reconcile_attempts_every_owned_helper(tmp_path,monkeypatch):
+    from deploy.maintenance_transport import OwnedHelper,reconcile_transport
+    for index in range(2): (tmp_path/f'connection-{index}').mkdir()
+    seen=[]
+    def reconcile(*args):
+        seen.append(args[0].name)
+        if args[0].name=='connection-0':raise RuntimeError('ambiguous')
+    monkeypatch.setattr(OwnedHelper,'reconcile',reconcile)
+    with pytest.raises(RuntimeError,match='incomplete'):
+        reconcile_transport(tmp_path,{},None,[],'image','source')
+    assert seen==['connection-0','connection-1']

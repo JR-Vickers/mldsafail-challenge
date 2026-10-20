@@ -147,6 +147,7 @@ class OwnedHelper:
         self.runner = runner
         self.container = None
         self.connection = None
+        self.process = None
         self.birth = None
         self.parent = None
         self.name = None
@@ -196,6 +197,12 @@ class OwnedHelper:
         import subprocess
         from pathlib import Path
         from deploy.recovery_journal import atomic_json
+        import sys
+        if sys.platform != 'linux':
+            raise ValueError('maintenance_helper_requires_native_linux')
+        if set(credentials) != {'host','port','dbname','user','password'}:
+            raise ValueError('maintenance_helper_credentials_fields_invalid')
+        private_input=encode(credentials)
         if (authorization.get('purpose') != 'production_maintenance'
                 or authorization.get('state') != 'execution_ready'
                 or self.probe() != self.expected
@@ -209,7 +216,7 @@ class OwnedHelper:
         self.parent = parent
         name = self.name = 'maintenance-sql-' + uuid.uuid4().hex
         self.root.mkdir(mode=0o700)
-        atomic_json(self.root / 'helper.json', dict(state='create_intent', name=name, identity=self.expected))
+        self._persist(dict(state='create_intent', name=name, identity=self.expected, image=self.image, parent=parent, source=self.source))
         # Only the database's inspected network namespace is shared; no port map.
         output = self.command(['create', '--interactive', '--name', name, '--label',
             'org.mldsafail.maintenance-helper=' + name, '--network',
@@ -225,12 +232,17 @@ class OwnedHelper:
         if not re.fullmatch('[a-f0-9]{64}', self.container):
             raise RuntimeError('maintenance_helper_create_ambiguous')
         self._inspect_admission()
-        atomic_json(self.root / 'helper.json', dict(state='start_intent', name=name, container=self.container, identity=self.expected))
+        self._persist(dict(state='start_intent', name=name, container=self.container, identity=self.expected))
         process = subprocess.Popen(self.docker + ['start', '--attach', '--interactive', self.container],
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        self.process=process
+        from deploy.owned_client import identity as process_identity
+        client_birth=process_identity(process.pid)
+        self._persist(dict(state='client_started',name=name,container=self.container,
+                                                   client_birth=client_birth,identity=self.expected))
         self.connection = Connection(process, self.probe, self.expected, timeout=timeout)
         # Private pipe bootstrap is bounded and contains no command-line secrets.
-        data = encode(credentials)
+        data = private_input
         os.set_blocking(process.stdin.fileno(), False)
         deadline = time.monotonic() + 2
         while data:
@@ -249,9 +261,56 @@ class OwnedHelper:
             time.sleep(.02)
         self.birth = helper_identity(container)
         self.connection.identity = self.verify
-        atomic_json(self.root / 'helper.json', dict(state='started', name=name, container=self.container,
-                                                   birth=self.birth, client_pid=process.pid, identity=self.expected))
+        self._persist(dict(state='started', name=name, container=self.container,
+                                                   birth=self.birth, client_birth=client_birth, client_pid=process.pid, identity=self.expected))
         return self.connection
+
+    def _persist(self, value):
+        from deploy.production_preparation import read_manifest
+        from deploy.recovery_journal import atomic_json
+        path=self.root/'helper.json'
+        record=read_manifest(path) if path.exists() else {}
+        record.update(value)
+        atomic_json(path,record)
+
+    @classmethod
+    def reconcile(cls, root, expected, identity_probe, docker, image, source):
+        """Crash recovery is cleanup-only; no helper create/connect/resume."""
+        from deploy.production_preparation import read_manifest
+        helper=cls(root,expected,identity_probe,docker,image,source)
+        record=read_manifest(helper.root/'helper.json')
+        if (record['identity']!=expected or record.get('image')!=image or record.get('source')!=helper.source
+                or not record.get('container') or not record.get('parent')):
+            raise RuntimeError('maintenance_helper_reconciliation_identity_missing')
+        helper.container,helper.name,helper.parent=record['container'],record['name'],record['parent']
+        helper.birth=record.get('birth')
+        helper.cleanup()
+        client=record.get('client_birth')
+        if not client:
+            raise RuntimeError('maintenance_helper_client_birth_missing')
+        from deploy.owned_client import identity as process_identity
+        from deploy.recovery_journal import atomic_json
+        def completed():
+            receipt=read_manifest(helper.root/'cleanup.json')
+            atomic_json(helper.root/'cleanup.json',dict(receipt,client_terminated=True))
+            return True
+        import os,signal
+        try:
+            current=process_identity(client['pid'])
+        except FileNotFoundError:
+            return completed()
+        if current!=client:
+            raise RuntimeError('maintenance_helper_client_identity_changed')
+        os.kill(client['pid'],signal.SIGTERM)
+        deadline=time.monotonic()+2
+        while time.monotonic()<deadline:
+            try:
+                if process_identity(client['pid'])!=client:
+                    raise RuntimeError('maintenance_helper_client_identity_changed')
+            except FileNotFoundError:
+                return completed()
+            time.sleep(.02)
+        raise RuntimeError('maintenance_helper_client_remains')
 
     def _inspect_admission(self):
         rows = json.loads(self.command(['inspect', self.container]))
@@ -290,8 +349,13 @@ class OwnedHelper:
             raise RuntimeError('maintenance_helper_remains')
         if self.connection:
             self.connection.close()
+        elif self.process and self.process.poll() is None:
+            self.process.terminate()
+            self.process.wait(timeout=2)
+        if self.process and self.process.poll() is None:
+            raise RuntimeError('maintenance_helper_client_remains')
         atomic_json(self.root / 'cleanup.json', dict(state='terminated', container=self.container,
-                                                   client_terminated=True, removed=False))
+                                                   client_terminated=self.process is not None and self.process.poll() is not None, removed=False))
         return True
 
 
@@ -365,8 +429,11 @@ class Transport:
         helper = OwnedHelper(self.root / ('connection-' + str(index)), self.expected,
                              self.probe, self.docker, 'sha256:' + IMAGES['COORDINATOR_IMAGE'], self.source)
         self.helpers.append(helper)  # Register before any create/start mutation.
-        return helper.open(credentials, self.authorization, parent=self.parent,
-                           timeout=self.lifetime + 2 if index == 1 else .5)
+        connection=helper.open(credentials, self.authorization, parent=self.parent,
+                               timeout=self.lifetime + 2 if index == 1 else .5)
+        if connection.execute('SELECT current_user').fetchone() != (self.expected['connection_authority']['user'],):
+            raise RuntimeError('maintenance_database_role_changed')
+        return connection
 
     def identity(self):
         return self.probe()['database_container']
@@ -381,3 +448,21 @@ class Transport:
         if failures:
             raise RuntimeError('maintenance_helper_reconciliation_required')
         return True
+
+
+def reconcile_transport(root, expected, identity_probe, docker, image, source):
+    """Discover durable connection generations; cleanup only, attempt every helper."""
+    from pathlib import Path
+    import re
+    failures=[]
+    root=Path(root)
+    for path in sorted(root.iterdir()):
+        if not path.is_dir() or not re.fullmatch('connection-[0-9]+',path.name) or path.is_symlink():
+            raise RuntimeError('maintenance_transport_reconciliation_scope_invalid')
+        try:
+            OwnedHelper.reconcile(path,expected,identity_probe,docker,image,source)
+        except BaseException as error:
+            failures.append(type(error).__name__)
+    if failures:
+        raise RuntimeError('maintenance_transport_reconciliation_incomplete')
+    return True

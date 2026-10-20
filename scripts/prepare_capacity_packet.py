@@ -12,17 +12,16 @@ from deploy.recovery_journal import atomic_json, safe_path
 
 BLOCKERS = [
     'Owner must bind disposable host boot/daemon/provider identity, size and execution window',
-    'Linux amd64 container/cgroup acceptance not performed',
-    'Production transport owned-container launcher and bounded identity admission incomplete',
-    'Production scheduling semantic closure and owner-only evidence incomplete',
-    'Production delegation absent; shared app.slice is not exclusive delegation',
-    'Production retained-service/timer/ancestor evidence and compatibility review missing',
-    'Complete runtime/configuration/relative-receipt relocation mapping missing',
-    'Supervisor production action adapters and restart-owner restoration not certified',
+    'Native Linux amd64 end-to-end acceptance requires an approved compatible host; local smoke is emulated',
+    'Frozen coordinator image is absent from the local Docker daemon; compatible transport container acceptance remains unverified',
+    'Owner-only scheduling paths, dynamic configuration/import semantics and all restart owners require remaining evidence',
+    'Approved exclusive operation/control-leaf delegation is not installed or certified',
+    'Production retained-service/timer/ancestor measurements and source compatibility remain unresolved',
+    'Source and relative-receipt relocation is testable, but runtime/configuration evidence closure remains incomplete',
+    'Production restoration and investigation adapters need end-to-end acceptance on the bound native host',
     'Capacity investigation execution and generation require separate approval',
-    'Worker shim supports only run; frozen image inspection and owned kill/inspect/rm routing require acceptance',
-    'Runner output/tree limits and sampler phase-boundary integration not yet certified',
 ]
+
 
 
 def sha(path):
@@ -52,6 +51,10 @@ def build(previous, destination):
             for old, new in replacements.items():
                 word = word.replace(old, new)
             command['argv'][i] = word
+    for command in commands:
+        argv=command['argv']
+        position=argv.index('--memory')
+        argv[position:position]=['--memory-swap','512m','--log-driver','none']
     retained = {p.name: sha(p) for p in previous.iterdir() if p.is_file()}
     atomic_json(destination / 'predecessor.json', dict(path=str(previous), files=retained))
     packet = dict(schema='mldsafail.capacity-approval-packet.v1', state='maintenance_proposal',
@@ -63,13 +66,18 @@ def build(previous, destination):
                   controller=protocol['controller'], worker=protocol['worker'],
                   ceilings=protocol['ceilings'], lifetime=8000, capacity='unresolved',
                   preparation_freshness_seconds=86400, execution_freshness_seconds=300,
-                  blockers=BLOCKERS, prior_evidence='predecessor.json')
+                  blockers=BLOCKERS, prior_evidence='predecessor.json',
+                  implementation_complete=False,
+                  operation_limits={'memory.max':'3221225472','memory.swap.max':'0','cpu.max':'125000 100000','pids.max':'448'},
+                  interfaces={'capture_validation':'python -m scripts.capacity_investigation validate-capture ROOT',
+                              'execute':'python -m scripts.capacity_investigation execute ROOT PACKET CONFIGURATION AUTHORIZATION',
+                              'cleanup_only':'python -m scripts.capacity_investigation cleanup ROOT PACKET CONFIGURATION'})
     atomic_json(destination / 'packet.json', packet)
     host = dict(schema='mldsafail.isolated-measurement-host.v1', platform='linux/amd64',
                 disposable=True, host_identity=None, provider_size=None, execution_window=None,
                 current_2gib_vps='rejected: 2.5 GiB operation ceiling alone exceeds physical RAM',
-                operation_common_parent=dict(memory_bytes=2684354560, cpus=1, pids=320),
-                control_overhead='must measure helper/client/sampler within common parent; revise ceiling if insufficient',
+                operation_common_parent=dict(memory_bytes=3221225472, cpus=1.25, pids=448),
+                control_overhead='128 MiB for two helpers, 128 MiB monitor and 64 MiB clients; 192 MiB aggregate margin inside 3 GiB; planning reserves only, must measure',
                 planning_headroom='max(256 MiB,20% simultaneous operation plus retained peak), with written variability/kernel/sampler/timer rationale',
                 certified_host_size=None, runtime_versions='retained v8 host evidence; isolated host must record exact Docker, kernel, systemd and cgroup-v2 versions',
                 images={k: 'sha256:' + IMAGES[k] for k in ('COORDINATOR_IMAGE', 'WORKER_IMAGE')},
@@ -88,7 +96,7 @@ def build(previous, destination):
                                           'independent review before capacity validator'])
     atomic_json(destination / 'isolated-host.json', host)
     dependencies = dict(complete=False, transferable=False, mappings=[], unresolved=BLOCKERS[1:8],
-                        source_files={str(p): sha(p) for pattern in ('deploy/*maintenance*.py', 'deploy/capacity*.py', 'scripts/prepare_capacity_packet.py', 'tests/test_capacity_investigation.py') for p in sorted(Path('.').glob(pattern))},
+                        source_files={str(p): sha(p) for pattern in ('deploy/*maintenance*.py', 'deploy/capacity*.py', 'deploy/investigation*.py', 'scripts/*capacity*.py', 'scripts/maintenance_service_context.py', 'tests/test*capacity*.py', 'tests/test_investigation*.py', 'tests/test_maintenance_closure.py', 'tests/test_maintenance_pipe_postgres.py') for p in sorted(Path('.').glob(pattern))},
                         retained_graph=dict(path=str(previous / 'transfer-dependencies.json'), sha256=sha(previous / 'transfer-dependencies.json')),
                         scheduling_graph=dict(path=str(previous / 'scheduling-semantic-review.json'), sha256=sha(previous / 'scheduling-semantic-review.json')),
                         collector_allowlist=None, owner_console_collection_ready=False,

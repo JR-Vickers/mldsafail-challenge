@@ -10,7 +10,7 @@ from deploy.investigation_docker import Router, WORKER_FLAGS, LABEL
 def router(tmp_path):
     tmp_path.chmod(0o700)
     config = dict(operation_id='a'*32, parent='investigation.slice', image='sha256:'+'b'*64,
-                  journal=str(tmp_path), daemon='daemon', solver_root='/srv/epoch')
+                  configuration='sha256:'+'f'*64, platform_manifest='sha256:'+'e'*64, journal=str(tmp_path), daemon='daemon', solver_root='/srv/epoch')
     containers, calls = {}, []
     def command(args):
         calls.append(args)
@@ -20,7 +20,7 @@ def router(tmp_path):
         if args[0] == 'create':
             cid = 'c'*64
             name = args[args.index('--name')+1]
-            containers[cid] = dict(Id=cid, Name='/'+name,
+            containers[cid] = dict(Id=cid, Image=config['image'], Name='/'+name,
                 Config=dict(Image=config['image'], Labels={LABEL:config['operation_id']}),
                 HostConfig=dict(CgroupParent=config['parent']),
                 State=dict(Running=False, StartedAt='birth', ExitCode=0))
@@ -86,3 +86,30 @@ def test_solver_mount_cannot_escape_epoch(router):
     with pytest.raises(ValueError):
         route.dispatch(['run','--name','mlwe-'+'d'*32,*WORKER_FLAGS,'--mount',
                         'type=bind,src=/etc,dst=/solver,readonly',route.config['image']])
+
+
+def test_configuration_id_engine_is_bound_downstream(tmp_path,capsys):
+    tmp_path.chmod(0o700)
+    index='sha256:'+'a'*64; configuration='sha256:'+'b'*64
+    config=dict(operation_id='c'*32,parent='parent.slice',image=index,configuration=configuration,
+                platform_manifest='sha256:'+'d'*64,journal=str(tmp_path),daemon='daemon',solver_root='/srv/epoch')
+    state={}
+    def command(args):
+        if args[0]=='info':return b'{"ID":"daemon"}'
+        if args[:2]==['image','inspect']:
+            return json.dumps([dict(Id=configuration,Os='linux',Architecture='amd64')]).encode()
+        if args[0]=='create':
+            state.update(Id='e'*64,Image=configuration,Name='/'+args[args.index('--name')+1],
+                Config=dict(Image=configuration,Labels={LABEL:config['operation_id']}),
+                HostConfig=dict(CgroupParent=config['parent']),State=dict(StartedAt='birth',ExitCode=0,Running=False))
+            return state['Id'].encode()
+        if args[0]=='inspect':return json.dumps([state]).encode()
+        return b''
+    class Client:
+        def poll(self):return 0
+        def wait(self,timeout):return 0
+    route=Router(config,command,lambda args:Client())
+    route.dispatch(['image','inspect',index])
+    assert json.loads(capsys.readouterr().out)[0]['Id']==configuration
+    route.dispatch(['run','--name','mlwe-'+'f'*32,*WORKER_FLAGS,configuration])
+    assert json.loads((tmp_path/('mlwe-'+'f'*32+'.json')).read_text())['image']==configuration

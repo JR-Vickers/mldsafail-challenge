@@ -43,10 +43,11 @@ def publish(path, value):
 
 class Router:
     def __init__(self, config, command, run):
-        require(set(config) == {'operation_id', 'parent', 'image', 'journal', 'daemon', 'solver_root'})
+        require(set(config) == {'operation_id', 'parent', 'image', 'configuration', 'platform_manifest', 'journal', 'daemon', 'solver_root'})
         require(re.fullmatch('[a-f0-9]{32}', config['operation_id']))
         require(re.fullmatch('[A-Za-z0-9_.:/-]+', config['parent']))
         require(re.fullmatch('sha256:[a-f0-9]{64}', config['image']))
+        require(all(re.fullmatch('sha256:[a-f0-9]{64}',config[k]) for k in ('configuration','platform_manifest')))
         self.config, self.command, self.run = config, command, run
         self.root = Path(config['journal'])
         require(self.root.is_absolute() and '..' not in self.root.parts and not any(p.is_symlink() for p in (self.root, *self.root.parents)))
@@ -73,7 +74,8 @@ class Router:
         container = self.inspected(record['container_id'])
         require(container['Id'] == record['container_id'] and container['Name'] == '/' + name)
         require(container['Config']['Labels'].get(LABEL) == self.config['operation_id'])
-        require(container['Config']['Image'] == self.config['image'])
+        require(container['Config']['Image'] == record['image']
+                and container['Image'] in (self.config['image'],self.config['configuration']))
         require(container['HostConfig']['CgroupParent'] == self.config['parent'])
         if record.get('started_at'):
             require(container['State']['StartedAt'] == record['started_at'], 'investigation_container_restarted')
@@ -91,7 +93,7 @@ class Router:
         cid = self.command(['create', '--name', name, '--label', LABEL + '=' + self.config['operation_id'],
                             '--cgroup-parent', self.config['parent'], *flags]).decode().strip()
         require(re.fullmatch('[a-f0-9]{64}', cid), 'investigation_launch_ambiguous')
-        record.update(container_id=cid, state='start_intent')
+        record.update(container_id=cid, image=flags[-2] if artifact else flags[-1], state='start_intent')
         publish(path, record)
         # Register live birth before releasing serialization for timeout cleanup.
         client = self.run(['start', '--attach', '--interactive', cid])
@@ -132,14 +134,15 @@ class Router:
     def dispatch(self, args):
         require(args and all(isinstance(a, str) for a in args))
         self.check_daemon()
-        image = self.config['image']
+        image_rows=json.loads(self.command(['image','inspect',self.config['image']]))
+        require(len(image_rows)==1 and image_rows[0]['Id'] in (self.config['image'],self.config['configuration'])
+                and image_rows[0]['Os']=='linux' and image_rows[0]['Architecture']=='amd64', 'investigation_image_identity_changed')
+        image=image_rows[0]['Id']
         if args == ['info', '--format', '{{json .}}']:
             sys.stdout.buffer.write(self.command(args))
             return 0
-        if args == ['image', 'inspect', image]:
-            rows = json.loads(self.command(args))
-            require(len(rows) == 1 and rows[0]['Id'] == image and rows[0]['Os'] == 'linux' and rows[0]['Architecture'] == 'amd64')
-            sys.stdout.write(json.dumps(rows))
+        if args == ['image', 'inspect', self.config['image']]:
+            sys.stdout.write(json.dumps(image_rows))
             return 0
         if args == ['run', '--rm', '--network=none', '--read-only', '--entrypoint=cat', image, '/artifacts.json']:
             return self.create_run('capacity-artifacts-' + self.config['operation_id'],

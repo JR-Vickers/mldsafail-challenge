@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import shlex
+import selectors
 import subprocess
 import time
 
@@ -26,7 +27,33 @@ UNITS = {
 }
 
 
-def inspect(*, runner=subprocess.run):
+def bounded(argv, *, capture_output, timeout):
+    process=subprocess.Popen(argv,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)
+    output=bytearray()
+    deadline=time.monotonic()+timeout
+    selector=selectors.DefaultSelector()
+    os.set_blocking(process.stdout.fileno(),False)
+    selector.register(process.stdout,selectors.EVENT_READ)
+    try:
+        while selector.get_map():
+            if time.monotonic()>=deadline:
+                raise subprocess.TimeoutExpired('read-only service context',timeout)
+            for key,_ in selector.select(max(0,deadline-time.monotonic())):
+                data=os.read(key.fileobj.fileno(),4096)
+                if not data: selector.unregister(key.fileobj)
+                output.extend(data)
+                if len(output)>131072:
+                    raise ValueError('output_limit')
+        code=process.wait(timeout=max(.001,deadline-time.monotonic()))
+        return subprocess.CompletedProcess(argv,code,bytes(output),b'')
+    finally:
+        selector.close()
+        if process.poll() is None:
+            process.kill();process.wait(timeout=2)
+        process.stdout.close()
+
+
+def inspect(*, runner=bounded):
     deadline = time.monotonic() + 40
     rows = {}
     for manager, units in UNITS.items():
