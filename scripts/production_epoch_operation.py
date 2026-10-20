@@ -285,6 +285,9 @@ def audit(packet_path):
             require(result['environment']['image_id'] == packet['worker']['index'])
             require(result['environment']['trusted_fingerprint'] == FINGERPRINT)
             require(result['environment']['host']['ID'] == packet['daemon_id'])
+            inspected = read_manifest(read_receipt(packet['receipt'])['inspection'])['info']
+            host_fields = ('ID', 'Architecture', 'NCPU', 'MemTotal', 'KernelVersion', 'OperatingSystem', 'ServerVersion')
+            require(result['environment']['host'] == {key: inspected[key] for key in host_fields})
             verify_seal(packet['epoch'])
             result.update(manifest_sha256=digest(Path(packet['epoch']) / 'manifest.json'), reference_sha256=digest(Path(packet['epoch']) / 'reference-costs.json'))
             result.update(audited=True, epoch=packet['epoch'], packet_sha256=digest(packet_path),

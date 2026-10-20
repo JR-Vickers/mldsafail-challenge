@@ -41,7 +41,7 @@ def packet(tmp_path, monkeypatch):
     roots = [env[k] for k in ('PRODUCTION_EVALUATOR_ROOT','PRODUCTION_TLS_ROOT','PRODUCTION_ACME_WEBROOT')]
     expected_paths = roots + [roots[0]+'/jobs', roots[0]+'/secrets/signing.key']
     inventory = private(tmp_path/'retained-inventory.json', [dict(root='/tmp/'+n+'/state',exists=True,environment='POSTGRES_PASSWORD=retained-fixture\n',compose={'name':'trial','services':{},'volumes':{}}) for n in ('pr-261016-a','pr-261017-b','pr-261017-c','pr-261018-c')])
-    host = dict(time=time.time(), uid=1000, account='mldsafail', info={'ID':'daemon','SecurityOptions':['name=rootless']},
+    host = dict(time=time.time(), uid=1000, account='mldsafail', info={'ID':'daemon','SecurityOptions':['name=rootless'],'Architecture':'x86_64','NCPU':1,'MemTotal':2147483648,'KernelVersion':'fixture','OperatingSystem':'fixture','ServerVersion':'fixture'},
         images=[dict(Id='sha256:'+v, Os='linux', Architecture='amd64', Config={'Labels':{'org.mldsafail.source':SOURCE,'org.mldsafail.trusted':FINGERPRINT}}) for v in IMAGES.values()],
         paths=[dict(path=p,resolved=p,symlinks=[]) for p in expected_paths] + [dict(path=env['ROOTLESS_DOCKER_SOCKET'],resolved=env['ROOTLESS_DOCKER_SOCKET'],uid=1000,mode=0o140600,symlinks=[])],
         containers=[],volumes=[],mountinfo='1 2 0:1 / / rw - ext4 /dev/root rw\n')
@@ -115,7 +115,7 @@ def mock_execution(packet,monkeypatch):
     return path,p,auth
 
 
-@pytest.mark.parametrize('failure',[None,'before','creation','timeout','interrupt','audit'])
+@pytest.mark.parametrize('failure',[None,'before','creation','timeout','interrupt','audit','audit_host'])
 def test_single_attempt_and_terminal_failures(packet,monkeypatch,failure):
     path,p,auth=mock_execution(packet,monkeypatch)
     calls=[]
@@ -128,10 +128,13 @@ def test_single_attempt_and_terminal_failures(packet,monkeypatch,failure):
             raise {'creation':RuntimeError,'timeout':subprocess.TimeoutExpired,'interrupt':KeyboardInterrupt}[failure](*(['fixture',1] if failure=='timeout' else []))
         if audit:
             if failure=='audit':raise RuntimeError('audit failed')
-            private(operation/'audit.stdout',dict(epoch_id='actual',reference_cases=100,environment={'image_id':p['worker']['index'],'trusted_fingerprint':FINGERPRINT,'host':{'ID':p['daemon_id']}}))
+            private(operation/'audit.stdout',dict(epoch_id='actual',reference_cases=100,environment={'image_id':p['worker']['index'],'trusted_fingerprint':FINGERPRINT,'host':{'ID':p['daemon_id'],'Architecture':'x86_64','NCPU':1,'MemTotal':2147483648,'KernelVersion':'fixture','OperatingSystem':'fixture','ServerVersion':'fixture'}}))
+            if failure=='audit_host':
+                data=json.loads((operation/'audit.stdout').read_text());data['environment']['host']['KernelVersion']='changed'
+                private(operation/'audit.stdout',data)
         else:
             epoch=Path(p['epoch']);epoch.mkdir()
-            private(epoch/'manifest.json',dict(id='actual',environment={'image_id':p['worker']['index'],'trusted_fingerprint':FINGERPRINT,'host':{'ID':p['daemon_id']}}))
+            private(epoch/'manifest.json',dict(id='actual',environment={'image_id':p['worker']['index'],'trusted_fingerprint':FINGERPRINT,'host':{'ID':p['daemon_id'],'Architecture':'x86_64','NCPU':1,'MemTotal':2147483648,'KernelVersion':'fixture','OperatingSystem':'fixture','ServerVersion':'fixture'}}))
             private(epoch/'reference-costs.json',{'fixture':True})
             private(epoch/'COMPLETE.json',{'benchmark_version':'0.5.0','files':{x.name:digest(x) for x in epoch.iterdir()}})
     monkeypatch.setattr(op,'stream',stream)
@@ -144,8 +147,8 @@ def test_single_attempt_and_terminal_failures(packet,monkeypatch,failure):
         assert json.loads((Path(p['operation'])/'journal.json').read_text())['state']=='creation_failed'
     else:
         op.execute(path,auth)
-        if failure=='audit':
-            with pytest.raises(RuntimeError):op.audit(path)
+        if failure in ('audit','audit_host'):
+            with pytest.raises((RuntimeError,ValueError)):op.audit(path)
         else:
             op.audit(path)
             destination=path.parent/'final'
