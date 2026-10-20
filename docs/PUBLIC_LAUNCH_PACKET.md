@@ -228,3 +228,6 @@ The absent numbered historical checklist is a traceability limitation; the
 integration ledger does not invent missing requirements or block independent work
 on their mapping. Production/default adoption, off-host custody, email delivery,
 public activation, publication and three-participant recruitment remain deferred.
+
+
+2026-10-20 maintenance update: [v8 prerequisites](acceptance/integration/maintenance-prerequisites-v8-20261020.md) and [capacity protocol](MAINTENANCE_CAPACITY_PROTOCOL.md) add local control engineering and protocol preparation. Item 4 remains blocked; the proposal is nontransferable and cannot execute. Epoch mutations require a live reviewed maintenance fence; no production adapter or maintenance window is approved. Historical results remain unchanged.

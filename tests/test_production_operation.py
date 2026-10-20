@@ -21,6 +21,8 @@ def private(path, value):
 
 @pytest.fixture
 def packet(tmp_path, monkeypatch):
+    for action in ('execute', 'audit', 'finalize'):
+        monkeypatch.setattr(op, action, getattr(op, action).__wrapped__)
     monkeypatch.setattr('deploy.production_maintenance.bound_privileged', lambda *a, **k: 'verified_absent')
     original_output = subprocess.check_output
     revision = original_output(['git','rev-parse','HEAD'],text=True).strip()

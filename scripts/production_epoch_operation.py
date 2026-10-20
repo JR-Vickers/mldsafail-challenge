@@ -12,13 +12,14 @@ import signal
 import subprocess
 import time
 
+from deploy.maintenance_fence import operation_phase
 from deploy.production_preparation import SOURCE, IMAGES, FINGERPRINT, read_manifest
 from deploy.production_preflight import read_private_env, check
 from deploy.production_receipts import digest, validate_receipt, render, verify_seal, read_receipt
 from deploy.recovery_journal import atomic_json, safe_path, sync_directory
 
 HELPERS = tuple('src/mldsafail/benchmark_v050/' + n + '.py' for n in ('cli', 'evidence', 'execution'))
-OPERATOR_FILES = ('deploy/production_inspection.py', 'deploy/production_preparation.py', 'deploy/production_preflight.py', 'deploy/production_receipts.py', 'deploy/recovery_journal.py', 'deploy/host_checks.py', 'deploy/validate_production.py', 'deploy/recovery_daemon.py', 'deploy/owned_client.py', 'deploy/owned_daemon.py', 'compose.production.yaml', 'deploy/production_maintenance.py', 'deploy/privileged_scheduling.py')
+OPERATOR_FILES = ('deploy/production_inspection.py', 'deploy/production_preparation.py', 'deploy/production_preflight.py', 'deploy/production_receipts.py', 'deploy/recovery_journal.py', 'deploy/host_checks.py', 'deploy/validate_production.py', 'deploy/recovery_daemon.py', 'deploy/owned_client.py', 'deploy/owned_daemon.py', 'compose.production.yaml', 'deploy/production_maintenance.py', 'deploy/privileged_scheduling.py', 'deploy/maintenance_fence.py')
 PURPOSE = 'production_epoch_only'
 
 
@@ -336,6 +337,7 @@ def stream(packet, audit=False):
             os.fsync(out.fileno()); os.fsync(err.fileno())
 
 
+@operation_phase('create')
 def execute(packet_path, authorization_path):
     os.umask(0o077)
     packet = read_packet(packet_path)
@@ -375,6 +377,7 @@ def execute(packet_path, authorization_path):
             atomic_json(operation / 'journal.json', journal)
 
 
+@operation_phase('audit')
 def audit(packet_path):
     os.umask(0o077)
     packet = read_packet(packet_path); operation = validate(packet, local_outputs=True)
@@ -407,6 +410,7 @@ def audit(packet_path):
             atomic_json(operation / 'journal.json', journal)
 
 
+@operation_phase('inspection')
 def finalize(packet_path, destination):
     """Create a new final candidate; full preflight must pass before readiness."""
     packet = read_packet(packet_path); operation = validate(packet, local_outputs=True)
