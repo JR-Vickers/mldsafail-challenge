@@ -74,3 +74,16 @@ manual reconciliation. Original settings and exact restoration cannot be certifi
 until scheduling and drain blockers close.
 
 Retained measurement inspection found a historical rehearsal-C controller service peak of 451.5 MiB and monitor peak of 32.4 MiB in `independent-c-load-diagnosis-20261018.json`. These are separate service-scope historical peaks, not simultaneous frozen worker/controller/service workload evidence. They do not close capacity. The release manifest binds the selected source, not measured RAM needs. Root cron and queued-command raw content are deliberately not emitted by the collector; private owner capture and classification remain prerequisites, not completed evidence.
+
+Independent follow-up reviewed committed operator `112e30f`, accepted it for
+blocked local preparation and reran 77 focused tests. Private receipts preserve
+both initial findings and follow-up disposition. The strict receipt validator
+also rejects normal scheduling symlinks: a future reviewed target-classification
+contract is needed before such evidence can pass; never remove live links to
+satisfy the check. This remains a blocker, not permission to weaken inspection.
+
+Validation: `make check` passed 1,262 tests (15 skipped, 12 existing warnings) and
+8 frozen contract tests; 77 focused synthetic tests, 51 local documentation links
+and `git diff --check` passed. Private logs, HANDOFF, proposal, evidence and retained
+file hashes are in the v4 directory. No maintenance/transfer approval is requested
+while these dependencies remain unresolved. No remote action or evaluation ran.
