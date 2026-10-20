@@ -55,9 +55,12 @@ production epoch tooling. Item 3 remains **partial pending item 4**: the actual
 audited epoch and final cohort do not exist. The next operation is independent review, maintenance preparation, then one separately
 authorized production epoch. The earlier private packet is preserved as a historical
 preparation candidate. [Current review](acceptance/integration/production-epoch-review-20261020.md)
-found execution-critical gaps; the corrected operator requires a new packet. Root
-scheduler visibility, verified delegation and scoped maintenance/transfer approvals
-remain unresolved. No epoch,
+found execution-critical gaps; the corrected operator requires a new packet.
+[Root scheduling evidence has since been collected and retrieved](acceptance/integration/scheduling-collection-review-20261020.md),
+with transfer and raw-section hashes verified. Scheduling-path and referenced-script
+classification, maintenance dispositions, a complete evidence-bound receipt,
+verified delegation and scoped maintenance/transfer approvals remain unresolved.
+Scheduling exclusion is not yet verified. No epoch,
 deployment, listener, OAuth login or notification occurred.
 
 Use the documented VPS `178.128.17.58` and deployment SSH identity. The pinned
@@ -379,6 +382,16 @@ Maintenance preparation update (2026-10-20): the [new proposal assessment](accep
 Maintenance inspection update (2026-10-20): see the [v2 inspection and blocked v3
 proposal](acceptance/integration/maintenance-inspection-v2-20261020.md). New v3
 execution requires a v2 evidence-bound scheduling review; historical approvals
-are unchanged. Owner-console evidence, deployed fence compatibility, compatible
-capacity and inspected delegation remain required. No maintenance, transfer or
-epoch execution is authorized by preparation.
+are unchanged. The owner-console collection and private retrieval are complete;
+the [partial scheduling review](acceptance/integration/scheduling-collection-review-20261020.md)
+records 353 path entries, verified raw-section hashes and 310 regular-file hashes
+rechecked without drift. Root and application-account crontabs are absent; the
+inspected at service, command and spool locations are absent. Host-check and
+database-backup timers are enabled and active; their settings were preserved.
+All-path/reference classification, maintenance dispositions and a complete reviewed
+receipt remain pending. The pasted collector has one extra trailing newline, so
+a subsequent exact-source collection must bind the reviewed external script paths
+before satisfying the current execution validator. Deployed fence compatibility,
+compatible capacity and inspected delegation also remain required. Scheduling
+exclusion remains unverified. No maintenance, operation-bundle transfer or epoch
+execution is authorized by preparation.
