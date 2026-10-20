@@ -64,3 +64,13 @@ The private packet binds retained v7 evidence, new inspection, proposed argv,
 review limitations and validation artifacts. It preserves 24-hour preparation and
 five-minute execution freshness. Keep web/database/proxy running, existing timers
 and original settings intact. No window or runnable maintenance sequence is approved.
+
+Validation of committed local engineering: 30 maintenance tests passed with real
+loopback PostgreSQL 14 and synthetic jobs, including the retained source paths.
+Standard-umask `make check` passed 1,314 tests with 15 opt-in skips and 12 existing
+warnings; the additional eight frozen contract tests passed. Independent review
+required fixes for a pre-launch loss race, unbounded initial cleanup and missing
+integration tests; those fixes were committed and re-reviewed with no remaining
+blocking findings for a **blocked local engineering packet**. This is not a VPS
+runtime certification. The private manifest binds the actual operator revision,
+reviewed code identities, inspection, retained evidence, validation and limitations.
