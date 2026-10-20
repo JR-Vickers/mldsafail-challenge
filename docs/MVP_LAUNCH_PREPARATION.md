@@ -48,6 +48,15 @@ The [epoch procedure](PRODUCTION_EPOCH_PROCEDURE.md) is a draft; no production
 wrapper, epoch, deployment or activation was performed. Resolve the exact blocker
 under separate authority; do not substitute or load images during preparation.
 
+## Session 3 image-resolution follow-up — 2026-10-20
+
+The owner-authorized [image loading receipt](acceptance/integration/candidate-image-load-20261020.md)
+closes the candidate web/coordinator resolution blocker in the existing rootless
+daemon; services were unchanged. The owner accepted the missing original worker
+build-commit limitation for this preview and confirmed the OAuth homepage/callback.
+Historical evidence is not relabeled. Secret/storage checks, production tooling,
+audited epoch/final cohort binding and later live gates remain open.
+
 ## Fresh-agent starting point
 
 Owner direction in the current session: prepare the **0.5.0 research preview**;

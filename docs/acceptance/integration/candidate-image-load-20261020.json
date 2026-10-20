@@ -1,0 +1,15 @@
+{
+  "schema": "mldsafail.candidate-image-load.v1",
+  "date": "2026-10-20",
+  "images": [
+    "sha256:31383f86703dcc8b4ba4c36acd8933ed5bf306ee98fa129e50d4625dd4c12a4b",
+    "sha256:b3f27a3b1b3d25d808f21ac56f2653dc5bd29f77dd9903acfd84969080c0d0a4"
+  ],
+  "verified": true,
+  "container_state_unchanged": true,
+  "epoch_created": false,
+  "deployment_activated": false,
+  "worker_original_build_commit_limitation_owner_accepted": true,
+  "oauth_urls_owner_confirmed": true,
+  "live_oauth_verified": false
+}
