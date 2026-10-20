@@ -228,3 +228,47 @@ def test_helper_inspection_output_and_deadline():
         helper.command(['print("x" * 100000)'])
     with pytest.raises(RuntimeError, match='inspection_timeout'):
         helper.command(['import time; time.sleep(10)'])
+
+
+def test_runner_monitors_between_launch_and_exit_and_never_retries(tmp_path):
+    import hashlib
+    import time
+    from deploy.capacity_investigation import Runner
+    packet=dict(schema='mldsafail.capacity-approval-packet.v1',benchmark_version='0.5.0',state='execution_ready',
+        execution_authority=True,blockers=[],configuration_sha256='b'*64,operation_id='a'*32,host={'test':True},provider_size='synthetic',
+        prepared_at=time.time(),execution_window={'start':time.time()-1,'end':time.time()+9000},commands=[
+            dict(phase='create_and_reference',timeout=1),dict(phase='audit',timeout=1)])
+    authorization=dict(purpose='capacity_investigation_only',operation_id=packet['operation_id'],time=time.time(),
+        authorized_by='owner',packet_sha256=hashlib.sha256(json.dumps(packet,sort_keys=True).encode()).hexdigest())
+    events=[]
+    class Monitor:
+        operation_id=packet['operation_id']
+        def start(self):events.append('start')
+        def transition(self,name):events.append(name)
+        def guard(self):events.append('guard');return True
+        def finish(self):events.append('finish')
+        def abort(self):events.append('abort')
+    class Client:
+        polls=0
+        def poll(self):self.polls+=1;return None if self.polls<3 else 0
+    launched=[]
+    def launch(command):launched.append(command['phase']);return Client()
+    runner=Runner(tmp_path,packet,launch,lambda:True,lambda:True,lambda:True,monitor=Monitor())
+    runner.run(authorization)
+    assert launched==['create_and_reference','audit']
+    assert events.count('guard')>=8
+    assert events[-1]=='finish'
+    assert json.loads((tmp_path/'attempt.json').read_text())['capture_complete'] is True
+    with pytest.raises(FileExistsError):runner.run(authorization)
+
+
+def test_runner_proposal_and_expired_window_leave_no_attempt(tmp_path):
+    import hashlib
+    from deploy.capacity_investigation import admission
+    packet=dict(schema='mldsafail.capacity-approval-packet.v1',benchmark_version='0.5.0',state='execution_ready',
+        execution_authority=True,blockers=[],configuration_sha256='b'*64,operation_id='a'*32,host={'test':True},provider_size='synthetic',
+        prepared_at=15,execution_window={'start':10,'end':20})
+    authorization=dict(purpose='capacity_investigation_only',operation_id='a'*32,time=15,authorized_by='owner',
+        packet_sha256=hashlib.sha256(json.dumps(packet,sort_keys=True).encode()).hexdigest())
+    with pytest.raises(ValueError,match='window'):admission(packet,authorization,now=15)
+    assert not list(tmp_path.iterdir())

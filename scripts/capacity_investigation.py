@@ -26,7 +26,8 @@ def main():
         return
     from deploy.investigation_runtime import NativeInvestigation
     packet=read_manifest(args.packet)
-    runtime=NativeInvestigation(args.root,packet,read_manifest(args.configuration))
+    configuration=read_manifest(args.configuration,expected_sha256=packet['configuration_sha256'])
+    runtime=NativeInvestigation(args.root,packet,configuration,configuration_sha256=packet['configuration_sha256'])
     if args.action=='execute':
         runtime.run(read_manifest(args.authorization))
     else:

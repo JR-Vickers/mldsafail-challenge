@@ -37,11 +37,14 @@ runpy.run_path('/operation-tools/investigation_docker.py', run_name='__main__')
 def admission(packet, authorization, *, now=None):
     """Investigation can never accept maintenance or production epoch authority."""
     now = time.time() if now is None else now
-    if (packet.get('state') != 'execution_ready' or packet.get('execution_authority') is not True
+    if (packet.get('schema') != 'mldsafail.capacity-approval-packet.v1' or packet.get('benchmark_version') != '0.5.0'
+            or not re.fullmatch('[a-f0-9]{64}',str(packet.get('configuration_sha256','')))
+            or packet.get('state') != 'execution_ready' or packet.get('execution_authority') is not True
             or packet.get('blockers') or authorization.get('purpose') != 'capacity_investigation_only'
             or authorization.get('operation_id') != packet.get('operation_id')
             or not packet.get('host') or not packet.get('provider_size') or not packet.get('execution_window')
-            or not 0 <= now - authorization.get('time', 0) < 300):
+            or not 0 <= now - authorization.get('time', 0) < 300
+            or not 0 <= now - packet.get('prepared_at',0) < 86400):
         raise ValueError('capacity_investigation_not_authorized')
     window=packet['execution_window']
     if (not isinstance(window,dict) or set(window)!={'start','end'}

@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import time
 import uuid
 
 from deploy.production_preparation import read_manifest, IMAGES
@@ -60,9 +61,11 @@ def build(previous, destination):
     packet = dict(schema='mldsafail.capacity-approval-packet.v1', state='maintenance_proposal',
                   purpose='capacity_investigation_preparation', execution_authority=False,
                   scheduling_exclusion_verified=False, transferable=False,
-                  source=protocol['source'], operator_revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
-                  operation_id=operation, commands=commands, command_state='blocked_review_material',
-                  host=None, provider_size=None, execution_window=None,
+                  prepared_at=time.time(),source=protocol['source'], operator_revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+                  operation_id=operation, operation='/opt/mldsafail/'+generation, epoch='/srv/'+generation+'/epoch',
+                  benchmark_version='0.5.0',helper_hashes=protocol.get('helper_hashes',{}),
+                  commands=commands, command_state='blocked_review_material',
+                  host=None, provider_size=None, execution_window=None,configuration_sha256=None,
                   controller=protocol['controller'], worker=protocol['worker'],
                   ceilings=protocol['ceilings'], lifetime=8000, capacity='unresolved',
                   preparation_freshness_seconds=86400, execution_freshness_seconds=300,

@@ -1,5 +1,8 @@
 """Native host investigation adapter. Import/construction never launches workload."""
 import json
+import copy
+import hashlib
+import re
 import os
 from pathlib import Path
 import platform
@@ -114,9 +117,10 @@ class LoggedClient:
 
 
 class NativeInvestigation:
-    def __init__(self,root,packet,configuration):
+    def __init__(self,root,packet,configuration,*,configuration_sha256=None):
         self.root=safe_path(Path(root).absolute())
-        self.packet,self.configuration=packet,configuration
+        self.packet,self.configuration=copy.deepcopy(packet),copy.deepcopy(configuration)
+        self.configuration_digest=configuration_sha256 or hashlib.sha256(json.dumps(configuration,sort_keys=True).encode()).hexdigest()
         self.controllers,self.clients=[],[]
         self.cleanup_mode=False
         self.births={}
@@ -125,6 +129,12 @@ class NativeInvestigation:
         self.command_helper=object.__new__(OwnedHelper)
         self.command_helper.docker=list(configuration['docker'])
         self.command_helper.runner=None
+
+    def validate_configuration(self):
+        expected=self.packet.get('configuration_sha256')
+        if not isinstance(expected,str) or not re.fullmatch('[a-f0-9]{64}',expected) or self.configuration_digest!=expected:
+            raise ValueError('investigation_configuration_not_bound')
+        return True
 
     def command(self,args):
         return self.command_helper.command(args)
@@ -327,6 +337,7 @@ class NativeInvestigation:
         return True
 
     def cleanup(self):
+        self.validate_configuration()
         self.cleanup_mode=True
         self.controllers=read_manifest(self.root/'controllers.json')
         self.births=read_manifest(self.root/'container-births.json')
@@ -342,6 +353,7 @@ class NativeInvestigation:
         return not running and all(c.process.poll() is not None for c in self.clients)
 
     def run(self,authorization):
+        self.validate_configuration()
         admission(self.packet,authorization)
         self.host_gate()
         scopes=self.configuration['scopes']

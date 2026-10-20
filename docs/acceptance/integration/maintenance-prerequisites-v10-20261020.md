@@ -114,3 +114,19 @@ different approval purposes. Preparation freshness stays 24 hours; execution
 inspection freshness stays five minutes. Keep zero-pending semantics, current
 timers, web/database/proxy, supplied secrets and accepted provenance. 0.5.0 stays
 the preview, 0.6.0 ignored, C diagnostics abandoned and backups deferred.
+
+The reviewed packet now binds exact configuration bytes before parsing for both
+execution and cleanup. Changing the Docker endpoint, operation/control scopes,
+retained services, runtime versions or sample identities invalidates that binding.
+The fence also prunes completed verification-thread objects while preserving
+unresolved readers; an 8,000-second window no longer accumulates dead Thread
+objects. Release snapshots that registry under its lock. Diagnostic guard bytes
+and zero-pending lock semantics remain unchanged.
+
+Independent review found no remaining blocking local correctness defect within
+its reviewed scope and independently passed 66 primitive tests. A broader focused
+run passed 178 tests with disposable UTF-8 loopback PostgreSQL, including actual
+private-pipe holder/verifier SQL transport and diagnostic-guard checks. Both local
+PostgreSQL trials stopped and removed their disposable clusters. These results
+certify local checks only; full native image/delegation/restoration acceptance and
+an executable capacity package remain unfinished.

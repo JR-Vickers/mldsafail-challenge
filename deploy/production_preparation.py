@@ -18,7 +18,7 @@ IMAGES = dict(zip(
 FINGERPRINT = 'b6f92231843fcb90695669108f0cc02d747ae0614eb9b3d25cddae602e092eee'
 
 
-def read_manifest(path):
+def read_manifest(path, *, expected_sha256=None):
     path = safe_path(path)
     if (not path.is_file() or not stat.S_ISREG(path.stat().st_mode) or path.parent.stat().st_uid != os.getuid()
             or path.stat().st_uid != os.getuid() or path.stat().st_mode & 0o077
@@ -31,7 +31,12 @@ def read_manifest(path):
                 raise ValueError('duplicate_private_record_field')
             result[key] = value
         return result
-    return json.loads(path.read_text(), object_pairs_hook=unique)
+    data=path.read_bytes()
+    if expected_sha256 is not None:
+        import hashlib
+        if hashlib.sha256(data).hexdigest()!=expected_sha256:
+            raise ValueError('private_manifest_digest_mismatch')
+    return json.loads(data, object_pairs_hook=unique)
 
 
 def check_manifest(environment, manifest, *, preparation=False):

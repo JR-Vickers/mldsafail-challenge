@@ -107,3 +107,23 @@ def test_capacity_abort_does_not_block_emergency_cleanup(tmp_path):
     runtime.command=command
     assert runtime.stop()
     assert ['kill','id'] in calls
+
+
+def test_execution_and_cleanup_configuration_are_hash_bound(tmp_path):
+    import hashlib
+    from deploy.production_preparation import read_manifest
+    from deploy.recovery_journal import atomic_json
+    configuration={'docker':['docker'],'retained_services':['protected-service']}
+    path=tmp_path/'configuration.json'
+    atomic_json(path,configuration)
+    expected=hashlib.sha256(path.read_bytes()).hexdigest()
+    packet={'configuration_sha256':expected}
+    value=read_manifest(path,expected_sha256=expected)
+    runtime=NativeInvestigation(tmp_path,packet,value,configuration_sha256=expected)
+    assert runtime.validate_configuration()
+    atomic_json(path,dict(configuration,retained_services=[]))
+    with pytest.raises(ValueError,match='digest'):
+        read_manifest(path,expected_sha256=expected)
+    changed=NativeInvestigation(tmp_path,packet,dict(configuration,retained_services=[]))
+    with pytest.raises(ValueError,match='configuration_not_bound'):
+        changed.cleanup()
