@@ -52,9 +52,12 @@ records resolved candidate images, the accepted original-worker provenance limit
 and confirmed OAuth URLs. The [current preparation report](acceptance/integration/production-preparation-20261020.md)
 records passing source-bound configuration preparation and tested separate
 production epoch tooling. Item 3 remains **partial pending item 4**: the actual
-audited epoch and final cohort do not exist. The private packet is ready for owner
-review; independent review and execution authorization remain absent. Scheduling
-fencing and worker-cgroup delegation require later scoped authority. No epoch,
+audited epoch and final cohort do not exist. The next operation is independent review, maintenance preparation, then one separately
+authorized production epoch. The earlier private packet is preserved as a historical
+preparation candidate. [Current review](acceptance/integration/production-epoch-review-20261020.md)
+found execution-critical gaps; the corrected operator requires a new packet. Root
+scheduler visibility, verified delegation and scoped maintenance/transfer approvals
+remain unresolved. No epoch,
 deployment, listener, OAuth login or notification occurred.
 
 Use the documented VPS `178.128.17.58` and deployment SSH identity. The pinned

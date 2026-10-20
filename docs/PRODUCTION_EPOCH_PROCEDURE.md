@@ -6,7 +6,43 @@ separate [operation entry point](../scripts/production_epoch_operation.py) provi
 `prepare`, `execute`, `audit` and `finalize`. The rehearsal-only entry point and its
 `disposable_rehearsal_only` guard remain unchanged.
 
-## Review packet and preparation
+## Current review disposition
+
+The [independent review follow-up](acceptance/integration/production-epoch-review-20261020.md)
+records why execution is blocked. The v2 packet below is preserved historical
+preparation evidence; it does not satisfy the corrected wrapper. Freeze a new
+version only after maintenance preparation and transfer receive their separate
+owner approvals. Never edit or reuse the old approval for new bytes.
+
+A new packet must also bind `staging_sha256`, a private `maintenance` record and
+`maintenance_sha256`, `worker_cgroup_path`, `cgroup_ancestor_limits` and
+`scheduler_inventory`. The maintenance record retains `original_settings`, exact
+`restoration_commands`, `scheduling_exclusion_verified: true` and
+`restore_after_failure: only_after_verified_operation_resources_stopped`.
+False or incomplete verification must remain blocked, never be filled in as an
+anticipated result. Inspect system and user units, timers, cron files and root
+crontabs, queue/running evaluations, alternate coordinators and restart owners.
+Uninspectable scheduling owners block maintenance design and execution approval.
+Bind reviewed stable command output hashes for `SCHEDULER_COMMANDS`; permission
+failures do not establish absence. Disable all identified evaluation scheduling
+paths during the approved window and retain exact restoration commands.
+
+`worker_cgroup` is Docker's systemd slice identifier. `worker_cgroup_path` is its
+actual absolute delegated sysfs directory, obtained from the user manager's
+`ControlGroup` property; the two strings are not interchangeable. Require Docker
+systemd/cgroup v2, the slice beneath user@1000.service, UID ownership and writable
+control files, cpu/memory/pids controllers available and enabled, and reviewed
+limits at every ancestor. Shared capacity must accommodate the frozen 2 GiB worker
+and 512 MiB controller (320 aggregate PIDs); bind actual limits and inspect idle
+host capacity separately. No evaluator probe is authorized for preparation.
+
+SIGTERM is handled as a terminal interruption. Cleanup stops and verifies the
+controller before remaining labelled resources, reinspects quiescence and writes
+`termination.json`, including failures. A failed operation must not have scheduling
+restored until `verified_stopped` is true and fresh postflight confirms no owned
+resources remain running. Logs and terminal receipts also survive spawn failures.
+
+## Historical v2 review packet and preparation
 
 The versioned owner-only packet directory is
 `$HOME/.config/mldsafail-production/preparation-20261020-v2`. Its `packet.json`,

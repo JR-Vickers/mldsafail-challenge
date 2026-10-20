@@ -54,8 +54,10 @@ def packet(tmp_path, monkeypatch):
     operation = tmp_path/'operation'
     p = dict(operator_revision=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),schema='mldsafail.production-operation.v1',purpose=op.PURPOSE,source=SOURCE,helper_hashes=op.source_hashes(),operator_hashes={p:digest(p) for p in op.OPERATOR_FILES},wrapper_sha256=digest(op.__file__),runbook_sha256=digest('docs/PRODUCTION_EPOCH_PROCEDURE.md'),benchmark_version='0.5.0',
         host={'address':'178.128.17.58','account':'mldsafail','uid':1000,'socket':'/run/user/1000/docker.sock','host_key':'SHA256:OtjIfXCrqewb9FTJ8jpU7Rq7aZL4P8P7U0dKZ8DoB5w'},
-        controller=images['COORDINATOR_IMAGE'],worker=images['WORKER_IMAGE'],candidate=paths['candidate'],candidate_sha256=digest(paths['candidate']),staging=paths['staging'],receipt=str(receipt_path),receipt_sha256=digest(receipt_path),manifest=str(manifest_path),manifest_sha256=digest(manifest_path),
+        controller=images['COORDINATOR_IMAGE'],worker=images['WORKER_IMAGE'],staging_sha256=digest(paths['staging']),worker_cgroup_path='/sys/fs/cgroup/user.slice/reviewed.slice',candidate=paths['candidate'],candidate_sha256=digest(paths['candidate']),staging=paths['staging'],receipt=str(receipt_path),receipt_sha256=digest(receipt_path),manifest=str(manifest_path),manifest_sha256=digest(manifest_path),
         limits=dict(memory='512m',cpus='1',pids='256',create_timeout=5400,audit_timeout=600,inspection_timeout=20,process_timeout=10),operation_id='a'*32,worker_cgroup='reviewed.slice',operation=str(operation),final_destination=str(tmp_path/'final'),epoch=env['PRODUCTION_EVALUATOR_ROOT']+'/epoch',lock=str(tmp_path/'production-epoch.lock'),attempt=str(tmp_path/'production-epoch.attempt.json'),remote_bundle=str(tmp_path),hostname='fixture',daemon_id='daemon',coordinator_ids=['coordinator'],allowed_running_services=['web','db'])
+    maintenance = private(tmp_path/'maintenance.json', dict(scheduling_exclusion_verified=True, restoration_commands=['fixture'], original_settings=['fixture'], restore_after_failure='only_after_verified_operation_resources_stopped'))
+    p.update(maintenance=str(maintenance), maintenance_sha256=digest(maintenance))
     path = private(tmp_path/'packet.json',p)
     return path, p, env, receipt
 
@@ -198,7 +200,7 @@ def test_audit_mount_is_readonly_and_has_no_socket(packet):
     assert 'audit_epoch' in command[-1] and 'seal(' not in command[-1]
 
 
-@pytest.mark.parametrize('running,restart', [(True,'no'),(False,'always'),(False,'unless-stopped')])
+@pytest.mark.parametrize('running,restart', [(True,'no'),(False,'always'),(False,'unless-stopped'),(False,'on-failure')])
 def test_live_gate_rejects_unfenced_existing_coordinator(packet, monkeypatch, running, restart):
     _,p,_,_=packet
     monkeypatch.setattr(op.os,'getuid',lambda:1000)
@@ -211,7 +213,7 @@ def test_live_gate_rejects_unfenced_existing_coordinator(packet, monkeypatch, ru
     monkeypatch.setattr(op,'read_manifest',lambda _:dict(time=time.time()))
     monkeypatch.setattr('deploy.production_receipts.validate_receipt',lambda *a,**k:[])
     def docker(p,args,**kwargs):
-        if args[0]=='info':value={'ID':'daemon','SecurityOptions':['rootless']}
+        if args[0]=='info':value={'ID':'daemon','SecurityOptions':['rootless'],'CgroupDriver':'systemd','CgroupVersion':'2'}
         elif args[0]=='image':value=[{'Id':args[-1],'Os':'linux','Architecture':'amd64'}]
         elif args[0]=='container':value=[{'State':{'Running':running},'HostConfig':{'RestartPolicy':{'Name':restart}}}]
         else:pytest.fail('Unfenced coordinator must be rejected before further work')
@@ -263,7 +265,7 @@ def test_relative_bundle_bindings_survive_relocation(packet,monkeypatch):
     r['retained_sha256']={Path(k).name:v for k,v in r['retained_sha256'].items()}
     private(Path(p['receipt']),r)
     p['receipt_sha256']=digest(p['receipt'])
-    for key in ('candidate','manifest','receipt','staging'):p[key]=Path(p[key]).name
+    for key in ('candidate','manifest','receipt','staging','maintenance'):p[key]=Path(p[key]).name
     private(path,p)
     moved=path.parent/'bundle-copy';shutil.copytree(path.parent,moved,ignore=lambda root,names:['bundle-copy'])
     moved.chmod(0o700)
@@ -318,11 +320,12 @@ def test_preflight_cli_reports_only_future_epoch_for_valid_preparation(packet,mo
 
 def test_timeout_cleanup_skips_stopped_owned_resources(packet,monkeypatch):
     _,p,_,_=packet
+    Path(p['operation']).mkdir(mode=0o700)
     killed=[]
     def docker(p,args,**kwargs):
         if args[0]=='ps':value='stopped\nrunning\n'
         elif args[0]=='container':
-            value=json.dumps([{'Config':{'Labels':{'org.mldsafail.production-epoch':p['operation_id']}},'State':{'Running':args[-1]=='running'}}])
+            value=json.dumps([{'Config':{'Labels':{'org.mldsafail.production-epoch':p['operation_id']}},'State':{'Running':args[-1]=='running' and not killed}}])
         else:
             assert args==['kill','running'];killed.append('running');value=''
         return subprocess.CompletedProcess(args,0,stdout=value)
@@ -336,3 +339,81 @@ def test_final_destination_cannot_alias_scientific_evidence(packet):
     p['final_destination']=str(Path(p['epoch'])/'final-config')
     private(path,p)
     with pytest.raises(ValueError):op.prepare(path)
+
+
+@pytest.mark.parametrize('field', ['staging', 'maintenance'])
+def test_changed_transfer_binding_is_rejected(packet, field):
+    path,p,_,_=packet
+    Path(p[field]).write_text('{}')
+    with pytest.raises(ValueError):op.prepare(path)
+
+
+@pytest.mark.parametrize('path', ['/sys/fs/cgroup', '/sys/fs/cgroup/wrong.slice', '/tmp/reviewed.slice'])
+def test_cgroup_identifier_is_distinct_from_delegated_path(packet, path):
+    packet_path,p,_,_=packet
+    p['worker_cgroup_path']=path
+    private(packet_path,p)
+    with pytest.raises(ValueError):op.prepare(packet_path)
+
+
+def test_scheduler_inventory_cannot_accept_missing_root_visibility(monkeypatch):
+    expected=[]
+    import hashlib
+    for command in op.SCHEDULER_COMMANDS:
+        denied=command[0]=='sudo'
+        stderr='sudo: a password is required\n' if denied else ''
+        expected.append(dict(command=list(command),returncode=int(denied),sha256=hashlib.sha256(stderr.encode()).hexdigest()))
+    def run(command, **kwargs):
+        denied=command[0]=='sudo'
+        return subprocess.CompletedProcess(command,int(denied),stdout='',stderr='sudo: a password is required\n' if denied else '')
+    monkeypatch.setattr(op.subprocess,'run',run)
+    with pytest.raises(ValueError):op.scheduling_gate({'scheduler_inventory':expected})
+
+
+def test_scheduler_change_invalidates_bound_inventory(monkeypatch):
+    import hashlib
+    expected=[dict(command=list(c),returncode=0,sha256=hashlib.sha256(b'').hexdigest()) for c in op.SCHEDULER_COMMANDS]
+    monkeypatch.setattr(op.subprocess,'run',lambda c,**kw:subprocess.CompletedProcess(c,0,stdout='new-scheduler.service enabled',stderr=''))
+    with pytest.raises(ValueError):op.scheduling_gate({'scheduler_inventory':expected})
+
+
+def test_spawn_failure_retains_terminal_receipt(packet,monkeypatch):
+    _,p,_,_=packet
+    Path(p['operation']).mkdir(mode=0o700)
+    monkeypatch.setattr(op.subprocess,'Popen',lambda *a,**kw:(_ for _ in ()).throw(OSError('spawn')))
+    monkeypatch.setattr(op,'terminate_owned',lambda p:None)
+    with pytest.raises(OSError):op.stream(p)
+    assert json.loads((Path(p['operation'])/'create.exit.json').read_text())=={'returncode':None,'terminal':True}
+
+
+def test_cleanup_failure_is_durable(packet,monkeypatch):
+    _,p,_,_=packet
+    Path(p['operation']).mkdir(mode=0o700)
+    monkeypatch.setattr(op,'docker',lambda *a,**kw:(_ for _ in ()).throw(RuntimeError()))
+    with pytest.raises(RuntimeError):op.terminate_owned(p)
+    receipt=json.loads((Path(p['operation'])/'termination.json').read_text())
+    assert not receipt['verified_stopped'] and receipt['errors']==['RuntimeError']
+
+
+@pytest.mark.parametrize('issue', [None, 'mapping', 'owner', 'controllers', 'memory', 'cpu', 'pids'])
+def test_delegation_checks_effective_limits_and_mapping(monkeypatch, issue):
+    base=Path('/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/production.slice/production-epoch.slice')
+    content={'cgroup.controllers':'cpu memory pids','cgroup.subtree_control':'cpu memory pids','cpu.max':'max 100000','memory.max':'max','pids.max':'max'}
+    if issue=='controllers':content['cgroup.subtree_control']='cpu pids'
+    if issue=='memory':content['memory.max']='2147483648'
+    if issue=='cpu':content['cpu.max']='50000 100000'
+    if issue=='pids':content['pids.max']='256'
+    monkeypatch.setattr(Path,'resolve',lambda self,**kw:self)
+    monkeypatch.setattr(Path,'stat',lambda self:type('Stat',(),dict(st_uid=0 if issue=='owner' else 1000))())
+    monkeypatch.setattr(Path,'exists',lambda self:True)
+    monkeypatch.setattr(Path,'read_text',lambda self:content[self.name])
+    monkeypatch.setattr(op.os,'access',lambda *a:True)
+    def output(command,**kw):
+        if '--user' in command:return ('/wrong' if issue=='mapping' else str(base).removeprefix('/sys/fs/cgroup'))+'\n'
+        return '/user.slice/user-1000.slice/user@1000.service\n'
+    monkeypatch.setattr(op.subprocess,'check_output',output)
+    limits={str(p):{n:content[n] for n in ('cpu.max','memory.max','pids.max')} for p in (base,*base.parents) if p.is_relative_to('/sys/fs/cgroup')}
+    packet={'worker_cgroup_path':str(base),'worker_cgroup':'production-epoch.slice','host':{'uid':1000},'cgroup_ancestor_limits':limits}
+    if issue:
+        with pytest.raises(ValueError):op.delegation_gate(packet)
+    else:op.delegation_gate(packet)

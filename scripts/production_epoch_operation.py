@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import socket
+import signal
 import subprocess
 import time
 
@@ -17,7 +18,7 @@ from deploy.production_receipts import digest, validate_receipt, render, verify_
 from deploy.recovery_journal import atomic_json, safe_path, sync_directory
 
 HELPERS = tuple('src/mldsafail/benchmark_v050/' + n + '.py' for n in ('cli', 'evidence', 'execution'))
-OPERATOR_FILES = ('deploy/production_inspection.py', 'deploy/production_preparation.py', 'deploy/production_preflight.py', 'deploy/production_receipts.py', 'deploy/recovery_journal.py', 'deploy/host_checks.py')
+OPERATOR_FILES = ('deploy/production_inspection.py', 'deploy/production_preparation.py', 'deploy/production_preflight.py', 'deploy/production_receipts.py', 'deploy/recovery_journal.py', 'deploy/host_checks.py', 'deploy/validate_production.py', 'deploy/recovery_daemon.py', 'deploy/owned_client.py', 'deploy/owned_daemon.py', 'compose.production.yaml')
 PURPOSE = 'production_epoch_only'
 
 
@@ -44,7 +45,7 @@ def source_hashes():
 
 def read_packet(path):
     packet = read_manifest(path)
-    for key in ('candidate', 'staging', 'receipt', 'manifest'):
+    for key in ('candidate', 'staging', 'receipt', 'manifest', 'maintenance'):
         packet[key] = str(safe_path(Path(path).absolute().parent / packet[key]))
     return packet
 
@@ -65,6 +66,12 @@ def validate(packet, *, local_outputs=False):
     for role, key in (('controller', 'COORDINATOR_IMAGE'), ('worker', 'WORKER_IMAGE')):
         require(packet[role]['index'] == 'sha256:' + IMAGES[key])
         require(all(re.fullmatch('sha256:[a-f0-9]{64}', packet[role][k]) for k in ('index', 'platform_manifest', 'configuration')))
+    require(packet['maintenance_sha256'] == digest(packet['maintenance']))
+    maintenance = read_manifest(packet['maintenance'])
+    require(maintenance['scheduling_exclusion_verified'] is True)
+    require(maintenance['restoration_commands'] and maintenance['original_settings'])
+    require(maintenance['restore_after_failure'] == 'only_after_verified_operation_resources_stopped')
+    require(packet['staging_sha256'] == digest(packet['staging']))
     require(packet['candidate_sha256'] == digest(packet['candidate']))
     require(packet['receipt_sha256'] == digest(packet['receipt']))
     receipt = read_receipt(packet['receipt'])
@@ -74,7 +81,10 @@ def validate(packet, *, local_outputs=False):
     require(packet['manifest_sha256'] == digest(packet['manifest']))
     require(packet['limits'] == {'memory': '512m', 'cpus': '1', 'pids': '256', 'create_timeout': 5400, 'audit_timeout': 600, 'inspection_timeout': 20, 'process_timeout': 10})
     require(re.fullmatch('[a-f0-9]{32}', packet['operation_id']))
-    require(re.fullmatch('[A-Za-z0-9_.-]+', packet['worker_cgroup']))
+    require(re.fullmatch('[A-Za-z0-9_.:-]+', packet['worker_cgroup']))
+    cgroup = Path(packet['worker_cgroup_path'])
+    require(cgroup.is_absolute() and cgroup.is_relative_to('/sys/fs/cgroup') and '..' not in cgroup.parts)
+    require(cgroup != Path('/sys/fs/cgroup') and cgroup.name == packet['worker_cgroup'].split(':')[0])
     def output_path(value):
         path = Path(value)
         require(path.is_absolute() and '..' not in path.parts)
@@ -100,7 +110,7 @@ def prepare(packet_path):
     operation = validate(packet)
     if local_host(packet):
         require(not operation.exists() and not Path(packet['attempt']).exists())
-        require(not Path(packet['epoch']).parent.exists())
+        require(not Path(packet['epoch']).parent.exists() and not Path(packet['final_destination']).exists())
     env = read_private_env(packet['candidate'])
     from deploy.production_preparation import check_manifest
     errors = check(env, read_private_env(packet['staging']), preparation=True)
@@ -145,13 +155,14 @@ def live_gate(packet):
     require(info['ID'] == packet['daemon_id'])
     from deploy.production_receipts import validate_receipt
     require(not validate_receipt(read_private_env(packet['candidate']), packet['candidate'], packet['receipt'], preparation=True))
-    require(time.time() - read_manifest(read_receipt(packet['receipt'])['inspection'])['time'] < 300)
+    require(0 <= time.time() - read_manifest(read_receipt(packet['receipt'])['inspection'])['time'] < 300)
+    require(info['CgroupDriver'] == 'systemd' and str(info['CgroupVersion']) == '2')
     require(any('rootless' in x for x in info['SecurityOptions']))
     for role in ('controller', 'worker'):
         image = json.loads(docker(packet, ['image', 'inspect', packet[role]['index']]).stdout)[0]
         require(image['Id'] == packet[role]['index'] and image['Os'] == 'linux' and image['Architecture'] == 'amd64')
     containers = json.loads(docker(packet, ['container', 'inspect', *packet['coordinator_ids']]).stdout)
-    require(containers and all(not c['State']['Running'] and not c['HostConfig']['RestartPolicy']['Name'] in ('always', 'unless-stopped') for c in containers))
+    require(containers and all(not c['State']['Running'] and c['HostConfig']['RestartPolicy']['Name'] == 'no' for c in containers))
     running = docker(packet, ['ps', '-q']).stdout.split()
     if running:
         rows = json.loads(docker(packet, ['container', 'inspect', *running]).stdout)
@@ -165,7 +176,8 @@ def live_gate(packet):
     require(not any('mldsafail.benchmark_v050' in line or 'start-coordinator' in line for line in processes.splitlines()))
     from deploy.host_checks import evaluate
     require(not evaluate(True, {'host': True}, [], None, [], scope='service'))
-    require(Path('/sys/fs/cgroup', packet['worker_cgroup']).is_dir())
+    delegation_gate(packet)
+    scheduling_gate(packet)
     return {'daemon_id': info['ID'], 'coordinators': containers, 'processes': processes, 'time': time.time()}
 
 
@@ -192,14 +204,87 @@ def controller(packet, audit=False):
     return ['docker', *args, '--entrypoint', '/app/.venv/bin/python', packet['controller']['index'], '-c', code]
 
 
+def delegation_gate(packet):
+    """Bind Docker's parent identifier separately from its resolved cgroup v2 path."""
+    path = Path(packet['worker_cgroup_path'])
+    control = subprocess.check_output(['systemctl', '--user', 'show', packet['worker_cgroup'], '--property=ControlGroup', '--value'], text=True, timeout=10).strip()
+    require(control.startswith('/') and path == Path('/sys/fs/cgroup' + control))
+    user_control = subprocess.check_output(['systemctl', 'show', 'user@1000.service', '--property=ControlGroup', '--value'], text=True, timeout=10).strip()
+    require(user_control.startswith('/') and path.is_relative_to('/sys/fs/cgroup' + user_control))
+    require(path.resolve(strict=True) == path)
+    require(path.stat().st_uid == packet['host']['uid'])
+    required = {'cpu', 'memory', 'pids'}
+    require(required <= set((path / 'cgroup.controllers').read_text().split()))
+    require(required <= set((path / 'cgroup.subtree_control').read_text().split()))
+    for name in ('cgroup.procs', 'cgroup.subtree_control'):
+        require((path / name).stat().st_uid == packet['host']['uid'] and os.access(path / name, os.W_OK))
+    # Bind every ancestor's limits: an ancestor may silently reduce effective capacity.
+    actual = {}
+    for parent in (path, *path.parents):
+        if parent == Path('/sys/fs'):
+            break
+        actual[str(parent)] = {name: (parent / name).read_text().strip()
+                              for name in ('cpu.max', 'memory.max', 'pids.max') if (parent / name).exists()}
+    require(actual == packet['cgroup_ancestor_limits'])
+    for limits in actual.values():
+        for name, floor in (('memory.max', 2684354560), ('pids.max', 320)):
+            require(limits.get(name, 'max') == 'max' or int(limits[name]) >= floor)
+        quota = limits.get('cpu.max', 'max 100000').split()
+        require(quota[0] == 'max' or int(quota[0]) >= int(quota[1]))
+
+
+SCHEDULER_COMMANDS = (
+    ('systemctl', '--user', 'list-unit-files', '--no-pager', '--no-legend'),
+    ('systemctl', '--user', 'list-unit-files', '--type=timer', '--no-pager', '--no-legend'),
+    ('systemctl', 'list-unit-files', '--no-pager', '--no-legend'),
+    ('systemctl', 'list-unit-files', '--type=timer', '--no-pager', '--no-legend'),
+    ('crontab', '-l'), ('sudo', '-n', 'crontab', '-l'),
+)
+
+
+def scheduling_gate(packet):
+    # Reviewed inventories must account for system/root scheduling as well as the user manager.
+    require(len(packet['scheduler_inventory']) == len(SCHEDULER_COMMANDS))
+    for command, expected in zip(SCHEDULER_COMMANDS, packet['scheduler_inventory']):
+        result = subprocess.run(command, text=True, capture_output=True, timeout=10)
+        require(list(command) == expected['command'])
+        require(result.returncode == expected['returncode'])
+        require(hashlib.sha256((result.stdout + result.stderr).encode()).hexdigest() == expected['sha256'])
+        require(result.returncode == 0 or (command[0] in ('crontab', 'sudo') and
+                result.returncode == 1 and 'no crontab for' in result.stderr))
+
+
 def terminate_owned(packet):
-    """Only stop positively identified resources with this operation's unique label."""
-    ids = docker(packet, ['ps', '-aq', '--filter', 'label=org.mldsafail.production-epoch=' + packet['operation_id']]).stdout.split()
-    for identifier in ids:
-        row = json.loads(docker(packet, ['container', 'inspect', identifier]).stdout)[0]
-        require(row['Config']['Labels']['org.mldsafail.production-epoch'] == packet['operation_id'])
-        if row['State']['Running']:
-            docker(packet, ['kill', identifier])
+    """Stop the controller first, then prove the operation's resources are quiescent."""
+    record = {'stopped': [], 'remaining': [], 'errors': [], 'verified_stopped': False}
+    def owned():
+        ids = docker(packet, ['ps', '-aq', '--filter', 'label=org.mldsafail.production-epoch=' + packet['operation_id']]).stdout.split()
+        rows = []
+        for identifier in ids:
+            row = json.loads(docker(packet, ['container', 'inspect', identifier]).stdout)[0]
+            require(row['Config']['Labels']['org.mldsafail.production-epoch'] == packet['operation_id'])
+            rows.append((identifier, row))
+        return rows
+    try:
+        for attempt in range(3):
+            rows = owned()
+            rows.sort(key=lambda item: not item[1].get('Name', '').lstrip('/').startswith('production-epoch-'))
+            for identifier, row in rows:
+                if row['State']['Running']:
+                    docker(packet, ['kill', identifier])
+                    check = json.loads(docker(packet, ['container', 'inspect', identifier]).stdout)[0]
+                    require(not check['State']['Running'])
+                    record['stopped'].append(identifier)
+            record['remaining'] = [i for i, r in owned() if r['State']['Running']]
+            if not record['remaining']:
+                record['verified_stopped'] = True
+                break
+        require(record['verified_stopped'])
+    except BaseException as error:
+        record['errors'].append(type(error).__name__)
+        raise
+    finally:
+        atomic_json(Path(packet['operation']) / 'termination.json', record)
 
 
 def stream(packet, audit=False):
@@ -208,8 +293,9 @@ def stream(packet, audit=False):
     env = {**os.environ, 'DOCKER_HOST': 'unix://' + packet['host']['socket']}
     env.pop('DOCKER_CONTEXT', None)
     with (operation / (name + '.stdout')).open('xb') as out, (operation / (name + '.stderr')).open('xb') as err:
-        process = subprocess.Popen(controller(packet, audit), stdout=out, stderr=err, env=env)
+        process = None
         try:
+            process = subprocess.Popen(controller(packet, audit), stdout=out, stderr=err, env=env)
             result = process.wait(timeout=packet['limits'][name + '_timeout'])
             publish(operation / (name + '.exit.json'), {'returncode': result})
             if result:
@@ -218,14 +304,14 @@ def stream(packet, audit=False):
             try:
                 terminate_owned(packet)
             finally:
-                if process.poll() is None:
+                if process is not None and process.poll() is None:
                     process.terminate()
                     try:
                         process.wait(timeout=10)
                     except subprocess.TimeoutExpired:
                         process.kill()
                         process.wait(timeout=10)
-                atomic_json(operation / (name + '.exit.json'), {'returncode': process.returncode, 'terminal': True})
+                atomic_json(operation / (name + '.exit.json'), {'returncode': process.returncode if process is not None else None, 'terminal': True})
             raise
         finally:
             out.flush(); err.flush()
@@ -240,7 +326,7 @@ def execute(packet_path, authorization_path):
     authorization = read_manifest(authorization_path)
     review = read_manifest(authorization['review_file'])
     require(authorization == {'purpose': PURPOSE, 'packet_sha256': digest(packet_path), 'authorized_by': 'owner', 'review_file': authorization['review_file'], 'review_sha256': digest(authorization['review_file'])})
-    require(review['packet_sha256'] == digest(packet_path) and review['decision'] == 'approved' and review['reviewer'] != 'implementation_agent')
+    require(review['packet_sha256'] == digest(packet_path) and review['decision'] == 'approved' and isinstance(review['reviewer'], str) and bool(review['reviewer'].strip()) and review['reviewer'] != 'implementation_agent')
     with locked(packet):
         require(not operation.exists() and not Path(packet['attempt']).exists() and not Path(packet['epoch']).parent.exists())
         prepare(packet_path)
@@ -346,6 +432,9 @@ def main():
     parser.add_argument('--authorization', type=Path)
     parser.add_argument('--destination', type=Path)
     args = parser.parse_args()
+    def interrupted(signum, frame):
+        raise KeyboardInterrupt('operation_interrupted')
+    signal.signal(signal.SIGTERM, interrupted)
     try:
         if args.action == 'prepare':
             print(json.dumps(prepare(args.packet), sort_keys=True))

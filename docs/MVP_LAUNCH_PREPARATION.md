@@ -125,7 +125,7 @@ Historical scoped passes do not complete outstanding production checks.
 | 1. Verify retained release artifacts | Recheck candidate `1c9ca9e`, matching rollback `26c5f2f`, frozen 0.5.0 worker, database and proxy on the VPS; record the owner provenance decision. | [Remote archive checks passed](acceptance/integration/mvp-artifact-verification-20261019.md); [candidate images loaded and worker-provenance limitation accepted](acceptance/integration/candidate-image-load-20261020.md). Original build commit remains unknown; no runtime rollback acceptance is invented. |
 | 2. Finish participant packaging | Resolve wheel/checksum conflict; prepare clean source excluding diagnostic/operator tooling; align starter and quickstart. | Complete locally: [release manifest and review](acceptance/integration/participant-release-20261019.md), clean source/bundle and fresh install/starter checks. Nothing published. |
 | 3. Complete production configuration | Validate existing supplied OAuth inputs and private draft secrets, isolated database/volumes/evaluator paths, exact images, quotas and supported version. | [Preparation passed](acceptance/integration/production-preparation-20261020.md) with only the future audited epoch unresolved. Item 3 remains partial pending item 4; full mode refuses the preparation manifest. Supplied secrets are retained. |
-| 4. Establish production benchmark | Prepare and, under separate authority, create one fresh 0.5.0 production epoch, independently audit/seal it and bind reference costs/cohort. | Separate wrapper, synthetic verification and private review packet prepared; independent review/owner execution authority and scheduling/cgroup gates pending. Completion still requires actual viability and independent audit on the selected host/worker; no retries or staging/C epoch reuse. |
+| 4. Establish production benchmark | Prepare and, under separate authority, create one fresh 0.5.0 production epoch, independently audit/seal it and bind reference costs/cohort. | Independent review identified execution-critical gaps; operator corrections are under verification. A new final packet, root scheduler visibility, maintenance/transfer approval and separate epoch authority remain pending. Completion still requires actual viability and independent audit on the selected host/worker; no retries or staging/C epoch reuse. |
 | 5. Validate HTTPS and authentication | Establish trusted TLS and renewal/reload; verify real GitHub callback/login, secure sessions, CSRF and token creation/revocation/expiry. | Actual selected-deployment receipts with secrets redacted; synthetic rehearsal authentication is insufficient. |
 | 6. Complete participant journey | Clean install, starter/public validation, immutable tiny solver submission with idempotency key, status, audited result, correct leaderboard cohort and cancellation. | One end-to-end receipt on the final package/application/worker/production cohort. No new load campaign or full C rehearsal. |
 | 7. Finish minimum operations | Choose verified basic availability monitoring or explicit manual responsibility/cadence; prepare incident contact, queue pause, exact rollback/forward steps and refresh resources/isolation checks. | Chosen monitoring/procedure verified, image-bound recovery instructions and current resource receipt; backup deferral/data-loss risk recorded. HTTP readiness does not prove lease health. |
@@ -173,8 +173,10 @@ unchanged. The old launch ledger and dated packets retain their original stricte
 scope; before executing an MVP launch, bind an explicitly approved narrower packet
 instead of falsifying those gates as passed.
 
-The immediate next work packages are sessions 1 and 2 above. The local inventory
-and recommendation are complete. Inspect already supplied private setup before
+The immediate next work is the [production epoch review and maintenance
+preparation](acceptance/integration/production-epoch-review-20261020.md), followed by
+one separately authorized creation, independent audit and final configuration.
+Sessions 1 and 2 already have their recorded local dispositions above. Inspect already supplied private setup before
 asking for new inputs. The inactive partial diagnostic upload is a separate
 maintenance item requiring current ownership/inactivity checks, not permission
 to resume diagnostics or an automatic launch blocker.
