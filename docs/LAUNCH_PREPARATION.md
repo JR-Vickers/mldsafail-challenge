@@ -226,3 +226,11 @@ Owner adoption/default, production/public activation, publication, recruitment,
 external storage/password custody and webhook inputs remain explicit decisions
 or missing inputs. Their absence does not block candidate engineering, review,
 documentation, protected artifact retention or isolated rehearsals.
+
+
+Maintenance inspection update (2026-10-20): see the [v2 inspection and blocked v3
+proposal](acceptance/integration/maintenance-inspection-v2-20261020.md). New v3
+execution requires a v2 evidence-bound scheduling review; historical approvals
+are unchanged. Owner-console evidence, deployed fence compatibility, compatible
+capacity and inspected delegation remain required. No maintenance, transfer or
+epoch execution is authorized by preparation.

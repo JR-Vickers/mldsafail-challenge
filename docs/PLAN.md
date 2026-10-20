@@ -374,3 +374,11 @@ native work pending an explicitly revised bounded continuation; no ledger reset,
 fixture renewal, third generation or full rehearsal is admitted.
 
 Maintenance preparation update (2026-10-20): the [new proposal assessment](acceptance/integration/maintenance-proposal-20261020.md) separates v2 proposal and execution states. Local collector/source review is complete; privileged classification, safe drain, compatible capacity evidence, delegation and concrete restoration remain blockers. No maintenance/transfer approval is requested yet.
+
+
+Maintenance inspection update (2026-10-20): see the [v2 inspection and blocked v3
+proposal](acceptance/integration/maintenance-inspection-v2-20261020.md). New v3
+execution requires a v2 evidence-bound scheduling review; historical approvals
+are unchanged. Owner-console evidence, deployed fence compatibility, compatible
+capacity and inspected delegation remain required. No maintenance, transfer or
+epoch execution is authorized by preparation.

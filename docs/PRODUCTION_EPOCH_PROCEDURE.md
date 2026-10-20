@@ -173,3 +173,11 @@ OAuth login, notifications or publication. Item 3 remains partial pending item 4
 See the [maintenance proposal assessment](acceptance/integration/maintenance-proposal-20261020.md). New packets use `mldsafail.production-operation.v2` and explicit `state`: `maintenance_proposal` requires false scheduling verification; `execution_ready` requires true verification and a SHA256-bound `privileged_receipt` path and `privileged_receipt_sha256`. Receipt provenance is `owner_root_console`, bound to hostname, collector source hash and collection time. Root inspection uses no sudo. Live unprivileged inventories remain required. Preparation receipts expire after 24 hours and execution receipts after five minutes. Old packets are not upgraded or approved by this change. Current safe-drain and evidence blockers prevent command approval.
 
 Execution-ready packets also bind `capacity_receipt` and `capacity_receipt_sha256`. The private assessment must bind host, frozen source, a relative retained measurement path and SHA256, compatible simultaneous observed usage, retained services, headroom, separate physical/available RAM and swap, configured limits and ancestor memory limits. Missing, negative, malformed or unsupported evidence blocks execution; configured maxima alone never suffice.
+
+
+Maintenance inspection update (2026-10-20): see the [v2 inspection and blocked v3
+proposal](acceptance/integration/maintenance-inspection-v2-20261020.md). New v3
+execution requires a v2 evidence-bound scheduling review; historical approvals
+are unchanged. Owner-console evidence, deployed fence compatibility, compatible
+capacity and inspected delegation remain required. No maintenance, transfer or
+epoch execution is authorized by preparation.

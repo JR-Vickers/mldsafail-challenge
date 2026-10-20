@@ -53,7 +53,7 @@ def read_packet(path):
     return packet
 
 def validate(packet, *, local_outputs=False):
-    require(packet['schema'] == 'mldsafail.production-operation.v2')
+    require(packet['schema'] in ('mldsafail.production-operation.v2', 'mldsafail.production-operation.v3'))
     require(packet['purpose'] == PURPOSE and packet['source'] == SOURCE)
     require(packet['helper_hashes'] == source_hashes())
     require(packet['operator_hashes'] == {p: digest(p) for p in OPERATOR_FILES})

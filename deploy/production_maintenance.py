@@ -12,6 +12,8 @@ def require(value):
 
 
 def privileged_receipt(receipt, host, collector_hash, *, now=None, execution=False):
+    if receipt['schema'] == 'mldsafail.privileged-scheduling.v2':
+        return reviewed_receipt(receipt, host, collector_hash, now=now, execution=execution)
     require(receipt['schema'] == 'mldsafail.privileged-scheduling.v1')
     require(receipt['host'] == host and receipt['uid'] == 0)
     require(receipt['collector_sha256'] == collector_hash)
@@ -45,11 +47,14 @@ def bound_privileged(packet, *, execution=False):
     data = path.read_bytes()
     require(hashlib.sha256(data).hexdigest() == packet['privileged_receipt_sha256'])
     collector = hashlib.sha256(Path('deploy/privileged_scheduling.py').read_bytes()).hexdigest()
-    return privileged_receipt(read_manifest(path), packet['hostname'], collector, execution=execution)
+    receipt = read_manifest(path)
+    if packet['schema'] == 'mldsafail.production-operation.v3':
+        require(receipt['schema'] == 'mldsafail.privileged-scheduling.v2')
+    return privileged_receipt(receipt, packet['hostname'], collector, execution=execution)
 
 
 def packet_state(packet, maintenance, *, execution=False):
-    require(packet['schema'] == 'mldsafail.production-operation.v2')
+    require(packet['schema'] in ('mldsafail.production-operation.v2', 'mldsafail.production-operation.v3'))
     require(packet['state'] in ('maintenance_proposal', 'execution_ready'))
     if packet['state'] == 'maintenance_proposal':
         require(not execution and maintenance['scheduling_exclusion_verified'] is False)
@@ -61,6 +66,11 @@ def packet_state(packet, maintenance, *, execution=False):
         require(hashlib.sha256(data).hexdigest() == packet['capacity_receipt_sha256'])
         assessment = read_manifest(path)
         require(assessment['host'] == packet['hostname'] and assessment['source'] == packet['source'])
+        if packet['schema'] == 'mldsafail.production-operation.v3':
+            require(assessment['measurement_scopes'] == {
+                'observed_simultaneous_peak': 'operation_resources',
+                'retained_services_peak': 'retained_services_excluding_operation',
+                'available_ram': 'host_available_excluding_retained_usage'})
         require(capacity(assessment) == 'supported')
         measurement = Path(assessment['measurement'])
         require(not measurement.is_absolute() and '..' not in measurement.parts)
@@ -90,3 +100,81 @@ def capacity(evidence):
         return 'unresolved'
     limits = [evidence['physical_ram'], *[x for x in evidence['ancestor_memory_limits'] if x != 'max']]
     return 'supported' if demand <= min(limits) and evidence['observed_simultaneous_peak'] + evidence['headroom'] <= evidence['available_ram'] else 'resize_decision_required'
+
+
+def reviewed_receipt(receipt, host, collector_hash, *, now=None, execution=False):
+    """Review binds immutable collection and raw bytes; no completeness override."""
+    collection_path = Path(receipt['collection'])
+    from deploy.recovery_journal import safe_path
+    import os, stat
+    raw_path = safe_path(receipt['raw_evidence'])
+    st = raw_path.stat()
+    require(stat.S_ISREG(st.st_mode) and st.st_uid == os.getuid() and st.st_nlink == 1
+            and not st.st_mode & 0o077 and raw_path.parent.stat().st_uid == os.getuid()
+            and not raw_path.parent.stat().st_mode & 0o077)
+    require(hashlib.sha256(collection_path.read_bytes()).hexdigest() == receipt['collection_sha256'])
+    require(hashlib.sha256(raw_path.read_bytes()).hexdigest() == receipt['raw_sha256'])
+    c = read_manifest(collection_path)
+    require(c['schema'] == 'mldsafail.scheduling-collection.v2')
+    require(c['host'] == host and c['uid'] == 0 and c['collector_sha256'] == collector_hash)
+    require(c['provenance'] == 'owner_root_console' and c['complete'] is True)
+    require(c['raw_sha256'] == receipt['raw_sha256'])
+    require(0 <= (time.time() if now is None else now) - c['time'] < (300 if execution else 86400))
+    from deploy.privileged_scheduling import ROOTS, SECTIONS
+    require(set(c['sections']) == set(SECTIONS))
+    import json
+    raw_rows = raw_path.read_bytes().splitlines(keepends=True)
+    require(len(raw_rows) == len(SECTIONS))
+    require({json.loads(r)['section'] for r in raw_rows} == set(SECTIONS))
+    for raw in raw_rows:
+        parsed = json.loads(raw)
+        section = c['sections'][parsed['section']]
+        require(section['raw_sha256'] == hashlib.sha256(raw).hexdigest())
+        if section['error'] is None:
+            require(section['sha256'] == hashlib.sha256(bytes.fromhex(parsed['stdout']) + bytes.fromhex(parsed['stderr'])).hexdigest())
+        else:
+            require(parsed.get('error') == section['error'])
+        if parsed['section'].endswith('crontab') and section['error'] is None:
+            require(section['no_crontab'] == (b'no crontab for' in bytes.fromhex(parsed['stderr'])))
+        if parsed['section'] == 'at_service':
+            require(section.get('not_found', False) == (b'LoadState=not-found' in bytes.fromhex(parsed['stdout'])))
+    paths = c['paths']
+    require(set(ROOTS) | set(c['reviewed_paths']) <= {p['path'] for p in paths})
+    require(all('error' not in p for p in paths))
+    # A disposition covers a path's exact evidence, including its link chain.
+    evidence = {p['path']: hashlib.sha256(__import__('json').dumps(p, sort_keys=True).encode()).hexdigest() for p in paths}
+    classifications = receipt['classifications']
+    require(len(classifications) == len(evidence))
+    require({x['path'] for x in classifications} == set(evidence))
+    by_path = {p['path']: p for p in paths}
+    for row in classifications:
+        p = by_path[row['path']]
+        if row['disposition'] == 'absent': require(p.get('absent') is True)
+        if row['disposition'] == 'mask': require(p.get('mask') is True)
+        if row['disposition'] in ('alias', 'wants'): require(bool(p.get('chain')))
+        require(row['evidence_sha256'] == evidence[row['path']])
+        require(row['disposition'] in ('absent', 'unrelated', 'scheduling', 'alias', 'wants', 'mask'))
+        require(isinstance(row['rationale'], str) and bool(row['rationale'].strip()))
+        require(set(row['references']) <= set(evidence))
+        require(row['references_reviewed'] is True)
+        if row['disposition'] == 'scheduling':
+            require(set(row['unit_states']) == {'installed', 'loaded', 'active', 'masked', 'triggerable'})
+            require(all(type(v) is bool for v in row['unit_states'].values()))
+    # Final resolved targets must themselves have reviewed evidence.
+    require(all(p.get('final_target', p['path']) in evidence for p in paths))
+    state = receipt['at_state']
+    require(state in ('verified_absent', 'installed_and_inspected'))
+    for name, row in c['sections'].items():
+        require(row['command'] == SECTIONS[name] and not row['truncated'])
+        if name == 'at_queue' and state == 'verified_absent':
+            require(row['error'] == 'FileNotFoundError' and row['returncode'] is None)
+        else:
+            require(row['error'] is None)
+            require(row['returncode'] == 0 or (name.endswith('crontab') and row['returncode'] == 1 and row['no_crontab']))
+    if state == 'verified_absent':
+        require(c['sections']['at_service']['not_found'] is True)
+        require(all(any(p['path'] == spool and p.get('absent') is True for p in paths)
+                    for spool in ('/var/spool/at', '/var/spool/atjobs', '/var/spool/cron/atjobs')))
+    else:
+        require(c['sections']['at_queue']['sha256'] == hashlib.sha256(b'').hexdigest())
+    return state
