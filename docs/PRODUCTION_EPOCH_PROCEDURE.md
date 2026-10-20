@@ -17,7 +17,7 @@ owner approvals. Never edit or reuse the old approval for new bytes.
 A new packet must also bind `staging_sha256`, a private `maintenance` record and
 `maintenance_sha256`, `worker_cgroup_path`, `cgroup_ancestor_limits` and
 `scheduler_inventory`. The maintenance record retains `original_settings`, exact
-`restoration_commands`, `scheduling_exclusion_verified: true` and
+`restoration_commands`, `scheduling_exclusion_verified: true` for execution only and
 `restore_after_failure: only_after_verified_operation_resources_stopped`.
 False or incomplete verification must remain blocked, never be filled in as an
 anticipated result. Inspect system and user units, timers, cron files and root
@@ -167,3 +167,7 @@ authority. Independently run full preflight with the final `production.env`,
 `manifest.json` and `receipt.json`, omitting `--preparation`. A successful epoch
 and final preflight do not authorize deployment, public listeners, CA issuance,
 OAuth login, notifications or publication. Item 3 remains partial pending item 4.
+
+## New packet contract
+
+See the [maintenance proposal assessment](acceptance/integration/maintenance-proposal-20261020.md). New packets use `mldsafail.production-operation.v2` and explicit `state`: `maintenance_proposal` requires false scheduling verification; `execution_ready` requires true verification and a SHA256-bound `privileged_receipt` path and `privileged_receipt_sha256`. Receipt provenance is `owner_root_console`, bound to hostname, collector source hash and collection time. Root inspection uses no sudo. Live unprivileged inventories remain required. Preparation receipts expire after 24 hours and execution receipts after five minutes. Old packets are not upgraded or approved by this change. Current safe-drain and evidence blockers prevent command approval.

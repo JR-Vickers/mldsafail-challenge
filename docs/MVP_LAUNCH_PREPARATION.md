@@ -180,3 +180,5 @@ Sessions 1 and 2 already have their recorded local dispositions above. Inspect a
 asking for new inputs. The inactive partial diagnostic upload is a separate
 maintenance item requiring current ownership/inactivity checks, not permission
 to resume diagnostics or an automatic launch blocker.
+
+Maintenance preparation update (2026-10-20): the [new proposal assessment](acceptance/integration/maintenance-proposal-20261020.md) separates v2 proposal and execution states. Local collector/source review is complete; privileged classification, safe drain, compatible capacity evidence, delegation and concrete restoration remain blockers. No maintenance/transfer approval is requested yet.

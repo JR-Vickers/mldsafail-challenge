@@ -372,3 +372,5 @@ cause or native performance gain is established. The [current findings](acceptan
 record actual charges, original fixture expiry and next required evidence. Stop
 native work pending an explicitly revised bounded continuation; no ledger reset,
 fixture renewal, third generation or full rehearsal is admitted.
+
+Maintenance preparation update (2026-10-20): the [new proposal assessment](acceptance/integration/maintenance-proposal-20261020.md) separates v2 proposal and execution states. Local collector/source review is complete; privileged classification, safe drain, compatible capacity evidence, delegation and concrete restoration remain blockers. No maintenance/transfer approval is requested yet.

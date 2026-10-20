@@ -18,7 +18,7 @@ from deploy.production_receipts import digest, validate_receipt, render, verify_
 from deploy.recovery_journal import atomic_json, safe_path, sync_directory
 
 HELPERS = tuple('src/mldsafail/benchmark_v050/' + n + '.py' for n in ('cli', 'evidence', 'execution'))
-OPERATOR_FILES = ('deploy/production_inspection.py', 'deploy/production_preparation.py', 'deploy/production_preflight.py', 'deploy/production_receipts.py', 'deploy/recovery_journal.py', 'deploy/host_checks.py', 'deploy/validate_production.py', 'deploy/recovery_daemon.py', 'deploy/owned_client.py', 'deploy/owned_daemon.py', 'compose.production.yaml')
+OPERATOR_FILES = ('deploy/production_inspection.py', 'deploy/production_preparation.py', 'deploy/production_preflight.py', 'deploy/production_receipts.py', 'deploy/recovery_journal.py', 'deploy/host_checks.py', 'deploy/validate_production.py', 'deploy/recovery_daemon.py', 'deploy/owned_client.py', 'deploy/owned_daemon.py', 'compose.production.yaml', 'deploy/production_maintenance.py', 'deploy/privileged_scheduling.py')
 PURPOSE = 'production_epoch_only'
 
 
@@ -50,7 +50,7 @@ def read_packet(path):
     return packet
 
 def validate(packet, *, local_outputs=False):
-    require(packet['schema'] == 'mldsafail.production-operation.v1')
+    require(packet['schema'] == 'mldsafail.production-operation.v2')
     require(packet['purpose'] == PURPOSE and packet['source'] == SOURCE)
     require(packet['helper_hashes'] == source_hashes())
     require(packet['operator_hashes'] == {p: digest(p) for p in OPERATOR_FILES})
@@ -68,7 +68,8 @@ def validate(packet, *, local_outputs=False):
         require(all(re.fullmatch('sha256:[a-f0-9]{64}', packet[role][k]) for k in ('index', 'platform_manifest', 'configuration')))
     require(packet['maintenance_sha256'] == digest(packet['maintenance']))
     maintenance = read_manifest(packet['maintenance'])
-    require(maintenance['scheduling_exclusion_verified'] is True)
+    from deploy.production_maintenance import packet_state
+    packet_state(packet, maintenance)
     require(maintenance['restoration_commands'] and maintenance['original_settings'])
     require(maintenance['restore_after_failure'] == 'only_after_verified_operation_resources_stopped')
     require(packet['staging_sha256'] == digest(packet['staging']))
@@ -240,12 +241,20 @@ SCHEDULER_COMMANDS = (
     ('systemctl', 'list-unit-files', '--type=timer', '--no-pager', '--no-legend'),
     ('systemctl', '--user', 'list-units', '--all', '--plain', '--no-pager', '--no-legend'),
     ('systemctl', 'list-units', '--all', '--plain', '--no-pager', '--no-legend'),
-    ('atq',), ('crontab', '-l'), ('sudo', '-n', 'crontab', '-l'),
+    ('crontab', '-l'),
 )
 
 
 def scheduling_gate(packet):
-    # Reviewed inventories must account for system/root scheduling as well as the user manager.
+    from deploy.production_maintenance import bound_privileged
+    at_state = bound_privileged(packet, execution=True)
+    if at_state == 'installed_and_inspected':
+        result = subprocess.run(['atq'], text=True, capture_output=True, timeout=10)
+        require(result.returncode == 0 and not result.stdout.strip())
+    else:
+        import shutil
+        require(shutil.which('atq') is None)
+    # Root inventory is owner-collected, never sudo.
     require(len(packet['scheduler_inventory']) == len(SCHEDULER_COMMANDS))
     for command, expected in zip(SCHEDULER_COMMANDS, packet['scheduler_inventory']):
         result = subprocess.run(command, text=True, capture_output=True, timeout=10)
@@ -327,6 +336,8 @@ def stream(packet, audit=False):
 def execute(packet_path, authorization_path):
     os.umask(0o077)
     packet = read_packet(packet_path)
+    from deploy.production_maintenance import packet_state
+    packet_state(packet, read_manifest(packet['maintenance']), execution=True)
     operation = validate(packet, local_outputs=True)
     require(str(Path(packet_path).absolute().parent) == packet['remote_bundle'])
     authorization = read_manifest(authorization_path)

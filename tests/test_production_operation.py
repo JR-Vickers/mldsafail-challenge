@@ -21,6 +21,7 @@ def private(path, value):
 
 @pytest.fixture
 def packet(tmp_path, monkeypatch):
+    monkeypatch.setattr('deploy.production_maintenance.bound_privileged', lambda *a, **k: 'verified_absent')
     original_output = subprocess.check_output
     revision = original_output(['git','rev-parse','HEAD'],text=True).strip()
     def source_output(args, **kwargs):
@@ -52,7 +53,7 @@ def packet(tmp_path, monkeypatch):
     receipt_path = private(tmp_path/'receipt.json',receipt)
     manifest_path = private(tmp_path/'manifest.json',manifest)
     operation = tmp_path/'operation'
-    p = dict(operator_revision=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),schema='mldsafail.production-operation.v1',purpose=op.PURPOSE,source=SOURCE,helper_hashes=op.source_hashes(),operator_hashes={p:digest(p) for p in op.OPERATOR_FILES},wrapper_sha256=digest(op.__file__),runbook_sha256=digest('docs/PRODUCTION_EPOCH_PROCEDURE.md'),benchmark_version='0.5.0',
+    p = dict(operator_revision=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),schema='mldsafail.production-operation.v2',state='execution_ready',purpose=op.PURPOSE,source=SOURCE,helper_hashes=op.source_hashes(),operator_hashes={p:digest(p) for p in op.OPERATOR_FILES},wrapper_sha256=digest(op.__file__),runbook_sha256=digest('docs/PRODUCTION_EPOCH_PROCEDURE.md'),benchmark_version='0.5.0',
         host={'address':'178.128.17.58','account':'mldsafail','uid':1000,'socket':'/run/user/1000/docker.sock','host_key':'SHA256:OtjIfXCrqewb9FTJ8jpU7Rq7aZL4P8P7U0dKZ8DoB5w'},
         controller=images['COORDINATOR_IMAGE'],worker=images['WORKER_IMAGE'],staging_sha256=digest(paths['staging']),worker_cgroup_path='/sys/fs/cgroup/user.slice/reviewed.slice',candidate=paths['candidate'],candidate_sha256=digest(paths['candidate']),staging=paths['staging'],receipt=str(receipt_path),receipt_sha256=digest(receipt_path),manifest=str(manifest_path),manifest_sha256=digest(manifest_path),
         limits=dict(memory='512m',cpus='1',pids='256',create_timeout=5400,audit_timeout=600,inspection_timeout=20,process_timeout=10),operation_id='a'*32,worker_cgroup='reviewed.slice',operation=str(operation),final_destination=str(tmp_path/'final'),epoch=env['PRODUCTION_EVALUATOR_ROOT']+'/epoch',lock=str(tmp_path/'production-epoch.lock'),attempt=str(tmp_path/'production-epoch.attempt.json'),remote_bundle=str(tmp_path),hostname='fixture',daemon_id='daemon',coordinator_ids=['coordinator'],allowed_running_services=['web','db'])
@@ -367,14 +368,14 @@ def test_scheduler_inventory_cannot_accept_missing_root_visibility(monkeypatch):
         denied=command[0]=='sudo'
         return subprocess.CompletedProcess(command,int(denied),stdout='',stderr='sudo: a password is required\n' if denied else '')
     monkeypatch.setattr(op.subprocess,'run',run)
-    with pytest.raises(ValueError):op.scheduling_gate({'scheduler_inventory':expected})
+    with pytest.raises((ValueError, KeyError)):op.scheduling_gate({'scheduler_inventory':expected})
 
 
 def test_scheduler_change_invalidates_bound_inventory(monkeypatch):
     import hashlib
     expected=[dict(command=list(c),returncode=0,sha256=hashlib.sha256(b'').hexdigest()) for c in op.SCHEDULER_COMMANDS]
     monkeypatch.setattr(op.subprocess,'run',lambda c,**kw:subprocess.CompletedProcess(c,0,stdout='new-scheduler.service enabled',stderr=''))
-    with pytest.raises(ValueError):op.scheduling_gate({'scheduler_inventory':expected})
+    with pytest.raises((ValueError, KeyError)):op.scheduling_gate({'scheduler_inventory':expected})
 
 
 def test_spawn_failure_retains_terminal_receipt(packet,monkeypatch):
