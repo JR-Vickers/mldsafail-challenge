@@ -129,3 +129,18 @@ def test_missing_at_raw_record(monkeypatch):
     raw = io.BytesIO(); c = collector.collect('hash', raw)
     assert json.loads(raw.getvalue())['error'] == 'FileNotFoundError'
     assert c['sections']['at_queue']['error'] == 'FileNotFoundError'
+
+
+def test_deadline_not_swallowed_inside_path(tmp_path, monkeypatch):
+    def interrupted(self):
+        raise collector.CollectionDeadline('collection_deadline')
+    monkeypatch.setattr(Path, 'lstat', interrupted)
+    with pytest.raises(collector.CollectionDeadline):
+        collector.inspect_path(tmp_path/'file')
+
+
+def test_collection_deadline_is_incomplete(monkeypatch):
+    def interrupted(*args, **kwargs):
+        raise collector.CollectionDeadline('collection_deadline')
+    monkeypatch.setattr(collector, '_collect', interrupted)
+    assert collector.collect('hash', io.BytesIO())['complete'] is False

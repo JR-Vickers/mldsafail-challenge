@@ -30,6 +30,10 @@ SECTIONS = {
 ROOTS = ('/etc/crontab', '/etc/anacrontab', '/etc/cron.d', '/etc/cron.hourly', '/etc/cron.daily', '/etc/cron.weekly', '/etc/cron.monthly', '/var/spool/cron', '/var/spool/at', '/var/spool/atjobs', '/var/spool/cron/atjobs', '/etc/systemd/system', '/run/systemd/system', '/root/.config/systemd/user', '/home/mldsafail/.config/systemd/user')
 
 
+class CollectionDeadline(Exception):
+    """Bypass per-command and per-path recoverable error handlers."""
+
+
 MAX_HOPS = 16
 MAX_ENTRIES = 2048
 MAX_FILE = 1048576
@@ -157,19 +161,22 @@ def _collect(collector_hash, raw_stream, reviewed_paths=()):
                 uid=os.getuid(), time=started_wall, provenance='owner_root_console',
                 collector_sha256=collector_hash, sections=sections, paths=paths,
                 reviewed_paths=list(reviewed_paths), complete=not expired() and
-                all('error' not in p for p in paths))
+                all('error' not in p for p in paths) and
+                all(not r['truncated'] and (r['error'] is None or
+                    (name == 'at_queue' and r['error'] == 'FileNotFoundError'))
+                    for name, r in sections.items()))
 
 
 def collect(collector_hash, raw_stream, reviewed_paths=()):
     # Linux owner-console collection is bounded even on a blocking filesystem read.
     import signal
     def deadline(signum, frame):
-        raise TimeoutError('collection_deadline')
+        raise CollectionDeadline('collection_deadline')
     previous = signal.signal(signal.SIGALRM, deadline)
     signal.alarm(180)
     try:
         return _collect(collector_hash, raw_stream, reviewed_paths)
-    except TimeoutError:
+    except CollectionDeadline:
         return dict(schema='mldsafail.scheduling-collection.v2', complete=False,
                     error='collection_deadline', collector_sha256=collector_hash)
     finally:
