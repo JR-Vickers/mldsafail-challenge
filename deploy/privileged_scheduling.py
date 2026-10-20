@@ -55,6 +55,7 @@ def collect(collector_hash):
             p = Path(root)
             if not p.exists():
                 paths.append(dict(path=root, absent=True)); continue
+            paths.append(dict(path=root, symlink=p.is_symlink(), uid=p.lstat().st_uid))
             candidates = [p] if not p.is_dir() else list(itertools.islice(p.rglob('*'), 2049))
             if len(candidates) > 2048:
                 raise ValueError('path_limit')

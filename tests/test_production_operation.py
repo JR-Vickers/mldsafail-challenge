@@ -58,7 +58,9 @@ def packet(tmp_path, monkeypatch):
         controller=images['COORDINATOR_IMAGE'],worker=images['WORKER_IMAGE'],staging_sha256=digest(paths['staging']),worker_cgroup_path='/sys/fs/cgroup/user.slice/reviewed.slice',candidate=paths['candidate'],candidate_sha256=digest(paths['candidate']),staging=paths['staging'],receipt=str(receipt_path),receipt_sha256=digest(receipt_path),manifest=str(manifest_path),manifest_sha256=digest(manifest_path),
         limits=dict(memory='512m',cpus='1',pids='256',create_timeout=5400,audit_timeout=600,inspection_timeout=20,process_timeout=10),operation_id='a'*32,worker_cgroup='reviewed.slice',operation=str(operation),final_destination=str(tmp_path/'final'),epoch=env['PRODUCTION_EVALUATOR_ROOT']+'/epoch',lock=str(tmp_path/'production-epoch.lock'),attempt=str(tmp_path/'production-epoch.attempt.json'),remote_bundle=str(tmp_path),hostname='fixture',daemon_id='daemon',coordinator_ids=['coordinator'],allowed_running_services=['web','db'])
     maintenance = private(tmp_path/'maintenance.json', dict(scheduling_exclusion_verified=True, restoration_commands=['fixture'], original_settings=['fixture'], restore_after_failure='only_after_verified_operation_resources_stopped'))
-    p.update(maintenance=str(maintenance), maintenance_sha256=digest(maintenance))
+    measurement = private(tmp_path/'measurement.json', {'synthetic':True})
+    capacity = private(tmp_path/'capacity.json', dict(host='fixture', source=SOURCE, physical_ram=4000, available_ram=3000, swap=0, configured_limits=[2048,512], observed_simultaneous_peak=800, retained_services_peak=200, headroom=300, ancestor_memory_limits=['max'], source_compatible=True, measurement='measurement.json', measurement_sha256=digest(measurement)))
+    p.update(capacity_receipt=str(capacity), capacity_receipt_sha256=digest(capacity), maintenance=str(maintenance), maintenance_sha256=digest(maintenance))
     path = private(tmp_path/'packet.json',p)
     return path, p, env, receipt
 

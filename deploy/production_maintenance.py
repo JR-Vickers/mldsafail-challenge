@@ -1,7 +1,8 @@
 """Fail-closed evidence checks; no provisioning, database writes or evaluation."""
 import hashlib
-import json
+import re
 from pathlib import Path
+from deploy.production_preparation import read_manifest
 import time
 
 
@@ -16,8 +17,9 @@ def privileged_receipt(receipt, host, collector_hash, *, now=None, execution=Fal
     require(receipt['collector_sha256'] == collector_hash)
     require(receipt['provenance'] == 'owner_root_console')
     require(0 <= (time.time() if now is None else now) - receipt['time'] < (300 if execution else 86400))
-    from deploy.privileged_scheduling import SECTIONS
+    from deploy.privileged_scheduling import SECTIONS, ROOTS
     require(set(receipt['sections']) == set(SECTIONS))
+    require(set(ROOTS) <= {p['path'] for p in receipt['paths']})
     require(receipt['paths'] and all('error' not in p and not p.get('symlink') for p in receipt['paths']))
     if receipt['at_state'] == 'verified_absent':
         require('LoadState=not-found' in receipt['sections']['at_service']['output'])
@@ -32,6 +34,8 @@ def privileged_receipt(receipt, host, collector_hash, *, now=None, execution=Fal
         require(row['returncode'] == 0 or (name.endswith('crontab') and
                 row['returncode'] == 1 and row['no_crontab'] is True))
     require(receipt['at_state'] in ('installed_and_inspected', 'verified_absent'))
+    if receipt['at_state'] == 'installed_and_inspected':
+        require(receipt['sections']['at_queue']['sha256'] == hashlib.sha256(b'').hexdigest())
     require(receipt['classification_complete'] is True and not receipt['unclassified_paths'])
     return receipt['at_state']
 
@@ -41,7 +45,7 @@ def bound_privileged(packet, *, execution=False):
     data = path.read_bytes()
     require(hashlib.sha256(data).hexdigest() == packet['privileged_receipt_sha256'])
     collector = hashlib.sha256(Path('deploy/privileged_scheduling.py').read_bytes()).hexdigest()
-    return privileged_receipt(json.loads(data), packet['hostname'], collector, execution=execution)
+    return privileged_receipt(read_manifest(path), packet['hostname'], collector, execution=execution)
 
 
 def packet_state(packet, maintenance, *, execution=False):
@@ -52,6 +56,15 @@ def packet_state(packet, maintenance, *, execution=False):
     else:
         require(maintenance['scheduling_exclusion_verified'] is True)
         bound_privileged(packet, execution=execution)
+        path = Path(packet['capacity_receipt'])
+        data = path.read_bytes()
+        require(hashlib.sha256(data).hexdigest() == packet['capacity_receipt_sha256'])
+        assessment = read_manifest(path)
+        require(assessment['host'] == packet['hostname'] and assessment['source'] == packet['source'])
+        require(capacity(assessment) == 'supported')
+        measurement = Path(assessment['measurement'])
+        require(not measurement.is_absolute() and '..' not in measurement.parts)
+        require(hashlib.sha256((path.parent / measurement).read_bytes()).hexdigest() == assessment['measurement_sha256'])
     if execution:
         require(packet['state'] == 'execution_ready')
 
@@ -63,7 +76,14 @@ def capacity(evidence):
                 'ancestor_memory_limits', 'source_compatible', 'measurement_sha256')
     if any(k not in evidence for k in required):
         return 'unresolved'
-    if not evidence['source_compatible'] or not evidence['measurement_sha256']:
+    if evidence['source_compatible'] is not True or not re.fullmatch('[a-f0-9]{64}', str(evidence['measurement_sha256'])):
+        return 'unresolved'
+    for key in ('physical_ram', 'available_ram', 'swap', 'observed_simultaneous_peak', 'retained_services_peak', 'headroom'):
+        if type(evidence[key]) is not int or evidence[key] < 0:
+            return 'unresolved'
+    if not isinstance(evidence['ancestor_memory_limits'], list) or not evidence['ancestor_memory_limits']:
+        return 'unresolved'
+    if any(x != 'max' and (type(x) is not int or x <= 0) for x in evidence['ancestor_memory_limits']):
         return 'unresolved'
     demand = evidence['observed_simultaneous_peak'] + evidence['retained_services_peak'] + evidence['headroom']
     if any(evidence[k] <= 0 for k in ('physical_ram', 'available_ram', 'observed_simultaneous_peak', 'headroom')):

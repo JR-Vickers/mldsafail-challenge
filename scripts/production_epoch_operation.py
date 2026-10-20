@@ -47,6 +47,9 @@ def read_packet(path):
     packet = read_manifest(path)
     for key in ('candidate', 'staging', 'receipt', 'manifest', 'maintenance'):
         packet[key] = str(safe_path(Path(path).absolute().parent / packet[key]))
+    for key in ('privileged_receipt', 'capacity_receipt'):
+        if key in packet:
+            packet[key] = str(safe_path(Path(path).absolute().parent / packet[key]))
     return packet
 
 def validate(packet, *, local_outputs=False):

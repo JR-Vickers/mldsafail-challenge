@@ -72,3 +72,5 @@ separate steps. On failure, restore scheduling only after positive verified
 operation-resource termination and fresh postflight; ambiguous launches require
 manual reconciliation. Original settings and exact restoration cannot be certified
 until scheduling and drain blockers close.
+
+Retained measurement inspection found a historical rehearsal-C controller service peak of 451.5 MiB and monitor peak of 32.4 MiB in `independent-c-load-diagnosis-20261018.json`. These are separate service-scope historical peaks, not simultaneous frozen worker/controller/service workload evidence. They do not close capacity. The release manifest binds the selected source, not measured RAM needs. Root cron and queued-command raw content are deliberately not emitted by the collector; private owner capture and classification remain prerequisites, not completed evidence.
