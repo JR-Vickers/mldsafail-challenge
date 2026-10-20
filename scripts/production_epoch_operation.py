@@ -12,7 +12,7 @@ import signal
 import subprocess
 import time
 
-from deploy.maintenance_fence import operation_phase
+from deploy.maintenance_fence import operation_phase, launch_operation, settle_operation
 from deploy.production_preparation import SOURCE, IMAGES, FINGERPRINT, read_manifest
 from deploy.production_preflight import read_private_env, check
 from deploy.production_receipts import digest, validate_receipt, render, verify_seal, read_receipt
@@ -302,6 +302,7 @@ def terminate_owned(packet):
         raise
     finally:
         atomic_json(Path(packet['operation']) / 'termination.json', record)
+    return record
 
 
 def stream(packet, audit=False):
@@ -312,11 +313,13 @@ def stream(packet, audit=False):
     with (operation / (name + '.stdout')).open('xb') as out, (operation / (name + '.stderr')).open('xb') as err:
         process = None
         try:
-            process = subprocess.Popen(controller(packet, audit), stdout=out, stderr=err, env=env)
+            process = launch_operation(packet, lambda: subprocess.Popen(controller(packet, audit), stdout=out, stderr=err, env=env))
             result = process.wait(timeout=packet['limits'][name + '_timeout'])
             publish(operation / (name + '.exit.json'), {'returncode': result})
             if result:
                 raise RuntimeError('controller_failed')
+            settle_operation(packet, lambda: terminate_owned({**packet, 'cleanup_controller':
+                'production-epoch-' + packet['operation_id'] + '-' + name}))
         except BaseException:
             try:
                 if process is not None and process.poll() is None:

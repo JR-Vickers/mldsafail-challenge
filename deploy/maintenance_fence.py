@@ -91,8 +91,14 @@ class Fence:
         self.phase_deadline = None
         self.used_phases = set()
         self.abort_done = threading.Event()
+        self.abort_lock = threading.Lock()
         self.abort_started = False
         self.cleanup_error = None
+        self.query_lock = threading.Lock()
+        self.verification_serial = threading.Lock()
+        self.io_threads = []
+        self.clients = []
+        self.operation_cleanup_required = False
 
     def _record(self, state, **extra):
         atomic_json(self.root / 'state.json', dict(state=state, **extra))
@@ -112,14 +118,36 @@ class Fence:
                                       "('queued','claimed','running')").fetchone()[0] == 0, 'maintenance_pending_work')
 
     def verify(self):
-        with self.mutex:
-            try:
-                started = time.monotonic()
-                self._verify()
-                require(time.monotonic() - started < .8, 'maintenance_verification_timeout')
-            except BaseException:
-                self.failed.set()
-                raise
+        # A server statement_timeout cannot bound a blackholed transport or a
+        # hung identity callback. Bound the caller independently and fail closed;
+        # retain any stuck I/O thread for reconciliation, never report release.
+        started = time.monotonic()
+        if not self.verification_serial.acquire(timeout=.8):
+            self.failed.set()
+            raise RuntimeError('maintenance_verification_busy')
+        try:
+            require(not self.failed.is_set(), 'maintenance_fence_failed')
+            done, errors = threading.Event(), []
+            def check():
+                try:
+                    with self.query_lock:
+                        self._verify()
+                except BaseException as error:
+                    errors.append(error)
+                finally:
+                    done.set()
+            thread = threading.Thread(target=check, name='maintenance-query', daemon=True)
+            self.io_threads.append(thread)
+            thread.start()
+            require(done.wait(max(0, .8 - (time.monotonic() - started))), 'maintenance_verification_timeout')
+            if errors:
+                raise errors[0]
+            require(time.monotonic() - started < .8, 'maintenance_verification_timeout')
+        except BaseException:
+            self.failed.set()
+            raise
+        finally:
+            self.verification_serial.release()
         return True
 
     def acquire(self):
@@ -193,26 +221,34 @@ class Fence:
                 # through owned-resource cleanup. No scheduler restoration here.
                 try:
                     self._abort_active()
+                except BaseException:
+                    pass  # Latched cleanup_error requires manual reconciliation.
                 finally:
                     self._record('reconciliation_required')
                 return
 
     def _abort_active(self):
-        with self.mutex:
+        # Separate from the launch mutex: even a stuck spawn must not prevent
+        # the cleanup deadline from being latched and reported.
+        with self.abort_lock:
             abort = self.abort
             if abort is None:
                 return
             first = not self.abort_started
             self.abort_started = True
         if first:
-            try:
-                abort()
-            except BaseException as error:
-                self.cleanup_error = type(error).__name__
-            finally:
-                self.abort_done.set()
-        else:
-            require(self.abort_done.wait(self.intent['ceilings']['cleanup']), 'maintenance_cleanup_timeout')
+            def cleanup():
+                try:
+                    abort()
+                except BaseException as error:
+                    self.cleanup_error = type(error).__name__
+                finally:
+                    self.abort_done.set()
+            thread = threading.Thread(target=cleanup, name='maintenance-cleanup', daemon=True)
+            self.io_threads.append(thread)
+            thread.start()
+        if not self.abort_done.wait(self.intent['ceilings']['cleanup']):
+            self.cleanup_error = 'maintenance_cleanup_timeout'
         require(self.cleanup_error is None, 'maintenance_cleanup_reconciliation_required')
 
     @contextmanager
@@ -241,22 +277,57 @@ class Fence:
                 self.abort = None
                 self.phase_deadline = None
 
+    def launch(self, spawn):
+        # The abort callback obtains this same mutex before inspecting clients.
+        # A loss during spawn therefore sees the returned client or a latched
+        # ambiguous request. No failed verification can start a later request.
+        with self.mutex:
+            self.verify()
+            self.operation_cleanup_required = True
+            process = spawn()
+            self.clients.append(process)
+            return process
+
+    def resources_stopped(self, check):
+        require(check() is True, 'maintenance_resources_not_verified_stopped')
+        require(all(process.poll() is not None for process in self.clients), 'maintenance_operation_client_remains')
+        self.operation_cleanup_required = False
+
+    def stop_clients(self):
+        import subprocess
+        with self.mutex:
+            clients = tuple(self.clients)
+        for process in clients:
+            if process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=2)
+            require(process.poll() is not None, 'maintenance_operation_client_remains')
+
     def release(self):
         require(self.abort is None, 'maintenance_phase_active')
+        require(not self.operation_cleanup_required, 'maintenance_operation_cleanup_required')
         require(self.cleanup_error is None, 'maintenance_cleanup_reconciliation_required')
+        require(all(process.poll() is not None for process in self.clients), 'maintenance_operation_client_remains')
         self.stop_monitor.set()
         if self.monitor:
             self.monitor.join(timeout=2)
             require(not self.monitor.is_alive(), 'maintenance_verifier_not_terminated')
+        for thread in self.io_threads:
+            thread.join(timeout=.1)
+        require(all(not thread.is_alive() for thread in self.io_threads), 'maintenance_client_reconciliation_required')
         try:
             reconcile(self.root, self.connect, self.identity)
             if self.holder:
                 self.holder.join(timeout=2)
                 require(not self.holder.is_alive(), 'maintenance_client_not_terminated')
-            self._record('released', backend_absent=True, locks_absent=True, client_terminated=True)
         finally:
             if self.verifier:
                 self.verifier.close()
+        self._record('released', backend_absent=True, locks_absent=True, client_terminated=True)
 
 
 def reconcile(root, connect, identity):
@@ -321,10 +392,27 @@ def operation_phase(name):
                 raise ValueError('live_maintenance_fence_required')
             fence = active[0]
             def abort():
-                # Before operation directory creation no request can be launched.
+                fence.stop_clients()
+                # launch_operation interlocks with failure before any spawn.
                 if Path(packet['operation']).exists():
-                    terminate_owned(packet)
+                    receipt = terminate_owned(packet)
+                    fence.resources_stopped(lambda: receipt['verified_stopped'] is True)
             with fence.phase(name, abort):
                 return function(packet_path, *args, **kwargs)
         return guarded
     return decorate
+
+
+def launch_operation(packet, spawn):
+    active = _ACTIVE.get()
+    if active is None or active[1] != packet['operation_id']:
+        raise ValueError('live_maintenance_fence_required')
+    return active[0].launch(spawn)
+
+
+def settle_operation(packet, terminate):
+    active = _ACTIVE.get()
+    if active is None or active[1] != packet['operation_id']:
+        raise ValueError('live_maintenance_fence_required')
+    receipt = terminate()
+    active[0].resources_stopped(lambda: receipt['verified_stopped'] is True)

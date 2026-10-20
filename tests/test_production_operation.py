@@ -21,6 +21,7 @@ def private(path, value):
 
 @pytest.fixture
 def packet(tmp_path, monkeypatch):
+    monkeypatch.setattr(op, 'launch_operation', lambda packet, spawn: spawn())
     for action in ('execute', 'audit', 'finalize'):
         monkeypatch.setattr(op, action, getattr(op, action).__wrapped__)
     monkeypatch.setattr('deploy.production_maintenance.bound_privileged', lambda *a, **k: 'verified_absent')

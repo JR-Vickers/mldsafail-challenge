@@ -24,11 +24,11 @@ stop, create/reference, audit, inspection, cleanup, restoration and margin.
 
 An independent connection checks database/container identity, backend birth and
 both locks throughout ownership and before each phase. The watchdog runs every
-100 ms with 100 ms per-query timeouts and rejects checks taking 800 ms. Transport
+100 ms with 100 ms per-query timeouts and an independent 800 ms caller deadline, including blackholed I/O. Transport
 identity lookup and connection must themselves have bounded I/O; the local test
 transport is not a certified VPS adapter. Lock loss/expiry/disconnect/phase failure
 latches failure, terminates owned phase resources and rejects subsequent phases.
-Release terminates only the exact owned backend and verifies backend/lock absence
+A launch interlock registers in-flight clients before the abort path can finish; successful and failed operations require positive owned-resource termination before release. Cleanup callbacks have an enforced declared deadline. Release terminates only the exact owned backend and verifies backend/lock absence
 and holder/verifier thread termination. Cleanup-only reconciliation never acquires,
 resumes or restores scheduling, and does not claim an external client's termination.
 Ambiguous acquisition/launch/cleanup remains a manual reconciliation requirement.
@@ -51,7 +51,7 @@ and restoration cannot be certified by those local tests.
 
 A read-only application-account follow-up queried valid getty instances, preserving
 installed, loaded, active, alias, restart and activation dependencies separately.
-It captured existing app/session slice control-file ownership/writability and every
+A second static inspection captured 199 dependency paths, resolved 33 command names in the SSH PATH (two absent there), and inspected 60 import candidates without executing their code. These contexts do not prove unit/interpreter PATH or dynamic import closure. It captured existing app/session slice control-file ownership/writability and every
 ancestor's limits without creating cgroups. `app.slice` has writable controls and
 cpu/memory/pids enabled; `session.slice` lacks enabled CPU; the proposed production
 parent and leaf remain absent. The shared app slice is a structural candidate,

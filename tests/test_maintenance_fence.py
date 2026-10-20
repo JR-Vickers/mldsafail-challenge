@@ -290,3 +290,142 @@ def test_unknown_acquisition_remains_unresolved(database, tmp_path):
     with pytest.raises(RuntimeError, match='unacknowledged'):
         control.reconcile(fence.root, connect, lambda: 'local-fixture')
     assert not (fence.root/'reconciled.json').exists()
+
+
+def bound_packet(tmp_path, fence):
+    packet = dict(operation_id='b'*32, candidate='candidate', staging='staging', receipt='receipt',
+                  manifest='manifest', maintenance='maintenance', operation=str(tmp_path/'operation'),
+                  maintenance_fence_tag=fence.intent['tag'], maintenance_database_identity=fence.intent['database'],
+                  maintenance_database_container=fence.intent['container'])
+    path = tmp_path/'packet.json'; path.write_text(json.dumps(packet)); path.chmod(0o600)
+    return path, packet
+
+
+def test_loss_before_directory_creation_prevents_launch(database, tmp_path):
+    connect, _ = database
+    fence = make_fence(tmp_path, connect).acquire()
+    path, packet = bound_packet(tmp_path, fence)
+    launches = []
+    @control.operation_phase('create')
+    def operation(path):
+        fence.failed.set()  # Loss during validation, before output creation.
+        time.sleep(.2)
+        Path(packet['operation']).mkdir()
+        control.launch_operation(packet, lambda: launches.append(True))
+    try:
+        with control.bind_operation(fence, packet):
+            with pytest.raises(RuntimeError): operation(path)
+        assert not launches
+    finally:
+        # No resource was launched. Do not claim a controller existed for the
+        # epoch-specific terminate_owned positive-observation requirement.
+        if fence.cleanup_error:
+            fence.cleanup_error = None  # fixture-only reconciled empty launch log
+        fence.release()
+
+
+def test_loss_during_launch_terminates_client_and_owned_resources(database, tmp_path, monkeypatch):
+    from scripts import production_epoch_operation as operation
+    connect, _ = database
+    fence = make_fence(tmp_path, connect).acquire()
+    path, packet = bound_packet(tmp_path, fence)
+    entered, finish = threading.Event(), threading.Event()
+    stopped = []
+    def terminate(packet):
+        stopped.append('resources')
+        return {'verified_stopped': True}
+    monkeypatch.setattr(operation, 'terminate_owned', terminate)
+    class Client:
+        returncode = None
+        def poll(self): return self.returncode
+        def terminate(self): self.returncode = -15; stopped.append('client')
+        def wait(self, timeout): return self.returncode
+    client = Client()
+    def spawn():
+        entered.set()
+        # Watchdog observes failure while an in-flight request holds the lock.
+        fence.failed.set()
+        time.sleep(.2)
+        return client
+    @control.operation_phase('create')
+    def run(path):
+        Path(packet['operation']).mkdir()
+        control.launch_operation(packet, spawn)
+    try:
+        with control.bind_operation(fence, packet):
+            with pytest.raises(RuntimeError): run(path)
+        assert entered.is_set()
+        assert stopped == ['client', 'resources']
+    finally:
+        fence.release()
+
+
+def test_hung_cleanup_is_bounded_and_release_stays_blocked(database, tmp_path):
+    connect, _ = database
+    fence = make_fence(tmp_path, connect).acquire()
+    unblock = threading.Event()
+    try:
+        started = time.monotonic()
+        with pytest.raises(RuntimeError, match='cleanup_reconciliation'):
+            with fence.phase('create', lambda: unblock.wait(10)):
+                raise OSError('ambiguous partial launch')
+        assert time.monotonic() - started < 2
+        with pytest.raises(RuntimeError, match='cleanup_reconciliation'): fence.release()
+    finally:
+        unblock.set()
+        assert fence.abort_done.wait(2)
+        # Explicit test-only external reconciliation of the fake no-resource
+        # callback; production reconciliation must prove actual quiescence.
+        fence.cleanup_error = None
+        fence.release()
+
+
+def test_blackholed_verification_fails_without_waiting_for_io(database, tmp_path):
+    connect, _ = database
+    fence = make_fence(tmp_path, connect).acquire()
+    unblock, terminated = threading.Event(), threading.Event()
+    try:
+        with pytest.raises(RuntimeError):
+            with fence.phase('create', terminated.set):
+                fence.identity = lambda: (unblock.wait(10) and 'local-fixture')
+                assert terminated.wait(2)
+        assert fence.failed.is_set()
+    finally:
+        unblock.set()
+        fence.identity = lambda: 'local-fixture'
+        for thread in fence.io_threads: thread.join(timeout=2)
+        fence.release()
+
+
+def test_release_requires_positive_operation_resource_termination(database, tmp_path):
+    connect, _ = database
+    fence = make_fence(tmp_path, connect).acquire()
+    class Client:
+        def poll(self): return 0
+    try:
+        with fence.phase('create', lambda: None):
+            fence.launch(Client)
+        with pytest.raises(RuntimeError, match='operation_cleanup_required'): fence.release()
+        with pytest.raises(RuntimeError, match='not_verified_stopped'):
+            fence.resources_stopped(lambda: False)
+        fence.resources_stopped(lambda: True)
+    finally:
+        fence.release()
+
+
+def test_partial_launch_without_acknowledgement_requires_reconciliation(database, tmp_path):
+    connect, _ = database
+    fence = make_fence(tmp_path, connect).acquire()
+    def unknown_cleanup():
+        raise RuntimeError('no positive daemon acknowledgement')
+    try:
+        with pytest.raises(RuntimeError, match='cleanup_reconciliation'):
+            with fence.phase('create', unknown_cleanup):
+                def spawn(): raise OSError('request may have reached daemon')
+                fence.launch(spawn)
+        with pytest.raises(RuntimeError, match='operation_cleanup_required'): fence.release()
+        assert not (fence.root/'reconciled.json').exists()
+    finally:
+        fence.resources_stopped(lambda: True)  # fixture-only: no daemon exists
+        fence.cleanup_error = None
+        fence.release()
