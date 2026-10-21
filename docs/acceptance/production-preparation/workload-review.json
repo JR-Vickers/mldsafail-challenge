@@ -1,0 +1,40 @@
+{
+  "benchmark_version": "0.5.0",
+  "blockers": [
+    "native_runtime_adapter_and_private_unix_socket_missing",
+    "coordinator_and_administrative_launch_routing_missing",
+    "native_common_cgroup_and_accounting_acceptance_missing",
+    "bounded_runtime_io_and_supervisor_death_acceptance_missing",
+    "postgres_and_container_contention_acceptance_missing",
+    "new_hosted_fingerprint_release_and_epoch_bindings_missing",
+    "deployed_scheduling_and_delegation_unverified",
+    "exact_transfer_restoration_and_rollback_identities_unverified",
+    "separately_scoped_owner_authorization_absent"
+  ],
+  "capacity_disposition": "unmeasured_capacity",
+  "execution_authority": false,
+  "proposed_operation_schema": "mldsafail.production-operation.v4",
+  "purpose": "offline_engineering_review_only",
+  "resource_policy": {
+    "available_floor": 268435456,
+    "cpu_max": "100000 100000",
+    "disk_floor": 5368709120,
+    "generation_max": 1073741824,
+    "interval": 0.25,
+    "log_max": 134217728,
+    "pids_max": 448,
+    "reserve": 1073741824,
+    "swap_max": 0,
+    "version": "mldsafail.resource-policy.v1"
+  },
+  "resource_policy_sha256": "d0952828294b8f503f72ffa7f7e1b5e13d36a51a2a826fa8e4fa3318a0ee954e",
+  "schema": "mldsafail.workload-deployment-review.v1",
+  "source_hashes": {
+    "deploy/production_maintenance.py": "1e57411d96b10e136a6b4848894ce52bb9827e76b7817be132a71d211b36979d",
+    "deploy/workload_policy.py": "226cd4916604487c4dd06119cd69120aee4d91d5110ce2df85cae6e9655eb46b",
+    "docs/SINGLE_WORKLOAD_DEPLOYMENT.md": "c80ddd46ac37269162c19923922ba44187a2fa00ca081925bb55bbda1667a057",
+    "src/mldsafail/evaluator/queue.py": "89da69cf0380856719d169f70a8c9b646a1a1dab1ba28a0ccc517787f4628e56",
+    "src/mldsafail/evaluator/workload.py": "7aceed776bfeeb6f54460650b04baa8391e117bb3508294b21aafd98f0620af3"
+  },
+  "state": "maintenance_proposal"
+}

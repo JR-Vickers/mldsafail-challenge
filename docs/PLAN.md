@@ -489,3 +489,12 @@ control smoke ran; no evaluation or capacity workload ran. Native end-to-end
 acceptance, owner-only scheduling/runtime evidence, installed delegation and an
 owner-bound host/window remain gates. The private v10 proposal remains blocked,
 nontransferable and unauthorized; no capacity execution approval is requested.
+
+2026-10-21 local scheduling engineering: [implementation and blocked deployment
+review](SINGLE_WORKLOAD_DEPLOYMENT.md) adds a durable host-gate library, conservative
+resource policy, cleanup-gated stale-lease recovery and v4 policy-evidence checks.
+Production coordinator/admin transport, native cgroup controls, socket service,
+matching release and native acceptance remain unfinished; no host-wide enforcement
+or launch readiness is claimed. The production epoch entrypoint continues to
+reject v4, and historical v2/v3 capacity requirements remain unchanged. No
+benchmark, epoch, transfer, provisioning or service change ran.

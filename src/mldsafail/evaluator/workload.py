@@ -223,7 +223,8 @@ class HostGate:
         self._owned()
         if self.state['phase'] != 'cleaned' or self.runtime.stopped(self.state) is not True:
             raise WorkloadBlocked('verified_cleanup_required')
-        if not self.runtime.preflight(self.policy): raise WorkloadBlocked('resource_deferral')
+        ceiling = self.runtime.preflight(self.policy)
+        if type(ceiling) is not int or ceiling <= 0: raise WorkloadBlocked('resource_deferral')
         self.state.update(phase='complete', paused=False)
         self._write()
 

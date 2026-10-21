@@ -257,7 +257,10 @@ def test_actual_application_paths_table_lock_compatibility(database, implementat
                 elif action == 'claim':
                     queue.claim_job(session, 'claimant')
                 elif action == 'recovery':
-                    queue.recover_stale_jobs(session)
+                    if implementation == 'current':
+                        queue.recover_stale_jobs(session, verified_stopped=lambda job: True)
+                    else:
+                        queue.recover_stale_jobs(session)
                 else:
                     queue.heartbeat(session, job_id, 'owner')
             assert isinstance(error.value.orig, psycopg.errors.LockNotAvailable)

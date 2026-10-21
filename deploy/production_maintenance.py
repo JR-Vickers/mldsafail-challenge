@@ -48,19 +48,23 @@ def bound_privileged(packet, *, execution=False):
     require(hashlib.sha256(data).hexdigest() == packet['privileged_receipt_sha256'])
     collector = hashlib.sha256(Path('deploy/privileged_scheduling.py').read_bytes()).hexdigest()
     receipt = read_manifest(path)
-    if packet['schema'] == 'mldsafail.production-operation.v3':
+    if packet['schema'] in ('mldsafail.production-operation.v3', 'mldsafail.production-operation.v4'):
         require(receipt['schema'] == 'mldsafail.privileged-scheduling.v2')
     return privileged_receipt(receipt, packet['hostname'], collector, execution=execution)
 
 
 def packet_state(packet, maintenance, *, execution=False):
-    require(packet['schema'] in ('mldsafail.production-operation.v2', 'mldsafail.production-operation.v3'))
+    require(packet['schema'] in ('mldsafail.production-operation.v2', 'mldsafail.production-operation.v3', 'mldsafail.production-operation.v4'))
     require(packet['state'] in ('maintenance_proposal', 'execution_ready'))
     if packet['state'] == 'maintenance_proposal':
         require(not execution and maintenance['scheduling_exclusion_verified'] is False)
     else:
         require(maintenance['scheduling_exclusion_verified'] is True)
         bound_privileged(packet, execution=execution)
+        if packet['schema'] == 'mldsafail.production-operation.v4':
+            from deploy.workload_policy import validate_controls
+            validate_controls(packet, execution=execution)
+            return
         path = Path(packet['capacity_receipt'])
         data = path.read_bytes()
         require(hashlib.sha256(data).hexdigest() == packet['capacity_receipt_sha256'])

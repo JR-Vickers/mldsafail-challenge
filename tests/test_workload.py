@@ -133,3 +133,36 @@ def test_monitor_exception_is_protection_abort(tmp_path):
         gate.acquire('evaluation', {})
         runtime.sample = lambda state: (_ for _ in ()).throw(OSError())
         with pytest.raises(ProtectionAbort, match='monitor_lost'): gate.check()
+
+
+def test_separate_process_lock_survives_owner_death_as_journal(tmp_path):
+    import os
+    import signal
+    import subprocess
+    import sys
+    # This child only writes synthetic ownership, never launches resources.
+    code = '''
+import sys, time
+from mldsafail.evaluator.workload import HostGate
+class Runtime:
+    def identity(self): return {'boot_id': 'boot', 'daemon_id': 'daemon'}
+    def preflight(self, policy): return 2147483648
+with HostGate(sys.argv[1], Runtime()).locked() as gate:
+    gate.acquire('evaluation', {'job': 'synthetic'})
+    print('owned', flush=True)
+    time.sleep(20)
+'''
+    child = subprocess.Popen([sys.executable, '-c', code, str(tmp_path)], stdout=subprocess.PIPE, text=True)
+    try:
+        assert child.stdout.readline().strip() == 'owned'
+        with pytest.raises(WorkloadBlocked, match='host_busy'):
+            with HostGate(tmp_path, Runtime()).locked(): pass
+        os.kill(child.pid, signal.SIGKILL)
+        child.wait(timeout=2)
+        with HostGate(tmp_path, Runtime()).locked() as gate:
+            with pytest.raises(WorkloadBlocked, match='cleanup_or_resume_required'):
+                gate.acquire('administration', {})
+    finally:
+        if child.poll() is None: child.kill()
+        child.wait(timeout=2)
+        child.stdout.close()

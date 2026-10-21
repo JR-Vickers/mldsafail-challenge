@@ -16,10 +16,16 @@ from sqlalchemy.orm import Session
 
 from mldsafail.evaluator.queue import claim_job, heartbeat, recover_stale_jobs
 from mldsafail.web.models import Base, EvaluationJob, IdempotencyKey, Submission, User, utcnow
-from mldsafail.web.services import DomainError, create_submission
+from mldsafail.web.services import DomainError, create_submission as application_create_submission
 
 PAYLOAD = dict(repository_url='https://github.com/example/solver', commit_sha='a' * 40,
-               hypothesis='disposable native admission gate', benchmark_version='0.4.0')
+               hypothesis='disposable native admission gate', benchmark_version='0.5.0')
+def create_submission(*args, **kwargs):
+    kwargs.setdefault('cohort', dict(epoch_id='synthetic', evaluator_fingerprint='synthetic',
+                                    hidden_suite_version='synthetic', worker_class='synthetic'))
+    return application_create_submission(*args, **kwargs)
+
+
 LIMITS = dict(outstanding_per_account=1, submissions_per_day=2, queued_globally=10)
 
 
@@ -157,6 +163,7 @@ def test_native_daily_window_and_running_cancellation_lease_fence(database):
         job=session.get(EvaluationJob,job.id)
         job.lease_expires_at=utcnow()-timedelta(seconds=1);session.commit()
         assert recover_stale_jobs(session)==(0,0)
+        assert recover_stale_jobs(session, verified_stopped=lambda job: True)==(0,0)
         assert not heartbeat(session,job.id,'native-cancellation-owner')
         with pytest.raises(DomainError):
             create_submission(session,user,PAYLOAD,'daily-third',admission_limits=LIMITS)
