@@ -43,11 +43,13 @@ def publish(path, value):
 
 class Router:
     def __init__(self, config, command, run):
-        require(set(config) == {'operation_id', 'parent', 'image', 'configuration', 'platform_manifest', 'journal', 'daemon', 'solver_root'})
+        require(set(config) - {'label'} == {'operation_id', 'parent', 'image', 'configuration', 'platform_manifest', 'journal', 'daemon', 'solver_root'})
         require(re.fullmatch('[a-f0-9]{32}', config['operation_id']))
         require(re.fullmatch('[A-Za-z0-9_.:/-]+', config['parent']))
         require(re.fullmatch('sha256:[a-f0-9]{64}', config['image']))
         require(all(re.fullmatch('sha256:[a-f0-9]{64}',config[k]) for k in ('configuration','platform_manifest')))
+        self.label = config.get('label', LABEL)
+        require(self.label in (LABEL, 'org.mldsafail.workload'))
         self.config, self.command, self.run = config, command, run
         self.root = Path(config['journal'])
         require(self.root.is_absolute() and '..' not in self.root.parts and not any(p.is_symlink() for p in (self.root, *self.root.parents)))
@@ -65,7 +67,7 @@ class Router:
         return rows[0]
 
     def owned(self, name):
-        require(re.fullmatch('mlwe-[a-f0-9]{32}', name) or name == 'capacity-artifacts-' + self.config['operation_id'])
+        require(re.fullmatch('mlwe-[a-f0-9]{32}', name) or re.fullmatch('capacity-artifacts-' + self.config['operation_id'] + '-[a-f0-9]{32}', name))
         path = self.root / (name + '.json')
         require(not path.is_symlink())
         record = json.loads(path.read_text())
@@ -73,7 +75,7 @@ class Router:
         require(record.get('container_id'), 'investigation_launch_acknowledgement_missing')
         container = self.inspected(record['container_id'])
         require(container['Id'] == record['container_id'] and container['Name'] == '/' + name)
-        require(container['Config']['Labels'].get(LABEL) == self.config['operation_id'])
+        require(container['Config']['Labels'].get(self.label) == self.config['operation_id'])
         require(container['Config']['Image'] == record['image']
                 and container['Image'] in (self.config['image'],self.config['configuration']))
         require(container['HostConfig']['CgroupParent'] == self.config['parent'])
@@ -90,9 +92,15 @@ class Router:
             stream.flush()
             os.fsync(stream.fileno())
         record = json.loads(path.read_text())
-        cid = self.command(['create', '--name', name, '--label', LABEL + '=' + self.config['operation_id'],
+        cid = self.command(['create', '--name', name, '--label', self.label + '=' + self.config['operation_id'],
                             '--cgroup-parent', self.config['parent'], *flags]).decode().strip()
         require(re.fullmatch('[a-f0-9]{64}', cid), 'investigation_launch_ambiguous')
+        created = self.inspected(cid)
+        require(created['Id'] == cid and created['Name'] == '/' + name)
+        require(created['Config']['Labels'].get(self.label) == self.config['operation_id'])
+        require(created['HostConfig']['CgroupParent'] == self.config['parent'])
+        record.update(state='created', container_id=cid, created_at=created.get('Created'))
+        publish(path, record)
         record.update(container_id=cid, image=flags[-2] if artifact else flags[-1], state='start_intent')
         publish(path, record)
         # Register live birth before releasing serialization for timeout cleanup.
@@ -145,7 +153,7 @@ class Router:
             sys.stdout.write(json.dumps(image_rows))
             return 0
         if args == ['run', '--rm', '--network=none', '--read-only', '--entrypoint=cat', image, '/artifacts.json']:
-            return self.create_run('capacity-artifacts-' + self.config['operation_id'],
+            return self.create_run('capacity-artifacts-' + self.config['operation_id'] + '-' + uuid.uuid4().hex,
                 ['--network=none', '--read-only', '--cap-drop=ALL', '--security-opt=no-new-privileges',
                  '--memory=64m', '--memory-swap=64m', '--cpus=.1', '--pids-limit=16',
                  '--log-driver=none', '--entrypoint=cat', image, '/artifacts.json'], artifact=True)

@@ -91,6 +91,7 @@ class HostGate:
     def __init__(self, root, runtime, policy=None):
         self.root, self.runtime = Path(root).absolute(), runtime
         self.pid = os.getpid()
+        self.generation = uuid.uuid4().hex
         self.policy = policy or ResourcePolicy()
         self.fd = None
         self.mutex = threading.RLock()
@@ -131,6 +132,8 @@ class HostGate:
             valid = False
         if not valid:
             raise WorkloadBlocked('invalid_workload_journal')
+        if 'supervisor_generation' in state and not re.fullmatch('[a-f0-9]{32}', str(state['supervisor_generation'])):
+            raise WorkloadBlocked('invalid_supervisor_generation')
         requests = state.get('requests', {})
         generation = state.get('request_generation', 0)
         sequence = state.get('request_sequence', 0)
@@ -258,13 +261,21 @@ class HostGate:
         self.state = dict(requests=requests, schema='mldsafail.workload.v1', workload_id=uuid.uuid4().hex,
                           request_generation=previous.get('request_generation', 0) + 1 if previous else 1,
                           request_sequence=0, completed_workloads=completed[-16:],
-                          identity=identity, kind=kind, reference=reference,
+                          identity=identity, supervisor_generation=self.generation, kind=kind, reference=reference,
                           policy_sha256=self.policy.sha256, ceiling=ceiling,
                           phase='acquired', paused=False, resources=[])
+        if getattr(self.runtime, 'requires_heartbeat', False):
+            self.state['heartbeat_deadline'] = time.time() + 5
         self._write()
+        if hasattr(self.runtime, 'prepare'):
+            try:
+                if self.runtime.prepare(copy.deepcopy(self.state)) is not True:
+                    raise WorkloadBlocked('runtime_prepare_unverified')
+            except BaseException:
+                self.pause('runtime_prepare_failed')
+                raise
         return self.state['workload_id']
 
-    @serialized
     def bind(self, reference):
         self._owned()
         if self.state['phase'] != 'acquired' or self.state['paused']:
@@ -286,6 +297,9 @@ class HostGate:
             if self.fd is None or not self.state:
                 raise WorkloadBlocked('host_ownership_required')
             snapshot = copy.deepcopy(self.state)
+            if snapshot.get('heartbeat_deadline', time.time()+1) < time.time() and snapshot['phase'] in ('acquired', 'launch_intent', 'running'):
+                self.pause('dispatcher_heartbeat_lost')
+                raise ProtectionAbort('dispatcher_heartbeat_lost')
             if snapshot['paused']:
                 raise ProtectionAbort(snapshot['reason'])
         started = time.monotonic()
@@ -355,82 +369,127 @@ class HostGate:
                 self.inflight_launches -= 1
         return birth
 
-    @serialized
+    def heartbeat(self):
+        self.check()
+        with self.mutex:
+            if self.state['phase'] not in ('acquired', 'launch_intent', 'running'):
+                raise WorkloadBlocked('heartbeat_phase_invalid')
+            self.state['heartbeat_deadline'] = time.time() + 5
+            self._write()
+
+    def result(self):
+        self.check()
+        with self.mutex:
+            snapshot = copy.deepcopy(self.state)
+        result = self.runtime.result(snapshot)
+        with self.mutex:
+            if self.state['workload_id'] != snapshot['workload_id'] or self.state['paused']:
+                raise WorkloadBlocked('stale_result_response')
+        return result
+
     def reconcile(self):
         self._owned()
-        if self.state['phase'] in ('postflight', 'commit_intent', 'committed', 'complete'):
-            raise WorkloadBlocked('result_reconciliation_required')
-        self.state['phase'] = 'termination_intent'
-        self._write()
-        if self.runtime.terminate(self.state) is not True or self.runtime.stopped(self.state) is not True:
+        with self.mutex:
+            if self.state['phase'] in ('postflight', 'commit_intent', 'committed', 'complete'):
+                raise WorkloadBlocked('result_reconciliation_required')
+            self.state['phase'] = 'termination_intent'
+            self._write()
+            snapshot = copy.deepcopy(self.state)
+        # Every I/O call has its own .8s bound; termination has a separate 30s
+        # verification window, with monitoring free to sample throughout.
+        deadline = time.monotonic() + 30
+        try:
+            if self.runtime.terminate(snapshot) is not True:
+                raise WorkloadBlocked('termination_unverified')
+            while self.runtime.stopped(snapshot) is not True:
+                if time.monotonic() >= deadline:
+                    raise WorkloadBlocked('termination_unverified')
+                time.sleep(.05)
+        except BaseException:
             self.pause('termination_unverified')
-            raise WorkloadBlocked('termination_unverified')
-        self.state['phase'] = 'cleaned'
-        self._write()
+            raise
+        with self.mutex:
+            if self.state['workload_id'] != snapshot['workload_id']:
+                raise WorkloadBlocked('stale_cleanup_response')
+            self.state['phase'] = 'cleaned'
+            self._write()
 
-    @serialized
     def complete(self):
-        """Compatibility helper for callers without a database result transaction.
-
-        Dispatchers must use postflight, commit_intent, acknowledge_commit and
-        release separately. The socket deliberately does not expose this helper.
-        """
+        """Compatibility helper for non-database library callers only."""
         self.postflight()
         self.commit_intent({'disposition': 'no_database_result'})
         self.acknowledge_commit({'disposition': 'no_database_result'})
         self.release()
 
-    @serialized
     def postflight(self):
-        if self.state is None or self.state['phase'] not in ('acquired', 'running', 'cleaned'):
-            raise WorkloadBlocked('postflight_phase_invalid')
+        with self.mutex:
+            if self.state is None or self.state['phase'] not in ('acquired', 'running', 'cleaned'):
+                raise WorkloadBlocked('postflight_phase_invalid')
         self.check()
-        if self.state['phase'] != 'cleaned':
-            self.reconcile()
-        self.check()  # Includes parent OOM/events after worker exit.
-        self.state['phase'] = 'postflight'
-        self._write()
+        if self.state['phase'] != 'cleaned': self.reconcile()
+        self.check()
+        with self.mutex:
+            self.state['phase'] = 'postflight'
+            self._write()
 
-    @serialized
     def commit_intent(self, binding):
         self._owned()
-        if self.state['phase'] != 'postflight' or self.state['paused']:
-            raise WorkloadBlocked('commit_phase_invalid')
-        if type(binding) is not dict or not binding:
-            raise WorkloadBlocked('commit_binding_required')
-        self.state.update(phase='commit_intent', database_commit=binding)
-        self._write()
+        with self.mutex:
+            failure = (type(binding) is dict and binding.get('disposition') in ('infrastructure_failed', 'cancelled'))
+            if not (self.state['phase'] == 'postflight' and not self.state['paused'] or
+                    self.state['phase'] == 'cleaned' and failure):
+                raise WorkloadBlocked('commit_phase_invalid')
+            if type(binding) is not dict or not binding:
+                raise WorkloadBlocked('commit_binding_required')
+            self.state.update(phase='commit_intent', database_commit=binding)
+            self._write()
 
-    @serialized
+    def resolve_commit(self, binding, resolution):
+        self._owned()
+        with self.mutex:
+            if (self.state['phase'] != 'commit_intent' or self.state.get('database_commit') != binding or
+                    type(resolution) is not dict or resolution.get('disposition') != 'infrastructure_failed' or
+                    any(resolution.get(key) != binding.get(key) for key in
+                        ('workload_id', 'job_id', 'attempt_id', 'attempt_number', 'submission_id', 'owner'))):
+                raise WorkloadBlocked('commit_resolution_invalid')
+            self.state['original_database_commit'] = binding
+            self.state['database_commit'] = resolution
+            self._write()
+
     def acknowledge_commit(self, binding):
         self._owned()
-        if (self.state['phase'] != 'commit_intent' or self.state['paused'] or
-                binding != self.state.get('database_commit')):
-            raise WorkloadBlocked('commit_acknowledgement_invalid')
-        self.state['phase'] = 'committed'
-        self._write()
+        with self.mutex:
+            if self.state['phase'] != 'commit_intent' or binding != self.state.get('database_commit'):
+                raise WorkloadBlocked('commit_acknowledgement_invalid')
+            self.state['phase'] = 'committed'
+            self._write()
 
-    @serialized
     def release(self):
         self.check()
-        if (self.inflight_launches or self.state['phase'] != 'committed' or
-                self.runtime.stopped(self.state) is not True):
+        with self.mutex:
+            snapshot = copy.deepcopy(self.state)
+            if self.inflight_launches or self.state['phase'] != 'committed':
+                raise WorkloadBlocked('committed_cleanup_required')
+        if self.runtime.stopped(snapshot) is not True:
             raise WorkloadBlocked('committed_cleanup_required')
-        self.state['phase'] = 'complete'
-        self._write()
+        with self.mutex:
+            self.state['phase'] = 'complete'
+            self._write()
 
-    @serialized
     def resume(self):
         self._owned()
-        if self.inflight_launches: raise WorkloadBlocked('creator_response_pending')
-        if self.state.get('database_commit') and self.state['phase'] != 'complete':
-            raise WorkloadBlocked('result_reconciliation_required')
-        if self.state['phase'] not in ('cleaned', 'complete') or self.runtime.stopped(self.state) is not True:
+        with self.mutex:
+            if self.inflight_launches: raise WorkloadBlocked('creator_response_pending')
+            if self.state['phase'] not in ('cleaned', 'committed', 'complete'):
+                raise WorkloadBlocked('result_reconciliation_required')
+            snapshot = copy.deepcopy(self.state)
+        if self.runtime.stopped(snapshot) is not True:
             raise WorkloadBlocked('verified_cleanup_required')
         ceiling = self.runtime.preflight(self.policy)
         if type(ceiling) is not int or ceiling <= 0: raise WorkloadBlocked('resource_deferral')
-        self.state.update(phase='complete', paused=False)
-        self._write()
+        with self.mutex:
+            self.state.update(phase='complete', paused=False)
+            self._write()
 
 
 class WorkloadSession:
@@ -448,21 +507,37 @@ class WorkloadSession:
         self.reason = None
 
     def start(self):
-        import threading
         self.gate.check()
+        self.last_sample = time.monotonic()
+        self.abort_lock = threading.Lock()
+        def fail(reason):
+            if not self.abort_lock.acquire(blocking=False): return
+            self.reason = reason
+            self.failed.set()
+            try:
+                if not self.gate.state['paused']: self.gate.pause(reason)
+                self.gate.reconcile()
+            except BaseException: pass
         def monitor():
-            while not self.stop.wait(self.gate.policy.interval):
-                try: self.gate.check()
+            deadline = time.monotonic()
+            while not self.stop.is_set() and not self.failed.is_set():
+                deadline += self.gate.policy.interval
+                if self.stop.wait(max(0, deadline-time.monotonic())): return
+                try:
+                    self.gate.check()
+                    self.last_sample = time.monotonic()
                 except BaseException as error:
-                    self.reason = type(error).__name__
-                    self.failed.set()
-                    # Stop resources on detection, even if the controller is
-                    # blocked waiting for a worker. Preserve the pause journal.
-                    try: self.gate.reconcile()
-                    except BaseException: pass
+                    fail(str(error) or type(error).__name__)
+                    return
+        def watch_age():
+            while not self.stop.wait(.05) and not self.failed.is_set():
+                if time.monotonic()-self.last_sample > 1:
+                    fail('monitor_stale')
                     return
         self.thread = threading.Thread(target=monitor, name='heavy-workload-monitor', daemon=True)
+        self.age_thread = threading.Thread(target=watch_age, name='heavy-sample-watchdog', daemon=True)
         self.thread.start()
+        self.age_thread.start()
         return self
 
     def checkpoint(self):
@@ -471,9 +546,10 @@ class WorkloadSession:
 
     def finish_monitor(self):
         self.stop.set()
-        if self.thread:
-            self.thread.join(timeout=1)
-            if self.thread.is_alive():
+        threads = [thread for thread in (self.thread, getattr(self, 'age_thread', None)) if thread]
+        for thread in threads:
+            thread.join(timeout=1)
+            if thread.is_alive():
                 self.gate.pause('monitor_unresponsive')
                 raise ProtectionAbort('monitor_unresponsive')
 

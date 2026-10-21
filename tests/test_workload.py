@@ -265,3 +265,30 @@ def test_launch_rechecks_ancestor_headroom(tmp_path):
         with pytest.raises(ProtectionAbort, match='launch_resource_deferral'): gate.launch({})
         assert not runtime.live
         assert gate.state['paused']
+
+
+def test_sample_age_watchdog_terminates_while_sampler_is_stuck(tmp_path):
+    import threading
+    from mldsafail.evaluator.workload import WorkloadSession
+    runtime = Runtime()
+    entered, unblock = threading.Event(), threading.Event()
+    with HostGate(tmp_path, runtime).locked() as gate:
+        gate.acquire('evaluation', {}); gate.launch({})
+        session = WorkloadSession(gate).start()
+        original = runtime.sample
+        def sample(state):
+            entered.set()
+            assert unblock.wait(4)
+            return original(state)
+        runtime.sample = sample
+        try:
+            assert entered.wait(1)
+            assert session.failed.wait(1.5)
+            # The age watcher uses a separate cleanup path, not the sampler.
+            for _ in range(20):
+                if not runtime.live: break
+                threading.Event().wait(.01)
+            assert not runtime.live
+            assert gate.state['paused']
+        finally:
+            unblock.set(); session.finish_monitor()

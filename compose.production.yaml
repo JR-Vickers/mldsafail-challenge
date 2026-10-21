@@ -59,6 +59,7 @@ services:
     user: "0:0"
     environment:
       MLDSAFAIL_REQUIRE_RESOURCE_FLOORS: "1"
+      MLDSAFAIL_WORKLOAD_SOCKET: ${WORKLOAD_SUPERVISOR_ROOT:?protected runtime required}/supervisor.sock
       MLDSAFAIL_DATABASE_URL: postgresql+psycopg://mldsafail:${POSTGRES_PASSWORD:?required}@db/mldsafail
       MLDSAFAIL_BENCHMARK_VERSION: ${MLDSAFAIL_BENCHMARK_VERSION:?explicit supported version required}
       MLDSAFAIL_WORKER_IMAGE: ${WORKER_IMAGE:?immutable image required}
@@ -71,7 +72,7 @@ services:
       MLDSAFAIL_EVALUATOR_SIGNING_KEY_PATH: ${PRODUCTION_EVALUATOR_ROOT:?required}/secrets/signing.key
       MLDSAFAIL_SKIP_MIGRATIONS: "1"
     volumes:
-      - ${ROOTLESS_DOCKER_SOCKET:?required}:/var/run/docker.sock
+      - ${WORKLOAD_SUPERVISOR_ROOT:?protected runtime required}:${WORKLOAD_SUPERVISOR_ROOT:?protected runtime required}:ro
       - ${PRODUCTION_EVALUATOR_ROOT:?required}:${PRODUCTION_EVALUATOR_ROOT:?required}
     read_only: true
     tmpfs: ["/tmp:size=128m,nosuid,nodev"]

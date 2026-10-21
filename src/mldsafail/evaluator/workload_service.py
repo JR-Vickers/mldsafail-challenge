@@ -18,6 +18,7 @@ import threading
 import time
 
 from mldsafail.evaluator.runtime_io import RuntimeTransport
+from mldsafail.evaluator.native_workload import publish, private_json, process_birth
 from mldsafail.evaluator.workload import HostGate, WorkloadBlocked, WorkloadSession
 from mldsafail.evaluator.workload_socket import PrivateSocket, SupervisorProtocol
 
@@ -55,6 +56,7 @@ def read_configuration(path):
 
 
 class HelperRuntime:
+    requires_heartbeat = True
     """Separate bounded helper channels for monitor and control threads.
 
     A timed-out helper cannot delay sampling or masquerade as successful cleanup.
@@ -62,14 +64,18 @@ class HelperRuntime:
     """
     def __init__(self, command):
         self.command = tuple(command)
-        self.transports = {name: RuntimeTransport(self.command) for name in ('monitor', 'control')}
+        self.transports = {name: RuntimeTransport(self.command) for name in ('monitor', 'control', 'cleanup')}
 
     def call(self, method, argument):
-        channel = 'monitor' if threading.current_thread().name == 'heavy-workload-monitor' else 'control'
+        name = threading.current_thread().name
+        channel = 'monitor' if name == 'heavy-workload-monitor' else 'cleanup' if name == 'heavy-sample-watchdog' else 'control'
         return self.transports[channel].call(method, argument)
 
     def identity(self): return self.call('identity', {})
+    def environment(self): return self.call('environment', {})
     def preflight(self, policy): return self.call('preflight', {'policy': asdict(policy)})
+    def prepare(self, state): return self.call('prepare', {'state': state})
+    def result(self, state): return self.call('result', {'state': state})
     def sample(self, state): return self.call('sample', {'state': state})
     def launch(self, state, specification):
         return self.call('launch', {'state': state, 'specification': specification})
@@ -105,6 +111,24 @@ def cleanup(gate):
     gate.reconcile()
 
 
+def remove_stale_socket(gate, path):
+    """Called only while holding the lifetime host lock, after verified cleanup."""
+    record_path = gate.root/'socket.json'
+    path = Path(path)
+    if not path.exists(): return
+    record = private_json(record_path)
+    info = path.lstat()
+    if (not stat.S_ISSOCK(info.st_mode) or record['path'] != str(path) or
+            (record['device'], record['inode']) != (info.st_dev, info.st_ino)):
+        raise WorkloadBlocked('cleanup_socket_replaced')
+    try:
+        if process_birth(record['process']['pid']) == record['process']:
+            raise WorkloadBlocked('cleanup_supervisor_still_alive')
+    except FileNotFoundError:
+        pass
+    path.unlink()
+
+
 def serve(gate, path, roles, stop):
     protocol = SupervisorProtocol(gate, roles)
     session = None
@@ -113,6 +137,8 @@ def serve(gate, path, roles, stop):
         gate.pause('supervisor_restart')
     try:
         with PrivateSocket(path, protocol) as server:
+            publish(gate.root/'socket.json', dict(path=str(path), device=server.birth.st_dev, inode=server.birth.st_ino,
+                    process=process_birth(os.getpid()), supervisor_generation=gate.generation))
             notify('READY=1\nSTATUS=Scheduling requires reconciled ownership')
             while not stop.is_set():
                 if gate.state and gate.state['phase'] != 'complete' and not gate.state['paused']:
@@ -194,6 +220,7 @@ def main(argv=None):
     with HostGate(config['root'], runtime).locked() as gate:
         if args.action == 'cleanup':
             cleanup(gate)
+            remove_stale_socket(gate, config['socket'])
         else:
             serve(gate, config['socket'], config['roles'], stop)
     return 0
