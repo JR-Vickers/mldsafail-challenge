@@ -113,6 +113,7 @@ def test_queue_claim_creates_lease_and_transactional_transition(tmp_path):
         assert heartbeat(session, job.id, "wrong") is False
         assert heartbeat(session, job.id, "worker-1") is True
         job.lease_expires_at = job.heartbeat_at - timedelta(seconds=1); session.commit()
-        assert recover_stale_jobs(session) == (1, 0)
+        assert recover_stale_jobs(session) == (0, 0)
+        assert recover_stale_jobs(session, verified_stopped=lambda job: True) == (1, 0)
         assert job.status == "queued"
         assert session.get(Submission, submission.id).state == SubmissionState.QUEUED.value

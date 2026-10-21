@@ -69,10 +69,14 @@ def heartbeat(session: Session, job_id: str, worker_id: str, lease_seconds: int 
     session.commit(); return True
 
 
-def recover_stale_jobs(session: Session) -> tuple[int, int]:
+def recover_stale_jobs(session: Session, *, verified_stopped=None) -> tuple[int, int]:
+    # Expiry establishes loss of authority, never termination.
+    evaluation_transaction_lock(session)
     now = utcnow(); retried = failed = 0
     jobs = session.scalars(select(EvaluationJob).where(EvaluationJob.status.in_(["claimed", "running"]), EvaluationJob.lease_expires_at < now).with_for_update(skip_locked=True)).all()
     for job in jobs:
+        if verified_stopped is None or verified_stopped(job) is not True:
+            continue
         attempt = session.scalar(select(EvaluationAttempt).where(
             EvaluationAttempt.job_id == job.id, EvaluationAttempt.number == job.attempts))
         if attempt is not None:

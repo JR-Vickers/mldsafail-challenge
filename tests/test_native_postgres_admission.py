@@ -111,7 +111,8 @@ def test_native_serialized_claim_and_stale_owner_fencing(database):
         old_owner = job.lease_owner
         job.lease_expires_at = utcnow() - timedelta(seconds=1)
         session.commit()
-        assert recover_stale_jobs(session) == (1, 0)
+        assert recover_stale_jobs(session) == (0, 0)
+        assert recover_stale_jobs(session, verified_stopped=lambda job: True) == (1, 0)
         assert not heartbeat(session, job.id, old_owner)
         replacement = claim_job(session, 'new-owner')
         assert replacement.id == job.id and replacement.attempts == 2
