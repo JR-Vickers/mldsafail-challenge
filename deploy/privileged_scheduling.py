@@ -164,7 +164,8 @@ def _collect(collector_hash, raw_stream, reviewed_paths=()):
                 collector_sha256=collector_hash, sections=sections, paths=paths,
                 reviewed_paths=list(reviewed_paths), complete=not expired() and
                 all('error' not in p for p in paths) and
-                all(not r['truncated'] and (r['error'] is None or
+                all(not r['truncated'] and ((r['error'] is None and
+                    (r.get('returncode') == 0 or r.get('no_crontab') is True and r.get('returncode') == 1)) or
                     (name == 'at_queue' and r['error'] == 'FileNotFoundError'))
                     for name, r in sections.items()))
 

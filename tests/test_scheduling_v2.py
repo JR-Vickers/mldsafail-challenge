@@ -144,3 +144,14 @@ def test_collection_deadline_is_incomplete(monkeypatch):
         raise collector.CollectionDeadline('collection_deadline')
     monkeypatch.setattr(collector, '_collect', interrupted)
     assert collector.collect('hash', io.BytesIO())['complete'] is False
+
+
+def test_nonzero_observation_cannot_claim_complete(monkeypatch):
+    monkeypatch.setattr(collector, 'ROOTS', ())
+    monkeypatch.setattr(collector, 'SECTIONS', {'system_units': ['systemctl']})
+    def denied(command, stdout, stderr, **kwargs):
+        stderr.write(b'Access denied')
+        return type('Result', (), {'returncode': 1})()
+    monkeypatch.setattr(collector.subprocess, 'run', denied)
+    result = collector.collect('hash', io.BytesIO())
+    assert result['complete'] is False

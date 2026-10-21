@@ -11,6 +11,7 @@ import time
 
 from deploy.protected_epoch import make_fence
 from deploy.workload_deployment import inspected_commands
+from deploy.workload_native_protocol import bind, claim
 from mldsafail.evaluator.native_workload import birth, command, private_json, process_birth, publish, require, values
 from mldsafail.evaluator.workload_client import WorkloadClient
 from mldsafail.evaluator.workload import WorkloadBlocked
@@ -20,7 +21,9 @@ from mldsafail.evaluator.envelope import canonical_payload
 def execute(packet_path, authorization_path):
     require(sys.platform == 'linux', 'native_acceptance_requires_linux')
     raw = Path(packet_path).read_bytes(); packet = private_json(packet_path)
+    authority_raw = Path(authorization_path).read_bytes()
     authority = private_json(authorization_path)
+    require(authority == json.loads(authority_raw), 'native_authority_changed')
     require(authority.get('purpose') == 'native_workload_control_only' and authority.get('authorized_by') == 'owner' and
             authority.get('packet_sha256') == hashlib.sha256(raw).hexdigest() and
             0 <= time.time()-authority.get('time', 0) < 180, 'native_acceptance_authority_missing')
@@ -46,13 +49,18 @@ def execute(packet_path, authorization_path):
             native['roles']['inert']['authorization'] == str(Path(authorization_path).absolute()), 'native_acceptance_configuration_changed')
     for name, expected in inspection['release_files'].items():
         require(hashlib.sha256(Path(name).read_bytes()).hexdigest() == expected, 'native_acceptance_release_changed')
+    protocol = bind(packet, authority)
+    claim(authorization_path, protocol, expected_sha256=hashlib.sha256(authority_raw).hexdigest(), journal_root=native['root'])
     client = WorkloadClient(inspection['socket']['path'], inputs['client_journal'])
-    deadline = time.monotonic()+180
+    packet_deadline = time.monotonic()+protocol['timeout_seconds']
+    deadline = packet_deadline
     results = []
     fence = None
     before = None
     try:
-        for case in ('lifecycle', 'parent_oom', 'supervisor_death'):
+        for planned in protocol['sequence']:
+            case = planned['case']
+            deadline = min(packet_deadline, time.monotonic()+planned['seconds'])
             require(time.monotonic() < deadline, 'native_acceptance_deadline')
             state = client.status()
             if state and state['paused']:
@@ -115,6 +123,7 @@ def execute(packet_path, authorization_path):
                         require(client.status()['paused'], 'native_control_unexpected_rejection')
                 time.sleep(.05)
             require(state['phase'] == 'cleaned' or client.status()['phase'] == 'postflight', 'native_cleanup_not_verified')
+            require(time.monotonic() < deadline, 'native_acceptance_deadline')
             record = private_json(Path(native['root'])/(client.token+'.native.json'))
             scope = Path(record['scope']['path'])
             require(birth(scope) == record['scope'] and values(scope/'cgroup.events')['populated'] == 0,
@@ -128,22 +137,33 @@ def execute(packet_path, authorization_path):
             if case == 'parent_oom':
                 require(fixture_events['oom_kill'] > fixture_record['before']['oom_kill'] and
                         client.status()['reason'] == 'operation_oom', 'native_parent_oom_not_observed')
+            require(time.monotonic() < deadline, 'native_acceptance_deadline')
             fixture_path.rmdir()
             results.append(dict(fixture_events=fixture_events, case=case, workload_id=client.token, state=client.status(), scope=record['scope'],
                                 retained_before=before, retained_after=after, monotonic=time.monotonic()))
             if case == 'lifecycle':
                 binding = dict(disposition='native_control_fixture', case=case)
+                require(time.monotonic() < deadline, 'native_acceptance_deadline')
                 client.mutation('commit_intent', binding=binding); client.acknowledge(binding)
+            require(time.monotonic() < deadline, 'native_acceptance_deadline')
         # Native receipt covers these three actual fixtures only. Other controls
         # still need their separately reviewed local/native records; this never
         # manufactures a complete v4 operational-controls receipt.
-        publish(Path(inputs['result_receipt']), dict(schema='mldsafail.native-workload-controls.v1',
-                packet_sha256=authority['packet_sha256'], native_configuration_sha256=authority['native_configuration_sha256'],
-                cases=results, retained_before=before, retained_after=client.environment()['retained'],
-                scheduling_restored=False, elapsed_seconds=180-(deadline-time.monotonic())))
+        require(time.monotonic() < packet_deadline, 'native_acceptance_deadline')
         client.mutation('pause')
+        final_state = client.status()
+        require(final_state['paused'] is True and final_state['phase'] in ('cleaned', 'complete'),
+                'native_final_pause_not_verified')
         fence.resources_stopped(lambda: client.status()['phase'] in ('cleaned', 'complete'))
         fence.release(); fence = None
+        require(time.monotonic() < packet_deadline, 'native_acceptance_deadline')
+        retained_after = client.environment()['retained']
+        require(retained_after == before, 'native_retained_services_changed')
+        publish(Path(inputs['result_receipt']), dict(schema='mldsafail.native-workload-controls.v1',
+                packet_sha256=authority['packet_sha256'], native_configuration_sha256=authority['native_configuration_sha256'],
+                cases=results, retained_before=before, retained_after=retained_after,
+                scheduling_restored=False, paused=True,
+                elapsed_seconds=protocol['timeout_seconds']-(packet_deadline-time.monotonic()), protocol=protocol))
     finally:
         state = client.status()
         if state and state['workload_id'] == client.token and state['reference'].get('operation_id') == authority['operation_id'] and state['phase'] not in ('cleaned', 'postflight', 'commit_intent', 'committed', 'complete'):

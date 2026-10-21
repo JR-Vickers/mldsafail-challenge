@@ -10,6 +10,7 @@ from deploy.workload_controls import SCENARIOS
 from deploy.workload_deployment import inspected_commands, REQUIRED
 from deploy.workload_preparation import bootstrap_commands, installed_commands
 from deploy.workload_evidence import evidence_matrix
+from deploy.workload_native_protocol import DEFAULT_SEQUENCE
 
 FILES = (
     'src/mldsafail/evaluator/workload.py',
@@ -39,7 +40,8 @@ def prepare(root, inspection=None, *, stage="bootstrap", bootstrap=None):
                     for p in (root/folder).rglob('*.py')} | {'pyproject.toml', 'README.md', 'alembic.ini'} | set(FILES) | {str(path.relative_to(root)) for path in (root/'src/mldsafail/evaluator').glob('*.py')} |
                    {'deploy/investigation_docker.py', 'deploy/workload_controls.py', 'deploy/workload_units.py',
                     'deploy/workload_deployment.py', 'deploy/workload_preparation.py', 'deploy/workload_evidence.py',
-                    'scripts/workload_host_inspection.py', 'scripts/prepare_workload_packet.py', 'deploy/protected_epoch.py', 'compose.production.yaml',
+                    'deploy/workload_release.py', 'deploy/workload_schedule_v3.py', 'deploy/workload_native_protocol.py',
+                    'scripts/workload_host_inspection.py', 'scripts/workload_owner_collection.py', 'deploy/privileged_scheduling.py', 'scripts/prepare_workload_packet.py', 'deploy/protected_epoch.py', 'compose.production.yaml',
                     'deploy/start-coordinator.sh', 'scripts/production_epoch_operation.py', 'deploy/workload_inert.py',
                     'deploy/workload_native_acceptance.py', 'Dockerfile.coordinator', 'uv.lock',
                     'src/mldsafail/benchmark_v050/execution.py', 'src/mldsafail/benchmark_v050/Dockerfile',
@@ -49,12 +51,15 @@ def prepare(root, inspection=None, *, stage="bootstrap", bootstrap=None):
     inspection_blockers = sorted(REQUIRED | ({'uid_mapping'} if stage == 'bootstrap' else {'installed'} if stage == 'installed' else set())) if inspection is None else []
     if inspection is not None:
         try:
-            if stage != 'legacy-v1':
+            if stage == 'bootstrap':
                 expected = {str(Path(inspection['installation']['release'])/name): hashlib.sha256((root/name).read_bytes()).hexdigest() for name in files}
                 if any(inspection['release_files'].get(name) != digest for name, digest in expected.items()):
                     raise ValueError('complete_frozen_release_manifest_required')
             if stage == 'bootstrap': deployment = bootstrap_commands(inspection)
-            elif stage == 'installed': deployment = installed_commands(inspection, bootstrap)
+            elif stage == 'installed':
+                # Installed validation is bound to the approved proposal. The
+                # operator checkout may have advanced since that release froze.
+                deployment = installed_commands(inspection, bootstrap)
             else: deployment = inspected_commands(inspection)
         except (KeyError, TypeError, ValueError, RuntimeError) as error:
             inspection_blockers = [str(error)]
@@ -69,7 +74,7 @@ def prepare(root, inspection=None, *, stage="bootstrap", bootstrap=None):
                 source_hashes={name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in files},
                 blockers=list(BLOCKERS), missing_inspection_fields=inspection_blockers, deployment=deployment,
                 native_acceptance=dict(purpose='control_only_existing_vps_no_epoch_no_capacity_no_listener_no_computational_resume',
-                    requires_separate_owner_authorization=True, timeout_seconds=180,
+                    requires_separate_owner_authorization=True, timeout_seconds=180, sequence=DEFAULT_SEQUENCE,
                     fixture_memory_bytes=64*1024**2, fixture_pids=32,
                     expected_cases=SCENARIOS, retained_services_must_match_before_after=True,
                     pressure_scope='disposable_fixture_cgroups_only', restoration='leave_computational_scheduling_paused'))
