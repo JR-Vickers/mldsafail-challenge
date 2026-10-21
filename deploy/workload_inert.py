@@ -24,7 +24,7 @@ def exercise(state, configuration, output, checkpoint):
     if case in ('parent_oom', 'supervisor_death'):
         # All pressure is inside this disposable child, never the heavy parent or
         # a retained-service ancestor. The supervisor remains in app.slice.
-        code = ('import time; x=bytearray(96*1024*1024); time.sleep(3)' if case == 'parent_oom'
+        code = ('import time; x=bytearray(64*1024*1024); time.sleep(3)' if case == 'parent_oom'
                 else 'import time; time.sleep(120)')
         def enter(): (fixture/'cgroup.procs').write_text(str(os.getpid()))
         process = subprocess.Popen([configuration['python'], '-c', code], preexec_fn=enter,

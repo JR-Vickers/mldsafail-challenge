@@ -37,7 +37,7 @@ def python_requirement(value):
     return True
 
 
-def compatible(tag):
+def compatible(tag, *, glibc_minor=17):
     parts = tag.split('-')
     if len(parts) != 3:
         return False
@@ -47,13 +47,13 @@ def compatible(tag):
     # target separately. A generic linux tag does not establish libc ABI.
     version = re.fullmatch(r'manylinux_2_(\d+)_x86_64', platform)
     native = platform in ('manylinux1_x86_64', 'manylinux2010_x86_64', 'manylinux2014_x86_64') or (
-        version is not None and int(version[1]) <= 17)
+        version is not None and int(version[1]) <= glibc_minor)
     interpreter = python == 'cp312' and abi in ('cp312', 'abi3', 'none')
     stable = re.fullmatch(r'cp3(\d+)', python)
     return universal or native and (interpreter or abi == 'abi3' and stable is not None and int(stable[1]) <= 12)
 
 
-def inspect_wheel(path, expected_sha256):
+def inspect_wheel(path, expected_sha256, *, glibc_minor=17):
     """Validate ZIP paths, metadata, tags and every RECORD payload hash."""
     from pathlib import Path
     path = Path(path)
@@ -82,7 +82,7 @@ def inspect_wheel(path, expected_sha256):
         require(not metadata.get('Requires-Python') or python_requirement(metadata['Requires-Python']),
                 'wheel_python_incompatible')
         tags = wheel.get_all('Tag', [])
-        require(tags and any(compatible(tag) for tag in tags), 'wheel_incompatible')
+        require(tags and any(compatible(tag, glibc_minor=glibc_minor) for tag in tags), 'wheel_incompatible')
         filename = path.name[:-4].split('-')
         require(len(filename) in (5, 6), 'wheel_filename_invalid')
         normalize = lambda value: re.sub(r'[-_.]+', '-', value).lower()

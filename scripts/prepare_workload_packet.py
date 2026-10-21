@@ -35,6 +35,8 @@ def prepare(root, inspection=None, *, stage="bootstrap", bootstrap=None):
     if stage not in ("bootstrap", "installed", "legacy-v1"):
         raise ValueError("unknown_deployment_stage")
     root = Path(root)
+    if inspection is not None and str(inspection.get('schema', '')).endswith('.v3'):
+        return prepare_v3(inspection, stage=stage, bootstrap=bootstrap)
     policy = ResourcePolicy()
     files = sorted({str(p.relative_to(root)) for folder in ('src', 'deploy', 'migrations')
                     for p in (root/folder).rglob('*.py')} | {'pyproject.toml', 'README.md', 'alembic.ini'} | set(FILES) | {str(path.relative_to(root)) for path in (root/'src/mldsafail/evaluator').glob('*.py')} |
@@ -94,10 +96,32 @@ def prepare(root, inspection=None, *, stage="bootstrap", bootstrap=None):
     return packet
 
 
+def prepare_v3(inspection, *, stage='bootstrap', bootstrap=None):
+    from deploy.workload_v3 import sha
+    deployment = None
+    blockers = []
+    try:
+        if stage == 'bootstrap': deployment = bootstrap_commands(inspection)
+        elif stage == 'installed': deployment = installed_commands(inspection, bootstrap)
+        else: raise ValueError('v3_legacy_stage_forbidden')
+    except (KeyError, TypeError, ValueError, RuntimeError) as error:
+        blockers = [str(error)]
+    manifest = inspection.get('manifest') if stage == 'bootstrap' else (bootstrap or {}).get('identities', {}).get('manifest')
+    return dict(schema='mldsafail.workload-deployment-review.v3',stage=stage,
+        purpose='offline_engineering_review_only',execution_authority=False,benchmark_version='0.5.0',
+        bootstrap=bootstrap if stage == 'installed' else None,deployment=deployment,
+        missing_inspection_fields=blockers,preparation_blockers=blockers,
+        execution_requirements=(deployment or {}).get('execution_requirements', []),
+        release=manifest,release_sha256=sha(manifest) if manifest else None,
+        source_hashes={name:row['sha256'] for name,row in (manifest or {}).get('files', {}).items()},
+        control_evidence_matrix=evidence_matrix())
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--release-output', type=Path, help='Optional exclusive canonical source-release artifact')
+    parser.add_argument('--public-release-output', type=Path, help='Exclusive redacted v3 manifest; excludes owner paths and private environment')
     parser.add_argument('--unit-output', type=Path, help='Optional exclusive directory for inspected unit files')
     parser.add_argument('--stage', choices=('bootstrap', 'installed', 'legacy-v1'), default='bootstrap')
     parser.add_argument('--bootstrap', type=Path, help='Exact prior v2 deployment bootstrap proposal for installed validation')
@@ -105,7 +129,7 @@ def main():
     args = parser.parse_args()
     inspection = json.loads(args.inspection.read_bytes()) if args.inspection else None
     bootstrap = json.loads(args.bootstrap.read_bytes()) if args.bootstrap else None
-    if bootstrap is not None and bootstrap.get('schema') == 'mldsafail.workload-deployment-review.v2':
+    if bootstrap is not None and bootstrap.get('schema') in ('mldsafail.workload-deployment-review.v2', 'mldsafail.workload-deployment-review.v3'):
         if bootstrap.get('stage') != 'bootstrap' or bootstrap.get('deployment') is None:
             parser.error('--bootstrap must contain a complete bootstrap proposal')
         bootstrap = bootstrap['deployment']
@@ -114,6 +138,12 @@ def main():
         with args.release_output.open('x') as stream:
             args.release_output.chmod(0o600)
             stream.write(json.dumps(packet['release'], sort_keys=True))
+    if args.public_release_output:
+        from deploy.workload_release import public_manifest
+        with args.public_release_output.open('x') as stream:
+            args.public_release_output.chmod(0o600)
+            json.dump(public_manifest(packet['release']), stream, sort_keys=True)
+            stream.write('\n')
     if args.unit_output:
         if packet['deployment'] is None: parser.error('--unit-output requires complete inspected identities')
         args.unit_output.mkdir(mode=0o700)

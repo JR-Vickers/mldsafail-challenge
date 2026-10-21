@@ -70,6 +70,9 @@ def scheduling_commands(record, uid):
 
 
 def bootstrap_commands(inspection, *, now=None):
+    if isinstance(inspection, dict) and inspection.get('schema') == 'mldsafail.workload-bootstrap-inspection.v3':
+        from deploy.workload_v3 import bootstrap
+        return bootstrap(inspection, now=now)
     require(type(inspection) is dict and set(inspection) == REQUIRED | {'uid_mapping'},
             'workload_bootstrap_inspection_incomplete')
     mapping = inspection['uid_mapping']
@@ -116,6 +119,9 @@ def bootstrap_commands(inspection, *, now=None):
 
 
 def installed_commands(inspection, proposal, *, now=None):
+    if isinstance(proposal, dict) and proposal.get('schema') == 'mldsafail.workload-bootstrap-proposal.v3':
+        from deploy.workload_v3 import installed
+        return installed(inspection, proposal, now=now)
     require(type(proposal) is dict and proposal.get('schema') == 'mldsafail.workload-bootstrap-proposal.v2' and
             proposal.get('stage') == 'bootstrap' and proposal.get('proposal_sha256') == sha(proposal['identities']),
             'workload_bootstrap_binding_changed')

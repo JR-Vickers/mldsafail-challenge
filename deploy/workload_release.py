@@ -31,6 +31,11 @@ def relative(name):
     return name
 
 
+def stable_stat(info):
+    return tuple(getattr(info, key) for key in ('st_dev', 'st_ino', 'st_mode', 'st_uid', 'st_gid',
+                                               'st_nlink', 'st_size', 'st_mtime_ns', 'st_ctime_ns'))
+
+
 def regular(root, name):
     """Refuse symlinks in every path component, including the root."""
     path = Path(root).absolute()
@@ -43,9 +48,9 @@ def regular(root, name):
     before = path.lstat()
     require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1, 'release_not_exclusive_regular')
     with path.open('rb') as stream:
-        require(os.fstat(stream.fileno()) == before, 'release_changed')
+        require(stable_stat(os.fstat(stream.fileno())) == stable_stat(before), 'release_changed')
         data = stream.read()
-        require(os.fstat(stream.fileno()) == before and path.lstat() == before, 'release_changed')
+        require(stable_stat(os.fstat(stream.fileno())) == stable_stat(before) and stable_stat(path.lstat()) == stable_stat(before), 'release_changed')
     return data, stat.S_IMODE(before.st_mode)
 
 
@@ -54,7 +59,10 @@ def validate(manifest):
                               'worker_environment', 'evaluator_fingerprint', 'coordinator_image',
                               'configurations', 'dependencies', 'units'}, 'release_manifest_fields')
     require(manifest['schema'] == SCHEMA and manifest['benchmark_version'] == '0.5.0', 'release_schema')
-    require(manifest['interpreter'] == {'implementation': 'cpython', 'version': '3.12',
+    interpreter = dict(manifest['interpreter'])
+    minimum_glibc = interpreter.pop('minimum_glibc', '2.17')
+    require(minimum_glibc in ('2.17', '2.28'), 'release_glibc_baseline')
+    require(interpreter == {'implementation': 'cpython', 'version': '3.12',
                                       'platform': 'linux', 'architecture': 'x86_64'}, 'release_interpreter')
     require(re.fullmatch('sha256:[a-f0-9]{64}', manifest['coordinator_image']) is not None and
             re.fullmatch('[a-f0-9]{64}', manifest['evaluator_fingerprint']) is not None,
@@ -107,7 +115,7 @@ def verify(root, manifest):
         require(record == dict(sha256=digest(data), bytes=len(data), mode=mode), 'release_content_changed:'+name)
     from deploy.workload_wheels import inspect_wheel
     for name in manifest['dependencies']:
-        inspect_wheel(root/name, manifest['files'][name]['sha256'])
+        inspect_wheel(root/name, manifest['files'][name]['sha256'], glibc_minor=int(manifest['interpreter'].get('minimum_glibc', '2.17').split('.')[1]))
     return digest(frozen)
 
 
@@ -133,7 +141,7 @@ def freeze(source, destination, *, source_names, generated_units, wheels, bindin
         require(key not in payload, 'release_duplicate_path')
         data, _ = regular(wheel.parent, wheel.name)
         from deploy.workload_wheels import inspect_wheel
-        inspect_wheel(wheel, digest(data))
+        inspect_wheel(wheel, digest(data), glibc_minor=int(bindings['interpreter'].get('minimum_glibc', '2.17').split('.')[1]))
         payload[key] = (data, 0o600)
     manifest = dict(bindings, schema=SCHEMA, benchmark_version='0.5.0',
                     files={name: dict(sha256=digest(data), bytes=len(data), mode=mode)
@@ -199,3 +207,16 @@ def freeze_runtime(source, destination, *, generated_units, wheels, bindings):
     """Freeze the full inclusion policy; callers cannot omit runtime modules."""
     return freeze(source, destination, source_names=runtime_sources(source),
                   generated_units=generated_units, wheels=wheels, bindings=bindings)
+
+
+def public_manifest(manifest):
+    """Redact owner-private paths and environment details for review artifacts."""
+    validate(manifest)
+    return dict(schema='mldsafail.workload-public-release.v3',benchmark_version=manifest['benchmark_version'],
+        private_manifest_sha256=digest(canonical(manifest)),execution_authority=False,
+        interpreter=manifest['interpreter'],coordinator_image=manifest['coordinator_image'],
+        worker_image=manifest['worker_environment']['image_id'],
+        worker_environment_sha256=digest(canonical(manifest['worker_environment'])),
+        evaluator_fingerprint=manifest['evaluator_fingerprint'],
+        configurations={role:dict(sha256=row['sha256']) for role,row in manifest['configurations'].items()},
+        files=manifest['files'],dependencies=manifest['dependencies'],units=manifest['units'])
