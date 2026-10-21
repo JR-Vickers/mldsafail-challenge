@@ -1,0 +1,298 @@
+{
+  "benchmark_version": "0.5.0",
+  "blockers": [
+    "separate_owner_authorization_for_native_control_acceptance_absent",
+    "current_host_scheduling_delegation_services_socket_and_rollback_inspection_required",
+    "matching_installed_runtime_configuration_native_acceptance_receipt_required",
+    "matching_changed_evaluator_release_and_configuration_review_required"
+  ],
+  "capacity_disposition": "unmeasured_capacity",
+  "deployment": null,
+  "execution_authority": false,
+  "missing_inspection_fields": [
+    "acceptance_inputs",
+    "boot_id",
+    "captured_at",
+    "configuration_files",
+    "daemon_id",
+    "delegation",
+    "hostname",
+    "installation",
+    "original_settings",
+    "output_volume",
+    "release_files",
+    "retained_services",
+    "rollback",
+    "scheduling",
+    "schema",
+    "socket",
+    "uid",
+    "worker_environment"
+  ],
+  "native_acceptance": {
+    "expected_cases": {
+      "administrative_routing": {
+        "host_gate_before_fence": {
+          "fence_order": 2,
+          "host_gate_order": 1
+        },
+        "queued_blocks_admin": {
+          "controller_launches": 0,
+          "queued": 1
+        }
+      },
+      "ancestor_limits": {
+        "ancestor_limit_change": {
+          "paused": true,
+          "results": 0
+        },
+        "parent_oom": {
+          "oom_delta": 1,
+          "paused": true,
+          "results": 0
+        }
+      },
+      "bounded_output": {
+        "generation_quota_exhaustion": {
+          "paused": true,
+          "results": 0
+        },
+        "log_exhaustion": {
+          "paused": true,
+          "results": 0
+        }
+      },
+      "common_cgroup": {
+        "controller_worker_descendants": {
+          "inspected_processes": 3,
+          "outside_heavy": 0
+        }
+      },
+      "continuous_monitor": {
+        "stale_sample": {
+          "paused": true,
+          "results": 0
+        },
+        "stuck_control_io": {
+          "monitor_continued": true,
+          "results": 0
+        }
+      },
+      "coordinator_routing": {
+        "deferred_admission": {
+          "attempts_after": 0,
+          "attempts_before": 0
+        },
+        "result_after_cleanup": {
+          "resources_at_commit": 0,
+          "results": 1
+        }
+      },
+      "delegation": {
+        "inspected_limits": {
+          "cpu_max": "100000 100000",
+          "pids_max": 448,
+          "swap_max": 0
+        },
+        "missing_controller": {
+          "attempts": 0,
+          "launches": 0
+        }
+      },
+      "durable_launch_intent": {
+        "lost_create_ack": {
+          "create_calls": 1,
+          "replay_create_calls": 0
+        },
+        "lost_start_ack": {
+          "replay_start_calls": 0,
+          "start_calls": 1
+        }
+      },
+      "explicit_resume": {
+        "failed_preflight": {
+          "resumed": false
+        },
+        "fresh_preflight": {
+          "resources": 0,
+          "resumed": true
+        }
+      },
+      "inspected_births": {
+        "container_restart": {
+          "paused": true,
+          "results": 0
+        },
+        "daemon_replacement": {
+          "paused": true,
+          "replacement_kills": 0
+        }
+      },
+      "native_linux_acceptance": {
+        "inert_lifecycle_and_cleanup": {
+          "emulated": false,
+          "fixture_resources_after": 0,
+          "retained_services_unchanged": true
+        }
+      },
+      "persistent_pause": {
+        "supervisor_sigkill": {
+          "paused": true,
+          "restart_launches": 0
+        }
+      },
+      "scheduling_exclusion": {
+        "retained_trigger_inventory": {
+          "unclassified": 0,
+          "unexpected_active": 0
+        }
+      },
+      "shared_host_gate": {
+        "cross_database_and_admin": {
+          "acquired": 1,
+          "callers": 3,
+          "overlap": 0
+        }
+      },
+      "verified_cleanup": {
+        "empty_scope_and_absent_containers": {
+          "containers": 0,
+          "populated": 0
+        },
+        "surviving_worker": {
+          "ownership_released": false,
+          "results": 0
+        }
+      },
+      "zero_pending_fence": {
+        "queued_claimed_running": {
+          "blocked_states": [
+            "queued",
+            "claimed",
+            "running"
+          ],
+          "launches": 0
+        }
+      }
+    },
+    "fixture_memory_bytes": 67108864,
+    "fixture_pids": 32,
+    "pressure_scope": "disposable_fixture_cgroups_only",
+    "purpose": "control_only_existing_vps_no_epoch_no_capacity_no_listener_no_computational_resume",
+    "requires_separate_owner_authorization": true,
+    "restoration": "leave_computational_scheduling_paused",
+    "retained_services_must_match_before_after": true,
+    "timeout_seconds": 180
+  },
+  "proposed_operation_schema": "mldsafail.production-operation.v4",
+  "purpose": "offline_engineering_review_only",
+  "release": {
+    "benchmark_version": "0.5.0",
+    "resource_policy_sha256": "d0952828294b8f503f72ffa7f7e1b5e13d36a51a2a826fa8e4fa3318a0ee954e",
+    "schema": "mldsafail.workload-source-release.v1",
+    "source_hashes": {
+      "Dockerfile.coordinator": "85f18dc7625ca385619bf0a79391bb612efa66cc15a5aba1f59cdeeab6c268dc",
+      "compose.production.yaml": "e539bad7739c13e3ee3716cb724896a6b6547f1d817668ede4871a04c808541e",
+      "deploy/investigation_docker.py": "3af9b4068f86931d1a50f08446dee4e73d635319276df518d388824dbb599197",
+      "deploy/production_maintenance.py": "1e57411d96b10e136a6b4848894ce52bb9827e76b7817be132a71d211b36979d",
+      "deploy/protected_epoch.py": "e937212e7933f3fbd46c1a0350b9830a22eb7d94a0a495209557268c34c2652c",
+      "deploy/start-coordinator.sh": "50d2973b37978628de4e0274759ec8ca2ea7acc7bf8c7ad7698268f086845567",
+      "deploy/worker-linux-amd64.requirements.txt": "35890cf7c5ed544124dc4cc86269009f11d029a5388d1627b6899e986650c1f0",
+      "deploy/workload_controls.py": "75a3a8b581af31703c5ab12cb7f13fc5822fed2338d0b54f78d07a5ae6d7bb75",
+      "deploy/workload_deployment.py": "78c29db18c99913de14650907544113ffdef0e563770f9b332d79e2815929b8c",
+      "deploy/workload_inert.py": "be7b515ffb31b4c1bd2de0bc9ced18f83be7d4dd7958242d8ae396ed2d74a664",
+      "deploy/workload_native_acceptance.py": "df3b348918f69e3c9ba408be90ebb96b75cca4a485e082b39c759388507043a8",
+      "deploy/workload_policy.py": "b66655e91fcd06d91a505aeea00c9efb477128c1927b146506a031e6d2d21e9e",
+      "deploy/workload_units.py": "4ad97404851cad738f814a9285a6e483264b5fbd9f09fbb17cf7bfedd819aeec",
+      "docs/MVP_LAUNCH_PREPARATION.md": "70914ad011d4660c68a1fdc0ab77b62e8383fa18c064e37ecb3d3afe1d5c1788",
+      "docs/PLAN.md": "8a6a958a2b742c15fb2d5a7d535a74028f29bf2e108e56b41cdc2291c75e6def",
+      "docs/PRODUCTION_EPOCH_PROCEDURE.md": "1e9ae502d9df6c0716a23408c10b72412e9e93576c0d158385f0c57731b01b5a",
+      "docs/SINGLE_WORKLOAD_DEPLOYMENT.md": "a7e4fd3360861bf9bbaa634610141f51f86a6c6ecb700c63ec6ac6799c937414",
+      "scripts/production_epoch_operation.py": "c05ffb31a27aec7486a87bcff7391e3f736382c25795bcb5df6080ffbde0704a",
+      "scripts/workload_linux_fixture.py": "adfd043c214a28915967608babe941bb4dfb4fab46d7652dc552a0fcfc7a0d67",
+      "src/mldsafail/benchmark_v050/Dockerfile": "7126a5314d57a846f53944011263c1ef0b44c32a48cff2d01728f7291d209e46",
+      "src/mldsafail/benchmark_v050/execution.py": "7673c6b8fc38466a6c030d58a9b62d5d5d457a54cff526656eaa04cad9a43658",
+      "src/mldsafail/evaluator/__init__.py": "8c60e425a74641d914df6bc08d6579273aefe8d297ee81709c3f0d381cfd5223",
+      "src/mldsafail/evaluator/build_mlwe.py": "b11ab5189d1d06a3463e11e256d839aa22daaa94b541ed2d4afa838013c2cac9",
+      "src/mldsafail/evaluator/coordinator.py": "e0276bdb6d0720a398c26b2300115187ea9057e51efdd086950127c56e11d00d",
+      "src/mldsafail/evaluator/dispatcher.py": "2e0779cab8a70283569b8ea3ebb00e57135c28ebfbe9b9cb1405a8f6fc270691",
+      "src/mldsafail/evaluator/docker.py": "7032779cd8a0492d0b1a815b000bbc27ff43fcd6f2574e6e144845e4600d64f8",
+      "src/mldsafail/evaluator/envelope.py": "1322f3143f1db4996f162170a138ee7b4c32916cb2627daed943371a09cfcdfb",
+      "src/mldsafail/evaluator/mlwe.py": "652aa9b34a40bce62eff459c16b95889cba8795a324bd828e0d76b126acce4ab",
+      "src/mldsafail/evaluator/native_workload.py": "d961aa3def864694ecffc93fdccadef4c4e0120ac37fb2a5583e4021f6c0e822",
+      "src/mldsafail/evaluator/queue.py": "89da69cf0380856719d169f70a8c9b646a1a1dab1ba28a0ccc517787f4628e56",
+      "src/mldsafail/evaluator/resources.py": "e66ba176712c3e72823a7da7ae3bf87e25a4870b3ad9a558b4f47351c130ceaf",
+      "src/mldsafail/evaluator/runtime_io.py": "3526ce578e388bc0e67c472936ba1d8c704a51ad0c4128c4b01d5489a8fefecd",
+      "src/mldsafail/evaluator/solver_child.py": "c3c5f4e43f3c0c6e59ba08899b12e3a9092e4f4c24575fc4e8b8d7b5f4cd971e",
+      "src/mldsafail/evaluator/source.py": "bbeb956af2515e54182ac4ee06e57fe00e42e045dc193bf6402f2409a489f132",
+      "src/mldsafail/evaluator/worker.py": "b492ae8fa937a51272d7c2e3cce7ce73d16441c813b970f74f5ec50ac14cb060",
+      "src/mldsafail/evaluator/workload.py": "da15c7d35aa32d97e39d954c59a0d59a7d71e859ba64c106acc04cb66db59af3",
+      "src/mldsafail/evaluator/workload_client.py": "00da66a7da757810efe2ca5035f07c9931d5a7bbb1caa4949c9e3dfc9ba90f11",
+      "src/mldsafail/evaluator/workload_controller.py": "deb05b73ec7b294176357dce6286be5e4a990d51133651f004c8598fabf3b9d4",
+      "src/mldsafail/evaluator/workload_router.py": "59bd93b58b5f3cdd25b49eabdbe368eea3aa4002427e2bbbb3cba20b83f577c5",
+      "src/mldsafail/evaluator/workload_service.py": "447e92326c29bf423200b1be22fc44192dc83b48b911e09dad189cb7b0697e6f",
+      "src/mldsafail/evaluator/workload_socket.py": "abda4ebd02bbbf10c33047a1e5388de86ae28523e0f1efc5a94b7298b201c6a0",
+      "uv.lock": "58d4165666f7461539ed348cf696a00524c0f356b7d23f874c2e4e2bb5cea329"
+    }
+  },
+  "release_sha256": "fa9b25fab4872635f325ccc666556a88e11498d4172804a67f087cb48ed8141d",
+  "resource_policy": {
+    "available_floor": 268435456,
+    "cpu_max": "100000 100000",
+    "disk_floor": 5368709120,
+    "generation_max": 1073741824,
+    "interval": 0.25,
+    "log_max": 134217728,
+    "pids_max": 448,
+    "reserve": 1073741824,
+    "swap_max": 0,
+    "version": "mldsafail.resource-policy.v1"
+  },
+  "resource_policy_sha256": "d0952828294b8f503f72ffa7f7e1b5e13d36a51a2a826fa8e4fa3318a0ee954e",
+  "schema": "mldsafail.workload-deployment-review.v1",
+  "source_hashes": {
+    "Dockerfile.coordinator": "85f18dc7625ca385619bf0a79391bb612efa66cc15a5aba1f59cdeeab6c268dc",
+    "compose.production.yaml": "e539bad7739c13e3ee3716cb724896a6b6547f1d817668ede4871a04c808541e",
+    "deploy/investigation_docker.py": "3af9b4068f86931d1a50f08446dee4e73d635319276df518d388824dbb599197",
+    "deploy/production_maintenance.py": "1e57411d96b10e136a6b4848894ce52bb9827e76b7817be132a71d211b36979d",
+    "deploy/protected_epoch.py": "e937212e7933f3fbd46c1a0350b9830a22eb7d94a0a495209557268c34c2652c",
+    "deploy/start-coordinator.sh": "50d2973b37978628de4e0274759ec8ca2ea7acc7bf8c7ad7698268f086845567",
+    "deploy/worker-linux-amd64.requirements.txt": "35890cf7c5ed544124dc4cc86269009f11d029a5388d1627b6899e986650c1f0",
+    "deploy/workload_controls.py": "75a3a8b581af31703c5ab12cb7f13fc5822fed2338d0b54f78d07a5ae6d7bb75",
+    "deploy/workload_deployment.py": "78c29db18c99913de14650907544113ffdef0e563770f9b332d79e2815929b8c",
+    "deploy/workload_inert.py": "be7b515ffb31b4c1bd2de0bc9ced18f83be7d4dd7958242d8ae396ed2d74a664",
+    "deploy/workload_native_acceptance.py": "df3b348918f69e3c9ba408be90ebb96b75cca4a485e082b39c759388507043a8",
+    "deploy/workload_policy.py": "b66655e91fcd06d91a505aeea00c9efb477128c1927b146506a031e6d2d21e9e",
+    "deploy/workload_units.py": "4ad97404851cad738f814a9285a6e483264b5fbd9f09fbb17cf7bfedd819aeec",
+    "docs/MVP_LAUNCH_PREPARATION.md": "70914ad011d4660c68a1fdc0ab77b62e8383fa18c064e37ecb3d3afe1d5c1788",
+    "docs/PLAN.md": "8a6a958a2b742c15fb2d5a7d535a74028f29bf2e108e56b41cdc2291c75e6def",
+    "docs/PRODUCTION_EPOCH_PROCEDURE.md": "1e9ae502d9df6c0716a23408c10b72412e9e93576c0d158385f0c57731b01b5a",
+    "docs/SINGLE_WORKLOAD_DEPLOYMENT.md": "a7e4fd3360861bf9bbaa634610141f51f86a6c6ecb700c63ec6ac6799c937414",
+    "scripts/production_epoch_operation.py": "c05ffb31a27aec7486a87bcff7391e3f736382c25795bcb5df6080ffbde0704a",
+    "scripts/workload_linux_fixture.py": "adfd043c214a28915967608babe941bb4dfb4fab46d7652dc552a0fcfc7a0d67",
+    "src/mldsafail/benchmark_v050/Dockerfile": "7126a5314d57a846f53944011263c1ef0b44c32a48cff2d01728f7291d209e46",
+    "src/mldsafail/benchmark_v050/execution.py": "7673c6b8fc38466a6c030d58a9b62d5d5d457a54cff526656eaa04cad9a43658",
+    "src/mldsafail/evaluator/__init__.py": "8c60e425a74641d914df6bc08d6579273aefe8d297ee81709c3f0d381cfd5223",
+    "src/mldsafail/evaluator/build_mlwe.py": "b11ab5189d1d06a3463e11e256d839aa22daaa94b541ed2d4afa838013c2cac9",
+    "src/mldsafail/evaluator/coordinator.py": "e0276bdb6d0720a398c26b2300115187ea9057e51efdd086950127c56e11d00d",
+    "src/mldsafail/evaluator/dispatcher.py": "2e0779cab8a70283569b8ea3ebb00e57135c28ebfbe9b9cb1405a8f6fc270691",
+    "src/mldsafail/evaluator/docker.py": "7032779cd8a0492d0b1a815b000bbc27ff43fcd6f2574e6e144845e4600d64f8",
+    "src/mldsafail/evaluator/envelope.py": "1322f3143f1db4996f162170a138ee7b4c32916cb2627daed943371a09cfcdfb",
+    "src/mldsafail/evaluator/mlwe.py": "652aa9b34a40bce62eff459c16b95889cba8795a324bd828e0d76b126acce4ab",
+    "src/mldsafail/evaluator/native_workload.py": "d961aa3def864694ecffc93fdccadef4c4e0120ac37fb2a5583e4021f6c0e822",
+    "src/mldsafail/evaluator/queue.py": "89da69cf0380856719d169f70a8c9b646a1a1dab1ba28a0ccc517787f4628e56",
+    "src/mldsafail/evaluator/resources.py": "e66ba176712c3e72823a7da7ae3bf87e25a4870b3ad9a558b4f47351c130ceaf",
+    "src/mldsafail/evaluator/runtime_io.py": "3526ce578e388bc0e67c472936ba1d8c704a51ad0c4128c4b01d5489a8fefecd",
+    "src/mldsafail/evaluator/solver_child.py": "c3c5f4e43f3c0c6e59ba08899b12e3a9092e4f4c24575fc4e8b8d7b5f4cd971e",
+    "src/mldsafail/evaluator/source.py": "bbeb956af2515e54182ac4ee06e57fe00e42e045dc193bf6402f2409a489f132",
+    "src/mldsafail/evaluator/worker.py": "b492ae8fa937a51272d7c2e3cce7ce73d16441c813b970f74f5ec50ac14cb060",
+    "src/mldsafail/evaluator/workload.py": "da15c7d35aa32d97e39d954c59a0d59a7d71e859ba64c106acc04cb66db59af3",
+    "src/mldsafail/evaluator/workload_client.py": "00da66a7da757810efe2ca5035f07c9931d5a7bbb1caa4949c9e3dfc9ba90f11",
+    "src/mldsafail/evaluator/workload_controller.py": "deb05b73ec7b294176357dce6286be5e4a990d51133651f004c8598fabf3b9d4",
+    "src/mldsafail/evaluator/workload_router.py": "59bd93b58b5f3cdd25b49eabdbe368eea3aa4002427e2bbbb3cba20b83f577c5",
+    "src/mldsafail/evaluator/workload_service.py": "447e92326c29bf423200b1be22fc44192dc83b48b911e09dad189cb7b0697e6f",
+    "src/mldsafail/evaluator/workload_socket.py": "abda4ebd02bbbf10c33047a1e5388de86ae28523e0f1efc5a94b7298b201c6a0",
+    "uv.lock": "58d4165666f7461539ed348cf696a00524c0f356b7d23f874c2e4e2bb5cea329"
+  },
+  "state": "maintenance_proposal"
+}
