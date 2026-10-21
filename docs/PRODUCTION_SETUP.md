@@ -17,6 +17,14 @@ Separate native transport/fence/cleanup correctness checks and the audited
 production epoch remain required. No provisioning, transfer, service change or
 epoch is authorized by this decision.
 
+The next engineering work is [single-workload scheduling and host protection](PLAN.md#next-engineering-phase--single-workload-scheduling-and-host-protection)
+on the existing VPS: shared evaluation/admin exclusion, resource-aware launch,
+bounded consumption/admission and termination-safe recovery. Prepare and verify
+the reviewed operational-policy replacement for the epoch capacity guard before
+requesting execution approval. Dated measurement agendas below do not restore the
+cancelled capacity investigation. Existing epoch, maintenance and transfer guards
+remain in force.
+
 Owner update, 2026-10-19: the rehearsal-C diagnostic investigation is abandoned.
 Do not resume its preflights, transfers, generations or corrective research.
 Current launch preparation is in [MVP_LAUNCH_PREPARATION.md](MVP_LAUNCH_PREPARATION.md)

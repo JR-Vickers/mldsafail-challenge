@@ -37,6 +37,55 @@ Separate native transport, fence and cleanup correctness checks, the audited
 production epoch and the final participant journey remain launch requirements.
 This decision authorizes no epoch, transfer, provisioning or VPS service change.
 
+### Next engineering phase — single-workload scheduling and host protection
+
+Owner direction, 2026-10-21: use the existing VPS and $0 budget to prevent
+workloads piling up through queuing, exclusive execution and resource controls.
+This replaces the capacity-investigation workstream; it does not claim measured
+capacity or authorize deployment. Complete the following before epoch execution:
+
+- Enforce one heavy workload at a time across participant evaluations and
+  administrative epoch/reference operations. Preserve zero-pending maintenance
+  admission and scheduling exclusion; queued participant work is not permission
+  to enter maintenance. Cover alternate coordinators and restart owners.
+- Check host and effective ancestor resources before launch; leave accepted work
+  queued when resources are insufficient. Bound CPU, memory, PIDs, disk and output
+  consumption while reserving resources for retained web/database/proxy services.
+- Verify owned processes and containers have terminated before releasing workload
+  ownership. Lease expiry alone must not permit a replacement workload to overlap
+  the old one; ambiguous ownership or failed cleanup blocks subsequent launches.
+- Verify submission-rate and queue bounds, returning bounded admission failures
+  when full. Reuse existing admission controls rather than adding duplicate queues.
+
+Current source already serializes evaluation claims under a database transaction
+lock, checks resource floors and bounds admission. These are source observations,
+not certification of the deployed release. The current floor is 128 MiB available
+memory and 5 GiB free disk; it is not a reservation for the next workload. Stale
+lease recovery currently permits requeuing without proving worker termination.
+Review and close that gap, administrative-operation exclusion and deployed
+compatibility before claiming host-wide single-workload enforcement.
+
+Prepare a concrete operational policy and corresponding epoch-validator changes
+that replace the measured-capacity prerequisite, with explicit disclosure of
+unmeasured capacity. Until reviewed replacements are implemented and verified,
+the current capacity guard remains in force. Do not manufacture a passing
+measurement or add an unconditional bypass. Keep frozen 0.5.0 worker limits and
+score semantics: serialization prevents overlap but does not establish that a
+single workload fits. Record insufficient-resource failures honestly.
+
+Acceptance must cover competing coordinators, participant/admin contention,
+low resources, queue saturation, expired leases with surviving workers, restart
+interference and failed cleanup. Verify source and deployed identities separately;
+refresh execution evidence only for the concrete approved operation.
+
+The launch sequence is now: complete and verify these controls and the reviewed
+policy; prepare exact maintenance/transfer/restoration commands; obtain separate
+approvals for one production epoch and independent audit; finish production
+configuration; verify HTTPS/OAuth and one participant journey; finish minimum
+operations and present the owner rollout packet. Existing artifact and packaging
+evidence is reused. No replacement capacity experiment, paid infrastructure or
+benchmark-semantic change is part of this phase.
+
 
 Owner decision, 2026-10-19: abandon the rehearsal-C monitor/authentication/pacing
 investigation and review the remaining public-launch work. Do not resume its

@@ -17,6 +17,12 @@ Separate native transport/fence/cleanup correctness checks and the audited
 production epoch remain required. No provisioning, transfer, service change or
 epoch is authorized by this decision.
 
+The successor workstream is [single-workload scheduling and host protection](PLAN.md#next-engineering-phase--single-workload-scheduling-and-host-protection)
+on the existing VPS, not a replacement measurement experiment. It includes a
+reviewed operational-policy and validator replacement for the capacity-evidence
+prerequisite; existing guards remain in force until that work is implemented and
+verified. This retained protocol is not its execution procedure.
+
 Prepared 2026-10-20. **Historical preparation only; this proposal is cancelled.** This protocol
 is part of [item 4's maintenance prerequisites](acceptance/integration/maintenance-prerequisites-v8-20261020.md).
 The owner must approve the exact host, workload generation, resource delegation,

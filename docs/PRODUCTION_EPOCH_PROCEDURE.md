@@ -23,6 +23,30 @@ separate [operation entry point](../scripts/production_epoch_operation.py) provi
 `prepare`, `execute`, `audit` and `finalize`. The rehearsal-only entry point and its
 `disposable_rehearsal_only` guard remain unchanged.
 
+## Planned operational-policy replacement
+
+The [next engineering phase](PLAN.md#next-engineering-phase--single-workload-scheduling-and-host-protection)
+will replace the measured-capacity prerequisite with a reviewed operational policy
+and matching validator changes. This document does not implement that replacement;
+the existing capacity receipt requirement still blocks execution. Old packets
+cannot be relabelled execution-ready or supplied with fabricated measurements.
+
+Before a replacement can permit epoch execution, verify exclusive heavy-workload
+ownership shared with participant evaluation, zero-pending maintenance admission,
+resource-aware launch deferral, effective host/ancestor limits protecting retained
+services, bounded outputs, and positive termination before ownership release.
+Cover stale leases with surviving workers, concurrent coordinators, alternate
+launch paths, restart interference and failed cleanup. Retain exact owned-resource
+cleanup and restoration only after verified termination and fresh postflight.
+Verify actual deployed compatibility rather than relying on current source alone.
+
+The replacement packet must disclose that capacity is unmeasured, bind the reviewed
+policy and controls to its source and host, and retain separate maintenance,
+transfer and production-epoch approvals. Preserve frozen worker limits and score
+semantics; a single job may still fail to fit. Do not infer capacity certification
+from queuing, floors or configured maxima. No substitute capacity experiment or
+paid infrastructure is authorized. Native correctness acceptance remains separate.
+
 ## Current review disposition
 
 The [independent review follow-up](acceptance/integration/production-epoch-review-20261020.md)
