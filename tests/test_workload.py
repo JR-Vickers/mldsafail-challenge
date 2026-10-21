@@ -214,3 +214,54 @@ def test_bind_and_launch_cannot_reopen_completed_workload(tmp_path):
         gate.complete()
         with pytest.raises(WorkloadBlocked, match='binding_phase_invalid'): gate.bind({})
         with pytest.raises(WorkloadBlocked, match='launch_phase_invalid'): gate.launch({})
+
+
+def test_monitor_does_not_wait_for_launch_io_or_accept_late_birth(tmp_path):
+    import threading
+    runtime = Runtime()
+    entered, unblock = threading.Event(), threading.Event()
+    errors = []
+
+    def launch(state, specification):
+        runtime.live = True
+        entered.set()
+        assert unblock.wait(3)
+        return {'id': 'late', 'birth': 'old-generation'}
+
+    runtime.launch = launch
+    with HostGate(tmp_path, runtime).locked() as gate:
+        gate.acquire('evaluation', {})
+
+        def creator():
+            try: gate.launch({})
+            except WorkloadBlocked as error: errors.append(str(error))
+
+        thread = threading.Thread(target=creator)
+        thread.start()
+        try:
+            assert entered.wait(1)
+            runtime.sample_data['oom_events'] = 1
+            # This check and termination must finish while launch is blocked.
+            with pytest.raises(ProtectionAbort): gate.check()
+            gate.reconcile()
+            assert not runtime.live
+            assert gate.state['phase'] == 'cleaned'
+            with pytest.raises(WorkloadBlocked, match='creator_response_pending'): gate.resume()
+        finally:
+            unblock.set()
+            thread.join(2)
+        assert not thread.is_alive()
+        assert errors == ['stale_launch_response']
+        assert gate.state['resources'] == []
+        assert gate.state['paused']
+        assert gate.state['phase'] == 'cleaned'
+
+
+def test_launch_rechecks_ancestor_headroom(tmp_path):
+    runtime = Runtime()
+    with HostGate(tmp_path, runtime).locked() as gate:
+        gate.acquire('evaluation', {})
+        runtime.ceiling //= 2
+        with pytest.raises(ProtectionAbort, match='launch_resource_deferral'): gate.launch({})
+        assert not runtime.live
+        assert gate.state['paused']

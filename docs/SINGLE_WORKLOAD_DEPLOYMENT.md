@@ -37,9 +37,11 @@ The private Linux Unix socket transport and bounded helper transport now exist
 as library components (`workload_socket.py` and `runtime_io.py`). The socket
 checks SO_PEERCRED UID, enforces owner-only directory/socket permissions, rejects
 arbitrary launch specifications, bounds client reads and retains durable request
-outcomes and unresolved intents. Completed request IDs survive subsequent
-workloads; the bounded ledger blocks when full rather than discarding replay
-protection. A lost acquire acknowledgement conservatively blocks ownership if it
+outcomes and unresolved intents. Mutation IDs use durable `generation:sequence` counters. The replay window
+retains the latest 64 completed outcomes; evicted sequences and expired workload
+generations are rejected without execution. Sixteen compact completed-workload
+records are retained, and unresolved intents are never evicted. The unresolved
+ledger still blocks safely if it reaches its 1,024-entry bound. A lost acquire acknowledgement conservatively blocks ownership if it
 falls between the acquisition and response journal writes. Recovery never repeats
 an ambiguous mutation.
 
@@ -162,3 +164,53 @@ process killed with SIGKILL: the kernel lock is released, but the retained journ
 still blocks a replacement workload. Disposable PostgreSQL: 36 passed. Changed
 runbook links resolve and `git diff --check` passes. None of these checks ran a
 benchmark, created an epoch or contacted the VPS.
+
+
+## Ownership and result-transaction checkpoint, 2026-10-21
+
+The private protocol now requires a matching workload ownership token on every
+mutation after acquisition, validates argument shape and lifecycle before durable
+intent, and exposes separate `postflight`, `commit_intent`,
+`acknowledge_commit` and `release` operations. Postflight verifies cleanup while
+retaining host ownership. The dispatcher must journal a nonempty exact result
+binding before its database transaction, reconcile an ambiguous database outcome
+under the database transaction lock, and acknowledge that same binding before
+release. Cleanup and resume cannot erase a pending commit. The socket no longer
+exposes the combined `complete` compatibility helper. These are adapter contracts;
+no current database dispatcher implements that transaction protocol yet.
+
+Monitoring and launch adapter I/O no longer share the launch journal mutex.
+Launch repeats resource preflight, rejects reduced ancestor allowance, and binds
+its response to a workload and launch nonce. A protection check can detect a
+failure and request cleanup while launch I/O is blocked. A late birth cannot
+restore running state; outstanding launch responses block resume, acquisition
+and release. Other legacy control methods still hold the journal mutex across
+adapter I/O; runnable native monitoring and bounded control integration remain
+engineering work. No unbounded adapter is made safe by these changes.
+
+The protocol's mutation IDs must be canonical positive decimal
+`generation:sequence` pairs. Acquisition uses the next workload generation;
+subsequent new mutations use the current generation and a sequence above the
+durable high-water mark. A client must persist and retry the exact request after
+a transport failure. Once its outcome leaves the replay window, reconciliation
+is required; replay cannot execute it again. Status is private and read-only.
+Completed prior-generation requests are deliberately expired when a new workload
+is acquired, rather than replayed against its new owner.
+
+Local synthetic tests cover retained postflight ownership, matching commit
+acknowledgements across restart, invalid requests leaving journal bytes unchanged,
+bounded request/workload retention, expired replay, shrinking launch headroom,
+and a blocked launcher with concurrent protection failure and rejected late birth.
+These checks do not implement native acceptance. Production coordinator/admin
+routing, the native runtime and runnable daemon/client/cleanup entrypoints,
+filesystem output enforcement, independent systemd cleanup, database commit
+reconciliation and control-specific v4 evidence remain missing implementation.
+The requested complete deployment packet cannot yet be generated. Exact VPS
+scheduling/delegation/rollback identities and separate native authorization remain
+additional prerequisites. No host operation, solver run or epoch was performed.
+
+Verification for this checkpoint: focused workload/protocol tests passed 38 with
+one Linux-only socket test skipped; `make check` passed 1,406 with 45 skipped and
+12 warnings, followed by all eight frozen contract checks. Skips remain explicit
+native/database acceptance limitations. Changed local documentation links and
+`git diff --check` were checked separately.

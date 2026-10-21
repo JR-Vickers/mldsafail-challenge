@@ -9,12 +9,14 @@ import copy
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import selectors
 import socket
 import stat
 import struct
 import time
+import threading
 
 from mldsafail.evaluator.workload import WorkloadBlocked
 
@@ -22,6 +24,7 @@ from mldsafail.evaluator.workload import WorkloadBlocked
 class SupervisorProtocol:
     def __init__(self, gate, roles):
         self.gate = gate
+        self.mutex = threading.RLock()
         self.roles = copy.deepcopy(roles)
         if not all(isinstance(name, str) and type(value) is dict for name, value in self.roles.items()):
             raise ValueError('invalid_command_roles')
@@ -31,16 +34,51 @@ class SupervisorProtocol:
             raise WorkloadBlocked('invalid_supervisor_request')
         identifier, method, argument = request['id'], request['method'], request['argument']
         if (not isinstance(identifier, str) or not 1 <= len(identifier) <= 128 or
-                type(argument) is not dict):
+                type(argument) is not dict or not isinstance(method, str)):
             raise WorkloadBlocked('invalid_supervisor_request')
         if method == 'status':
-            return copy.deepcopy(self.gate.state)
-        if method not in {'acquire', 'bind', 'launch', 'complete', 'reconcile', 'resume'}:
-            raise WorkloadBlocked('invalid_supervisor_method')
+            if argument:
+                raise WorkloadBlocked('unexpected_supervisor_argument')
+            with self.gate.mutex:
+                return copy.deepcopy(self.gate.state)
+        # Monotone generation/sequence IDs make discarded outcomes permanently
+        # non-executable. A caller learns the next generation from private status.
+        match = re.fullmatch(r'([1-9][0-9]{0,18}):([1-9][0-9]{0,18})', identifier)
+        if match is None:
+            raise WorkloadBlocked('generation_scoped_request_id_required')
+        generation, sequence = map(int, match.groups())
+        fields = {
+            'acquire': {'kind', 'reference'}, 'bind': {'ownership', 'reference'},
+            'launch': {'ownership', 'role'}, 'heartbeat': {'ownership'},
+            'abort': {'ownership'}, 'postflight': {'ownership'},
+            'commit_intent': {'ownership', 'binding'},
+            'acknowledge_commit': {'ownership', 'binding'},
+            'release': {'ownership'}, 'reconcile': {'ownership'}, 'resume': {'ownership'},
+        }
+        # Validate the entire command before writing durable mutation intent.
+        if method not in fields or set(argument) != fields[method]:
+            raise WorkloadBlocked('invalid_supervisor_method_or_arguments')
+        if method == 'acquire' and (argument['kind'] not in ('evaluation', 'administration') or
+                                    type(argument['reference']) is not dict):
+            raise WorkloadBlocked('invalid_acquire')
+        if method == 'bind' and type(argument['reference']) is not dict:
+            raise WorkloadBlocked('invalid_reference')
+        if method == 'launch' and (not isinstance(argument['role'], str) or
+                                   argument['role'] not in self.roles):
+            raise WorkloadBlocked('configured_role_required')
+        if method in ('commit_intent', 'acknowledge_commit') and (
+                type(argument['binding']) is not dict or not argument['binding']):
+            raise WorkloadBlocked('commit_binding_required')
         digest = hashlib.sha256(json.dumps(request, sort_keys=True).encode()).hexdigest()
-        with self.gate.mutex:
+        with self.mutex:
             state = self.gate.state
             requests = state.get('requests', {}) if state else {}
+            current_generation = state.get('request_generation', 0) if state else 0
+            expected_generation = current_generation + (method == 'acquire')
+            if generation != expected_generation:
+                # Acquire replay is allowed only while its workload is current.
+                if not (method == 'acquire' and generation == current_generation and identifier in requests):
+                    raise WorkloadBlocked('expired_or_future_request_generation')
             previous = requests.get(identifier)
             if previous:
                 if previous['sha256'] != digest:
@@ -48,32 +86,56 @@ class SupervisorProtocol:
                 if previous['phase'] != 'complete':
                     raise WorkloadBlocked('request_reconciliation_required')
                 return copy.deepcopy(previous['result'])
+            if method != 'acquire' and sequence <= state.get('request_sequence', 0):
+                raise WorkloadBlocked('expired_request_sequence')
+            if method != 'acquire' and (state is None or
+                    argument['ownership'] != state['workload_id']):
+                raise WorkloadBlocked('current_ownership_required')
             if len(requests) >= 1024:
                 raise WorkloadBlocked('request_ledger_full')
+            phases = {
+                'bind': {'acquired'}, 'launch': {'acquired', 'running'},
+                'postflight': {'acquired', 'running', 'cleaned'},
+                'commit_intent': {'postflight'}, 'acknowledge_commit': {'commit_intent'},
+                'release': {'committed'}, 'resume': {'cleaned'},
+                'abort': {'acquired', 'launch_intent', 'running', 'termination_intent', 'cleaned'},
+                'reconcile': {'acquired', 'launch_intent', 'running', 'termination_intent', 'cleaned'},
+            }
+            if method in phases and state['phase'] not in phases[method]:
+                raise WorkloadBlocked('supervisor_lifecycle_invalid')
+            if (method == 'acknowledge_commit' and
+                    argument['binding'] != state.get('database_commit')):
+                raise WorkloadBlocked('commit_acknowledgement_invalid')
+            if method in ('bind', 'launch', 'postflight', 'commit_intent',
+                          'acknowledge_commit', 'release') and state['paused']:
+                raise WorkloadBlocked('scheduling_paused')
             if method == 'acquire':
-                if set(argument) != {'kind', 'reference'}:
-                    raise WorkloadBlocked('invalid_acquire')
-                # acquire writes its ownership intent before any launch. A lost
-                # acknowledgement still blocks replacement acquisition.
                 result = self.gate.acquire(argument['kind'], argument['reference'])
                 requests = self.gate.state.setdefault('requests', {})
             else:
-                if state is None:
-                    raise WorkloadBlocked('host_ownership_required')
-                requests = state.setdefault('requests', {})
+                self.gate.state['request_sequence'] = sequence
                 requests[identifier] = dict(sha256=digest, phase='intent')
                 self.gate._write()
                 if method == 'bind':
-                    result = self.gate.bind(argument)
+                    result = self.gate.bind(argument['reference'])
                 elif method == 'launch':
-                    if set(argument) != {'role'} or argument['role'] not in self.roles:
-                        raise WorkloadBlocked('configured_role_required')
                     result = self.gate.launch(copy.deepcopy(self.roles[argument['role']]))
+                elif method == 'heartbeat':
+                    result = self.gate.check()
+                elif method == 'abort':
+                    self.gate.pause('dispatcher_abort')
+                    result = self.gate.reconcile()
+                elif method in ('commit_intent', 'acknowledge_commit'):
+                    result = getattr(self.gate, method)(argument['binding'])
                 else:
-                    if argument:
-                        raise WorkloadBlocked('unexpected_supervisor_argument')
                     result = getattr(self.gate, method)()
             requests[identifier] = dict(sha256=digest, phase='complete', result=result)
+            self.gate.state['request_sequence'] = sequence
+            # Keep a small replay window; the durable high-water mark rejects
+            # older IDs. Ambiguous intents are never evicted.
+            completed = [key for key, entry in requests.items() if entry['phase'] == 'complete']
+            for key in completed[:-64]:
+                del requests[key]
             self.gate._write()
             return result
 

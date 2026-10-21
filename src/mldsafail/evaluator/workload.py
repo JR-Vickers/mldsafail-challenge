@@ -5,12 +5,14 @@ No adapter is implicitly trusted or selected; this module grants no Docker acces
 """
 from __future__ import annotations
 
+import copy
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 import fcntl
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import stat
 import threading
@@ -93,11 +95,13 @@ class HostGate:
         self.fd = None
         self.mutex = threading.RLock()
         self.state = None
+        self.inflight_launches = 0
         self.path = self.root / 'workload.json'
 
     def _validate(self, state):
         """Treat persisted state as untrusted, including after a clean exit."""
-        phases = {'acquired', 'launch_intent', 'running', 'termination_intent', 'cleaned', 'complete'}
+        phases = {'acquired', 'launch_intent', 'running', 'termination_intent', 'cleaned',
+                  'postflight', 'commit_intent', 'committed', 'complete'}
         try:
             valid = (
                 type(state) is dict
@@ -120,12 +124,29 @@ class HostGate:
                      isinstance(state.get('reason'), str) and bool(state['reason']))
                 and (state['phase'] != 'acquired' or not state['resources'])
                 and (state['phase'] != 'running' or bool(state['resources']))
+                and (state['phase'] not in ('commit_intent', 'committed') or
+                     type(state.get('database_commit')) is dict and bool(state['database_commit']))
             )
         except (KeyError, TypeError):
             valid = False
         if not valid:
             raise WorkloadBlocked('invalid_workload_journal')
         requests = state.get('requests', {})
+        generation = state.get('request_generation', 0)
+        sequence = state.get('request_sequence', 0)
+        completed = state.get('completed_workloads', [])
+        if (type(generation) is not int or generation < 0 or
+                type(sequence) is not int or sequence < 0 or
+                type(completed) is not list or len(completed) > 16 or
+                any(type(record) is not dict or
+                    type(record.get('generation')) is not int or
+                    not 0 <= record['generation'] < generation or
+                    not isinstance(record.get('workload_id'), str)
+                    for record in completed)):
+            raise WorkloadBlocked('invalid_request_generation')
+        if [record['generation'] for record in completed] != sorted(
+                {record['generation'] for record in completed}):
+            raise WorkloadBlocked('invalid_completed_workload_order')
         if type(requests) is not dict or len(requests) > 1024:
             raise WorkloadBlocked('invalid_request_ledger')
         for identifier, entry in requests.items():
@@ -137,7 +158,16 @@ class HostGate:
                     or any(c not in '0123456789abcdef' for c in entry['sha256'])
                     or (entry['phase'] == 'complete' and 'result' not in entry)):
                 raise WorkloadBlocked('invalid_request_ledger')
+            if generation:
+                match = re.fullmatch(r'([1-9][0-9]{0,18}):([1-9][0-9]{0,18})', identifier)
+                if match is None:
+                    raise WorkloadBlocked('invalid_request_generation')
+                request_generation, request_sequence = map(int, match.groups())
+                if (request_generation > generation or
+                        request_generation == generation and request_sequence > sequence):
+                    raise WorkloadBlocked('invalid_request_generation')
 
+    @serialized
     def _write(self):
         self._validate(self.state)
         temporary = self.root / (uuid.uuid4().hex + '.tmp')
@@ -205,6 +235,7 @@ class HostGate:
     @serialized
     def acquire(self, kind, reference):
         if self.fd is None: raise WorkloadBlocked('host_lock_required')
+        if self.inflight_launches: raise WorkloadBlocked('creator_response_pending')
         if self.state and (self.state['phase'] != 'complete' or self.state['paused']):
             raise WorkloadBlocked('cleanup_or_resume_required')
         if kind not in ('evaluation', 'administration'): raise ValueError('invalid_workload_kind')
@@ -215,8 +246,18 @@ class HostGate:
         ceiling = self.runtime.preflight(self.policy)
         if type(ceiling) is not int or ceiling <= 0:
             raise WorkloadBlocked('resource_deferral')
-        requests = self.state.get('requests', {}) if self.state else {}
+        previous = self.state
+        requests = {key: value for key, value in previous.get('requests', {}).items()
+                    if value['phase'] != 'complete'} if previous else {}
+        completed = list(previous.get('completed_workloads', [])) if previous else []
+        if previous:
+            completed.append(dict(generation=previous.get('request_generation', 0),
+                                  workload_id=previous['workload_id'],
+                                  reference=previous['reference'],
+                                  database_commit=previous.get('database_commit')))
         self.state = dict(requests=requests, schema='mldsafail.workload.v1', workload_id=uuid.uuid4().hex,
+                          request_generation=previous.get('request_generation', 0) + 1 if previous else 1,
+                          request_sequence=0, completed_workloads=completed[-16:],
                           identity=identity, kind=kind, reference=reference,
                           policy_sha256=self.policy.sha256, ceiling=ceiling,
                           phase='acquired', paused=False, resources=[])
@@ -237,44 +278,88 @@ class HostGate:
         self.state.update(paused=True, reason=reason)
         self._write()
 
-    @serialized
     def check(self):
-        self._owned()
-        if self.state['paused']: raise ProtectionAbort(self.state['reason'])
+        # The monitor must never wait behind launch/control adapter I/O.
+        with self.mutex:
+            if os.getpid() != self.pid:
+                raise WorkloadBlocked('forked_host_gate')
+            if self.fd is None or not self.state:
+                raise WorkloadBlocked('host_ownership_required')
+            snapshot = copy.deepcopy(self.state)
+            if snapshot['paused']:
+                raise ProtectionAbort(snapshot['reason'])
         started = time.monotonic()
         try:
-            sample = self.runtime.sample(self.state)
-            reason = ('monitor_stale' if time.monotonic() - started > 1 else
-                      self.policy.violation(sample, self.state['ceiling']))
-        except Exception: reason = 'monitor_lost'
-        if reason:
-            self.pause(reason)
-            raise ProtectionAbort(reason)
+            if self.runtime.identity() != snapshot['identity']:
+                reason = 'runtime_identity_changed'
+            else:
+                sample = self.runtime.sample(snapshot)
+                reason = ('monitor_stale' if time.monotonic() - started > 1 else
+                          self.policy.violation(sample, snapshot['ceiling']))
+        except Exception:
+            reason = 'monitor_lost'
+        with self.mutex:
+            if self.state['workload_id'] != snapshot['workload_id']:
+                raise WorkloadBlocked('stale_monitor_response')
+            if reason:
+                self.pause(reason)
+                raise ProtectionAbort(reason)
+            if self.state['paused']:
+                raise ProtectionAbort(self.state['reason'])
 
-    @serialized
     def launch(self, specification):
-        if self.state is None or self.state['phase'] not in ('acquired', 'running'):
-            raise WorkloadBlocked('launch_phase_invalid')
+        with self.mutex:
+            if self.state is None or self.state['phase'] not in ('acquired', 'running'):
+                raise WorkloadBlocked('launch_phase_invalid')
+            workload_id = self.state['workload_id']
         self.check()
-        # Intent survives lost launch acknowledgement. Runtime uses workload ID
-        # to enumerate creators and resources, including an unacknowledged birth.
-        self.state['phase'] = 'launch_intent'
-        self._write()
-        try:
-            birth = self.runtime.launch(self.state, specification)
-            if not birth or self.runtime.inspect(self.state, birth) is not True:
-                raise WorkloadBlocked('launch_identity_unverified')
-            self.state['resources'].append(birth)
-            self.state['phase'] = 'running'
+        # Repeat admission immediately before authorizing a creator. An ancestor
+        # allowance may shrink between acquisition and launch.
+        ceiling = self.runtime.preflight(self.policy)
+        with self.mutex:
+            if self.state is None or self.state['workload_id'] != workload_id:
+                raise WorkloadBlocked('stale_preflight_response')
+            if self.state is None or self.state['phase'] not in ('acquired', 'running'):
+                raise WorkloadBlocked('launch_phase_invalid')
+            if self.state['paused']:
+                raise ProtectionAbort(self.state['reason'])
+            if type(ceiling) is not int or ceiling < self.state['ceiling']:
+                self.pause('launch_resource_deferral')
+                raise ProtectionAbort('launch_resource_deferral')
+            nonce = uuid.uuid4().hex
+            self.state.update(phase='launch_intent', launch_nonce=nonce)
             self._write()
+            snapshot = copy.deepcopy(self.state)
+            self.inflight_launches += 1
+        # Intent survives a lost response; cleanup enumerates this workload's
+        # creators even when no birth acknowledgement reaches the journal.
+        try:
+            birth = self.runtime.launch(snapshot, specification)
+            if not birth or self.runtime.inspect(snapshot, birth) is not True:
+                raise WorkloadBlocked('launch_identity_unverified')
+            with self.mutex:
+                if (self.state['workload_id'] != snapshot['workload_id'] or
+                        self.state.get('launch_nonce') != nonce or
+                        self.state['phase'] != 'launch_intent' or self.state['paused']):
+                    raise WorkloadBlocked('stale_launch_response')
+                self.state['resources'].append(birth)
+                self.state['phase'] = 'running'
+                self._write()
         except BaseException:
-            self.pause('launch_acknowledgement_lost')
+            with self.mutex:
+                if self.state['workload_id'] == snapshot['workload_id']:
+                    self.pause('launch_acknowledgement_lost')
             raise
+        finally:
+            with self.mutex:
+                self.inflight_launches -= 1
         return birth
 
     @serialized
     def reconcile(self):
         self._owned()
+        if self.state['phase'] in ('postflight', 'commit_intent', 'committed', 'complete'):
+            raise WorkloadBlocked('result_reconciliation_required')
         self.state['phase'] = 'termination_intent'
         self._write()
         if self.runtime.terminate(self.state) is not True or self.runtime.stopped(self.state) is not True:
@@ -285,15 +370,61 @@ class HostGate:
 
     @serialized
     def complete(self):
+        """Compatibility helper for callers without a database result transaction.
+
+        Dispatchers must use postflight, commit_intent, acknowledge_commit and
+        release separately. The socket deliberately does not expose this helper.
+        """
+        self.postflight()
+        self.commit_intent({'disposition': 'no_database_result'})
+        self.acknowledge_commit({'disposition': 'no_database_result'})
+        self.release()
+
+    @serialized
+    def postflight(self):
+        if self.state is None or self.state['phase'] not in ('acquired', 'running', 'cleaned'):
+            raise WorkloadBlocked('postflight_phase_invalid')
         self.check()
-        self.reconcile()
+        if self.state['phase'] != 'cleaned':
+            self.reconcile()
         self.check()  # Includes parent OOM/events after worker exit.
+        self.state['phase'] = 'postflight'
+        self._write()
+
+    @serialized
+    def commit_intent(self, binding):
+        self._owned()
+        if self.state['phase'] != 'postflight' or self.state['paused']:
+            raise WorkloadBlocked('commit_phase_invalid')
+        if type(binding) is not dict or not binding:
+            raise WorkloadBlocked('commit_binding_required')
+        self.state.update(phase='commit_intent', database_commit=binding)
+        self._write()
+
+    @serialized
+    def acknowledge_commit(self, binding):
+        self._owned()
+        if (self.state['phase'] != 'commit_intent' or self.state['paused'] or
+                binding != self.state.get('database_commit')):
+            raise WorkloadBlocked('commit_acknowledgement_invalid')
+        self.state['phase'] = 'committed'
+        self._write()
+
+    @serialized
+    def release(self):
+        self.check()
+        if (self.inflight_launches or self.state['phase'] != 'committed' or
+                self.runtime.stopped(self.state) is not True):
+            raise WorkloadBlocked('committed_cleanup_required')
         self.state['phase'] = 'complete'
         self._write()
 
     @serialized
     def resume(self):
         self._owned()
+        if self.inflight_launches: raise WorkloadBlocked('creator_response_pending')
+        if self.state.get('database_commit'):
+            raise WorkloadBlocked('result_reconciliation_required')
         if self.state['phase'] != 'cleaned' or self.runtime.stopped(self.state) is not True:
             raise WorkloadBlocked('verified_cleanup_required')
         ceiling = self.runtime.preflight(self.policy)

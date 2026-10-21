@@ -511,3 +511,14 @@ matching release and native acceptance remain unfinished; no host-wide enforceme
 or launch readiness is claimed. The production epoch entrypoint continues to
 reject v4, and historical v2/v3 capacity requirements remain unchanged. No
 benchmark, epoch, transfer, provisioning or service change ran.
+
+
+2026-10-21 ownership lifecycle checkpoint: the [single-workload runbook](SINGLE_WORKLOAD_DEPLOYMENT.md#ownership-and-result-transaction-checkpoint-2026-10-21)
+records ownership-scoped mutations, separate postflight/commit/release, bounded
+generation-scoped replay and monitoring during blocked launch I/O. This is a
+partial engineering checkpoint, not completion of production integration. The
+native runtime, dispatcher/admin routing, enforced output bounds, independent
+cleanup and executable deployment/recovery packet remain implementation work;
+v4 execution remains disabled. Native acceptance additionally lacks separate
+owner authorization and inspected host prerequisites. Historical receipts are
+unchanged.
