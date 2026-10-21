@@ -69,6 +69,14 @@ own exact-byte authorization. Refresh observed socket/supervisor/cgroup/mount an
 artifact identities after installation before seeking separate native-test authority.
 Keep computation paused throughout. Proposed identities never certify installation.
 
+Follow-up source checkpoint: [release and authority disposition](acceptance/production-preparation/protected-runtime-followup-20261021.md)
+adds frozen-bundle verification, persistent inhibition proposal primitives,
+all-account owner collection and exact single-use native case authority.
+These helpers do not complete v3 installation/rollback or native coverage.
+The [owner-console procedure](PROTECTED_RUNTIME_OWNER_COLLECTION.md) identifies
+the outstanding privileged collection. Installation remains blocked; do not
+request execution approval against incomplete source artifacts.
+
 ### Source requirements — single-workload scheduling and host protection
 
 Owner direction, 2026-10-21: use the existing VPS and $0 budget to prevent

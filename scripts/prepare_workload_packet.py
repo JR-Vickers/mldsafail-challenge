@@ -46,7 +46,7 @@ def prepare(root, inspection=None, *, stage="bootstrap", bootstrap=None):
                     'deploy/workload_native_acceptance.py', 'Dockerfile.coordinator', 'uv.lock',
                     'src/mldsafail/benchmark_v050/execution.py', 'src/mldsafail/benchmark_v050/Dockerfile',
                     'deploy/worker-linux-amd64.requirements.txt', 'scripts/workload_linux_fixture.py',
-                    'docs/PLAN.md', 'docs/MVP_LAUNCH_PREPARATION.md', 'docs/PRODUCTION_EPOCH_PROCEDURE.md'})
+                    'docs/PLAN.md', 'docs/MVP_LAUNCH_PREPARATION.md', 'docs/PROTECTED_RUNTIME_OWNER_COLLECTION.md', 'docs/PRODUCTION_EPOCH_PROCEDURE.md'})
     deployment = None
     inspection_blockers = sorted(REQUIRED | ({'uid_mapping'} if stage == 'bootstrap' else {'installed'} if stage == 'installed' else set())) if inspection is None else []
     if inspection is not None:

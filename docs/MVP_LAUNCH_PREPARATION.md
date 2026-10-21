@@ -37,6 +37,11 @@ After installation, bind observed socket, supervisor, cgroup, mount and artifact
 births in a separate installed acceptance packet and obtain native-test authority.
 See the [readiness disposition](acceptance/production-preparation/protected-runtime-readiness-20261021.md).
 The offline packet emits no guessed commands when those identities are absent.
+Follow-up: [source/authority checkpoint](acceptance/production-preparation/protected-runtime-followup-20261021.md)
+retains blocked installation status. V3 frozen-release and persistent-inhibition
+helpers are preparatory; executable v3 bootstrap/rollback and full native runners
+remain unfinished. See the [owner-console collection procedure](PROTECTED_RUNTIME_OWNER_COLLECTION.md).
+
 Single-workload execution does not certify that a job fits the VPS. Keep the
 existing VPS, $0 budget and 0.5.0 preview. After authorized native acceptance,
 the audited epoch, configuration, HTTPS/OAuth, participant journey, minimum

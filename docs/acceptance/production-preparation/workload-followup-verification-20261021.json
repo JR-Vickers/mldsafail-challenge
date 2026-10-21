@@ -1,0 +1,26 @@
+{
+  "changed_link_targets": 77,
+  "diff_check_passed": true,
+  "fixture_containers_absent": true,
+  "focused_tests_passed": 82,
+  "linux_fixture_cases": 8,
+  "logs": {
+    "linux-fixture.log": "7cab221348a1f4568cdebe92acdd2b27ea9357aaf0acd36be871c676b64bcf8b",
+    "make-check-final.log": "98b37fdde7a1b83004f7b0a61bebc91c50bd549b98f03d3115252ae6ea242cb4",
+    "make-check.log": "218d5af0250234e47b3af00f4dbda88003e5d913ba8dc241a09f5861a060be75",
+    "postgres-fixture-rerun.log": "2fdbfd8ca4b1f03517583a95c9d797258bdf9116d64cf90fbdaa175b61869611",
+    "postgres-fixture.log": "713f2c4d6ed09f7d04505a9fcf24282b6b8f4a8bbd869668678d75f7fe2fc8c0"
+  },
+  "make_check": {
+    "contract_tests_passed": 8,
+    "passed": 1523,
+    "skipped": 45,
+    "warnings": 12
+  },
+  "native_acceptance": false,
+  "postgres_failed_attempt_retained": true,
+  "postgres_tests_passed": 46,
+  "schema": "mldsafail.workload-local-verification.v1",
+  "source_release_sha256": "6d26457da70e972810465119224d8e27a7a22aa9bf0ca3fc54f8a7a9419619af",
+  "source_review_sha256": "e059b271be0a9c113a5178813c7fdab22232181bf94f82cf1f413de182d99f24"
+}

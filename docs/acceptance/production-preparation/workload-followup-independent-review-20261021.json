@@ -1,0 +1,22 @@
+{
+  "decision": "blocked",
+  "execution_authority": false,
+  "fixed": [
+    "authorization_digest_journal",
+    "receipt_after_pause_and_cleanup",
+    "final_deadline_check",
+    "collector_nonzero_exit"
+  ],
+  "implemented_by": "/root",
+  "remaining": [
+    "v3_integration_and_installation",
+    "complete_source_and_dependency_closure",
+    "rollback",
+    "full_native_coverage",
+    "strict_execution_deadline"
+  ],
+  "reviewed_by": "/root/review_followup",
+  "schema": "mldsafail.workload-source-review.v3",
+  "source_release_sha256": "6d26457da70e972810465119224d8e27a7a22aa9bf0ca3fc54f8a7a9419619af",
+  "source_review_sha256": "e059b271be0a9c113a5178813c7fdab22232181bf94f82cf1f413de182d99f24"
+}

@@ -159,6 +159,7 @@ def execute(packet_path, authorization_path):
         require(time.monotonic() < packet_deadline, 'native_acceptance_deadline')
         retained_after = client.environment()['retained']
         require(retained_after == before, 'native_retained_services_changed')
+        require(time.monotonic() < packet_deadline, 'native_acceptance_deadline')
         publish(Path(inputs['result_receipt']), dict(schema='mldsafail.native-workload-controls.v1',
                 packet_sha256=authority['packet_sha256'], native_configuration_sha256=authority['native_configuration_sha256'],
                 cases=results, retained_before=before, retained_after=retained_after,
