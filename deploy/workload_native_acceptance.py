@@ -30,7 +30,13 @@ def execute(packet_path, authorization_path):
             review.get('reviewed_by') and review['reviewed_by'] != review.get('implemented_by'), 'native_acceptance_review_missing')
     require(packet.get('deployment') is not None, 'native_acceptance_inspection_missing')
     inspection = packet['deployment']['identities']
-    inspected_commands(inspection)
+    if packet.get('stage') == 'installed':
+        from deploy.workload_preparation import installed_commands, verify_installed_files
+        validated = installed_commands(inspection, packet['bootstrap'])
+        require(not validated['blockers'] and bool(validated['commands']), 'native_v2_deployment_not_ready')
+        verify_installed_files(inspection)
+    else:
+        inspected_commands(inspection)
     require(socket.gethostname()==inspection['hostname'] and os.getuid()==inspection['uid'] and
             Path('/proc/sys/kernel/random/boot_id').read_text().strip()==inspection['boot_id'], 'native_acceptance_wrong_host')
     inputs = inspection['acceptance_inputs']

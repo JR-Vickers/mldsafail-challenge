@@ -19,6 +19,8 @@ SECTIONS = {
     'user_crontab': ['crontab', '-l', '-u', 'mldsafail'],
     'system_units': ['systemctl', 'list-unit-files', '--no-pager', '--no-legend'],
     'loaded_units': ['systemctl', 'list-units', '--all', '--plain', '--no-pager', '--no-legend'],
+    'system_identities': ['systemctl', 'show', '*.service', '*.timer', '*.socket', '*.path', '--property=Id,Names,User,ActiveState,UnitFileState,ControlGroup,Delegate,Triggers,TriggeredBy,Restart,FragmentPath,DropInPaths'],
+    'user_identities': ['runuser', '-u', 'mldsafail', '--', 'env', 'XDG_RUNTIME_DIR=/run/user/1000', 'systemctl', '--user', 'show', '*.service', '*.timer', '*.socket', '*.path', '--property=Id,Names,User,ActiveState,UnitFileState,ControlGroup,Delegate,Triggers,TriggeredBy,Restart,FragmentPath,DropInPaths'],
     'system_timers': ['systemctl', 'list-timers', '--all', '--no-pager'],
     'user_units': ['runuser', '-u', 'mldsafail', '--', 'env', 'XDG_RUNTIME_DIR=/run/user/1000', 'systemctl', '--user', 'list-unit-files', '--no-pager'],
     'user_loaded': ['runuser', '-u', 'mldsafail', '--', 'env', 'XDG_RUNTIME_DIR=/run/user/1000', 'systemctl', '--user', 'list-units', '--all', '--no-pager'],

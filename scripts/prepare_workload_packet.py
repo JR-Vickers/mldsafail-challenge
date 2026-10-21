@@ -8,6 +8,8 @@ from pathlib import Path
 from mldsafail.evaluator.workload import ResourcePolicy
 from deploy.workload_controls import SCENARIOS
 from deploy.workload_deployment import inspected_commands, REQUIRED
+from deploy.workload_preparation import bootstrap_commands, installed_commands
+from deploy.workload_evidence import evidence_matrix
 
 FILES = (
     'src/mldsafail/evaluator/workload.py',
@@ -28,24 +30,37 @@ BLOCKERS = (
 
 
 
-def prepare(root, inspection=None):
+def prepare(root, inspection=None, *, stage="bootstrap", bootstrap=None):
+    if stage not in ("bootstrap", "installed", "legacy-v1"):
+        raise ValueError("unknown_deployment_stage")
     root = Path(root)
     policy = ResourcePolicy()
-    files = sorted(set(FILES) | {str(path.relative_to(root)) for path in (root/'src/mldsafail/evaluator').glob('*.py')} |
+    files = sorted({str(p.relative_to(root)) for folder in ('src', 'deploy', 'migrations')
+                    for p in (root/folder).rglob('*.py')} | {'pyproject.toml', 'README.md', 'alembic.ini'} | set(FILES) | {str(path.relative_to(root)) for path in (root/'src/mldsafail/evaluator').glob('*.py')} |
                    {'deploy/investigation_docker.py', 'deploy/workload_controls.py', 'deploy/workload_units.py',
-                    'deploy/workload_deployment.py', 'deploy/protected_epoch.py', 'compose.production.yaml',
+                    'deploy/workload_deployment.py', 'deploy/workload_preparation.py', 'deploy/workload_evidence.py',
+                    'scripts/workload_host_inspection.py', 'scripts/prepare_workload_packet.py', 'deploy/protected_epoch.py', 'compose.production.yaml',
                     'deploy/start-coordinator.sh', 'scripts/production_epoch_operation.py', 'deploy/workload_inert.py',
                     'deploy/workload_native_acceptance.py', 'Dockerfile.coordinator', 'uv.lock',
                     'src/mldsafail/benchmark_v050/execution.py', 'src/mldsafail/benchmark_v050/Dockerfile',
                     'deploy/worker-linux-amd64.requirements.txt', 'scripts/workload_linux_fixture.py',
                     'docs/PLAN.md', 'docs/MVP_LAUNCH_PREPARATION.md', 'docs/PRODUCTION_EPOCH_PROCEDURE.md'})
     deployment = None
-    inspection_blockers = sorted(REQUIRED) if inspection is None else []
+    inspection_blockers = sorted(REQUIRED | ({'uid_mapping'} if stage == 'bootstrap' else {'installed'} if stage == 'installed' else set())) if inspection is None else []
     if inspection is not None:
-        try: deployment = inspected_commands(inspection)
+        try:
+            if stage != 'legacy-v1':
+                expected = {str(Path(inspection['installation']['release'])/name): hashlib.sha256((root/name).read_bytes()).hexdigest() for name in files}
+                if any(inspection['release_files'].get(name) != digest for name, digest in expected.items()):
+                    raise ValueError('complete_frozen_release_manifest_required')
+            if stage == 'bootstrap': deployment = bootstrap_commands(inspection)
+            elif stage == 'installed': deployment = installed_commands(inspection, bootstrap)
+            else: deployment = inspected_commands(inspection)
         except (KeyError, TypeError, ValueError, RuntimeError) as error:
             inspection_blockers = [str(error)]
-    packet = dict(schema='mldsafail.workload-deployment-review.v1',
+    packet = dict(schema=('mldsafail.workload-deployment-review.v1' if stage == 'legacy-v1' else 'mldsafail.workload-deployment-review.v2'),
+                stage=stage, bootstrap=bootstrap if stage == 'installed' else None,
+                control_evidence_matrix=evidence_matrix(),
                 proposed_operation_schema='mldsafail.production-operation.v4',
                 purpose='offline_engineering_review_only', state='maintenance_proposal',
                 benchmark_version='0.5.0', capacity_disposition='unmeasured_capacity',
@@ -79,10 +94,17 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--release-output', type=Path, help='Optional exclusive canonical source-release artifact')
     parser.add_argument('--unit-output', type=Path, help='Optional exclusive directory for inspected unit files')
+    parser.add_argument('--stage', choices=('bootstrap', 'installed', 'legacy-v1'), default='bootstrap')
+    parser.add_argument('--bootstrap', type=Path, help='Exact prior v2 deployment bootstrap proposal for installed validation')
     parser.add_argument('--inspection', type=Path, help='Owner-inspected host/service/delegation/socket/rollback record')
     args = parser.parse_args()
     inspection = json.loads(args.inspection.read_bytes()) if args.inspection else None
-    packet = prepare(Path(__file__).resolve().parents[1], inspection)
+    bootstrap = json.loads(args.bootstrap.read_bytes()) if args.bootstrap else None
+    if bootstrap is not None and bootstrap.get('schema') == 'mldsafail.workload-deployment-review.v2':
+        if bootstrap.get('stage') != 'bootstrap' or bootstrap.get('deployment') is None:
+            parser.error('--bootstrap must contain a complete bootstrap proposal')
+        bootstrap = bootstrap['deployment']
+    packet = prepare(Path(__file__).resolve().parents[1], inspection, stage=args.stage, bootstrap=bootstrap)
     if args.release_output:
         with args.release_output.open('x') as stream:
             args.release_output.chmod(0o600)

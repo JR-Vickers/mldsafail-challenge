@@ -52,7 +52,24 @@ current scheduling/service/delegation/socket/output-volume and compatible rollba
 identities. Local Linux/PostgreSQL fixtures do not certify the installed VPS.
 No deployment, epoch, capacity measurement or activation is authorized by this work.
 
-### Next engineering phase — single-workload scheduling and host protection
+### Current host preparation — bootstrap and installed acceptance remain separate
+
+Local integration is complete at the source level. Versioned bootstrap preparation
+now distinguishes proposed socket paths from installed births and validates
+scheduling managers/accounts and rootless UID mappings. See the
+[host-readiness record](acceptance/production-preparation/protected-runtime-readiness-20261021.md).
+The read-only pinned-SSH collection succeeded; privileged scheduling visibility,
+bounded persistent storage, installation/rollback command completion and full
+native-control coverage still block an installation-ready proposal. No complete
+bootstrap proposal is approved, and no installed acceptance is claimed.
+
+First obtain owner-assisted privileged facts, then finish and independently review
+the exact prerequisite/installation/restoration proposal. Installation requires its
+own exact-byte authorization. Refresh observed socket/supervisor/cgroup/mount and
+artifact identities after installation before seeking separate native-test authority.
+Keep computation paused throughout. Proposed identities never certify installation.
+
+### Source requirements — single-workload scheduling and host protection
 
 Owner direction, 2026-10-21: use the existing VPS and $0 budget to prevent
 workloads piling up through queuing, exclusive execution and resource controls.
@@ -74,7 +91,7 @@ capacity or authorize deployment. Complete the following before epoch execution:
 
 Current source already serializes evaluation claims under a database transaction
 lock, checks resource floors and bounds admission. These are source observations,
-not certification of the deployed release. The current floor is 128 MiB available
+not certification of the deployed release. The protected runtime floor is 1 GiB available
 memory and 5 GiB free disk; it is not a reservation for the next workload. Expired
 leases now remain blocked unless an explicit reconciler verifies termination.
 Legacy expired jobs must not be reset to queued. Complete administrative-operation
@@ -506,7 +523,7 @@ acceptance, owner-only scheduling/runtime evidence, installed delegation and an
 owner-bound host/window remain gates. The private v10 proposal remains blocked,
 nontransferable and unauthorized; no capacity execution approval is requested.
 
-2026-10-21 local scheduling engineering: [implementation and blocked deployment
+Historical predecessor — 2026-10-21 local scheduling engineering: [implementation and blocked deployment
 review](SINGLE_WORKLOAD_DEPLOYMENT.md) adds a durable host-gate library, conservative
 resource policy, cleanup-gated stale-lease recovery and v4 policy-evidence checks.
 Production coordinator/admin transport, native cgroup controls, socket service,
@@ -516,7 +533,7 @@ reject v4, and historical v2/v3 capacity requirements remain unchanged. No
 benchmark, epoch, transfer, provisioning or service change ran.
 
 
-2026-10-21 ownership lifecycle checkpoint: the [single-workload runbook](SINGLE_WORKLOAD_DEPLOYMENT.md#ownership-and-result-transaction-checkpoint-2026-10-21)
+Historical predecessor — 2026-10-21 ownership lifecycle checkpoint: the [single-workload runbook](SINGLE_WORKLOAD_DEPLOYMENT.md#ownership-and-result-transaction-checkpoint-2026-10-21)
 records ownership-scoped mutations, separate postflight/commit/release, bounded
 generation-scoped replay and monitoring during blocked launch I/O. This is a
 partial engineering checkpoint, not completion of production integration. The
@@ -527,7 +544,7 @@ owner authorization and inspected host prerequisites. Historical receipts are
 unchanged.
 
 
-2026-10-21 runnable control checkpoint: private supervisor/client/cleanup commands
+Historical predecessor — 2026-10-21 runnable control checkpoint: private supervisor/client/cleanup commands
 and separate bounded monitor/control helper channels are available. A native
 runtime helper, systemd abnormal-exit cleanup and production routing are still
 missing; the [entrypoint runbook](SINGLE_WORKLOAD_DEPLOYMENT.md#runnable-control-entrypoints-checkpoint-2026-10-21)

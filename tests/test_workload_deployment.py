@@ -74,3 +74,109 @@ def test_offline_review_without_host_identities_has_no_executable_commands():
     assert packet['execution_authority'] is False
     assert all('implementation_missing' not in blocker for blocker in packet['blockers'])
     assert packet['native_acceptance']['requires_separate_owner_authorization']
+
+
+def bootstrap_inspection():
+    record = inspection()
+    record['schema'] = 'mldsafail.workload-bootstrap-inspection.v2'
+    record['socket'] = dict(path='/srv/workload/supervisor.sock', state='proposed')
+    record['uid_mapping'] = dict(coordinator_container_uid=0, supervisor_host_uid=1000,
+        uid_map=[[0,1000,1],[1,100000,65536]], receipt_sha256='a'*64)
+    record['scheduling']['owners'] = {
+        unit: dict(manager='user', account='operator', uid=1000, restart='on-failure', triggers=[],
+                   disposition='pause' if unit == 'coordinator.service' else 'retain', **record['original_settings'][unit])
+        for unit in record['scheduling']['units']}
+    return record
+
+
+def installed_inspection(proposal):
+    from deploy.workload_preparation import sha
+    record = deepcopy(proposal['identities'])
+    mapping = record.pop('uid_mapping')
+    record['schema'] = 'mldsafail.workload-installed-inspection.v2'
+    record['socket'] = inspection()['socket']
+    record['installed'] = dict(proposal_sha256=sha(proposal),
+        supervisor=dict(pid=123,start_ticks=234,uid=1000,boot_id='boot',cgroup='/sys/fs/cgroup/user.slice/app.slice'),
+        configuration_hashes={p:r['sha256'] for p,r in record['configuration_files'].items()},
+        release_hashes=dict(record['release_files']), paused=True, uid_mapping=mapping,
+        dependency_receipt_sha256='1'*64)
+    return record
+
+
+def test_first_install_proposal_has_no_observed_socket_or_test_authority():
+    from deploy.workload_preparation import bootstrap_commands, installed_commands
+    record = bootstrap_inspection()
+    proposal = bootstrap_commands(record, now=1100)
+    assert proposal['stage'] == 'bootstrap'
+    assert not proposal['installed_acceptance']
+    assert 'native_acceptance' not in proposal['commands']
+    with pytest.raises(WorkloadBlocked): inspected_commands(record, now=1100)
+    with pytest.raises(WorkloadBlocked): installed_commands(record, proposal, now=1100)
+    installed = installed_commands(installed_inspection(proposal), proposal, now=1100)
+    assert installed['commands'] == {}
+    assert set(installed['command_fragments']) == {'native_acceptance'}
+    assert not installed['execution_authority']
+
+
+@pytest.mark.parametrize('mutation', [
+    lambda r:r['socket'].update(inode=1),
+    lambda r:r['delegation'].update(controllers=[]),
+    lambda r:r['output_volume'].update(mount_options=['rw']),
+    lambda r:r['uid_mapping'].update(coordinator_container_uid=10001),
+    lambda r:r['uid_mapping'].update(uid_map=[[0,1000,1],[0,1000,1]]),
+    lambda r:r['scheduling']['owners']['coordinator.service'].update(manager='cron'),
+    lambda r:r['scheduling']['owners']['coordinator.service'].update(triggers=['unknown.timer']),
+    lambda r:r['scheduling']['owners']['coordinator.service'].update(triggers=['retained.timer']),
+    lambda r:r['scheduling'].update(references_open=1),
+    lambda r:r['rollback'].update(installed_schema_sha256='bad'),
+    lambda r:r['original_settings'].pop('retained.timer'),
+])
+def test_bootstrap_prerequisites_fail_closed(mutation):
+    from deploy.workload_preparation import bootstrap_commands
+    record=bootstrap_inspection();mutation(record)
+    with pytest.raises((WorkloadBlocked, KeyError)): bootstrap_commands(record, now=1100)
+
+
+def test_scheduling_commands_use_owner_managers_and_preserve_retained_units():
+    from deploy.workload_preparation import bootstrap_commands
+    record=bootstrap_inspection()
+    record['scheduling']['owners']['coordinator.service'].update(manager='system',uid=0,account='root')
+    record['scheduling']['owners']['retained.timer'].update(uid=1001,account='backup')
+    proposal=bootstrap_commands(record,now=1100)
+    assert proposal['command_fragments']['maintenance'][0].startswith('/usr/bin/sudo -n /usr/bin/systemctl mask --runtime')
+    assert all('retained.timer' not in c for c in proposal['command_fragments']['maintenance'])
+    assert any('XDG_RUNTIME_DIR=/run/user/1001' in c for c in proposal['command_fragments']['restoration'])
+    assert not any(' start coordinator.service' in c for c in proposal['command_fragments']['restoration'])
+
+
+@pytest.mark.parametrize('mutation', [
+    lambda r:r['socket'].update(state='proposed'),
+    lambda r:r['installed']['release_hashes'].update({'/srv/release/source.py':'b'*64}),
+    lambda r:r['installed']['configuration_hashes'].clear(),
+    lambda r:r['installed'].update(paused=False),
+    lambda r:r['installed']['supervisor'].update(cgroup='/sys/fs/cgroup/user.slice/mldsafail.slice/mldsafail-heavy.slice'),
+    lambda r:r['installed'].pop('supervisor'),
+    lambda r:r['installed']['uid_mapping'].update(coordinator_container_uid=10001),
+])
+def test_partial_or_changed_installation_rejected(mutation):
+    from deploy.workload_preparation import bootstrap_commands, installed_commands
+    proposal=bootstrap_commands(bootstrap_inspection(),now=1100)
+    record=installed_inspection(proposal);mutation(record)
+    with pytest.raises((WorkloadBlocked, KeyError)):installed_commands(record,proposal,now=1100)
+
+
+def test_edited_bootstrap_commands_cannot_authorize_installed_stage():
+    from deploy.workload_preparation import bootstrap_commands, installed_commands
+    proposal=bootstrap_commands(bootstrap_inspection(),now=1100)
+    record=installed_inspection(proposal)
+    proposal['command_fragments']['maintenance']=[]
+    with pytest.raises(WorkloadBlocked):installed_commands(record,proposal,now=1100)
+
+
+def test_control_matrix_never_claims_unrun_native_controls():
+    from deploy.workload_evidence import evidence_matrix
+    from deploy.workload_controls import SCENARIOS
+    rows=evidence_matrix()
+    assert len(rows)==sum(len(cases) for cases in SCENARIOS.values())
+    assert all(row['receipt'] is None and row['accepted'] is False for row in rows)
+    assert sum(row['runner'] is not None for row in rows)==3

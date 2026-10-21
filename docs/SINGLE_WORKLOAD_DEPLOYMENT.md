@@ -111,13 +111,31 @@ uv run python -m scripts.prepare_workload_packet \
   --release-output /tmp/workload-release-new.json
 ```
 
-With a complete reviewed host snapshot, add `--inspection /private/inspection.json`
-and `--unit-output /private/generated`. The snapshot must identify scheduling
-owners and retained services, boot/daemon, delegated ancestor births/limits, private
-socket, bounded persistent output volume, installed source/configuration, acceptance
-inputs and a verified schema-compatible rollback. `deploy.workload_deployment.REQUIRED`
-and its validators define the exact record. Incomplete identities emit blockers and
-no commands. Never copy fixture identities into a host packet.
+The default emits a v2 bootstrap review. A proposed socket record contains only
+`path` and `state: proposed`; it cannot pass installed validation. Bootstrap host
+records additionally bind the coordinator UID mapping and each scheduling owner's
+manager, account, restart policy, trigger references and disposition. System and
+other-user managers receive explicit commands; unresolved cron/other triggers
+block publication until a reviewed adapter exists. Retained units stay running.
+
+`--stage installed --bootstrap /private/bootstrap-review.json` consumes the prior
+full review packet (or its `deployment` proposal) plus `--inspection` containing
+observed identities. It binds all three private configurations, supervisor birth,
+socket birth, dependency receipt and complete frozen release manifest. It emits
+only native-test command fragments, never installation authority. Current v2
+packets publish no runnable commands while implementation blockers remain. Actual installed file and
+socket identities are rechecked before native tests. `--stage legacy-v1` retains
+the earlier installed-only contract; historical packets remain unchanged.
+
+The v2 bootstrap implementation remains preparation tooling: fresh release,
+dependency and configuration installation, exact release/image restoration and
+missing-delegation/storage prerequisite proposals still require completion using
+privileged host facts. V2 exposes the old rollback subset only as fencing commands,
+with an explicit incomplete-restoration blocker. Do not execute an incomplete
+proposal. `--unit-output` writes reviewed unit source only; it is not an installer.
+The [readiness record](acceptance/production-preparation/protected-runtime-readiness-20261021.md)
+tracks these gaps and the independent review. Proposed configuration hashes and
+paths must never be described as observed installation evidence.
 
 The [immutable local review](acceptance/production-preparation/workload-integrated-review.json)
 and [source release](acceptance/production-preparation/workload-integrated-release.json)
@@ -126,8 +144,9 @@ certify an installed evaluator fingerprint or configuration.
 
 ## Installation, cleanup and recovery
 
-For a complete inspected snapshot, the generator renders exact installation,
-maintenance, cleanup, rollback and restoration commands plus systemd units.
+The historical v1 generator renders unit installation, maintenance, cleanup and
+configuration recovery commands. Those commands alone do not install a complete
+fresh release or restore a rollback image. V2 explicitly records those gaps.
 The supervisor uses notification/watchdog supervision and an independent
 `ExecStopPost` cleanup process outside the heavy subtree. Restart always enters
 reconciliation with scheduling paused; work never resumes automatically.

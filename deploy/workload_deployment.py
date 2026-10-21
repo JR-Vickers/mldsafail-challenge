@@ -13,9 +13,14 @@ REQUIRED = {'schema', 'hostname', 'uid', 'boot_id', 'daemon_id', 'captured_at', 
 
 
 def inspected_commands(inspection, *, now=None):
+    """Historical v1 installed-only contract; never accepts bootstrap proposals."""
+    return _commands(inspection, now=now, bootstrap=False)
+
+
+def _commands(inspection, *, now=None, bootstrap=False):
     now = time.time() if now is None else now
     require(type(inspection) is dict and set(inspection) == REQUIRED and
-            inspection['schema'] == 'mldsafail.workload-host-inspection.v1', 'workload_host_inspection_incomplete')
+            inspection['schema'] == ('mldsafail.workload-bootstrap-inspection.v2' if bootstrap else 'mldsafail.workload-host-inspection.v1'), 'workload_host_inspection_incomplete')
     require(isinstance(inspection['hostname'], str) and inspection['hostname'] and
             type(inspection['uid']) is int and inspection['uid'] > 0 and
             inspection['boot_id'] and inspection['daemon_id'] and
@@ -34,10 +39,14 @@ def inspected_commands(inspection, *, now=None):
                 (scope['memory_max'] == 'max' or type(scope['memory_max']) is int and scope['memory_max'] > 0),
                 'workload_ancestor_uninspected')
     socket = inspection['socket']
-    require(socket['path'] == str(Path(installation['gate_root'])/'supervisor.sock') and
-            socket['uid'] == inspection['uid'] and socket['directory_mode'] == 0o700 and
-            socket['mode'] == 0o600 and socket['device'] >= 0 and socket['inode'] > 0,
-            'workload_socket_identity_uninspected')
+    if bootstrap:
+        require(socket == {'path': str(Path(installation['gate_root'])/'supervisor.sock'),
+                           'state': 'proposed'}, 'workload_bootstrap_socket_must_be_proposed')
+    else:
+        require(socket['path'] == str(Path(installation['gate_root'])/'supervisor.sock') and
+                socket['uid'] == inspection['uid'] and socket['directory_mode'] == 0o700 and
+                socket['mode'] == 0o600 and socket['device'] >= 0 and socket['inode'] > 0,
+                'workload_socket_identity_uninspected')
     output = inspection['output_volume']
     absolute(output['path'])
     require(output['filesystem'] in ('ext4', 'xfs') and type(output['bytes']) is int and 0 < output['bytes'] <= 1024**3 and
@@ -52,6 +61,9 @@ def inspected_commands(inspection, *, now=None):
                 type(service['running']) is bool and
                 service['restart_policy'] in ('no', 'always', 'unless-stopped', 'on-failure'), 'workload_service_birth_missing')
     scheduling = inspection['scheduling']
+    if bootstrap:
+        from deploy.workload_preparation import scheduling_commands
+        owner_commands = scheduling_commands(scheduling, inspection['uid'])
     require(scheduling['unclassified'] == 0 and scheduling['references_open'] == 0 and
             re.fullmatch('[a-f0-9]{64}', scheduling['receipt_sha256']) and scheduling['units'] and
             set(scheduling['computational_units']) <= set(scheduling['units']), 'workload_scheduling_closure_missing')
@@ -112,6 +124,9 @@ def inspected_commands(inspection, *, now=None):
     commands['native_acceptance'] = [command([python, '-m', 'deploy.workload_native_acceptance',
         '--packet', str(Path(installation['release'])/'generated/native-acceptance.json'),
         '--authorization', str(Path(installation['release'])/'generated/native-authorization.json')])]
+    if bootstrap:
+        commands.update(owner_commands)
+        commands.pop('native_acceptance')
     return dict(identities=inspection, units=units, commands=commands, execution_authority=False,
                 expected_statuses={'maintenance_is_active': [3]},
                 installation_prerequisites=['inspected_delegation', 'existing_bounded_persistent_volume', 'retained_compatible_rollback'],

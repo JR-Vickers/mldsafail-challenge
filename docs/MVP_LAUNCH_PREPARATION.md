@@ -26,9 +26,16 @@ PostgreSQL fixtures cover the implementation; native installed acceptance remain
 pending. V4 has exact owner/reviewer bindings and control-specific evidence under
 `unmeasured_capacity`; existing v2/v3 capacity requirements remain unchanged.
 
-Before host execution, obtain current scheduling, retained-service, delegation,
-private socket, bounded output-volume and compatible rollback identities, generate
-the exact maintenance/restoration packet and obtain separate owner authorization.
+Local integration is complete as source verification. The protected admission
+floor is 1 GiB available RAM and 5 GiB free disk. Installed acceptance is pending.
+Before first installation, bind current host/scheduling/retained-service facts,
+proposed paths and exact prerequisite/installation/restoration commands in a
+bootstrap proposal; an existing supervisor socket is not a bootstrap prerequisite.
+Missing delegation/storage, privileged visibility or incomplete commands block it.
+Obtain independent review and exact-byte owner authorization before changes.
+After installation, bind observed socket, supervisor, cgroup, mount and artifact
+births in a separate installed acceptance packet and obtain native-test authority.
+See the [readiness disposition](acceptance/production-preparation/protected-runtime-readiness-20261021.md).
 The offline packet emits no guessed commands when those identities are absent.
 Single-workload execution does not certify that a job fits the VPS. Keep the
 existing VPS, $0 budget and 0.5.0 preview. After authorized native acceptance,
