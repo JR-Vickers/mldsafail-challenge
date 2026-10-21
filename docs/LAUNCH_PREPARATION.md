@@ -1,4 +1,12 @@
 > Historical checkpoint with follow-up entries. Current launch task status is
+
+Current workload-protection gate (2026-10-21): private journal validation and
+bounded helper/socket transports pass local tests. Production coordinator/admin
+routing, native runtime and independent death cleanup remain unimplemented; v4
+execution remains rejected. Require integrated failure tests, exact installation
+and rollback identities, then separately authorized VPS control-only acceptance.
+See [single-workload deployment review](SINGLE_WORKLOAD_DEPLOYMENT.md). No local
+or historical receipt closes those gates.
 > maintained in the canonical launch ledger when present; production decisions
 > and rehearsals are specified in [PUBLIC_LAUNCH_PACKET.md](PUBLIC_LAUNCH_PACKET.md).
 > Dated incomplete prerequisites below must be reconciled with newer evidence.

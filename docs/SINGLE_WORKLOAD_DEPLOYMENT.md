@@ -26,14 +26,33 @@ blocked; do not reset their statuses or infer worker death from database expiry.
 The proof callback is an internal adapter contract, not an operator checkbox.
 
 The v4 operational-evidence validator binds the policy hash, runtime identities,
-control evidence files, freshness and a separately scoped owner authorization to
+structured control evidence files, freshness and a separately scoped owner authorization to
 exact serialized packet bytes. Older v2/v3 capacity requirements are unchanged.
 The production epoch entrypoint still rejects v4: enabling it before the missing
 runtime is implemented would create an unsafe policy bypass.
 
 ## Unfinished implementation and acceptance gates
 
-The native runtime adapter, private Unix socket daemon and client, Docker router
+The private Linux Unix socket transport and bounded helper transport now exist
+as library components (`workload_socket.py` and `runtime_io.py`). The socket
+checks SO_PEERCRED UID, enforces owner-only directory/socket permissions, rejects
+arbitrary launch specifications, bounds client reads and retains durable request
+outcomes and unresolved intents. Completed request IDs survive subsequent
+workloads; the bounded ledger blocks when full rather than discarding replay
+protection. A lost acquire acknowledgement conservatively blocks ownership if it
+falls between the acquisition and response journal writes. Recovery never repeats
+an ambiguous mutation.
+
+Journal reads validate schema, policy hash, lifecycle shape, identity fields,
+request ledger and private regular-file ownership; duplicate JSON keys, oversized
+files, symlinks and inode replacement are rejected. Completed ownership cannot
+be reopened through bind or launch. Helper I/O uses nonblocking pipes and an
+800 ms deadline without reader threads; unresolved helpers retain process handles
+and block subsequent helper calls. A late sample aborts at one second. This does
+not make unbounded legacy callbacks safe: the bounded transport is not yet wired
+to a reviewed native adapter.
+
+The native runtime adapter, runnable daemon/client integration, Docker router
 generalization, coordinator integration and administrative integration are not
 implemented. The new gate therefore does not yet enforce production exclusivity.
 No current launch path may claim protection from this library. The existing web
@@ -116,7 +135,26 @@ fence its coordinator before rollback. Restore original settings only after
 postflight and verified termination. No shared hardlink mutation or scientific
 evidence deletion is part of this change.
 
-## Local verification record
+## Current local checkpoint, 2026-10-21
+
+Commit `6a8cf0e` adds journal validation, bounded helper I/O and the private socket
+protocol. Focused verification: 47 passed, one Linux-only socket test skipped on
+macOS. `make check`: 1,400 passed, 45 skipped, 12 warnings; frozen contract: 8
+passed. These tests cover durable duplicate requests, changed request rejection,
+lost launch acknowledgements, request replay across workloads, malformed journals,
+helper deadlines and output caps. They do not certify the missing integrated
+runtime or native VPS behavior. The structured evidence validator rejects hashed
+arbitrary JSON; per-control semantic proof and the native records remain gates.
+The previous retained review packet remains historical and unchanged.
+
+No host was contacted, no solver executed and no epoch or capacity workload was
+created. Exact installation/restoration commands remain blocked by uninspected
+host delegation, scheduling and rollback identities as well as missing runnable
+components. The native acceptance authorization is absent. This checkpoint does
+not satisfy the requested integrated implementation or executable deployment
+packet; those remain explicit engineering work, not merely an authorization gate.
+
+## Previous local verification record
 
 Final `make check`: 1,377 passed, 44 skipped, 12 warnings; the separate frozen
 contract invocation passed 8 tests. The focused gate tests include a separate

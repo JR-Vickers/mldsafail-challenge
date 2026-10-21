@@ -37,6 +37,18 @@ Separate native transport, fence and cleanup correctness checks, the audited
 production epoch and the final participant journey remain launch requirements.
 This decision authorizes no epoch, transfer, provisioning or VPS service change.
 
+### Current implementation checkpoint — protection remains incomplete
+
+The local host gate now validates private journal schema, policy and lifecycle
+shape; the private Linux socket transport authenticates peer UIDs and accepts
+configured command roles with durable request outcomes. Helper subprocess I/O is
+bounded without reader threads. These transports are not wired into production.
+The coordinator still launches directly, administrative routing and the native
+cgroup adapter remain missing, and no systemd death-cleanup barrier is installed.
+The epoch entrypoint continues to reject v4. Native VPS acceptance has no owner
+authorization and has not run. See [the current deployment review](SINGLE_WORKLOAD_DEPLOYMENT.md)
+for verified scope and blockers. Do not interpret local tests as host enforcement.
+
 ### Next engineering phase — single-workload scheduling and host protection
 
 Owner direction, 2026-10-21: use the existing VPS and $0 budget to prevent
@@ -60,10 +72,11 @@ capacity or authorize deployment. Complete the following before epoch execution:
 Current source already serializes evaluation claims under a database transaction
 lock, checks resource floors and bounds admission. These are source observations,
 not certification of the deployed release. The current floor is 128 MiB available
-memory and 5 GiB free disk; it is not a reservation for the next workload. Stale
-lease recovery currently permits requeuing without proving worker termination.
-Review and close that gap, administrative-operation exclusion and deployed
-compatibility before claiming host-wide single-workload enforcement.
+memory and 5 GiB free disk; it is not a reservation for the next workload. Expired
+leases now remain blocked unless an explicit reconciler verifies termination.
+Legacy expired jobs must not be reset to queued. Complete administrative-operation
+exclusion, production routing and deployed compatibility before claiming host-wide
+single-workload enforcement.
 
 Prepare a concrete operational policy and corresponding epoch-validator changes
 that replace the measured-capacity prerequisite, with explicit disclosure of

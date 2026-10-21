@@ -9,13 +9,15 @@ from mldsafail.evaluator.workload import ResourcePolicy
 
 FILES = (
     'src/mldsafail/evaluator/workload.py',
+    'src/mldsafail/evaluator/runtime_io.py',
+    'src/mldsafail/evaluator/workload_socket.py',
     'src/mldsafail/evaluator/queue.py',
     'deploy/workload_policy.py',
     'deploy/production_maintenance.py',
     'docs/SINGLE_WORKLOAD_DEPLOYMENT.md',
 )
 BLOCKERS = (
-    'native_runtime_adapter_and_private_unix_socket_missing',
+    'native_runtime_adapter_and_runnable_supervisor_integration_missing',
     'coordinator_and_administrative_launch_routing_missing',
     'native_common_cgroup_and_accounting_acceptance_missing',
     'bounded_runtime_io_and_supervisor_death_acceptance_missing',
