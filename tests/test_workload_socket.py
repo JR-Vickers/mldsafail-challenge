@@ -189,3 +189,12 @@ def test_completed_workload_records_are_bounded_and_generations_never_reopen(tmp
         assert gate.state['request_generation'] == 21
         with pytest.raises(WorkloadBlocked, match='request_generation'):
             protocol.dispatch(first)
+
+
+@pytest.mark.parametrize('wire', [
+    b'{"id":"1:1","id":"1:2","method":"acquire","argument":{}}',
+    b'{"id":"1:1","method":"acquire","argument":{"reference":{"cost":NaN}}}',
+])
+def test_ambiguous_wire_requests_rejected_before_dispatch(wire):
+    from mldsafail.evaluator.workload_socket import decode_request
+    with pytest.raises(ValueError): decode_request(wire)

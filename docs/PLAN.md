@@ -522,3 +522,10 @@ cleanup and executable deployment/recovery packet remain implementation work;
 v4 execution remains disabled. Native acceptance additionally lacks separate
 owner authorization and inspected host prerequisites. Historical receipts are
 unchanged.
+
+
+2026-10-21 runnable control checkpoint: private supervisor/client/cleanup commands
+and separate bounded monitor/control helper channels are available. A native
+runtime helper, systemd abnormal-exit cleanup and production routing are still
+missing; the [entrypoint runbook](SINGLE_WORKLOAD_DEPLOYMENT.md#runnable-control-entrypoints-checkpoint-2026-10-21)
+records the exact current boundary. No native installation or acceptance ran.

@@ -54,7 +54,8 @@ and block subsequent helper calls. A late sample aborts at one second. This does
 not make unbounded legacy callbacks safe: the bounded transport is not yet wired
 to a reviewed native adapter.
 
-The native runtime adapter, runnable daemon/client integration, Docker router
+Runnable daemon/client/cleanup commands and a bounded helper adapter now exist.
+The native runtime helper, systemd independent cleanup integration, Docker router
 generalization, coordinator integration and administrative integration are not
 implemented. The new gate therefore does not yet enforce production exclusivity.
 No current launch path may claim protection from this library. The existing web
@@ -202,8 +203,8 @@ acknowledgements across restart, invalid requests leaving journal bytes unchange
 bounded request/workload retention, expired replay, shrinking launch headroom,
 and a blocked launcher with concurrent protection failure and rejected late birth.
 These checks do not implement native acceptance. Production coordinator/admin
-routing, the native runtime and runnable daemon/client/cleanup entrypoints,
-filesystem output enforcement, independent systemd cleanup, database commit
+routing, the native runtime helper, filesystem output enforcement, independent
+systemd cleanup, database commit
 reconciliation and control-specific v4 evidence remain missing implementation.
 The requested complete deployment packet cannot yet be generated. Exact VPS
 scheduling/delegation/rollback identities and separate native authorization remain
@@ -214,3 +215,47 @@ one Linux-only socket test skipped; `make check` passed 1,406 with 45 skipped an
 12 warnings, followed by all eight frozen contract checks. Skips remain explicit
 native/database acceptance limitations. Changed local documentation links and
 `git diff --check` were checked separately.
+
+
+## Runnable control entrypoints checkpoint, 2026-10-21
+
+`python -m mldsafail.evaluator.workload_service` provides `serve`, `client`, and
+`cleanup` actions, each requiring `--configuration`. Client additionally requires
+`--request`, naming persisted exact JSON request bytes. It never allocates a new
+request ID on retry. This private Linux socket uses owner-only permissions and
+peer UID authentication; no public endpoint is added. The supervisor retains the
+physical-host lock for its lifetime. Cleanup obtains that same lock, verifies
+runtime identity, preserves transaction state and leaves scheduling paused.
+Restart pauses retained ownership; it does not restart a computational phase.
+Explicit resume after a completed workload requires verified absence and fresh
+preflight, while unresolved result transactions remain blocked.
+
+The configuration is a private regular file owned by the service UID, without
+symlink components, with exactly `root`, `socket`, `helper`, and `roles` keys.
+The socket must be directly inside the absolute gate root. `helper` is an
+absolute installed executable and fixed argument list. `roles` maps configured
+names to reviewed frozen launch specifications. Neither the socket caller nor a
+contestant supplies helper commands. There is deliberately no default helper:
+a reviewed native helper must be installed before this service can run work.
+Monitor and control channels use separate bounded subprocess transports. Readiness
+and watchdog messages use systemd's private notification socket when provided.
+
+The native helper must implement the seven operations in `runtime_io.py`, enforce
+all native controls described above, and retain/inspect create and start identity
+before returning. It does not exist yet. The command is therefore an engineering
+entrypoint, not an installed protection system. Independent abnormal-exit cleanup
+still needs a reviewed systemd unit and inspected service/delegation identities.
+No production launch has been rerouted and v4 execution remains disabled.
+
+The [entrypoint review packet](acceptance/production-preparation/workload-entrypoints-review.json)
+is an offline immutable source-hash inventory with explicit blockers. It contains
+no installation or restoration commands and grants no native execution authority.
+Historical review packets and acceptance receipts remain unchanged.
+
+Entrypoint checkpoint verification: 49 focused tests passed with one Linux socket
+skip. Final `make check` passed 1,417 tests with 45 skips and 12 warnings, plus all
+eight frozen contract checks. New coverage includes private configuration,
+independent helper channels with a timed-out launch, cleanup-only preservation of
+pending commit identity, explicit resume of verified completed ownership, and
+ambiguous duplicate/nonfinite wire JSON rejection. This evidence does not certify
+Linux service supervision, real Docker/cgroup controls or PostgreSQL integration.

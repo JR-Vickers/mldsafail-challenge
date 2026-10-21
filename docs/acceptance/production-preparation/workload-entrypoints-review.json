@@ -1,0 +1,43 @@
+{
+  "benchmark_version": "0.5.0",
+  "blockers": [
+    "native_runtime_helper_and_systemd_cleanup_integration_missing",
+    "coordinator_and_administrative_launch_routing_missing",
+    "native_common_cgroup_and_accounting_acceptance_missing",
+    "bounded_runtime_io_and_supervisor_death_acceptance_missing",
+    "postgres_and_container_contention_acceptance_missing",
+    "new_hosted_fingerprint_release_and_epoch_bindings_missing",
+    "deployed_scheduling_and_delegation_unverified",
+    "exact_transfer_restoration_and_rollback_identities_unverified",
+    "separately_scoped_owner_authorization_absent"
+  ],
+  "capacity_disposition": "unmeasured_capacity",
+  "execution_authority": false,
+  "proposed_operation_schema": "mldsafail.production-operation.v4",
+  "purpose": "offline_engineering_review_only",
+  "resource_policy": {
+    "available_floor": 268435456,
+    "cpu_max": "100000 100000",
+    "disk_floor": 5368709120,
+    "generation_max": 1073741824,
+    "interval": 0.25,
+    "log_max": 134217728,
+    "pids_max": 448,
+    "reserve": 1073741824,
+    "swap_max": 0,
+    "version": "mldsafail.resource-policy.v1"
+  },
+  "resource_policy_sha256": "d0952828294b8f503f72ffa7f7e1b5e13d36a51a2a826fa8e4fa3318a0ee954e",
+  "schema": "mldsafail.workload-deployment-review.v1",
+  "source_hashes": {
+    "deploy/production_maintenance.py": "1e57411d96b10e136a6b4848894ce52bb9827e76b7817be132a71d211b36979d",
+    "deploy/workload_policy.py": "c6509c2973f31b52edb74f53e82d06ca5294d4e5e032e122852ea22caf7f2d26",
+    "docs/SINGLE_WORKLOAD_DEPLOYMENT.md": "2448e421423c934b9ec54aaad676500d4176758070e33594bfda0b15c35f5590",
+    "src/mldsafail/evaluator/queue.py": "89da69cf0380856719d169f70a8c9b646a1a1dab1ba28a0ccc517787f4628e56",
+    "src/mldsafail/evaluator/runtime_io.py": "a0709181a6965c418d96852cadd3a5d0d3c869bba8e81403efb9b5577a248844",
+    "src/mldsafail/evaluator/workload.py": "aaaac0d08c47371053b2b2f95547430b09f0d756f6661365a60211401df12cbe",
+    "src/mldsafail/evaluator/workload_service.py": "6f2f4c3a8a80e93f124a62819e75e4957c3fa403331c84b725e2bf63b8e7a361",
+    "src/mldsafail/evaluator/workload_socket.py": "a7e5be44e84e513c474804312eb7a0c007b8b3d6e02b70e36d6d3c8b35837f20"
+  },
+  "state": "maintenance_proposal"
+}

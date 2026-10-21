@@ -21,6 +21,19 @@ import threading
 from mldsafail.evaluator.workload import WorkloadBlocked
 
 
+def decode_request(data):
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('duplicate_request_key')
+            result[key] = value
+        return result
+    def invalid_constant(value):
+        raise ValueError('nonfinite_request_number')
+    return json.loads(data, object_pairs_hook=unique, parse_constant=invalid_constant)
+
+
 class SupervisorProtocol:
     def __init__(self, gate, roles):
         self.gate = gate
@@ -97,7 +110,7 @@ class SupervisorProtocol:
                 'bind': {'acquired'}, 'launch': {'acquired', 'running'},
                 'postflight': {'acquired', 'running', 'cleaned'},
                 'commit_intent': {'postflight'}, 'acknowledge_commit': {'commit_intent'},
-                'release': {'committed'}, 'resume': {'cleaned'},
+                'release': {'committed'}, 'resume': {'cleaned', 'complete'},
                 'abort': {'acquired', 'launch_intent', 'running', 'termination_intent', 'cleaned'},
                 'reconcile': {'acquired', 'launch_intent', 'running', 'termination_intent', 'cleaned'},
             }
@@ -202,7 +215,7 @@ class PrivateSocket:
                         self.close_client(client)
                     elif b'\n' in state['data']:
                         try:
-                            request = json.loads(state['data'])
+                            request = decode_request(state['data'])
                             result = self.protocol.dispatch(request)
                             response = {'result': result}
                         except (ValueError, WorkloadBlocked, KeyError, TypeError):

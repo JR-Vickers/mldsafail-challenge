@@ -423,9 +423,9 @@ class HostGate:
     def resume(self):
         self._owned()
         if self.inflight_launches: raise WorkloadBlocked('creator_response_pending')
-        if self.state.get('database_commit'):
+        if self.state.get('database_commit') and self.state['phase'] != 'complete':
             raise WorkloadBlocked('result_reconciliation_required')
-        if self.state['phase'] != 'cleaned' or self.runtime.stopped(self.state) is not True:
+        if self.state['phase'] not in ('cleaned', 'complete') or self.runtime.stopped(self.state) is not True:
             raise WorkloadBlocked('verified_cleanup_required')
         ceiling = self.runtime.preflight(self.policy)
         if type(ceiling) is not int or ceiling <= 0: raise WorkloadBlocked('resource_deferral')
