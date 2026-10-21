@@ -77,6 +77,12 @@ The [owner-console procedure](PROTECTED_RUNTIME_OWNER_COLLECTION.md) identifies
 the outstanding privileged collection. Installation remains blocked; do not
 request execution approval against incomplete source artifacts.
 
+The [next development phase](PROTECTED_RUNTIME_IMPLEMENTATION_PLAN.md) sequences
+v3 integration, complete offline releases, recoverable installation/rollback,
+installed verification and full control coverage. Its exit is an independently
+reviewed installation proposal; VPS installation and native tests retain separate
+authorization gates.
+
 ### Source requirements — single-workload scheduling and host protection
 
 Owner direction, 2026-10-21: use the existing VPS and $0 budget to prevent
