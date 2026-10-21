@@ -1,6 +1,6 @@
 """Owner-specific persistent inhibition proposal, without execution authority.
 
-Drop-ins use a private, persistent gate file. Unlike runtime masks they survive
+Drop-ins require an owner-specific, persistent permission file. Unlike runtime masks they survive
 reboot and work for units with existing unit files. Unknown scheduler adapters
 remain blockers. Removing inhibition requires a later owner-reviewed operation.
 """
@@ -44,8 +44,9 @@ def proposal(record, uid, gate, unit_directories):
         else:
             require(str(directory).endswith('/.config/systemd/user'), 'scheduling_user_directory_invalid')
         path = directory/(unit+'.d')/'90-mldsafail-paused.conf'
+        permission = str(gate / (owner['manager']+'-'+str(owner['uid'])+'.allow'))
         resources.append(dict(state='proposed', path=str(path), owner_uid=owner['uid'],
-                              contents='[Unit]\nConditionPathExists=!'+str(gate)+'\n',
+                              contents='[Unit]\nConditionPathExists='+permission+'\n',
                               precondition='absent_destination_preserve_original_unit_and_dropins'))
         prefix = manager_prefix(owner, uid)
         if key not in seen:
@@ -56,9 +57,10 @@ def proposal(record, uid, gate, unit_directories):
                                        '--property=ActiveState,Conditions,DropInPaths']))
     return dict(schema='mldsafail.workload-scheduling-proposal.v3',
                 execution_authority=False,
-                gate=dict(state='proposed', path=str(gate), mode=0o600,
-                          precondition='exclusive_creation_persistent_owner_private_parent'),
+                gate=dict(state='proposed', path=str(gate), mode=0o700,
+                          permission_files='must_remain_absent_no_creation_authorized',
+                          precondition='exclusive_creation_persistent_owner_private_directory'),
                 resources=resources, commands_after_exclusive_resource_creation=commands,
                 observation_commands=observations,
-                rollback='preserve_gate_and_dropins_keep_computation_stopped',
+                rollback='preserve_absent_permissions_and_dropins_keep_computation_stopped',
                 restoration='separate_review_and_owner_authorization_required')

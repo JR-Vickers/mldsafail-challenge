@@ -16,7 +16,8 @@ def test_persistent_inhibition_leaves_retained_units_and_original_files_alone():
     result = proposal(record(), 1000, '/srv/gate/paused', {'user:1000': '/home/operator/.config/systemd/user'})
     assert not result['execution_authority']
     assert result['resources'][0]['state'] == 'proposed'
-    assert 'ConditionPathExists=!/srv/gate/paused' in result['resources'][0]['contents']
+    assert 'ConditionPathExists=/srv/gate/paused/user-1000.allow' in result['resources'][0]['contents']
+    assert result['gate']['permission_files'] == 'must_remain_absent_no_creation_authorized'
     assert '--runtime' not in str(result)
     assert all('web.service' not in command for command in result['commands_after_exclusive_resource_creation'])
     assert all(' start ' not in command for command in result['commands_after_exclusive_resource_creation'])

@@ -9,6 +9,7 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import stat
+import subprocess
 
 from mldsafail.evaluator.native_workload import require
 
@@ -38,6 +39,7 @@ def regular(root, name):
     for part in PurePosixPath(relative(name)).parts:
         path /= part
         require(not path.is_symlink(), 'release_symlink')
+    require(path.exists(), 'release_missing_file:'+name)
     before = path.lstat()
     require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1, 'release_not_exclusive_regular')
     with path.open('rb') as stream:
@@ -103,6 +105,9 @@ def verify(root, manifest):
     for name, record in manifest['files'].items():
         data, mode = regular(root, name)
         require(record == dict(sha256=digest(data), bytes=len(data), mode=mode), 'release_content_changed:'+name)
+    from deploy.workload_wheels import inspect_wheel
+    for name in manifest['dependencies']:
+        inspect_wheel(root/name, manifest['files'][name]['sha256'])
     return digest(frozen)
 
 
@@ -127,6 +132,8 @@ def freeze(source, destination, *, source_names, generated_units, wheels, bindin
         key = relative('offline/'+wheel.name)
         require(key not in payload, 'release_duplicate_path')
         data, _ = regular(wheel.parent, wheel.name)
+        from deploy.workload_wheels import inspect_wheel
+        inspect_wheel(wheel, digest(data))
         payload[key] = (data, 0o600)
     manifest = dict(bindings, schema=SCHEMA, benchmark_version='0.5.0',
                     files={name: dict(sha256=digest(data), bytes=len(data), mode=mode)
@@ -145,3 +152,50 @@ def freeze(source, destination, *, source_names, generated_units, wheels, bindin
             os.fsync(stream.fileno())
     verify(destination, manifest)
     return manifest
+
+
+def runtime_sources(source):
+    """Explicit full-runtime inclusion policy, independent of caller file lists.
+
+    Private configuration and generated artifacts are bound separately. Refuse
+    links rather than following them into private or unrelated workspaces.
+    """
+    source = Path(source)
+    repository = subprocess.run(['git', '-C', str(source), 'rev-parse', '--show-toplevel'],
+                                check=True, capture_output=True, text=True).stdout.strip()
+    require(Path(repository).resolve() == source.resolve(), 'release_source_repository_root_required')
+    tracked = set(subprocess.run(['git', '-C', str(source), 'ls-files', '-z'],
+                                 check=True, capture_output=True).stdout.decode().split('\0'))
+    required = {'pyproject.toml', 'uv.lock', 'README.md', 'alembic.ini',
+                'compose.production.yaml', 'Dockerfile.coordinator',
+                'deploy/worker-linux-amd64.requirements.txt',
+                'examples/mlwe/primal-lll/solver.py'}
+    for folder in ('src/mldsafail', 'deploy', 'scripts', 'migrations'):
+        directory = source/folder
+        require(directory.is_dir() and not directory.is_symlink(), 'release_runtime_directory_missing:'+folder)
+        for relative_name in tracked:
+            if not relative_name.startswith(folder+'/'):
+                continue
+            path = Path(relative_name)
+            if '__pycache__' in path.parts or path.suffix in ('.pyc', '.pyo'):
+                continue
+            if folder == 'src/mldsafail':
+                require(path.suffix in ('.py', '.toml', '.json', '.html', '.css', '.js',
+                                        '.svg', '.png', '.txt', '.md', '.lock') or
+                        path.name == 'Dockerfile', 'release_unclassified_package_data:'+relative_name)
+            elif path.suffix not in ('.py', '.sh', '.mako'):
+                continue
+            required.add(relative_name)
+    for name in required:
+        regular(source, name)
+    require('src/mldsafail/evaluator/workload_service.py' in required and
+            'scripts/prepare_workload_packet.py' in required and
+            any(name.startswith('migrations/versions/') for name in required),
+            'release_runtime_incomplete')
+    return sorted(required)
+
+
+def freeze_runtime(source, destination, *, generated_units, wheels, bindings):
+    """Freeze the full inclusion policy; callers cannot omit runtime modules."""
+    return freeze(source, destination, source_names=runtime_sources(source),
+                  generated_units=generated_units, wheels=wheels, bindings=bindings)
