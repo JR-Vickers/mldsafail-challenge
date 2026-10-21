@@ -89,7 +89,7 @@ def test_replaced_completed_resource_is_preserved_and_blocks(tmp_path):
 
 def test_partial_journal_blocks_replay(tmp_path):
     proposal,raw,review,authority=packet(tmp_path)
-    path=tmp_path/'journal'/'installation.jsonl';path.write_bytes(b'{')
+    path=tmp_path/'journal'/'installation.jsonl';path.write_bytes(b'{');path.chmod(0o600)
     with pytest.raises(WorkloadBlocked,match='partial_journal'): execute(proposal,raw,review,authority(),Backend(tmp_path))
 
 
@@ -101,3 +101,45 @@ def test_concrete_preconditions_do_not_require_postconditions(tmp_path,monkeypat
     journal=Journal(tmp_path/'journal',digest(raw))
     step=next(row for row in proposal['steps'] if row['action']==action)
     assert backend.before(step,journal) is not None
+
+
+def test_journal_reloads_after_acquiring_lock(tmp_path):
+    root=tmp_path/'journal';root.mkdir(mode=0o700)
+    first=Journal(root,'a'*64);stale=Journal(root,'a'*64)
+    with first.locked():first.append('first')
+    with stale.locked():
+        assert stale.rows==first.rows
+        stale.append('second')
+    assert len(Journal(root,'a'*64).rows)==2
+
+
+def test_journal_refuses_shared_file(tmp_path):
+    root=tmp_path/'journal';root.mkdir(mode=0o700)
+    path=root/'installation.jsonl';path.write_bytes(b'{}\n');path.chmod(0o600)
+    __import__('os').link(path,tmp_path/'shared')
+    with pytest.raises(WorkloadBlocked,match='private_artifact'):Journal(root,'a'*64)
+
+
+def test_activation_reconciliation_requires_original_pointer_preserved(tmp_path):
+    from deploy.workload_installation import LinuxBackend,identity
+    proposal,raw,review,authority=packet(tmp_path)
+    backend=LinuxBackend(proposal);journal=Journal(tmp_path/'journal',digest(raw))
+    original=tmp_path/'saved';original.symlink_to('/original');before=identity(original)
+    selected=tmp_path/'selected';selected.symlink_to('/new');candidate=identity(selected)
+    journal.append('intent',step='install:activate',before=before)
+    # Candidate inode moved to selected; its original temporary name now holds the old pointer.
+    candidate['path']=str(original)
+    journal.append('activation_candidate',step_id='install:activate',observed=candidate)
+    assert backend.reconcilable(dict(id='install:activate',action='activate'),identity(selected),journal)
+    original.unlink();original.symlink_to('/unknown')
+    assert not backend.reconcilable(dict(id='install:activate',action='activate'),identity(selected),journal)
+
+
+def test_reconciliation_binds_exact_proposal_bytes(tmp_path):
+    proposal,raw,review,authority=packet(tmp_path);changed=deepcopy(proposal)
+    changed['identities']['recipe']['journal_root']=str(tmp_path/'other')
+    # Even a separately valid proposal cannot borrow authority over other bytes.
+    from deploy.workload_v3 import bootstrap
+    changed=bootstrap(changed['identities'],now=1100)
+    with pytest.raises(WorkloadBlocked,match='proposal_bytes_changed'):
+        reconcile(changed,raw,review,authority(reconcile=True),Backend(tmp_path))

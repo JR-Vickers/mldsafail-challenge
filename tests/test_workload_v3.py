@@ -63,3 +63,36 @@ def test_cli_uses_v3_without_historical_permanent_blockers(tmp_path):
     assert packet['execution_authority'] is False and packet['execution_requirements']
     text=public.read_text()
     assert '/srv/v3' not in text and 'configuration_templates' not in text
+
+
+def test_full_systemd_ancestor_chain_contains_proposed_parent_without_births():
+    record=inspection();proposal=bootstrap_commands(record,now=1100)
+    parent=record['resources']['delegation']['ancestors'][0]
+    assert parent['state']=='proposed' and 'inode' not in parent
+    assert '/user@1000.service/mldsafail.slice/' in record['installation']['heavy_path']
+    assert installed_commands(installed(proposal),proposal,now=1100)['preparation_blockers']==[]
+    record['resources']['delegation']['ancestors'].pop()
+    with pytest.raises(WorkloadBlocked,match='full_cgroup_ancestry'):bootstrap_commands(record,now=1100)
+
+
+def test_configuration_births_derive_from_observed_permitted_chain():
+    from deploy.workload_configuration import materialize
+    from deploy.workload_release import canonical,digest
+    record=inspection()
+    native=canonical(dict(heavy_birth={'$birth':'delegation'},ancestors={'$ancestor_chain':'delegation'}))
+    record['recipe']['configuration_templates']['native']=native.hex()
+    record['manifest']['configurations']['native']['sha256']=digest(native)
+    proposal=bootstrap_commands(record,now=1100)
+    actual=installed(proposal)
+    result=materialize(record,actual['resources'])
+    import json
+    parsed=json.loads(result['native'])
+    assert parsed['heavy_birth']['inode']==actual['resources']['delegation']['inode']
+    assert parsed['ancestors'][-1]['path']=='/sys/fs/cgroup'
+    actual['resources']['delegation']['ancestors'][0]['state']='proposed'
+    with pytest.raises(WorkloadBlocked):materialize(record,actual['resources'])
+
+
+def test_disk_floor_includes_complete_release_allocation():
+    data=inspection();data['admission']['backing_free']=5*1024**3
+    with pytest.raises(WorkloadBlocked,match='admission_floor'):bootstrap_commands(data,now=1100)

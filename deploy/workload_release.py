@@ -55,7 +55,7 @@ def regular(root, name):
 
 
 def validate(manifest):
-    require(set(manifest) == {'schema', 'benchmark_version', 'files', 'interpreter',
+    require(set(manifest) - {'tools', 'dependency_plan', 'inclusion_policy'} == {'schema', 'benchmark_version', 'files', 'interpreter',
                               'worker_environment', 'evaluator_fingerprint', 'coordinator_image',
                               'configurations', 'dependencies', 'units'}, 'release_manifest_fields')
     require(manifest['schema'] == SCHEMA and manifest['benchmark_version'] == '0.5.0', 'release_schema')
@@ -93,6 +93,9 @@ def validate(manifest):
                 ('-any.whl' in name or 'x86_64.whl' in name and 'linux' in name)
                 for name in manifest['dependencies']), 'release_linux_wheels_required')
     require(all(name.startswith('generated/') for name in manifest['units']), 'release_units_missing')
+    if 'tools' in manifest:
+        from deploy.workload_artifacts import validate_tools
+        validate_tools(manifest)
     return manifest
 
 
@@ -116,10 +119,17 @@ def verify(root, manifest):
     from deploy.workload_wheels import inspect_wheel
     for name in manifest['dependencies']:
         inspect_wheel(root/name, manifest['files'][name]['sha256'], glibc_minor=int(manifest['interpreter'].get('minimum_glibc', '2.17').split('.')[1]))
+    if 'tools' in manifest:
+        from deploy.workload_artifacts import archive_inventory
+        for row in manifest['tools'].values():
+            require(archive_inventory((root/row['archive']).read_bytes()) == row['members'], 'release_tool_inventory_changed')
+        from deploy.workload_dependencies import plan
+        actual,requirements=plan((root/'uv.lock').read_bytes(),[root/name for name in manifest['dependencies']],python_full_version=manifest['tools']['interpreter']['version'])
+        require(actual == manifest['dependency_plan'] and (root/'offline/requirements.txt').read_bytes() == requirements.encode(), 'release_dependency_plan_changed')
     return digest(frozen)
 
 
-def freeze(source, destination, *, source_names, generated_units, wheels, bindings):
+def freeze(source, destination, *, source_names, generated_units, wheels, bindings, extra_payload=None):
     """Create an inspectable bundle exclusively; never activate or overwrite it."""
     destination = Path(destination)
     require(not destination.exists() and not destination.is_symlink(), 'release_destination_exists')
@@ -143,6 +153,9 @@ def freeze(source, destination, *, source_names, generated_units, wheels, bindin
         from deploy.workload_wheels import inspect_wheel
         inspect_wheel(wheel, digest(data), glibc_minor=int(bindings['interpreter'].get('minimum_glibc', '2.17').split('.')[1]))
         payload[key] = (data, 0o600)
+    for name,data in (extra_payload or {}).items():
+        require(relative(name) not in payload, 'release_duplicate_path')
+        payload[name]=(data,0o600)
     manifest = dict(bindings, schema=SCHEMA, benchmark_version='0.5.0',
                     files={name: dict(sha256=digest(data), bytes=len(data), mode=mode)
                            for name, (data, mode) in payload.items()},
@@ -174,7 +187,13 @@ def runtime_sources(source):
     require(Path(repository).resolve() == source.resolve(), 'release_source_repository_root_required')
     tracked = set(subprocess.run(['git', '-C', str(source), 'ls-files', '-z'],
                                  check=True, capture_output=True).stdout.decode().split('\0'))
-    required = {'pyproject.toml', 'uv.lock', 'README.md', 'alembic.ini',
+    untracked=subprocess.run(['git','-C',str(source),'ls-files','--others','--exclude-standard','-z'],
+                             check=True,capture_output=True).stdout.decode().split('\0')
+    require(not any(name.startswith(('src/mldsafail/','deploy/','scripts/','migrations/')) and
+                    Path(name).suffix in ('.py','.sh','.mako') for name in untracked),
+            'release_untracked_runtime_source')
+    required = {'pyproject.toml', 'uv.lock', 'README.md', 'alembic.ini', '.dockerignore',
+                'config/profiles.toml', 'config/benchmark.toml',
                 'compose.production.yaml', 'Dockerfile.coordinator',
                 'deploy/worker-linux-amd64.requirements.txt',
                 'examples/mlwe/primal-lll/solver.py'}
@@ -203,10 +222,22 @@ def runtime_sources(source):
     return sorted(required)
 
 
-def freeze_runtime(source, destination, *, generated_units, wheels, bindings):
-    """Freeze the full inclusion policy; callers cannot omit runtime modules."""
-    return freeze(source, destination, source_names=runtime_sources(source),
-                  generated_units=generated_units, wheels=wheels, bindings=bindings)
+def freeze_runtime(source, destination, *, generated_units, wheels, bindings,
+                   interpreter_archive, installer_archive):
+    """Freeze all runtime sources and lock-derived offline tool/dependency inputs."""
+    from deploy.workload_artifacts import describe
+    from deploy.workload_dependencies import plan
+    source=Path(source);wheels=list(wheels)
+    tools=dict(interpreter=describe(interpreter_archive,role='interpreter',version='3.12.10',entrypoint='python/bin/python3.12'),
+               installer=describe(installer_archive,role='installer',version='0.13.1',entrypoint='uv-x86_64-unknown-linux-gnu/uv'))
+    dependency_plan,requirements=plan((source/'uv.lock').read_bytes(),wheels,python_full_version='3.12.10')
+    names=runtime_sources(source)
+    policy=dict(name='tracked-complete-runtime-v1',sources=names)
+    extra={row['archive']:regular(Path(path).parent,Path(path).name)[0]
+           for row,path in ((tools['interpreter'],interpreter_archive),(tools['installer'],installer_archive))}
+    extra['offline/requirements.txt']=requirements.encode()
+    return freeze(source,destination,source_names=names,generated_units=generated_units,wheels=wheels,
+                  bindings=dict(bindings,tools=tools,dependency_plan=dependency_plan,inclusion_policy=policy),extra_payload=extra)
 
 
 def public_manifest(manifest):
@@ -220,3 +251,14 @@ def public_manifest(manifest):
         evaluator_fingerprint=manifest['evaluator_fingerprint'],
         configurations={role:dict(sha256=row['sha256']) for role,row in manifest['configurations'].items()},
         files=manifest['files'],dependencies=manifest['dependencies'],units=manifest['units'])
+
+
+def remaining_allocation(manifest,installed_files,completed=()):
+    """Conservative byte budget with block rounding, metadata and journal reserve."""
+    sizes=[]
+    if 'copy_bundle' not in completed:
+        sizes.extend(row['bytes'] for row in manifest['files'].values());sizes.append(len(canonical(manifest)))
+    if 'tools' not in completed:
+        sizes.extend(row.get('bytes',0) for tool in manifest.get('tools',{}).values() for row in tool['members'].values())
+    if 'dependencies' not in completed:sizes.extend(row['bytes'] for row in installed_files.values())
+    return sum(((size+4095)//4096)*4096+4096 for size in sizes)+64*1024**2

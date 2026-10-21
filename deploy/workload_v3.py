@@ -12,7 +12,7 @@ import shlex
 import time
 
 from deploy.workload_release import canonical, validate as validate_release
-from deploy.workload_units import render
+from deploy.workload_units import render_v3 as render
 from mldsafail.evaluator.native_workload import require
 
 BOOTSTRAP = 'mldsafail.workload-bootstrap-inspection.v3'
@@ -22,7 +22,7 @@ HEX = re.compile('[a-f0-9]{64}')
 
 
 def absolute(value):
-    require(type(value) is str and re.fullmatch(r'/[A-Za-z0-9_./-]+',value) and
+    require(type(value) is str and re.fullmatch(r'/[A-Za-z0-9_./@-]+',value) and
             '..' not in Path(value).parts and len(value)<4096,'v3_path_invalid')
     return value
 
@@ -88,7 +88,7 @@ def bootstrap(inspection, *, now=None):
     require(type(inspection['captured_at']) in (int, float) and 0 <= now-inspection['captured_at'] <= 300,
             'v3_observation_expired')
     host = inspection['host']
-    fields(host, 'hostname uid boot_id daemon_id runtime_identity', 'v3_host_fields')
+    fields(host, 'hostname uid boot_id daemon_id runtime_identity user_manager', 'v3_host_fields')
     require(type(host['uid']) is int and host['uid'] > 0 and
             all(type(host[k]) is str and host[k] for k in ('hostname', 'boot_id', 'daemon_id')), 'v3_host_identity')
     runtime_identity=host['runtime_identity']
@@ -99,6 +99,9 @@ def bootstrap(inspection, *, now=None):
                 for k in ('pid','start_ticks')),'v3_daemon_birth_missing')
     for row in (runtime_identity['daemon_executable'],runtime_identity['socket_birth']):
         require(type(row.get('device')) is int and type(row.get('inode')) is int and row['inode']>0,'v3_daemon_resource_birth_missing')
+    observed(host['user_manager'])
+    require(inspection['installation']['heavy_path']==host['user_manager']['path']+'/mldsafail.slice/mldsafail-heavy.slice',
+            'v3_heavy_manager_hierarchy_changed')
     mapping_valid(inspection['uid_mapping'], host['uid'])
     installation = inspection['installation']
     units = render(installation)
@@ -108,7 +111,7 @@ def bootstrap(inspection, *, now=None):
             all(manifest['files']['generated/'+name]['sha256'] == hashlib.sha256(data.encode()).hexdigest()
                 for name, data in units.items()), 'v3_generated_units_changed')
     recipe = inspection['recipe']
-    fields(recipe, 'bundle_root artifact_root interpreter installer dependency_plan installed_files '
+    fields({k:v for k,v in recipe.items() if k!='bootstrap_interpreter'}, 'bundle_root artifact_root interpreter installer dependency_plan installed_files '
            'configuration_sources configuration_templates activation_pointer proposal_path journal_root', 'v3_recipe_incomplete')
     for key in ('bundle_root', 'artifact_root', 'activation_pointer', 'proposal_path', 'journal_root'):
         absolute(recipe[key])
@@ -117,6 +120,20 @@ def bootstrap(inspection, *, now=None):
         absolute(recipe[key]['path']); hashed(recipe[key]['sha256'])
         require(type(recipe[key]['bytes']) is int and recipe[key]['bytes'] > 0, 'v3_tool_empty')
     require(recipe['interpreter']['version']=='3.12.10','v3_native_interpreter_version_unsupported')
+    if 'tools' in manifest:
+        bootstrap=recipe.get('bootstrap_interpreter',{})
+        fields(bootstrap,'path sha256 bytes version','v3_bootstrap_interpreter_missing')
+        absolute(bootstrap['path']);hashed(bootstrap['sha256'])
+        require(bootstrap['version'].startswith('3.12.') and type(bootstrap['bytes']) is int and bootstrap['bytes']>0,
+                'v3_bootstrap_interpreter_invalid')
+        root=Path(inspection['resources']['release']['path'])/'tools'
+        for role,row in manifest['tools'].items():
+            entry=row['members'][row['entrypoint']]
+            require(recipe[role]==dict(path=str(root/role/row['entrypoint']),sha256=entry['sha256'],bytes=entry['bytes'],version=row['version']),
+                    'v3_release_tool_recipe_changed')
+        require(recipe['dependency_plan']==manifest['dependency_plan'],'v3_release_dependency_plan_changed')
+    else:
+        require(inspection['origin']=='synthetic','v3_complete_offline_tools_required')
     dependency = recipe['dependency_plan']
     fields(dependency, 'lock_sha256 wheels requirements_sha256 target', 'v3_dependency_plan_missing')
     hashed(dependency['lock_sha256']); hashed(dependency['requirements_sha256'])
@@ -130,8 +147,9 @@ def bootstrap(inspection, *, now=None):
     for name, record in recipe['installed_files'].items():
         from deploy.workload_release import relative
         relative(name)
-        fields(record, 'sha256 mode', 'v3_installed_file_expectation_invalid')
+        fields(record, 'sha256 bytes mode', 'v3_installed_file_expectation_invalid')
         hashed(record['sha256'])
+        require(type(record['bytes']) is int and record['bytes']>=0,'v3_dependency_file_size_invalid')
         require(record['mode'] in (0o600, 0o644, 0o700, 0o755), 'v3_dependency_file_mode_invalid')
     configs = recipe['configuration_sources']
     require(set(configs) == set(manifest['configurations']), 'v3_private_configuration_missing')
@@ -153,11 +171,28 @@ def bootstrap(inspection, *, now=None):
     delegation = resources['delegation']
     require(set(delegation.get('controllers', [])) >= {'cpu', 'memory', 'pids'} and delegation.get('ancestors'),
             'v3_delegation_prerequisite_missing')
-    for parent in delegation['ancestors']:
-        observed(parent)
-        require(parent.get('writable') is True and set(parent.get('controllers', [])) >= {'cpu','memory','pids'} and
-                parent.get('retained_service_ancestor') is False,
-                'v3_delegation_not_exclusive_or_writable')
+    expected_ancestors=[]
+    parent=Path(delegation['path']).parent
+    while True:
+        expected_ancestors.append(str(parent))
+        if str(parent)=='/sys/fs/cgroup':break
+        require(parent!=parent.parent,'v3_cgroup_root_missing');parent=parent.parent
+    require([row['path'] for row in delegation['ancestors']]==expected_ancestors,'v3_full_cgroup_ancestry_required')
+    for index,parent in enumerate(delegation['ancestors']):
+        resource(parent,'delegation_ancestor')
+        require(set(parent.get('controllers', []))>={'cpu','memory','pids'} and
+                type(parent.get('writable')) is bool and type(parent.get('retained_service_ancestor')) is bool,
+                'v3_ancestor_permissions_missing')
+        if parent['state']=='observed':
+            from deploy.workload_installed import CGROUP_LIMITS
+            require(type(parent.get('limits')) is dict and set(parent['limits'])==set(CGROUP_LIMITS) and
+                    all(value is None or type(value) is str and '\n' not in value for value in parent['limits'].values()),
+                    'v3_ancestor_limits_missing')
+        if parent['state']=='proposed':
+            require(index==0 and parent['path']==host['user_manager']['path']+'/mldsafail.slice' and
+                    parent['writable'] is True and parent['retained_service_ancestor'] is False,
+                    'v3_unapproved_ancestor_creation')
+    require(delegation['ancestors'][0]['writable'] is True,'v3_delegation_parent_not_writable')
     output = resources['output']
     require(output.get('filesystem') in ('ext4', 'xfs') and type(output.get('bytes')) is int and
             0 < output['bytes'] <= 1024**3 and
@@ -168,7 +203,8 @@ def bootstrap(inspection, *, now=None):
         absolute(output['backing_file'])
     admission = inspection['admission']
     fields(admission, 'memory_available backing_free', 'v3_admission_missing')
-    allocation = output['bytes'] if output['state'] == 'proposed' else 0
+    from deploy.workload_release import remaining_allocation
+    allocation = (output['bytes'] if output['state'] == 'proposed' else 0)+remaining_allocation(manifest,recipe['installed_files'])
     require(type(admission['memory_available']) is int and admission['memory_available'] >= 1024**3 and
             type(admission['backing_free']) is int and admission['backing_free']-allocation >= 5*1024**3,
             'v3_admission_floor')
@@ -195,8 +231,12 @@ def bootstrap(inspection, *, now=None):
     containers = inspection['containers']
     require(type(containers) is list and len({r['id'] for r in containers}) == len(containers), 'v3_container_inventory_invalid')
     for row in containers:
-        fields(row, 'id daemon_id owner_uid restart_policy running disposition', 'v3_container_owner_missing')
+        fields(row, 'id daemon_id owner_uid restart_policy running disposition image created_at started_at process_birth', 'v3_container_owner_missing')
         hashed(row['id'])
+        require(re.fullmatch('sha256:[a-f0-9]{64}',row['image']) is not None and
+                all(type(row[k]) is str and row[k] for k in ('created_at','started_at')),'v3_container_birth_missing')
+        require((type(row['process_birth']) is dict and all(type(row['process_birth'].get(k)) is int and row['process_birth'][k]>0 for k in ('pid','start_ticks')))
+                if row['running'] else row['process_birth'] is None,'v3_container_process_birth_missing')
         require(row['daemon_id'] == host['daemon_id'] and row['owner_uid'] == host['uid'] and
                 row['restart_policy'] in ('no','always','unless-stopped','on-failure') and
                 type(row['running']) is bool and row['disposition'] in ('pause','retain'), 'v3_container_policy_invalid')
@@ -276,8 +316,12 @@ def installed(inspection, proposal, *, now=None):
         if name == 'activation':
             require(row.get('target') == source['resources']['release']['path'], 'v3_activation_target_changed')
         if name == 'delegation':
-            require(set(row.get('controllers', [])) >= {'cpu','memory','pids'} and
-                    row.get('ancestors') == previous['ancestors'], 'v3_installed_delegation_changed')
+            require(set(row.get('controllers', []))>={'cpu','memory','pids'} and
+                    len(row.get('ancestors',[]))==len(previous['ancestors']),'v3_installed_delegation_changed')
+            for actual,expected in zip(row['ancestors'],previous['ancestors']):
+                observed(actual)
+                if expected['state']=='observed':require(actual==expected,'v3_observed_ancestor_changed')
+                else:require(actual['path']==expected['path'],'v3_proposed_ancestor_path_changed')
         if name == 'output':
             require(all(row.get(key) == previous[key] for key in ('filesystem','bytes','mount_options')) and
                     type(row.get('mount_id')) is int and row['mount_id'] > 0, 'v3_installed_output_changed')

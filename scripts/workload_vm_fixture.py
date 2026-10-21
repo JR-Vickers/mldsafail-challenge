@@ -4,6 +4,7 @@ Provisioning may download packages. Offline installation is a distinct network
 namespace operation inside this guest. This script never accesses the VPS.
 """
 import argparse
+import fcntl
 import hashlib
 import json
 import os
@@ -111,7 +112,14 @@ def resume(root, *, budget=1800):
 def main():
     parser=argparse.ArgumentParser(description=__doc__); parser.add_argument('root',type=Path)
     parser.add_argument('--resume',action='store_true')
-    args=parser.parse_args(); (resume if args.resume else run)(args.root)
+    args=parser.parse_args()
+    if args.resume:
+        descriptor=os.open(args.root/'resume.lock',os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW,0o600)
+        try:
+            fcntl.flock(descriptor,fcntl.LOCK_EX|fcntl.LOCK_NB)
+            resume(args.root)
+        finally:os.close(descriptor)
+    else:run(args.root)
 
 
 if __name__=='__main__': main()

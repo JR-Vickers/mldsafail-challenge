@@ -77,7 +77,7 @@ The [owner-console procedure](PROTECTED_RUNTIME_OWNER_COLLECTION.md) identifies
 the outstanding privileged collection. Installation remains blocked; do not
 request execution approval against incomplete source artifacts.
 
-Current implementation progress: [artifact-hardening checkpoint](acceptance/production-preparation/protected-runtime-artifact-hardening-20261021.md). Installation readiness remains incomplete.
+Current implementation progress: [v3 engine and local Linux checkpoint](acceptance/production-preparation/protected-runtime-v3-engine-20261021.md). V3 preparation and fresh offline Linux runtime packaging pass; complete concrete installation/rollback, native coverage, privileged host facts and full proposal review remain incomplete.
 
 The [next development phase](PROTECTED_RUNTIME_IMPLEMENTATION_PLAN.md) sequences
 v3 integration, complete offline releases, recoverable installation/rollback,

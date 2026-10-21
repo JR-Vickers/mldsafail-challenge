@@ -8,8 +8,9 @@ full-runtime inclusion policy. The end-to-end implementation remains incomplete.
 The deliverable is a complete, independently reviewed installation proposal,
 backed by a successful disposable installation, interruption-recovery, rollback
 and control-acceptance rehearsal. Today the runtime has extensive local tests,
-but its v3 release and scheduling helpers are disconnected from the executable
-deployment workflow. Finish that engineering before requesting VPS changes.
+and its v3 release and scheduling helpers are now connected to preparation. The
+concrete engine, full acceptance coverage and complete proposal review remain
+unpassed. Finish that engineering before requesting VPS changes.
 
 The starting evidence is the
 [blocked follow-up checkpoint](acceptance/production-preparation/protected-runtime-followup-20261021.md).
@@ -17,6 +18,13 @@ Historical receipts remain immutable. Preserve the existing VPS, $0 budget,
 0.5.0 preview, current installation, one verified compatible rollback and retained
 scientific evidence. No production epoch, solver evaluation, capacity measurement,
 public listener, notification, publication, 0.6.0 work or backup setup belongs here.
+
+Current progress is recorded in the [v3 engine and local Linux checkpoint](acceptance/production-preparation/protected-runtime-v3-engine-20261021.md).
+The complete synthetic preparation path and fresh offline Linux runtime-package
+installation pass. Real delegated cgroup/output/reboot and disposable PostgreSQL
+fixtures pass within their recorded scope. Full concrete installation/rollback,
+complete native control runners and complete independent review remain unfinished;
+privileged VPS facts are a separate outstanding requirement.
 
 ## 1. Establish the v3 contract and one complete fixture
 

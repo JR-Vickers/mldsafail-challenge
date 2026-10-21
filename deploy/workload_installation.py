@@ -20,7 +20,7 @@ import uuid
 from deploy.workload_release import canonical, digest, regular, verify, stable_stat
 from mldsafail.evaluator.native_workload import require
 
-INSTALL = ('snapshot', 'create_release', 'copy_bundle', 'dependencies',
+INSTALL = ('snapshot', 'create_release', 'copy_bundle', 'tools', 'dependencies',
            'inhibit_scheduling', 'inhibit_containers', 'units', 'prerequisites', 'configurations',
            'verify_release', 'activate', 'start_paused', 'verify_paused')
 ROLLBACK = ('stop_supervisor', 'verify_cleanup', 'restore_activation', 'restore_units', 'verify_rollback')
@@ -35,7 +35,7 @@ def compile_steps(proposal):
                 precondition='fresh_bound_identity_and_previous_durable_outcome',
                 acknowledgement='durable_observed_resource_identity',
                 argv=['/usr/bin/env','PYTHONPATH='+recipe['bundle_root']+'/src:'+recipe['bundle_root'],
-                      'PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1',recipe['interpreter']['path'],'-P','-m','deploy.workload_installation',
+                      'PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1',recipe.get('bootstrap_interpreter',recipe['interpreter'])['path'],'-P','-m','deploy.workload_installation',
                       '--proposal',recipe['proposal_path'],'--review',recipe['proposal_path']+'.review.json',
                       '--authorization',recipe['proposal_path']+'.authorization.json','--phase',phase]))
     return steps
@@ -86,12 +86,12 @@ def read_owned_file(path,command):
         return bytes.fromhex(row['hex']),row['mode']
 
 
-def private(path):
+def private(path, *, parse=True):
     path=Path(path); info=path.lstat()
     require(stat.S_ISREG(info.st_mode) and info.st_uid==os.getuid() and
             info.st_nlink==1 and stat.S_IMODE(info.st_mode)&0o077==0,'installation_private_artifact_required')
     raw=path.read_bytes(); require(stable_stat(info)==stable_stat(path.lstat()),'installation_artifact_race')
-    return raw,json.loads(raw)
+    return raw,json.loads(raw) if parse else None
 
 
 class Journal:
@@ -99,9 +99,13 @@ class Journal:
         self.root=Path(root); self.binding=proposal_sha256
         require(self.root.is_dir() and not self.root.is_symlink() and self.root.stat().st_uid==os.getuid() and
                 stat.S_IMODE(self.root.stat().st_mode)&0o077==0,'installation_private_journal_required')
+        self.root_identity=identity(self.root)
         self.path=self.root/'installation.jsonl'; self.rows=[]
-        if self.path.exists():
-            raw=self.path.read_bytes()
+        self.reload()
+    def reload(self):
+        self.rows=[]
+        if self.path.exists() or self.path.is_symlink():
+            raw,_=private(self.path,parse=False)
             require(raw.endswith(b'\n'),'installation_partial_journal_reconcile_required')
             for line in raw.splitlines():
                 row=json.loads(line)
@@ -112,6 +116,9 @@ class Journal:
     def append(self,event,**values):
         row=dict(event=event,proposal_sha256=self.binding,previous=self.head,**values)
         descriptor=os.open(self.path,os.O_WRONLY|os.O_APPEND|os.O_CREAT|os.O_NOFOLLOW,0o600)
+        info=os.fstat(descriptor)
+        require(stat.S_ISREG(info.st_mode) and info.st_nlink==1 and info.st_uid==os.getuid() and
+                stat.S_IMODE(info.st_mode)&0o077==0,'installation_journal_file_invalid')
         with os.fdopen(descriptor,'ab') as stream:
             stream.write(canonical(row)+b'\n'); stream.flush(); os.fsync(stream.fileno())
         sync_directory(self.root); self.rows.append(row)
@@ -119,7 +126,13 @@ class Journal:
     def locked(self):
         descriptor=os.open(self.root/'installation.lock',os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW,0o600)
         try:
-            fcntl.flock(descriptor,fcntl.LOCK_EX|fcntl.LOCK_NB); yield
+            info=os.fstat(descriptor)
+            require(stat.S_ISREG(info.st_mode) and info.st_nlink==1 and info.st_uid==os.getuid() and
+                    stat.S_IMODE(info.st_mode)&0o077==0,'installation_lock_file_invalid')
+            fcntl.flock(descriptor,fcntl.LOCK_EX|fcntl.LOCK_NB)
+            require(identity(self.root)==self.root_identity,'installation_journal_root_replaced')
+            self.reload()
+            yield
         finally: os.close(descriptor)
     def outcome(self,step):
         rows=[r for r in self.rows if r.get('step')==step]
@@ -182,13 +195,18 @@ def execute(proposal,proposal_raw,review_raw,authority,backend,*,phase='install'
 def reconcile(proposal,proposal_raw,review_raw,authority,backend,*,phase='install'):
     """Separate, fresh authority inspects a pending mutation; never replays it."""
     from deploy.workload_v3 import validate_proposal
-    validate_proposal(proposal); authorize(proposal_raw,review_raw,authority,phase)
+    validate_proposal(proposal)
+    require(json.loads(proposal_raw)==proposal,'installation_proposal_bytes_changed')
+    authorize(proposal_raw,review_raw,authority,phase)
     require(authority.get('reconcile') is True,'installation_reconciliation_authority_required')
     journal=Journal(proposal['identities']['recipe']['journal_root'],digest(proposal_raw))
     with journal.locked():
         claim=digest(canonical(authority))
         require(not any(row.get('claim')==claim for row in journal.rows),'installation_authority_replay')
         journal.append('authority_claim',claim=claim,phase=phase,reconcile=True)
+        backend.journal=journal
+        backend.deadline=time.monotonic()+max(0,authority['expires_at']-time.time())
+        if hasattr(backend,'reconcile_preflight'):backend.reconcile_preflight(journal)
         for step in (s for s in proposal['steps'] if s['phase']==phase):
             previous=journal.outcome(step['id'])
             if previous and previous['event']=='intent':
@@ -243,6 +261,20 @@ class LinuxBackend:
         if journal: journal.append('subcommand_outcome',command=token,returncode=code,log=identity(log),birth=birth)
         return data
     @measured_by_engine
+    def reconcile_preflight(self,journal):
+        import socket,sys
+        require(self.source['origin'] in ('local_linux','host_observation') and sys.platform=='linux' and
+                os.uname().machine=='x86_64','installation_reconcile_linux_host_required')
+        host=self.source['host']
+        require(os.getuid()==host['uid'] and socket.gethostname()==host['hostname'] and
+                Path('/proc/sys/kernel/random/boot_id').read_text().strip()==host['boot_id'],'installation_wrong_host')
+        verify(self.recipe['bundle_root'],self.source['manifest'])
+        from deploy.workload_configuration import templates
+        from mldsafail.evaluator.native_workload import NativeRuntime
+        require(NativeRuntime(templates(self.source)['native']).identity()==host['runtime_identity'],
+                'installation_reconcile_daemon_changed')
+
+    @measured_by_engine
     def preflight(self,phase,journal):
         import socket,sys
         require(Path(__file__).resolve()==(Path(self.recipe['bundle_root'])/'deploy/workload_installation.py').resolve(),
@@ -250,20 +282,36 @@ class LinuxBackend:
         require(self.source['origin'] in ('local_linux','host_observation'),'installation_synthetic_origin_forbidden')
         require(sys.platform=='linux' and os.uname().machine=='x86_64','installation_linux_x86_64_required')
         host=self.source['host']
+        manager=identity(host['user_manager']['path'])
+        require(all(manager[k]==host['user_manager'][k] for k in ('device','inode')),'installation_user_manager_replaced')
+        manager_path=self.command(['/usr/bin/systemctl','--user','show','--property=ControlGroup','--value']).decode().strip()
+        require('/sys/fs/cgroup'+manager_path==host['user_manager']['path'],'installation_user_manager_cgroup_changed')
         require(os.getuid()==host['uid'] and socket.gethostname()==host['hostname'] and
                 Path('/proc/sys/kernel/random/boot_id').read_text().strip()==host['boot_id'], 'installation_wrong_host')
-        for key in ('interpreter','installer'):
+        keys=('bootstrap_interpreter',) if 'tools' in self.source['manifest'] else ('interpreter','installer')
+        for key in keys:
             tool=self.recipe[key]; data,_=regular(Path(tool['path']).parent,Path(tool['path']).name)
             require(digest(data)==tool['sha256'] and len(data)==tool['bytes'],'installation_tool_changed')
-        require(self.command([self.recipe['interpreter']['path'],'--version']).strip()==b'Python 3.12.10',
-                'installation_interpreter_version_changed')
-        require(self.command([self.recipe['installer']['path'],'--version']).decode().startswith('uv '+self.recipe['installer']['version']+' '),
-                'installation_installer_version_changed')
+            output=self.command([tool['path'],'--version']).decode().strip()
+            require(output==('Python '+tool['version']) if key!='installer' else output.startswith('uv '+tool['version']+' '),
+                    'installation_tool_version_changed')
+        if journal.outcome('install:tools'):
+            self.observe(dict(action='tools'),journal)
         memory=int(next(line.split()[1] for line in Path('/proc/meminfo').read_text().splitlines() if line.startswith('MemAvailable:')))*1024
         output=self.source['resources']['output']
+        if output['state']=='proposed':
+            backing=Path(output['backing_file'])
+            require(not any(parent.is_symlink() for parent in (backing,*backing.parents)), 'installation_backing_parent_symlink')
+            require(backing.parent.stat().st_dev==self.root.parent.stat().st_dev,
+                    'installation_separate_backing_filesystem_requires_evidence')
         allocation=output['bytes'] if output['state']=='proposed' and not journal.outcome('install:prerequisites') else 0
-        require(memory>=1024**3 and shutil.disk_usage(self.root.parent).free-allocation>=5*1024**3,'installation_admission_floor')
-        from deploy.workload_installed import retained, docker
+        from deploy.workload_release import remaining_allocation
+        completed=[name for name in ('copy_bundle','tools','dependencies') if journal.outcome('install:'+name)]
+        remaining_bytes=remaining_allocation(self.source['manifest'],self.recipe['installed_files'],completed)
+        require(memory>=1024**3 and shutil.disk_usage(self.root.parent).free-allocation-remaining_bytes>=5*1024**3,
+                'installation_admission_floor')
+        from deploy.workload_installed import retained, docker,verify_ancestor_observations
+        verify_ancestor_observations(self.source)
         require(retained(self.source)==self.source['retained_services'],'installation_retained_service_changed')
         daemon=json.loads(docker(self.source,['info','--format','{{json .}}']))
         require(daemon['ID']==host['daemon_id'] and any('rootless' in row for row in daemon['SecurityOptions']),
@@ -305,7 +353,7 @@ class LinuxBackend:
         expected_containers=[dict(row) for row in self.source['containers']]
         if container_inhibited and container_inhibited.get('event') in ('outcome','reconciled'):
             for row in expected_containers:
-                if row['disposition']=='pause':row.update(restart_policy='no',running=False)
+                if row['disposition']=='pause':row.update(restart_policy='no',running=False,process_birth=None)
         require(settings['containers']==expected_containers,'installation_original_container_policy_drift')
         verify_rollback(self.source)
         verify(self.recipe['bundle_root'],self.source['manifest'])
@@ -318,8 +366,8 @@ class LinuxBackend:
             expected=self.source['resources']['activation'] if action=='activate' else self._outcome(journal,'install:activate')
             require(all(actual.get(k)==v for k,v in expected.items() if k!='state'),'installation_activation_identity_changed')
             return actual
-        if action in ('snapshot','copy_bundle','dependencies'):
-            path={'snapshot':journal.root/'original-units.json','copy_bundle':self.bundle,'dependencies':self.root/'.venv'}[action]
+        if action in ('snapshot','copy_bundle','tools','dependencies'):
+            path={'snapshot':journal.root/'original-units.json','copy_bundle':self.bundle,'tools':self.root/'tools','dependencies':self.root/'.venv'}[action]
             before=identity(path);require(before['state']=='absent','installation_destination_not_absent')
             return before
         if action=='configurations':
@@ -385,18 +433,25 @@ class LinuxBackend:
                 exclusive(destination,data,row['mode'])
             exclusive(self.bundle/'manifest.json',canonical(self.source['manifest']))
             sync_directory(self.root)
+        elif action=='tools':
+            tools=self.source['manifest'].get('tools')
+            if tools:
+                from deploy.workload_artifacts import extract
+                root=self.root/'tools';root.mkdir(mode=0o700);sync_directory(root.parent)
+                for role,row in tools.items():
+                    data,_=regular(self.bundle,row['archive'])
+                    extract(data,root/role,row['members'])
         elif action=='dependencies':
-            self.command(['/usr/bin/sudo','-n','/usr/bin/unshare','--net','--setgid='+str(os.getgid()),'--setuid='+str(os.getuid()),self.recipe['installer']['path'],'--no-cache','--no-config',
+            self.command(['/usr/bin/sudo','-n','/usr/bin/unshare','--net','--setgid='+str(os.getgid()),'--setuid='+str(os.getuid()),'/usr/bin/env','PYTHONDONTWRITEBYTECODE=1',self.recipe['installer']['path'],'--no-cache','--no-config',
                           'venv','--offline','--no-project','--python',self.recipe['interpreter']['path'],str(self.root/'.venv')])
-            self.command(['/usr/bin/sudo','-n','/usr/bin/unshare','--net','--setgid='+str(os.getgid()),'--setuid='+str(os.getuid()),self.recipe['installer']['path'],'--no-cache','--no-config',
+            self.command(['/usr/bin/sudo','-n','/usr/bin/unshare','--net','--setgid='+str(os.getgid()),'--setuid='+str(os.getuid()),'/usr/bin/env','PYTHONDONTWRITEBYTECODE=1',self.recipe['installer']['path'],'--no-cache','--no-config',
                           'pip','install','--offline','--no-index','--no-deps','--python',self.python,
                           *[str(self.bundle/name) for name in self.source['manifest']['dependencies']]])
             from deploy.workload_dependencies import project_entrypoints
             project_entrypoints(self.bundle,self.root/'.venv')
         elif action=='configurations':
-            from deploy.workload_configuration import materialize
-            resources={name:dict(row,**{k:v for k,v in identity(row['path']).items() if k in ('state','device','inode')})
-                       for name,row in self.source['resources'].items()}
+            from deploy.workload_configuration import materialize,measured_resources
+            resources=measured_resources(self.source)
             contents=materialize(self.source,resources)
             for role,row in self.source['manifest']['configurations'].items():
                 source=Path(self.recipe['configuration_sources'][role]); data,_=regular(source.parent,source.name)
@@ -468,7 +523,7 @@ class LinuxBackend:
         elif action in ('verify_release','verify_paused','verify_cleanup','verify_rollback'):
             require(self.valid_outcome(step,self.observe(step,journal),journal),'installation_verification_failed')
         else: require(False,'installation_unknown_step')
-    def _docker(self): return ['/usr/bin/docker','--host','unix:///run/user/'+str(self.source['host']['uid'])+'/docker.sock']
+    def _docker(self): return ['/usr/bin/docker','--host','unix://'+self.source['host']['runtime_identity']['socket_birth']['path']]
     def _replace_bound(self,path,data,journal):
         original=json.loads((journal.root/'original-units.json').read_bytes())[str(path)]
         actual=identity(path)
@@ -489,6 +544,13 @@ class LinuxBackend:
         if action=='copy_bundle':
             if not self.bundle.exists(): return dict(state='absent')
             return dict(identity=identity(self.bundle),manifest_sha256=verify(self.bundle,self.source['manifest']))
+        if action=='tools':
+            from deploy.workload_artifacts import verify_tree
+            tools=self.source['manifest'].get('tools')
+            if not tools:return dict(legacy_external_tools=True)
+            return {role:dict(identity=identity(self.root/'tools'/role),
+                    inventory_sha256=digest(canonical(verify_tree(self.root/'tools'/role,row['members']))))
+                    for role,row in tools.items()}
         if action=='dependencies':
             from deploy.workload_dependencies import installed_inventory
             return installed_inventory(self.root/'.venv',interpreter=self.recipe['interpreter']['path']) if (self.root/'.venv').exists() else {}
@@ -512,11 +574,11 @@ class LinuxBackend:
         action=step['action']
         if action in ('snapshot','create_release'): return value.get('state')=='observed'
         if action=='copy_bundle': return value.get('manifest_sha256')==self.proposal['manifest_sha256']
+        if action=='tools': return value==self.observe(step,journal)
         if action=='dependencies': return value==self.recipe['installed_files']
         if action=='configurations':
-            from deploy.workload_configuration import hashes
-            resources={name:dict(row,**{k:v for k,v in identity(row['path']).items() if k in ('state','device','inode')})
-                       for name,row in self.source['resources'].items()}
+            from deploy.workload_configuration import hashes,measured_resources
+            resources=measured_resources(self.source)
             return all(value[role].get('sha256')==expected for role,expected in hashes(self.source,resources).items())
         if action in ('activate','restore_activation'):
             return value.get('target')==(str(self.root) if action=='activate' else self.source['rollback']['target'])
@@ -531,7 +593,13 @@ class LinuxBackend:
         # Any unacknowledged creation might belong to another operation.
         if step['action'] in ('activate','restore_activation'):
             candidates=[row['observed'] for row in journal.rows if row.get('event')=='activation_candidate' and row.get('step_id')==step['id']]
-            return any(all(value.get(k)==candidate.get(k) for k in ('device','inode','target')) for candidate in candidates)
+            pending=journal.outcome(step['id'])
+            if not pending or pending.get('event')!='intent':return False
+            for candidate in candidates:
+                if not all(value.get(k)==candidate.get(k) for k in ('device','inode','target')):continue
+                preserved=identity(candidate['path'])
+                if all(preserved.get(k)==v for k,v in pending['before'].items() if k!='path'):return True
+            return False
         return step['action'] in ('inhibit_containers','stop_supervisor','verify_release',
                                   'verify_paused','verify_cleanup','verify_rollback')
 

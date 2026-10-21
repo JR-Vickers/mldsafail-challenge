@@ -5,6 +5,8 @@ runs only the bound cleanup once, and withholds success until final inspection.
 It never retries a case or treats uncertain process termination as cleanup.
 """
 import os
+import json
+import socket
 from pathlib import Path
 import signal
 import resource
@@ -12,7 +14,7 @@ import subprocess
 import time
 
 from deploy.workload_release import canonical, digest
-from deploy.workload_installation import exclusive
+from deploy.workload_installation import exclusive,identity
 from mldsafail.evaluator.native_workload import process_birth, require
 
 
@@ -21,7 +23,9 @@ def validate(protocol):
             'watchdog_protocol_fields')
     require(protocol['origin'] in ('synthetic','disposable_database','local_linux','installed_native') and
             type(protocol['timeout_seconds']) is int and 0<protocol['timeout_seconds']<=180,'watchdog_packet_budget')
-    require(protocol['identities'] and protocol['fixture_cgroup'].startswith('/sys/fs/cgroup/'),'watchdog_identities_missing')
+    scope=protocol['fixture_cgroup']
+    require(protocol['identities'] and type(scope) is str and scope.startswith('/sys/fs/cgroup/') and
+            str(Path(scope))==scope and '..' not in Path(scope).parts,'watchdog_identities_missing')
     require(type(protocol['cases']) is list and protocol['cases'] and
             len({row['name'] for row in protocol['cases']})==len(protocol['cases']),'watchdog_case_order_invalid')
     rows=[protocol['startup'],*protocol['cases'],protocol['cleanup'],protocol['postflight']]
@@ -34,16 +38,64 @@ def validate(protocol):
     return protocol
 
 
-def execute(protocol,root,*,birth=process_birth):
+def postflight_observation(raw,protocol):
+    row=json.loads(raw)
+    require(type(row) is dict and set(row)=={'schema','origin','identities_sha256','paused','owned_resources',
+            'transactions','retained_before','retained_after'},'watchdog_postflight_observation_fields')
+    require(row['schema']=='mldsafail.workload-control-postflight.v3' and row['origin']==protocol['origin'] and
+            row['identities_sha256']==digest(canonical(protocol['identities'])),'watchdog_postflight_binding_changed')
+    require(row['paused'] is True and type(row['owned_resources']) is int and row['owned_resources']==0 and
+            row['transactions']=='resolved' and type(row['retained_before']) is dict and
+            row['retained_before']==protocol['identities'].get('retained_services')==row['retained_after'] and
+            (protocol['origin']=='synthetic' or bool(row['retained_before'])),'watchdog_postflight_unresolved')
+    return row
+
+
+def native_authority(protocol,review_path,authorization_path,root):
+    """Bind separate native-test authority to exact packet bytes, host and review."""
+    from deploy.workload_installation import private
+    from deploy.workload_native_protocol import claim
+    require(review_path is not None and authorization_path is not None,'watchdog_native_authority_required')
+    review_raw,review=private(review_path);authority_raw,authority=private(authorization_path)
+    binding=digest(canonical(protocol));now=time.time()
+    require(review.get('decision')=='approved' and review.get('protocol_sha256')==binding and
+            review.get('implemented_by') and review.get('reviewed_by') and
+            review['implemented_by']!=review['reviewed_by'],'watchdog_native_review_required')
+    require(authority.get('schema')=='mldsafail.workload-native-authority.v3' and
+            authority.get('purpose')=='native_workload_control_only' and authority.get('authorized_by')=='owner' and
+            authority.get('protocol_sha256')==binding and authority.get('review_sha256')==digest(review_raw) and
+            type(authority.get('issued_at')) in (int,float) and type(authority.get('expires_at')) in (int,float) and
+            authority['issued_at']<=now<authority['expires_at'] and
+            protocol['timeout_seconds']<=authority['expires_at']-now<=180 and
+            0<authority['expires_at']-authority['issued_at']<=180 and
+            type(authority.get('nonce')) is str and len(authority['nonce'])==32,'watchdog_native_exact_authority_required')
+    host=protocol['identities']
+    require(host.get('hostname')==socket.gethostname() and host.get('uid')==os.getuid() and
+            host.get('boot_id')==Path('/proc/sys/kernel/random/boot_id').read_text().strip(),
+            'watchdog_native_host_changed')
+    claim(authorization_path,protocol,expected_sha256=digest(authority_raw),journal_root=Path(root).parent)
+
+
+def execute(protocol,root,*,birth=process_birth,review_path=None,authorization_path=None):
+    started=time.monotonic()
     validate(protocol)
+    if protocol['origin']=='installed_native':native_authority(protocol,review_path,authorization_path,root)
     root=Path(root);root.mkdir(mode=0o700,exist_ok=False)
     # Native evidence cannot be minted on a synthetic or non-Linux adapter.
     if protocol['origin']!='synthetic':
-        actual=Path('/proc/self/cgroup').read_text().strip().removeprefix('0::')
+        path=Path(protocol['fixture_cgroup'])
+        require(not any(parent.is_symlink() for parent in (path,*path.parents)),'watchdog_fixture_symlink')
+        expected=protocol['identities'].get('fixture_birth',{})
+        observed=identity(path)
+        require(expected.get('path')==str(path) and all(type(expected.get(key)) is int and
+                observed.get(key)==expected[key] for key in ('device','inode')),'watchdog_fixture_birth_changed')
+        membership=Path('/proc/self/cgroup').read_text().splitlines()
+        require(len(membership)==1 and membership[0].startswith('0::/'),'watchdog_unified_membership_required')
+        actual=membership[0][3:]
         scope=protocol['fixture_cgroup'].removeprefix('/sys/fs/cgroup')
         require(not (actual==scope or actual.startswith(scope+'/')),'watchdog_inside_fixture_cgroup')
     exclusive(root/'intent.json',canonical(protocol))
-    deadline=time.monotonic()+protocol['timeout_seconds'];records=[];failed=False;uncertain=False
+    deadline=started+protocol['timeout_seconds'];records=[];failed=False;uncertain=False
     def run(row):
         nonlocal uncertain
         path=root/(str(len(records))+'-command.log')
@@ -88,9 +140,13 @@ def execute(protocol,root,*,birth=process_birth):
     try:
         cleanup_ok=run(protocol['cleanup'])
         # Even after case failure, postflight records resource/transaction state.
-        if cleanup_ok and not uncertain: postflight_ok=run(protocol['postflight'])
+        if cleanup_ok and not uncertain:
+            postflight_ok=run(protocol['postflight'])
+            if postflight_ok:
+                postflight=postflight_observation((root/(str(len(records)-1)+'-command.log')).read_bytes(),protocol)
+                exclusive(root/'postflight-observation.json',canonical(postflight))
     except BaseException as error:
-        uncertain=True
+        uncertain=True;postflight_ok=False
         exclusive(root/'cleanup-failure.json',canonical(dict(type=type(error).__name__,message=str(error))))
     success=not failed and cleanup_ok and postflight_ok and not uncertain and time.monotonic()<=deadline
     receipt=dict(schema='mldsafail.workload-watchdog-receipt.v3',origin=protocol['origin'],

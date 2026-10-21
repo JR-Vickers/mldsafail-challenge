@@ -101,7 +101,8 @@ def test_runtime_inventory_does_not_silently_bundle_private_data(tmp_path, track
     import subprocess
     from deploy.workload_release import runtime_sources
     source = tmp_path/'checkout'; source.mkdir()
-    names = ['pyproject.toml', 'uv.lock', 'README.md', 'alembic.ini',
+    names = ['pyproject.toml', 'uv.lock', 'README.md', 'alembic.ini', '.dockerignore',
+             'config/profiles.toml', 'config/benchmark.toml',
              'compose.production.yaml', 'Dockerfile.coordinator',
              'deploy/worker-linux-amd64.requirements.txt', 'examples/mlwe/primal-lll/solver.py',
              'src/mldsafail/evaluator/workload_service.py', 'src/mldsafail/other.py', 'scripts/prepare_workload_packet.py',

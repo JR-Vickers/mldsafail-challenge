@@ -185,7 +185,7 @@ def installed_inventory(venv, *, interpreter=None):
             info=path.lstat()
             require(stat.S_ISREG(info.st_mode) and info.st_nlink==1,'dependency_installed_unknown_file')
             data,_=regular(path.parent,path.name)
-            result[str(path.relative_to(root))]=dict(sha256=digest(data),mode=stat.S_IMODE(info.st_mode))
+            result[str(path.relative_to(root))]=dict(sha256=digest(data),bytes=len(data),mode=stat.S_IMODE(info.st_mode))
     require(result,'dependency_installed_empty')
     return result
 
@@ -200,7 +200,22 @@ def project_entrypoints(bundle,venv):
                 re.fullmatch(r'[A-Za-z_][A-Za-z0-9_.]*:[A-Za-z_][A-Za-z0-9_]*',target),
                 'dependency_entrypoint_invalid')
         module,function=target.split(':')
-        code=('#!'+str(venv/'bin/python')+'\nimport sys\nsys.path[:0] = '+
+        code=('#!'+str(venv/'bin/python')+'\nimport sys\nsys.dont_write_bytecode = True\nsys.path[:0] = '+
               repr([str(bundle/'src'),str(bundle)])+'\nfrom '+module+' import '+function+
               '\nif __name__ == "__main__":\n    sys.exit('+function+'())\n')
         exclusive(venv/'bin'/name,code.encode(),0o700)
+
+
+def entrypoint_import_command(bundle,venv):
+    """Import runtime entrypoints in isolated Python with network namespace disabled."""
+    bundle=Path(bundle);venv=Path(venv)
+    project=tomllib.loads(regular(bundle,'pyproject.toml')[0].decode())['project']
+    modules=sorted({target.split(':')[0] for target in project['scripts'].values()} | {
+        'mldsafail.evaluator.workload_service','mldsafail.evaluator.native_workload',
+        'deploy.workload_installation','deploy.workload_installed','deploy.workload_native_acceptance',
+        'deploy.workload_artifacts','deploy.workload_socket_probe','deploy.workload_watchdog'})
+    require(all(re.fullmatch(r'[A-Za-z_][A-Za-z0-9_.]*',name) for name in modules),'dependency_import_module_invalid')
+    code=('import sys,importlib,json;sys.dont_write_bytecode=True;sys.path[:0]='+repr([str(bundle/'src'),str(bundle)])+
+          ';modules='+repr(modules)+';[importlib.import_module(name) for name in modules];print(json.dumps(modules))')
+    return ['/usr/bin/sudo','-n','/usr/bin/unshare','--net','--setgid='+str(os.getgid()),'--setuid='+str(os.getuid()),
+            str(venv/'bin/python'),'-I','-B','-c',code],modules

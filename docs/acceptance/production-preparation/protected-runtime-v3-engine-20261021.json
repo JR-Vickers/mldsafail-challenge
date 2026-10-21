@@ -1,0 +1,86 @@
+{
+  "base_commit": "308e659",
+  "benchmark_version": "0.5.0",
+  "budget_dollars": 0,
+  "date": "2026-10-21",
+  "implementation_complete": false,
+  "installation_authority": false,
+  "installed_native_acceptance": false,
+  "origins": [
+    "synthetic",
+    "disposable_database",
+    "local_linux"
+  ],
+  "private_evidence_sha256": {
+    "image-build-coordinator-attempt-1.json": "558f0d2b36afe7f038f97843b3dd3b1f0f60eb07b8982dc4936cb0b8d6e8e2a0",
+    "kernel-controls-after-reboot.json": "6631ee74253903c1e632638a81d3cde05e95de81b6aef8a488c142cac4743af9",
+    "linux-tool-extraction-attempt-1.json": "41148d9efdfb7a031ab89e47c5828ca481cf5f5ba234fa5c40dc9be7a7abc247",
+    "make-check-10.log": "dc2447a8b2b324ff276923835725894fdfe1f4ca19438ecd5e1d8a62ee454f33",
+    "offline-package-freeze.json": "eb8f6abf1fa5a27b7a3db71ad14a430cf1d5400d7724d0cf40e831a8188bc857",
+    "offline-package-linux-attempt-1.json": "8c4919ddd72e08c2746adfd242be69f283528f0fc95d52f7763f544c42ceedad",
+    "peer-probe-attempt-1.json": "95e0e4019ad235614baecc9f93970873f557e916effaf8fde76800fd735b9999",
+    "peer-probe-attempt-2.json": "308cb18b6166fa754fb1df72f77fd12dfcd96a7391d987c169007a532fe7c072",
+    "peer-probe-attempt-3.json": "6cdd7319601acc4cb836c84236afac5938bd2b6b00279873ddfa1e6f7728007f",
+    "peer-probe-attempt-4.json": "56f9a976bca171c0d27f506cd6a8183f80bdb3015fe2a137becc51bc4c059890",
+    "postgres-fixture.json": "b5876e41e8143807e50eac39f132986a79e9b2efe562639235686a8ba669cee0",
+    "postgres-removal-verified.json": "8755b9a1b1a56e51b2b3754906df1498983d309085cba0c29e150e1bddb45ed9"
+  },
+  "remaining": [
+    "complete_concrete_engine_install_interruption_rollback_rehearsal",
+    "complete_control_runners_and_native_watchdog_integration",
+    "complete_coordinator_image_peer_probe",
+    "complete_image_configuration_install_restore_bindings",
+    "fresh_privileged_host_facts",
+    "full_independent_proposal_review"
+  ],
+  "review": {
+    "corrections_tested": true,
+    "findings": [
+      "full_installed_tool_tree",
+      "archive_parent_symlink",
+      "probe_cleanup_budget",
+      "mapped_wrong_uid",
+      "watchdog_cgroup_alias",
+      "postflight_retained_baseline"
+    ],
+    "full_proposal_approved": false,
+    "reviewer": "/root/v3_review",
+    "scope": "incremental_source_only"
+  },
+  "schema": "mldsafail.protected-runtime-development-checkpoint.v3",
+  "source_sha256": {
+    "deploy/workload_artifacts.py": "9e9c5fbdf6890177fd8d9d890929cb5299854c22cbdb10e1fd99f38de99d5ac3",
+    "deploy/workload_configuration.py": "6b32bc41216929862cd5761b9a5df1a1b69db0f60d61c4129ae07a3725ae93f2",
+    "deploy/workload_dependencies.py": "8f6520a9ea6021995a570d2635c363711b95e597cf4e67b24dc6a71dd2942e1b",
+    "deploy/workload_installation.py": "3bce63dcdc121bfc025a0671b653a8ebc7facf3749f0ba37785ff0e65069463e",
+    "deploy/workload_installed.py": "a905c51213f1cf52781972827c31c88d482d4b61d5944bfb2e6c7f220960b008",
+    "deploy/workload_prerequisites.py": "0070342e51c888acb99517fe21aad94cb37db69415378fbb7ab3802378a4fd48",
+    "deploy/workload_release.py": "7ff43d19aadcb7516fbd6bbb304d246ef224aaf3346dbd38e14654ea73281d1c",
+    "deploy/workload_socket_probe.py": "2ecd6302f379efc358701a808525748c3d599c843cced461e2ca002901b4f719",
+    "deploy/workload_units.py": "e28b9c005af7160615d481167cffa2b9102acb672ff30eb5a6c2f3525cbd88ce",
+    "deploy/workload_v3.py": "87d515100b5e56a8fa541ea26198094cac6c9b05bae19fe772c9f126c8f32861",
+    "deploy/workload_v3_fixture.py": "af3718bf43731261dc41b24a6f392dab030182b1b68060dee767b55e77eb7caa",
+    "deploy/workload_watchdog.py": "1d8283a0276f4eaf5f81e286f43603ebb1d35797ad4633c87712970c284725c5",
+    "docs/PLAN.md": "5c682b8d2f85c2eab811ac1e1e11567b682291a3618656ac42fe5864b973c2c8",
+    "docs/PROTECTED_RUNTIME_IMPLEMENTATION_PLAN.md": "24a04c4f594142405164ae020f11223a221ec656fc1726db7d88107a98bec47b",
+    "scripts/freeze_workload_release.py": "791089de2a1f58f52f13042c53fdb614152eed4c97bddfb4532fad65d0eb05c8",
+    "scripts/workload_vm_fixture.py": "cb8fe691d7a94d02d84f8a10cbcccc56c0441bde24dff0b6631cabdc6dbda35c",
+    "tests/test_workload_artifacts.py": "1b30e85bd001281a0d6c08adbccae08840a3cbb8cfc17e25d0f1b32f2757e816",
+    "tests/test_workload_installation.py": "ef8ec09e73bed2a96a8fe7e44657317deae843ed70e35560540894a9f65095eb",
+    "tests/test_workload_release.py": "a4850615d58f17a013879a0c4abd983d0c2558665767ed41ceeb2b480dbbfb6b",
+    "tests/test_workload_socket_probe.py": "7fbaa81a9ab42ded9561176ca71ee706a7f75bbf0eb462cce77710028556b051",
+    "tests/test_workload_v3.py": "ad002c39facafad76a80aa142586c209c483291094626117d32124ca8360b555",
+    "tests/test_workload_watchdog.py": "d24ef67d4850f152430c7c5f634e325f1a53211db1369d7bef9ebcbfbea1e684"
+  },
+  "validation": {
+    "changed_markdown_links": 53,
+    "diff_check": true,
+    "focused_tests": 123,
+    "make_check": {
+      "contract_tests": 8,
+      "passed": 1650,
+      "skipped": 45,
+      "warnings": 12
+    }
+  }
+}

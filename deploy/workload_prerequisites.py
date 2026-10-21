@@ -61,6 +61,11 @@ def apply(source,command,journal):
     if output['state']=='proposed':
         import os
         backing=Path(output['backing_file']); mount=Path(output['path'])
+        require(not any(parent.is_symlink() for path in (backing,mount) for parent in (path,*path.parents)),
+                'prerequisite_parent_symlink')
+        release=Path(source['resources']['release']['path'])
+        require(backing.parent.stat().st_dev==release.parent.stat().st_dev,
+                'prerequisite_separate_backing_filesystem_requires_evidence')
         require(identity(backing)['state']==identity(mount)['state']=='absent','prerequisite_destination_not_absent')
         fd=os.open(backing,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
         with os.fdopen(fd,'wb') as stream:

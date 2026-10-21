@@ -37,7 +37,7 @@ def mount(path):
 
 
 def docker(source,args):
-    return run(['/usr/bin/docker','--host','unix:///run/user/'+str(source['host']['uid'])+'/docker.sock',*args])
+    return run(['/usr/bin/docker','--host','unix://'+source['host']['runtime_identity']['socket_birth']['path'],*args])
 
 
 def retained(source):
@@ -71,6 +71,27 @@ def scheduling(proposal, *, include_containers=True):
                 restart_policies_inhibited=True if include_containers else None,dropin_hashes=dropins)
 
 
+CGROUP_LIMITS=('memory.max','memory.high','memory.swap.max','pids.max','cpu.max','cpuset.cpus.effective')
+
+
+def cgroup_observation(path):
+    path=Path(path)
+    row=identity(path)
+    require(row['state']=='observed','installed_cgroup_missing')
+    row.update(controllers=sorted((path/'cgroup.controllers').read_text().split()),
+               writable=os.access(path,os.W_OK),
+               limits={name:(path/name).read_text().strip() if (path/name).exists() else None for name in CGROUP_LIMITS})
+    return row
+
+
+def verify_ancestor_observations(source):
+    for parent in source['resources']['delegation']['ancestors']:
+        if parent['state']!='observed':continue
+        actual=cgroup_observation(parent['path'])
+        require(all(actual[k]==parent[k] for k in ('device','inode','writable','limits')) and
+                set(actual['controllers'])==set(parent['controllers']),'installed_cgroup_ancestor_changed')
+
+
 def prerequisites(source):
     output=source['resources']['output']; actual=mount(output['path'])
     require(actual['filesystem']==output['filesystem'] and
@@ -80,6 +101,7 @@ def prerequisites(source):
     if output['state']=='observed':
         require(all(identity(output['path'])[k]==output[k] for k in ('device','inode')) and
                 actual['mount_id']==output['mount_id'],'installed_mount_birth_changed')
+    verify_ancestor_observations(source)
     delegation=source['resources']['delegation']; root=Path(delegation['path'])
     require(set((root/'cgroup.controllers').read_text().split())>={'cpu','memory','pids'},'installed_controllers_missing')
     require((root/'memory.swap.max').read_text().strip()=='0' and
@@ -89,7 +111,11 @@ def prerequisites(source):
             'installed_aggregate_limits_changed')
     for parent in delegation['ancestors']:
         actual_parent=identity(parent['path'])
-        require(all(actual_parent[k]==parent[k] for k in ('device','inode')),'installed_cgroup_ancestor_birth_changed')
+        if parent['state']=='observed':
+            require(all(actual_parent[k]==parent[k] for k in ('device','inode')),'installed_cgroup_ancestor_birth_changed')
+        else:
+            require(actual_parent['state']=='observed' and actual_parent['uid']==source['host']['uid'],
+                    'installed_proposed_ancestor_not_owned')
     return dict(output=actual,delegation=identity(root))
 
 
@@ -100,6 +126,8 @@ def inspect_control(action,proposal,journal):
         rows=[]
         for row in source['containers']:
             actual=json.loads(docker(source,['inspect',row['id']]))[0]
+            require(actual['Id']==row['id'] and actual['Image']==row['image'] and actual['Created']==row['created_at'] and
+                    actual['State']['StartedAt']==row['started_at'],'installed_container_birth_changed')
             if row['disposition']=='pause':
                 require(actual['State']['Running'] is False and actual['HostConfig']['RestartPolicy']['Name']=='no','installed_container_inhibition_failed')
             rows.append(dict(id=actual['Id'],running=actual['State']['Running'],restart_policy=actual['HostConfig']['RestartPolicy']['Name']))
@@ -109,11 +137,19 @@ def inspect_control(action,proposal,journal):
         from deploy.workload_dependencies import installed_inventory
         release=Path(source['resources']['release']['path'])
         require(verify(release/'bundle',source['manifest'])==proposal['manifest_sha256'],'installed_frozen_release_changed')
+        from deploy.workload_artifacts import verify_installed_tools
+        verify_installed_tools(release,source['manifest'])
         require(installed_inventory(release/'.venv',interpreter=source['recipe']['interpreter']['path'])==source['recipe']['installed_files'],'installed_dependency_files_changed')
-        from deploy.workload_configuration import hashes
-        measured_resources={name:dict(row,**{k:v for k,v in identity(row['path']).items() if k in ('state','device','inode')})
-                            for name,row in source['resources'].items()}
-        expected=hashes(source,measured_resources)
+        from deploy.workload_dependencies import entrypoint_import_command
+        command,modules=entrypoint_import_command(release/'bundle',release/'.venv')
+        require(json.loads(run(command))==modules,'installed_entrypoint_import_failed')
+        # Imports may not mutate the approved bundle, toolchain or environment.
+        verify_installed_tools(release,source['manifest'])
+        require(installed_inventory(release/'.venv',interpreter=source['recipe']['interpreter']['path'])==source['recipe']['installed_files'],
+                'installed_dependency_import_drift')
+        require(verify(release/'bundle',source['manifest'])==proposal['manifest_sha256'],'installed_import_source_drift')
+        from deploy.workload_configuration import hashes,measured_resources
+        expected=hashes(source,measured_resources(source))
         for role,row in source['manifest']['configurations'].items():
             require(identity(row['path']).get('sha256')==expected[role],'installed_configuration_changed')
         return dict(verified=True,manifest_sha256=proposal['manifest_sha256'])
@@ -138,6 +174,8 @@ def inspect_control(action,proposal,journal):
 def collect(proposal, *, now=None):
     """Measure a complete installed record from Linux, never from fixture births."""
     import time
+    from deploy.workload_artifacts import verify_installed_tools
+    verify_installed_tools(proposal['identities']['resources']['release']['path'],proposal['identities']['manifest'])
     from copy import deepcopy
     from deploy.workload_v3 import INSTALLED,sha,validate_proposal
     from deploy.workload_dependencies import installed_inventory
@@ -147,22 +185,25 @@ def collect(proposal, *, now=None):
     require(source['origin'] in ('local_linux','host_observation'),'installed_synthetic_source_forbidden')
     native_row=source['manifest']['configurations']['native']
     native=private_json(native_row['path'])
-    from deploy.workload_configuration import hashes
-    measured_resources={name:dict(row,**{k:v for k,v in identity(row['path']).items() if k in ('state','device','inode')})
-                        for name,row in source['resources'].items()}
-    expected_configuration_hashes=hashes(source,measured_resources)
+    from deploy.workload_configuration import hashes,measured_resources
+    expected_configuration_hashes=hashes(source,measured_resources(source))
     require(identity(native_row['path']).get('sha256')==expected_configuration_hashes['native'],'installed_native_configuration_changed')
     runtime=NativeRuntime(native); actual_identity=runtime.identity()
     require(actual_identity==source['host']['runtime_identity'],'installed_daemon_identity_changed')
     uid_map=[[int(v) for v in line.split()] for line in Path('/proc/'+str(actual_identity['daemon_birth']['pid'])+'/uid_map').read_text().splitlines()]
     require(uid_map==source['uid_mapping']['uid_map'],'installed_actual_rootless_mapping_changed')
+    measured=measured_resources(source)
     resources={}
-    for name,previous in source['resources'].items():
+    for name,previous in measured.items():
         current=identity(previous['path']); row=deepcopy(previous)
         row.pop('creation',None);row.pop('preserve',None)
         row.update({key:current[key] for key in ('state','device','inode') if key in current})
         if name=='activation': row['target']=current.get('target')
-        if name=='delegation': row['controllers']=(Path(previous['path'])/'cgroup.controllers').read_text().split()
+        if name=='delegation':
+            row['controllers']=(Path(previous['path'])/'cgroup.controllers').read_text().split()
+            for parent in row['ancestors']:
+                observed_parent=cgroup_observation(parent['path'])
+                parent.update({key:observed_parent[key] for key in ('controllers','writable','limits')})
         if name=='output':
             measured=mount(previous['path']);row['mount_id']=measured['mount_id']
             require(set(measured['mount_options'])>=set(previous['mount_options']),'installed_mount_options_changed')
@@ -212,6 +253,8 @@ def verify_rollback(source):
     from deploy.workload_dependencies import installed_inventory
     rollback=source['rollback'];root=Path(rollback['release'])
     require(verify(root/'bundle',rollback['manifest'])==rollback['manifest_sha256'],'installed_rollback_manifest_changed')
+    from deploy.workload_artifacts import verify_installed_tools
+    verify_installed_tools(root,rollback['manifest'])
     python=root/'.venv/bin/python'
     require(python.is_symlink() and python.resolve().is_file() and digest(python.resolve().read_bytes())==rollback['python_sha256'],
             'installed_rollback_interpreter_changed')
@@ -238,8 +281,12 @@ def original_settings(source):
         observed=dict(line.split('=',1) for line in raw.splitlines() if '=' in line)
         units[unit]={key:observed.get(key,'') for key in ('ActiveState','UnitFileState','Restart','Triggers')}
         units[unit]['Triggers']=' '.join(sorted(units[unit]['Triggers'].split()))
+    identifiers=docker(source,['ps','-aq','--no-trunc']).decode().split()
+    require(sorted(identifiers)==sorted(row['id'] for row in source['containers']),'installed_container_inventory_changed')
     for row in source['containers']:
         actual=json.loads(docker(source,['inspect',row['id']]))[0]
         containers.append(dict(id=actual['Id'],daemon_id=source['host']['daemon_id'],owner_uid=source['host']['uid'],
-            restart_policy=actual['HostConfig']['RestartPolicy']['Name'],running=actual['State']['Running'],disposition=row['disposition']))
+            restart_policy=actual['HostConfig']['RestartPolicy']['Name'],running=actual['State']['Running'],disposition=row['disposition'],
+            image=actual['Image'],created_at=actual['Created'],started_at=actual['State']['StartedAt'],
+            process_birth=process_birth(actual['State']['Pid']) if actual['State']['Running'] else None))
     return dict(manager_settings=units,containers=containers)
