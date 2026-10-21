@@ -1,5 +1,22 @@
 # MVP public-launch preparation review
 
+## Capacity investigation cancelled — 2026-10-21
+
+The owner dropped the standalone capacity investigation under the $0 budget,
+including a temporary second VPS and a smaller shared-production-host substitute.
+Do not request capacity-host selection, a measurement window or investigation
+approval. No capacity measurements or certified host size resulted. The v8–v10
+packets and investigation instructions below are historical preparation; do not
+execute them. See the [current owner decision](PLAN.md#owner-decision--capacity-investigation-cancelled-2026-10-21).
+
+Continue no-cost maintenance/scheduling/dependency review and remaining MVP
+preparation. The existing epoch operator's capacity-evidence guard remains
+unsatisfied and in force; an explicit reviewed execution-policy disposition is
+needed before epoch approval. Cancellation does not pass or bypass that guard.
+Separate native transport/fence/cleanup correctness checks and the audited
+production epoch remain required. No provisioning, transfer, service change or
+epoch is authorized by this decision.
+
 Owner-directed review, 2026-10-19. This is a preparation plan, not authorization
 for native experiments, a new epoch, public listeners, publication or invitations.
 The rehearsal-C diagnostic investigation is abandoned. Its outcome and budget

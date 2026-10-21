@@ -1,5 +1,22 @@
 # Production epoch operation — awaiting independent review and owner authorization
 
+## Capacity investigation cancelled — 2026-10-21
+
+The owner dropped the standalone capacity investigation under the $0 budget,
+including a temporary second VPS and a smaller shared-production-host substitute.
+Do not request capacity-host selection, a measurement window or investigation
+approval. No capacity measurements or certified host size resulted. The v8–v10
+packets and investigation instructions below are historical preparation; do not
+execute them. See the [current owner decision](PLAN.md#owner-decision--capacity-investigation-cancelled-2026-10-21).
+
+Continue no-cost maintenance/scheduling/dependency review and remaining MVP
+preparation. The existing epoch operator's capacity-evidence guard remains
+unsatisfied and in force; an explicit reviewed execution-policy disposition is
+needed before epoch approval. Cancellation does not pass or bypass that guard.
+Separate native transport/fence/cleanup correctness checks and the audited
+production epoch remain required. No provisioning, transfer, service change or
+epoch is authorized by this decision.
+
 **0.5.0 preview; 0.6.0 ignored; C diagnostics abandoned; backups deferred.**
 No epoch or service change is authorized by this preparation procedure. The
 separate [operation entry point](../scripts/production_epoch_operation.py) provides

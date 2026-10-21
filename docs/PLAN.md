@@ -8,13 +8,35 @@ outcomes remain unchanged; retain compact records and targeted exceptions. Activ
 resources, one verified rollback and supporting scientific evidence stay protected.
 
 
-Updated 2026-10-20. This is the current authoritative implementation plan.
+Updated 2026-10-21. This is the current authoritative implementation plan.
 The [pre-integration plan](archive/PLAN_PRE_INTEGRATION_20261013.md) preserves
 historical 0.4.0 contracts and dated agendas. Frozen scientific requirements
 remain in [PRIMITIVE_SELECTION_SPEC.md](PRIMITIVE_SELECTION_SPEC.md); this
 consolidation changes supported interfaces, not profiles or score meaning.
 
 ## Start here: prepare an MVP launch; diagnostic investigation abandoned
+
+### Owner decision — capacity investigation cancelled, 2026-10-21
+
+The budget is $0. The owner dropped the standalone capacity investigation,
+including both a disposable second VPS and a smaller test sharing the production
+VPS, because the shared-host substitute would not provide the intended isolation.
+Do not provision a measurement host, run a capacity workload, or request host
+selection, a measurement window or capacity-investigation execution approval.
+The [capacity protocol](MAINTENANCE_CAPACITY_PROTOCOL.md) and v8–v10 packets are
+retained historical preparation. No capacity measurements or certified sizing
+conclusion resulted. Their dated investigation agendas are superseded by this
+decision; retain their evidence and unresolved outcomes unchanged.
+
+Continue no-cost maintenance, scheduling and dependency review and remaining MVP
+preparation. Cancellation does not waive the existing production epoch operator's
+capacity validator: its evidence requirement remains unsatisfied. Resolve that
+requirement through an explicit reviewed execution-policy disposition before
+requesting epoch approval; do not fabricate a receipt or silently bypass guards.
+Separate native transport, fence and cleanup correctness checks, the audited
+production epoch and the final participant journey remain launch requirements.
+This decision authorizes no epoch, transfer, provisioning or VPS service change.
+
 
 Owner decision, 2026-10-19: abandon the rehearsal-C monitor/authentication/pacing
 investigation and review the remaining public-launch work. Do not resume its

@@ -1,6 +1,23 @@
-# Bounded capacity investigation proposal
+# Cancelled capacity investigation — retained protocol
 
-Prepared 2026-10-20. **Preparation only; no workload is authorized.** This protocol
+## Capacity investigation cancelled — 2026-10-21
+
+The owner dropped the standalone capacity investigation under the $0 budget,
+including a temporary second VPS and a smaller shared-production-host substitute.
+Do not request capacity-host selection, a measurement window or investigation
+approval. No capacity measurements or certified host size resulted. The v8–v10
+packets and investigation instructions below are historical preparation; do not
+execute them. See the [current owner decision](PLAN.md#owner-decision--capacity-investigation-cancelled-2026-10-21).
+
+Continue no-cost maintenance/scheduling/dependency review and remaining MVP
+preparation. The existing epoch operator's capacity-evidence guard remains
+unsatisfied and in force; an explicit reviewed execution-policy disposition is
+needed before epoch approval. Cancellation does not pass or bypass that guard.
+Separate native transport/fence/cleanup correctness checks and the audited
+production epoch remain required. No provisioning, transfer, service change or
+epoch is authorized by this decision.
+
+Prepared 2026-10-20. **Historical preparation only; this proposal is cancelled.** This protocol
 is part of [item 4's maintenance prerequisites](acceptance/integration/maintenance-prerequisites-v8-20261020.md).
 The owner must approve the exact host, workload generation, resource delegation,
 window, command manifest and one attempt before execution. No host size is certified.
