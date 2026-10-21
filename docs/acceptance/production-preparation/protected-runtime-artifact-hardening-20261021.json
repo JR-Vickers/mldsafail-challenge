@@ -1,0 +1,77 @@
+{
+  "benchmark_version": "0.5.0",
+  "budget_dollars": 0,
+  "cleanup": {
+    "bulky_artifacts_created": false,
+    "disposable_database_created": false,
+    "disposable_vm_created": false,
+    "probe_child_reaped": true
+  },
+  "execution_authority": false,
+  "feasibility_probe": {
+    "acceleration": "tcg",
+    "emulator": "qemu-system-x86_64",
+    "guest_booted": false,
+    "host": "Darwin arm64",
+    "result": "started_paused_without_guest_disk_or_network_then_terminated_and_reaped"
+  },
+  "limitations": [
+    "no_v3_cli_integration",
+    "no_lock_resolved_dependency_closure",
+    "no_exact_interpreter_installer_binding",
+    "no_installed_dependency_file_verification",
+    "no_recoverable_installation_or_rollback_engine",
+    "no_complete_control_acceptance",
+    "no_linux_guest_rehearsal",
+    "no_complete_installation_proposal_review"
+  ],
+  "lock_sha256": "58d4165666f7461539ed348cf696a00524c0f356b7d23f874c2e4e2bb5cea329",
+  "review": {
+    "final_result": "no_further_blocking_findings_in_checkpoint_scope",
+    "findings_corrected": [
+      "platform_compatibility_baseline",
+      "distribution_metadata_binding",
+      "python_requirement_validation",
+      "untracked_source_exclusion",
+      "missing_tracked_module_rejection",
+      "python_patch_uncertainty"
+    ],
+    "reviewer": "/root/review",
+    "scope": [
+      "deploy/workload_release.py",
+      "deploy/workload_schedule_v3.py",
+      "deploy/workload_wheels.py",
+      "tests/test_workload_release.py",
+      "tests/test_workload_schedule_v3.py",
+      "tests/test_workload_wheels.py"
+    ]
+  },
+  "schema": "mldsafail.protected-runtime-artifact-hardening-checkpoint.v1",
+  "source_commit": "afc3c2d1a0e9f70dea95bf6e9773dfc96d8f3abc",
+  "source_hashes": {
+    "deploy/workload_release.py": "0704f92d3d4ac786dc99b3fb2959bb72301c8264b015dca8d03e6c6008d37bfc",
+    "deploy/workload_schedule_v3.py": "b753c8930f4540765c76c182ddbf6cf4d64c5a1d51344819af52d134026fd1a3",
+    "deploy/workload_wheels.py": "696117ffdf0f7fed3bf8ef37c391e5d638216a886306eb6c26d41b2632c50796",
+    "tests/test_workload_release.py": "d85d6d3ed5a424dfab7275b703da5d00e3bff53f34fc0db218a4e60040a0fed4",
+    "tests/test_workload_schedule_v3.py": "0c605d782a09db7aa2b9a0a2adeecd71ec76278aa94e646af2089403fd6560b8",
+    "tests/test_workload_wheels.py": "7e6e5f58378888ce716098bf4eef0b3f066e04981e2a145915000e24e29fd1fe"
+  },
+  "status": {
+    "host_facts": "not_refreshed_privileged_facts_outstanding",
+    "implementation": "incomplete",
+    "rehearsal": "not_run_emulator_probe_only",
+    "review": "checkpoint_approved_full_installation_review_outstanding"
+  },
+  "verification": {
+    "diff_check": "passed",
+    "documentation_links_resolved": 51,
+    "focused_tests": 34,
+    "make_check": {
+      "contract_passed": 8,
+      "passed": 1540,
+      "skipped": 45,
+      "warnings": 12
+    },
+    "make_check_log_sha256": "2a454964331d2ea167fa41d0d45508b4b75e7c5bff086cdd9cfe8f0083510773"
+  }
+}

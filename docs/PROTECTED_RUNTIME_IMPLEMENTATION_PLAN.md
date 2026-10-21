@@ -1,6 +1,9 @@
 # Next development phase: make protected-runtime deployment executable
 
-Status: planned; no installation or native-test authority granted.
+Status: in progress; no installation or native-test authority granted.
+
+The [artifact-hardening checkpoint](acceptance/production-preparation/protected-runtime-artifact-hardening-20261021.md) records positive scheduling permission, wheel integrity checks and a tracked
+full-runtime inclusion policy. The end-to-end implementation remains incomplete.
 
 The deliverable is a complete, independently reviewed installation proposal,
 backed by a successful disposable installation, interruption-recovery, rollback
