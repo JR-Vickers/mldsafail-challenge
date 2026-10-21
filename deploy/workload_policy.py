@@ -50,10 +50,32 @@ def validate_controls(packet, *, execution=False, now=None):
         require(re.fullmatch('[a-f0-9]{64}', runtime[key]))
     # Every assertion is bound to retained evidence bytes, not just a checkbox.
     require(set(evidence.get('evidence', {})) == CONTROLS)
-    for binding in evidence['evidence'].values():
+    for control, binding in evidence['evidence'].items():
         relative = Path(binding['path'])
         require(not relative.is_absolute() and '..' not in relative.parts)
-        require(hashlib.sha256((evidence_path.parent / relative).read_bytes()).hexdigest() == binding['sha256'])
+        artifact_path = evidence_path.parent / relative
+        require(not any(p.is_symlink() for p in (artifact_path, *artifact_path.parents)))
+        artifact_bytes = artifact_path.read_bytes()
+        require(hashlib.sha256(artifact_bytes).hexdigest() == binding['sha256'])
+        artifact = json.loads(artifact_bytes)
+        require(artifact.get('schema') == 'mldsafail.control-evidence.v1')
+        require(artifact.get('control') == control and artifact.get('outcome') == 'passed')
+        require(artifact.get('host') == packet['hostname'])
+        require(artifact.get('source') == packet['source'])
+        require(artifact.get('resource_policy_sha256') == packet['resource_policy_sha256'])
+        # Native acceptance is enduring for these exact installed bytes; live
+        # operation freshness remains enforced by the enclosing receipt above.
+        require(artifact.get('runtime') == {
+            key: runtime[key] for key in ('supervisor_sha256', 'adapter_sha256', 'evaluator_fingerprint')})
+        require(isinstance(artifact.get('cases'), list) and bool(artifact['cases']))
+        names = set()
+        for case in artifact['cases']:
+            require(type(case) is dict and isinstance(case.get('name'), str) and bool(case['name']))
+            require(case['name'] not in names and case.get('outcome') == 'passed')
+            names.add(case['name'])
+            require(isinstance(case.get('observations'), dict) and bool(case['observations']))
+        require(isinstance(artifact.get('reviewed_by'), str) and bool(artifact['reviewed_by']))
+        require(artifact['reviewed_by'] != artifact.get('executed_by'))
 
 
 def authorize(packet_bytes, authorization, *, now=None):

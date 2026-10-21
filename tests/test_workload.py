@@ -166,3 +166,51 @@ with HostGate(sys.argv[1], Runtime()).locked() as gate:
         if child.poll() is None: child.kill()
         child.wait(timeout=2)
         child.stdout.close()
+
+
+@pytest.mark.parametrize('mutate', [
+    lambda s: s.update(schema='unknown'),
+    lambda s: s.update(policy_sha256='0' * 64),
+    lambda s: s.update(phase='unknown'),
+    lambda s: s.update(paused='false'),
+    lambda s: s.update(ceiling=True),
+    lambda s: s.update(identity={}),
+    lambda s: s.update(resources=['uninspected']),
+    lambda s: s.update(phase='running'),
+    lambda s: s.update(paused=True),
+])
+def test_malformed_journal_blocks_all_use(tmp_path, mutate):
+    import json
+    with HostGate(tmp_path, Runtime()).locked() as gate:
+        gate.acquire('evaluation', {})
+        state = dict(gate.state)
+    mutate(state)
+    (tmp_path / 'workload.json').write_text(json.dumps(state))
+    with pytest.raises(WorkloadBlocked, match='invalid_workload_journal'):
+        with HostGate(tmp_path, Runtime()).locked():
+            pytest.fail('invalid journal admitted')
+
+
+def test_duplicate_journal_keys_block(tmp_path):
+    with HostGate(tmp_path, Runtime()).locked() as gate:
+        gate.acquire('evaluation', {})
+    path = tmp_path / 'workload.json'
+    path.write_text(path.read_text().replace('{', '{"phase":"complete",', 1))
+    with pytest.raises(WorkloadBlocked, match='invalid_workload_journal'):
+        with HostGate(tmp_path, Runtime()).locked(): pass
+
+
+def test_reused_gate_rereads_missing_journal(tmp_path):
+    gate = HostGate(tmp_path, Runtime())
+    with gate.locked(): gate.acquire('evaluation', {})
+    # Simulate an operator removing a journal: this must not reuse cached state.
+    gate.path.unlink()
+    with gate.locked(): assert gate.state is None
+
+
+def test_bind_and_launch_cannot_reopen_completed_workload(tmp_path):
+    with HostGate(tmp_path, Runtime()).locked() as gate:
+        gate.acquire('evaluation', {})
+        gate.complete()
+        with pytest.raises(WorkloadBlocked, match='binding_phase_invalid'): gate.bind({})
+        with pytest.raises(WorkloadBlocked, match='launch_phase_invalid'): gate.launch({})

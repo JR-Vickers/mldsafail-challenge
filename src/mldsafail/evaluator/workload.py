@@ -16,6 +16,7 @@ import stat
 import threading
 from functools import wraps
 import uuid
+import time
 
 
 class WorkloadBlocked(RuntimeError):
@@ -94,7 +95,51 @@ class HostGate:
         self.state = None
         self.path = self.root / 'workload.json'
 
+    def _validate(self, state):
+        """Treat persisted state as untrusted, including after a clean exit."""
+        phases = {'acquired', 'launch_intent', 'running', 'termination_intent', 'cleaned', 'complete'}
+        try:
+            valid = (
+                type(state) is dict
+                and state['schema'] == 'mldsafail.workload.v1'
+                and state['policy_sha256'] == self.policy.sha256
+                and isinstance(state['workload_id'], str)
+                and len(state['workload_id']) == 32
+                and all(c in '0123456789abcdef' for c in state['workload_id'])
+                and state['kind'] in ('evaluation', 'administration')
+                and type(state['reference']) is dict
+                and type(state['identity']) is dict
+                and all(isinstance(state['identity'][k], str) and state['identity'][k]
+                        for k in ('boot_id', 'daemon_id'))
+                and type(state['ceiling']) is int and state['ceiling'] > 0
+                and state['phase'] in phases
+                and type(state['paused']) is bool
+                and type(state['resources']) is list
+                and all(type(resource) is dict and resource for resource in state['resources'])
+                and (not state['paused'] or
+                     isinstance(state.get('reason'), str) and bool(state['reason']))
+                and (state['phase'] != 'acquired' or not state['resources'])
+                and (state['phase'] != 'running' or bool(state['resources']))
+            )
+        except (KeyError, TypeError):
+            valid = False
+        if not valid:
+            raise WorkloadBlocked('invalid_workload_journal')
+        requests = state.get('requests', {})
+        if type(requests) is not dict or len(requests) > 1024:
+            raise WorkloadBlocked('invalid_request_ledger')
+        for identifier, entry in requests.items():
+            if (not isinstance(identifier, str) or not 1 <= len(identifier) <= 128
+                    or type(entry) is not dict
+                    or entry.get('phase') not in ('intent', 'complete')
+                    or not isinstance(entry.get('sha256'), str)
+                    or len(entry['sha256']) != 64
+                    or any(c not in '0123456789abcdef' for c in entry['sha256'])
+                    or (entry['phase'] == 'complete' and 'result' not in entry)):
+                raise WorkloadBlocked('invalid_request_ledger')
+
     def _write(self):
+        self._validate(self.state)
         temporary = self.root / (uuid.uuid4().hex + '.tmp')
         fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(fd, 'w') as stream:
@@ -123,11 +168,28 @@ class HostGate:
                 raise WorkloadBlocked('unsafe_host_lock')
             try: fcntl.flock(self.fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError as error: raise WorkloadBlocked('host_busy') from error
-            if self.path.exists():
+            self.state = None
+            if self.path.exists() or self.path.is_symlink():
                 info = self.path.lstat()
                 if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_uid != os.getuid() or info.st_mode & 0o077:
                     raise WorkloadBlocked('unsafe_workload_journal')
-                self.state = json.loads(self.path.read_text())
+                if info.st_size > 1024 * 1024:
+                    raise WorkloadBlocked('oversized_workload_journal')
+                def unique(pairs):
+                    result = {}
+                    for key, value in pairs:
+                        if key in result: raise ValueError('duplicate_journal_key')
+                        result[key] = value
+                    return result
+                descriptor = os.open(self.path, os.O_RDONLY | os.O_NOFOLLOW)
+                with os.fdopen(descriptor) as stream:
+                    opened = os.fstat(stream.fileno())
+                    if (opened.st_dev, opened.st_ino) != (info.st_dev, info.st_ino):
+                        raise WorkloadBlocked('workload_journal_replaced')
+                    try: self.state = json.loads(stream.read(1024 * 1024 + 1), object_pairs_hook=unique)
+                    except (ValueError, UnicodeError) as error:
+                        raise WorkloadBlocked('invalid_workload_journal') from error
+                self._validate(self.state)
             yield self
         finally:
             os.close(self.fd)
@@ -146,13 +208,15 @@ class HostGate:
         if self.state and (self.state['phase'] != 'complete' or self.state['paused']):
             raise WorkloadBlocked('cleanup_or_resume_required')
         if kind not in ('evaluation', 'administration'): raise ValueError('invalid_workload_kind')
+        if type(reference) is not dict: raise ValueError('invalid_reference')
         identity = self.runtime.identity()
         if not identity.get('boot_id') or not identity.get('daemon_id'):
             raise WorkloadBlocked('runtime_identity_required')
         ceiling = self.runtime.preflight(self.policy)
         if type(ceiling) is not int or ceiling <= 0:
             raise WorkloadBlocked('resource_deferral')
-        self.state = dict(schema='mldsafail.workload.v1', workload_id=uuid.uuid4().hex,
+        requests = self.state.get('requests', {}) if self.state else {}
+        self.state = dict(requests=requests, schema='mldsafail.workload.v1', workload_id=uuid.uuid4().hex,
                           identity=identity, kind=kind, reference=reference,
                           policy_sha256=self.policy.sha256, ceiling=ceiling,
                           phase='acquired', paused=False, resources=[])
@@ -162,6 +226,9 @@ class HostGate:
     @serialized
     def bind(self, reference):
         self._owned()
+        if self.state['phase'] != 'acquired' or self.state['paused']:
+            raise WorkloadBlocked('binding_phase_invalid')
+        if type(reference) is not dict: raise ValueError('invalid_reference')
         self.state['reference'] = reference
         self._write()
 
@@ -174,7 +241,11 @@ class HostGate:
     def check(self):
         self._owned()
         if self.state['paused']: raise ProtectionAbort(self.state['reason'])
-        try: reason = self.policy.violation(self.runtime.sample(self.state), self.state['ceiling'])
+        started = time.monotonic()
+        try:
+            sample = self.runtime.sample(self.state)
+            reason = ('monitor_stale' if time.monotonic() - started > 1 else
+                      self.policy.violation(sample, self.state['ceiling']))
         except Exception: reason = 'monitor_lost'
         if reason:
             self.pause(reason)
@@ -182,6 +253,8 @@ class HostGate:
 
     @serialized
     def launch(self, specification):
+        if self.state is None or self.state['phase'] not in ('acquired', 'running'):
+            raise WorkloadBlocked('launch_phase_invalid')
         self.check()
         # Intent survives lost launch acknowledgement. Runtime uses workload ID
         # to enumerate creators and resources, including an unacknowledged birth.

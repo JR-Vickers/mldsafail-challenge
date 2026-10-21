@@ -10,13 +10,20 @@ def fixture(tmp_path):
     runtime = dict(boot_id='boot', daemon_id='daemon', supervisor_sha256='a'*64,
                    adapter_sha256='b'*64, evaluator_fingerprint='c'*64,
                    cgroup='/sys/fs/cgroup/heavy', socket='/run/private/workload.sock')
-    artifact = tmp_path / 'native.json'
-    artifact.write_text('{}')
-    binding = dict(path=artifact.name, sha256=hashlib.sha256(artifact.read_bytes()).hexdigest())
     policy = hashlib.sha256(policy_bytes()).hexdigest()
+    bindings = {}
+    for control in CONTROLS:
+        artifact = tmp_path / (control + '.json')
+        artifact.write_text(json.dumps(dict(
+            schema='mldsafail.control-evidence.v1', control=control, outcome='passed',
+            host='host', source='source', resource_policy_sha256=policy,
+            runtime={k: runtime[k] for k in ('supervisor_sha256', 'adapter_sha256', 'evaluator_fingerprint')},
+            cases=[dict(name='synthetic', outcome='passed', observations={'verified': True})],
+            reviewed_by='reviewer', executed_by='executor')))
+        bindings[control] = dict(path=artifact.name, sha256=hashlib.sha256(artifact.read_bytes()).hexdigest())
     evidence = dict(schema='mldsafail.operational-controls.v1', host='host', source='source',
                     operation_id='operation', resource_policy_sha256=policy, runtime=runtime,
-                    controls={k: True for k in CONTROLS}, evidence={k: binding for k in CONTROLS},
+                    controls={k: True for k in CONTROLS}, evidence=bindings,
                     reviewed_by='reviewer', blockers=[], prepared_at=1000)
     path = tmp_path / 'receipt.json'
     path.write_text(json.dumps(evidence))
@@ -46,11 +53,21 @@ def test_controls_reject(tmp_path, mutation):
     if mutation == 'stale': evidence['prepared_at'] = -90000
     if mutation == 'native': evidence['controls']['native_linux_acceptance'] = False
     if mutation == 'runtime': packet['supervisor_runtime'] = {'daemon_id': 'changed'}
-    if mutation == 'artifact': (tmp_path / 'native.json').write_text('changed')
+    if mutation == 'artifact': (tmp_path / 'native_linux_acceptance.json').write_text('changed')
     if mutation == 'proposal':
         packet['state'] = 'maintenance_proposal'
         with pytest.raises(ValueError): authorize(json.dumps(packet).encode(), {}, now=1100)
         return
+    path.write_text(json.dumps(evidence))
+    packet['operational_receipt_sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
+    with pytest.raises(ValueError): validate_controls(packet, now=1100)
+
+
+def test_arbitrary_hashed_json_is_not_control_evidence(tmp_path):
+    packet, evidence, path = fixture(tmp_path)
+    artifact = tmp_path / 'shared_host_gate.json'
+    artifact.write_text('{}')
+    evidence['evidence']['shared_host_gate']['sha256'] = hashlib.sha256(artifact.read_bytes()).hexdigest()
     path.write_text(json.dumps(evidence))
     packet['operational_receipt_sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
     with pytest.raises(ValueError): validate_controls(packet, now=1100)
