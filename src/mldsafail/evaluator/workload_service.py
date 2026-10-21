@@ -43,7 +43,7 @@ def read_configuration(path):
         config = json.loads(stream.read(65537), object_pairs_hook=unique)
     if (type(config) is not dict or set(config) != {'root', 'socket', 'helper', 'roles'} or
             type(config['roles']) is not dict or not config['roles'] or
-            any(not isinstance(name, str) or type(role) is not dict
+            any(name not in {'participant', 'create', 'reference', 'audit', 'inert'} or role != {'role': name}
                 for name, role in config['roles'].items()) or
             any(not isinstance(config[key], str) or not Path(config[key]).is_absolute()
                 for key in ('root', 'socket')) or
@@ -64,11 +64,16 @@ class HelperRuntime:
     """
     def __init__(self, command):
         self.command = tuple(command)
-        self.transports = {name: RuntimeTransport(self.command) for name in ('monitor', 'control', 'cleanup')}
+        self.transports = {name: RuntimeTransport(self.command) for name in ('monitor', 'control', 'cleanup', 'emergency')}
 
     def call(self, method, argument):
+        if 'state' in argument:
+            keys = {'workload_id', 'identity', 'phase', 'ceiling', 'paused', 'kind', 'launch_nonce'}
+            if method == 'launch': keys.add('reference')
+            argument = {**argument, 'state': {key: value for key, value in argument['state'].items() if key in keys}}
         name = threading.current_thread().name
         channel = 'monitor' if name == 'heavy-workload-monitor' else 'cleanup' if name == 'heavy-sample-watchdog' else 'control'
+        if method == 'emergency': channel = 'emergency'
         return self.transports[channel].call(method, argument)
 
     def identity(self): return self.call('identity', {})
@@ -80,6 +85,7 @@ class HelperRuntime:
     def launch(self, state, specification):
         return self.call('launch', {'state': state, 'specification': specification})
     def inspect(self, state, birth): return self.call('inspect', {'state': state, 'birth': birth})
+    def emergency(self, state): return self.call('emergency', {'state': state})
     def terminate(self, state): return self.call('terminate', {'state': state})
     def stopped(self, state): return self.call('stopped', {'state': state})
 
@@ -100,7 +106,13 @@ def cleanup(gate):
     """Only inspected termination; never clear pause or authorize new work."""
     if gate.state is None:
         return
-    gate._owned()
+    try:
+        gate._owned()
+    except BaseException:
+        if hasattr(gate.runtime, 'emergency'):
+            gate.pause('cleanup_runtime_identity_lost')
+            gate.runtime.emergency(gate.state)
+        raise
     gate.pause('cleanup_only')
     if gate.state['phase'] in ('postflight', 'commit_intent', 'committed', 'complete'):
         # Preserve transaction ambiguity and its lifecycle. These phases already
@@ -132,6 +144,10 @@ def remove_stale_socket(gate, path):
 def serve(gate, path, roles, stop):
     protocol = SupervisorProtocol(gate, roles)
     session = None
+    if gate.state is None:
+        # First installation also starts behind an explicit operator resume.
+        # This creates only an empty protected domain, never a controller.
+        gate.acquire('administration', {'bootstrap': True})
     if gate.state is not None:
         # A daemon restart never resumes a computational phase or drops evidence.
         gate.pause('supervisor_restart')
@@ -141,12 +157,15 @@ def serve(gate, path, roles, stop):
                     process=process_birth(os.getpid()), supervisor_generation=gate.generation))
             notify('READY=1\nSTATUS=Scheduling requires reconciled ownership')
             while not stop.is_set():
-                if gate.state and gate.state['phase'] != 'complete' and not gate.state['paused']:
-                    if session is None:
-                        session = WorkloadSession(gate).start()
-                elif session is not None:
+                state=gate.state
+                active=state and state['phase'] in ('acquired','launch_intent','running','termination_intent') and not state['paused']
+                if session is not None and (not active or session.workload_id!=state['workload_id'] or session.stop.is_set()):
                     session.finish_monitor()
-                    session = None
+                    session=None
+                    gate.monitor_session=None
+                if active and session is None:
+                    session=WorkloadSession(gate).start()
+                    gate.monitor_session=session
                 server.poll(.05)
                 notify('WATCHDOG=1')
     finally:

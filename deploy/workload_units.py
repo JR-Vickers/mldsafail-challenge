@@ -1,0 +1,63 @@
+"""Render reviewed user-manager units from complete installation identities."""
+from pathlib import Path
+import re
+
+from mldsafail.evaluator.native_workload import require
+
+
+def absolute(value):
+    require(isinstance(value, str) and re.fullmatch(r'/[A-Za-z0-9_./-]+', value) and
+            '..' not in Path(value).parts and len(value) < 108, 'workload_unit_path_invalid')
+    return value
+
+
+def render(installation):
+    required = {'python', 'release', 'configuration', 'gate_root', 'heavy_path', 'memory_ceiling', 'uid', 'unit_directory'}
+    require(set(installation) == required, 'workload_installation_identities_incomplete')
+    for key in ('python', 'release', 'configuration', 'gate_root', 'heavy_path', 'unit_directory'):
+        absolute(installation[key])
+    require(type(installation['uid']) is int and installation['uid'] > 0 and
+            type(installation['memory_ceiling']) is int and installation['memory_ceiling'] > 0,
+            'workload_installation_limits_invalid')
+    require(Path(installation['heavy_path']).name == 'mldsafail-heavy.slice', 'workload_heavy_unit_invalid')
+    python, config = installation['python'], installation['configuration']
+    service = f'''[Unit]
+Description=MLDSAFAIL exclusive workload supervisor
+Requires=mldsafail-heavy.slice
+After=mldsafail-heavy.slice
+
+[Service]
+Type=notify
+NotifyAccess=main
+Slice=app.slice
+WorkingDirectory={installation['release']}
+Environment=PYTHONPATH={installation['release']}/src:{installation['release']}
+UMask=0077
+ExecStart={python} -m mldsafail.evaluator.workload_service serve --configuration {config}
+ExecStopPost={python} -m mldsafail.evaluator.workload_service cleanup --configuration {config}
+KillMode=control-group
+TimeoutStopSec=35s
+WatchdogSec=5s
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=default.target
+'''
+    heavy = f'''[Unit]
+Description=MLDSAFAIL aggregate heavy workload budget
+
+[Slice]
+CPUAccounting=yes
+MemoryAccounting=yes
+TasksAccounting=yes
+CPUQuota=100%
+MemoryMax={installation['memory_ceiling']}
+MemorySwapMax=0
+TasksMax=448
+'''
+    # ExecStopPost is run by systemd even after SIGKILL/OOM/watchdog failure.
+    # It runs in app.slice, independently of both the dead main process and the
+    # heavy subtree. Startup pauses retained ownership and never resumes work.
+    return {'mldsafail-workload-supervisor.service': service, 'mldsafail-heavy.slice': heavy}

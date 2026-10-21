@@ -79,16 +79,15 @@ def apply_outcome(database, binding, *, retry):
     if attempt.finished_at is not None:
         # Non-result terminal dispositions also reconcile without another insert
         # or transition; inspect the existing attempt and job under the mutex.
-        if attempt.status != binding['disposition']:
+        if binding['disposition'] == 'accepted' or attempt.status != binding['disposition']:
             raise WorkloadBlocked('conflicting_committed_attempt')
         database.commit(); return
     if job.lease_owner != binding['owner']['worker_id']:
         raise WorkloadBlocked('database_lease_owner_changed')
     disposition = binding['disposition']
     if submission.cancel_requested or submission.state == SubmissionState.CANCELLED.value:
-        if disposition == 'accepted':
+        if disposition != 'cancelled':
             raise WorkloadBlocked('cancellation_won_result_transaction')
-        disposition = 'cancelled'
     attempt.status = disposition; attempt.finished_at = utcnow()
     if disposition == 'accepted':
         database.add(ExperimentResult(submission_id=submission.id, user_id=submission.user_id,
@@ -145,8 +144,10 @@ class Dispatcher:
                     # The original transaction did not commit. Do not reuse its
                     # orphan output to insert a new score after recovery.
                     reference = {key: binding[key] for key in ('job_id', 'attempt_id', 'attempt_number', 'submission_id', 'owner')}
+                    submission = database.get(Submission, binding['submission_id'])
+                    cancelled = submission and (submission.cancel_requested or submission.state == SubmissionState.CANCELLED.value)
                     resolution = result_binding(reference, state['workload_id'],
-                        dict(disposition='infrastructure_failed', code='ambiguous_commit_uncommitted'))
+                        dict(disposition='cancelled' if cancelled else 'infrastructure_failed', code='ambiguous_commit_uncommitted'))
                     self.client.mutation('resolve_commit', binding=binding, resolution=resolution)
                     binding = resolution
                 apply_outcome(database, binding, retry=False)
@@ -175,7 +176,11 @@ class Dispatcher:
                     reference = {**reference, 'job_id': job.id, 'submission_id': job.submission_id,
                                  'attempt_id': attempt.id, 'attempt_number': attempt.number}
                 else:
-                    return False  # Verified unused ownership still needs explicit resume.
+                    binding=dict(disposition='unused_ownership',workload_id=state['workload_id'],owner=reference['owner'])
+                    self.client.mutation('commit_intent',binding=binding)
+                    database.commit()
+                    self.client.acknowledge(binding)
+                    return True
         outcome = dict(disposition='infrastructure_failed', code='orphaned_controller_output')
         binding = result_binding(reference, state['workload_id'], outcome)
         self.client.mutation('commit_intent', binding=binding)
@@ -186,10 +191,15 @@ class Dispatcher:
     def run_once(self):
         state = self.client.status()
         if state and (state['phase'] != 'complete' or state['paused']):
-            if not state['paused'] and state.get('heartbeat_deadline', 0) >= time.time():
+            if not state['paused'] and state.get('heartbeat_monotonic_deadline', 0) >= time.monotonic():
                 return False
             if state['paused'] and state['phase'] == 'committed': return False
             return self.recover(state)
+        with Session(self.engine) as database:
+            if database.scalar(select(EvaluationJob.id).where(EvaluationJob.status.in_(['claimed', 'running'])).limit(1)) is not None:
+                return False  # Legacy unresolved ownership is never inferred dead.
+            if database.scalar(select(EvaluationJob.id).where(EvaluationJob.status == 'queued').limit(1)) is None:
+                return False
         owner = dict(database=self.database_id, worker_id='protected:'+uuid.uuid4().hex, attempt_id=str(uuid.uuid4()))
         try:
             self.client.acquire('evaluation', {'owner': owner})

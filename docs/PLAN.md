@@ -37,17 +37,20 @@ Separate native transport, fence and cleanup correctness checks, the audited
 production epoch and the final participant journey remain launch requirements.
 This decision authorizes no epoch, transfer, provisioning or VPS service change.
 
-### Current implementation checkpoint — protection remains incomplete
+### Current implementation checkpoint — integrated locally; native acceptance pending
 
-The local host gate now validates private journal schema, policy and lifecycle
-shape; the private Linux socket transport authenticates peer UIDs and accepts
-configured command roles with durable request outcomes. Helper subprocess I/O is
-bounded without reader threads. These transports are not wired into production.
-The coordinator still launches directly, administrative routing and the native
-cgroup adapter remain missing, and no systemd death-cleanup barrier is installed.
-The epoch entrypoint continues to reject v4. Native VPS acceptance has no owner
-authorization and has not run. See [the current deployment review](SINGLE_WORKLOAD_DEPLOYMENT.md)
-for verified scope and blockers. Do not interpret local tests as host enforcement.
+Production participant dispatch and v4 administrative roles now share the private
+supervisor, native cgroup adapter and frozen-command router. Ownership survives
+verified cleanup through database/operator commit acknowledgement. Systemd watchdog
+and independent cleanup units, bounded output enforcement, generation-scoped replay,
+control-specific v4 evidence validation and an offline deployment/recovery generator
+are implemented. See [the runbook](SINGLE_WORKLOAD_DEPLOYMENT.md) for verification
+scope and the immutable source packet. Historical v2/v3 capacity checks remain intact.
+
+Native VPS acceptance has not run and requires separate owner authorization plus
+current scheduling/service/delegation/socket/output-volume and compatible rollback
+identities. Local Linux/PostgreSQL fixtures do not certify the installed VPS.
+No deployment, epoch, capacity measurement or activation is authorized by this work.
 
 ### Next engineering phase — single-workload scheduling and host protection
 

@@ -26,7 +26,7 @@ class RuntimeTransport:
         self.pending = []
 
     def call(self, method, argument):
-        if method not in {'identity', 'environment', 'preflight', 'prepare', 'sample', 'launch', 'inspect', 'result', 'terminate', 'stopped'}:
+        if method not in {'identity', 'environment', 'preflight', 'prepare', 'sample', 'launch', 'inspect', 'result', 'emergency', 'terminate', 'stopped'}:
             raise ValueError('invalid_runtime_method')
         self.pending = [process for process in self.pending if process.poll() is None]
         if self.pending:

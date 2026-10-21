@@ -1,9 +1,10 @@
 """Synthetic controller results across real SQL transactions and the host gate."""
 from dataclasses import replace
 from pathlib import Path
+import os
 
 import pytest
-from sqlalchemy import select, func
+from sqlalchemy import create_engine, inspect, select, func
 from sqlalchemy.orm import Session
 
 from mldsafail.evaluator.coordinator import CoordinatorConfig
@@ -12,7 +13,7 @@ from mldsafail.evaluator.envelope import sign_envelope
 from mldsafail.evaluator.workload import HostGate, WorkloadBlocked
 from mldsafail.evaluator.workload_client import WorkloadClient
 from mldsafail.evaluator.workload_socket import SupervisorProtocol
-from mldsafail.web.models import EvaluationAttempt, EvaluationJob, ExperimentResult, Submission, User
+from mldsafail.web.models import Base, EvaluationAttempt, EvaluationJob, ExperimentResult, Submission, User
 from mldsafail.web.services import create_submission
 from test_hosted_mlwe import COHORT, REQUEST, database
 from test_workload import Runtime
@@ -40,13 +41,18 @@ class Controller(Runtime):
 
 @pytest.fixture
 def system(tmp_path):
-    engine = database(tmp_path)
+    pg_url = os.environ.get('MLDSAFAIL_NATIVE_TEST_DATABASE_URL')
+    engine = create_engine(pg_url) if pg_url else database(tmp_path)
+    if pg_url:
+        assert engine.url.host == '127.0.0.1' and engine.url.database.startswith('mldsafail_acceptance_')
+        assert not inspect(engine).get_table_names()
+        Base.metadata.create_all(engine)
     with Session(engine) as session:
         user = User(display_name='synthetic'); session.add(user); session.commit()
         submission, _ = create_submission(session, user, REQUEST, 'key', cohort=COHORT)
         identifier = submission.id
     key = tmp_path/'key'; key.write_bytes(b'k'*32); key.chmod(0o600)
-    config = CoordinatorConfig(str(engine.url), tmp_path, tmp_path/'unused', 'image', '0.5.0',
+    config = CoordinatorConfig(engine.url.render_as_string(hide_password=False), tmp_path, tmp_path/'unused', 'image', '0.5.0',
         COHORT['evaluator_fingerprint'], COHORT['hidden_suite_version'], COHORT['worker_class'],
         tmp_path/'private', tmp_path/'epoch', COHORT['epoch_id'], key, True, tmp_path/'supervisor.sock')
     runtime = Controller()
@@ -54,7 +60,12 @@ def system(tmp_path):
         protocol = SupervisorProtocol(gate, {'participant': {'role':'participant'}})
         client = WorkloadClient(config.supervisor_socket, tmp_path/'client', transport=lambda path, request: protocol.dispatch(request))
         dispatcher = Dispatcher(config, client=client)
-        yield dispatcher, gate, runtime, engine, identifier
+        try:
+            yield dispatcher, gate, runtime, engine, identifier
+        finally:
+            dispatcher.engine.dispose()
+            if pg_url: Base.metadata.drop_all(engine)
+            engine.dispose()
 
 
 @pytest.mark.parametrize('mode', ['accepted', 'rejected', 'infrastructure_failed'])
@@ -104,7 +115,7 @@ def test_ambiguous_db_commit_never_recomputes_or_inserts_orphan_result(system, m
     assert gate.state['phase'] == 'commit_intent'
     assert not runtime.live
     monkeypatch.setattr(module, 'apply_outcome', original)
-    gate.state['heartbeat_deadline'] = 0  # Simulate dispatcher disconnection, not a live competitor.
+    gate.state['heartbeat_monotonic_deadline'] = 0  # Simulate dispatcher disconnection, not a live competitor.
     gate._write()
     assert dispatcher.run_once()
     assert runtime.launches == 1
@@ -139,3 +150,23 @@ def test_protection_failure_has_no_score_and_no_automatic_retry(system):
     with Session(engine) as session:
         assert session.scalar(select(EvaluationJob)).status == 'failed'
         assert session.scalar(select(func.count()).select_from(ExperimentResult)) == 0
+
+
+def test_cancellation_winning_result_transaction_invalidates_orphan_score(system):
+    dispatcher, gate, runtime, engine, identifier = system
+    original = runtime.result
+    def cancel_after_result(state):
+        result = original(state)
+        with Session(engine) as session:
+            session.get(Submission,identifier).cancel_requested = True
+            session.commit()
+        return result
+    runtime.result = cancel_after_result
+    with pytest.raises(WorkloadBlocked,match='cancellation_won_result_transaction'): dispatcher.run_once()
+    assert not runtime.live and gate.state['phase']=='commit_intent'
+    gate.state['heartbeat_monotonic_deadline']=0; gate._write()
+    assert dispatcher.run_once()
+    with Session(engine) as session:
+        assert session.scalar(select(func.count()).select_from(ExperimentResult)) == 0
+        assert session.scalar(select(EvaluationAttempt)).status == 'cancelled'
+    assert runtime.launches == 1

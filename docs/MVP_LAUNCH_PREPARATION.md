@@ -19,22 +19,21 @@ epoch is authorized by this decision.
 
 ## Next phase — workload scheduling and host protection
 
-Follow the [implementation agenda](PLAN.md#next-engineering-phase--single-workload-scheduling-and-host-protection):
-complete and verify one-heavy-workload exclusion across evaluations and
-administrative operations, resource-aware launch deferral, host resource bounds,
-verified termination before releasing ownership, and bounded admission/queues.
-Reuse existing claim, floor and admission logic; deployed compatibility remains
-to be verified. Specifically close stale-lease recovery that can requeue before
-old-worker termination is established. Preserve zero-pending maintenance rules.
+The [shared workload runtime](SINGLE_WORKLOAD_DEPLOYMENT.md) now integrates
+participant dispatch, administrative roles, host resource enforcement, verified
+termination and database commit recovery. Local failure tests and disposable Linux/
+PostgreSQL fixtures cover the implementation; native installed acceptance remains
+pending. V4 has exact owner/reviewer bindings and control-specific evidence under
+`unmeasured_capacity`; existing v2/v3 capacity requirements remain unchanged.
 
-Prepare the reviewed operational policy and epoch-validator changes replacing
-the measured-capacity prerequisite. Keep current guards until the replacements
-are implemented and verified. Preserve frozen worker limits and score semantics;
-single-workload execution does not certify that one job fits the VPS. No capacity
-experiment or paid infrastructure is planned. After the controls/policy and exact
-maintenance/restoration packet are ready, seek separate execution approvals, then
-complete the audited epoch, configuration, HTTPS/OAuth, participant journey,
-minimum operations and owner rollout review in that order.
+Before host execution, obtain current scheduling, retained-service, delegation,
+private socket, bounded output-volume and compatible rollback identities, generate
+the exact maintenance/restoration packet and obtain separate owner authorization.
+The offline packet emits no guessed commands when those identities are absent.
+Single-workload execution does not certify that a job fits the VPS. Keep the
+existing VPS, $0 budget and 0.5.0 preview. After authorized native acceptance,
+the audited epoch, configuration, HTTPS/OAuth, participant journey, minimum
+operations and owner rollout review remain separate launch gates.
 
 Owner-directed review, 2026-10-19. This is a preparation plan, not authorization
 for native experiments, a new epoch, public listeners, publication or invitations.

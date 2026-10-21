@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import errno
 import os
 from pathlib import Path, PurePosixPath
 
@@ -56,7 +58,10 @@ def administrative(role, config, output, checkpoint):
         result = ev.summary(manifest, rows, reference)
     elif role == 'audit':
         manifest, _ = ev.audit_epoch(epoch_path)
-        result = dict(epoch_id=manifest['id'], verified=True)
+        result = dict(epoch_id=manifest['id'], verified=True, epoch_path=str(epoch_path), environment=manifest['environment'],
+            manifest_sha256=hashlib.sha256((epoch_path/'manifest.json').read_bytes()).hexdigest(),
+            reference_sha256=hashlib.sha256((epoch_path/'reference-costs.json').read_bytes()).hexdigest(),
+            seal_sha256=hashlib.sha256((epoch_path/'COMPLETE.json').read_bytes()).hexdigest())
     else:
         raise ValueError('controller_role_invalid')
     checkpoint()
@@ -65,6 +70,7 @@ def administrative(role, config, output, checkpoint):
 
 def run(request):
     config = private_json(request['configuration'])
+    require(set(config) == {'native_configuration','identity','epoch_path','worker_image','signing_key'}, 'controller_configuration_fields')
     state, role = request['state'], request['role']
     native = private_json(config['native_configuration'])
     output = Path(native['output'])/state['workload_id']
@@ -84,9 +90,17 @@ def run(request):
                 current['phase'] in ('launch_intent', 'running'), 'controller_authority_lost')
     binding = dict(workload_id=state['workload_id'], role=role, reference=state['reference'])
     try:
-        result = participant(state, config, output, checkpoint) if role == 'participant' else administrative(role, config, output, checkpoint)
+        if role == 'inert':
+            from deploy.workload_inert import exercise
+            result = exercise(state, native, output, checkpoint)
+        else:
+            result = participant(state, config, output, checkpoint) if role == 'participant' else administrative(role, config, output, checkpoint)
     except DomainError as error:
         result = dict(status='rejected', code=error.code)
+    except OSError as error:
+        if error.errno in (errno.EFBIG,errno.ENOSPC,errno.EDQUOT):
+            publish(Path(native['root'])/(state['workload_id']+'.violation.json'),dict(workload_id=state['workload_id'],reason='output_budget_exhausted'))
+        result = dict(status='infrastructure_failed',code='controller_failure')
     except Exception:
         result = dict(status='infrastructure_failed', code='controller_failure')
     result = sign_envelope(dict(binding=binding, **result), Path(config['signing_key']).read_bytes())

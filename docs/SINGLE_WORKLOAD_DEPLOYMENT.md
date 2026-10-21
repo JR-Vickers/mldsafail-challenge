@@ -1,261 +1,188 @@
-# Single-workload engineering review, 2026-10-21
+# Shared workload deployment and recovery
 
-This is an incomplete local implementation and a blocked deployment review
-packet. It is not production readiness or execution authority. Budget remains $0;
-no capacity experiment, deployment, epoch, provisioning, notification, benchmark,
-or abandoned diagnostic is authorized by this document. Scope remains 0.5.0
-preview; 0.6.0, supplied credentials and deferred backups are unchanged.
+The local integrated runtime routes production participant work and v4 administrative
+creation, reference and audit through one private supervisor. Deployment and native
+acceptance have not run. This packet grants no execution authority. Retain the
+0.5.0 preview, existing VPS and $0 budget; no solver runs, capacity measurements,
+production epoch, public listener or activation belong to this phase.
 
-## Implemented source
+## Installed control model
 
-The evaluator's `workload.py` provides an exclusive host file lock, private
-fsync/replace journal, boot/daemon/workload bindings, durable launch intent,
-inspected-birth adapter contract, cleanup-only reconciliation, persistent pause
-and explicit resume. Participant and administrative adapters must share the
-same host root, regardless of database identity. WorkloadSession monitors at
-250 ms and requests termination on a protection violation. Completion checks
-protection before and after cleanup. ResourcePolicy specifies the conservative
-1 GiB reserve, one CPU, 448 PIDs, zero swap, 256 MiB availability abort floor,
-95% operation-memory threshold, 5 GiB disk floor, 128 MiB logs and 1 GiB generation
-output. These numbers are policy, not measured demand or a fit guarantee.
+`mldsafail.evaluator.workload_service serve` owns the physical-host file lock for
+its lifetime. Its private Unix socket checks Linux peer UID, bounds reads to
+800 ms, limits concurrent clients and accepts configured roles rather than caller
+commands. The persistent dispatcher and supervisor stay outside
+`mldsafail-heavy.slice`. Source acquisition, controllers, launch helpers and
+workers run inside inspected descendants. The production coordinator has no
+Docker socket mount or socket permission startup step.
 
-Expired queue leases now remain claimed/running unless an explicit reconciler
-supplies verified termination. Existing attempt limits still apply after that
-verification. No database schema migration is needed. Legacy expired jobs remain
-blocked; do not reset their statuses or infer worker death from database expiry.
-The proof callback is an internal adapter contract, not an operator checkbox.
+The journal binds boot ID, daemon process/socket identity, supervisor generation,
+workload and process/cgroup/container births. Mutation requests require the current
+ownership token and durable generation/sequence ID. Completed replay outcomes are
+bounded to 64, recent compact workloads to 16; expired generations/sequences never
+execute. Unresolved intents are retained. At the unresolved limit, scheduling
+blocks until verified cleanup and explicit compaction. Permanent compact records
+under `root/records` retain ownership and outcome evidence without an expanding
+request ledger. Malformed, replaced or nonprivate journals block execution.
 
-The v4 operational-evidence validator binds the policy hash, runtime identities,
-structured control evidence files, freshness and a separately scoped owner authorization to
-exact serialized packet bytes. Older v2/v3 capacity requirements are unchanged.
-The production epoch entrypoint still rejects v4: enabling it before the missing
-runtime is implemented would create an unsafe policy bypass.
+Monitoring runs independently every 250 ms; adapter subprocess reads have an
+800 ms deadline and sample age over one second aborts. Launch/control I/O does
+not hold the journal mutex. Container create and start have separate durable
+intents and inspected acknowledgements. Frozen evaluator commands, worker images,
+limits and benchmark execution bytes are preserved by the configured Docker router.
+Fast completed containers require kernel containment evidence as well as immutable
+configuration and birth identities.
 
-## Unfinished implementation and acceptance gates
+## Resource and output enforcement
 
-The private Linux Unix socket transport and bounded helper transport now exist
-as library components (`workload_socket.py` and `runtime_io.py`). The socket
-checks SO_PEERCRED UID, enforces owner-only directory/socket permissions, rejects
-arbitrary launch specifications, bounds client reads and retains durable request
-outcomes and unresolved intents. Mutation IDs use durable `generation:sequence` counters. The replay window
-retains the latest 64 completed outcomes; evicted sequences and expired workload
-generations are rejected without execution. Sixteen compact completed-workload
-records are retained, and unresolved intents are never evicted. The unresolved
-ledger still blocks safely if it reaches its 1,024-entry bound. A lost acquire acknowledgement conservatively blocks ownership if it
-falls between the acquisition and response journal writes. Recovery never repeats
-an ambiguous mutation.
+Admission and launch verify cgroup v2 delegation, cpu/memory/pids controllers,
+ancestor births/allowances, at least 1 GiB available host RAM and 5 GiB backing
+filesystem free space. Aggregate memory is bounded by physical RAM minus the
+1 GiB reserve and effective ancestor allowance. The heavy subtree is limited to
+one CPU, 448 PIDs and zero swap. Frozen per-worker limits remain in force.
+Controller processes, subprocesses, tmpfs and charged page cache share that bound.
 
-Journal reads validate schema, policy hash, lifecycle shape, identity fields,
-request ledger and private regular-file ownership; duplicate JSON keys, oversized
-files, symlinks and inode replacement are rejected. Completed ownership cannot
-be reopened through bind or launch. Helper I/O uses nonblocking pipes and an
-800 ms deadline without reader threads; unresolved helpers retain process handles
-and block subsequent helper calls. A late sample aborts at one second. This does
-not make unbounded legacy callbacks safe: the bounded transport is not yet wired
-to a reviewed native adapter.
+Combined logs have a 128 MiB kernel write limit: two 64 MiB participant streams,
+or at most eight 16 MiB administrative streams. The installed persistent ext4/xfs
+output mount must enforce a maximum of 1 GiB with noexec/nosuid/nodev. This shared
+conservative bound also includes retained generation files; it makes no promise
+that a workload fits. Missing filesystem enforcement is a deployment blocker.
+Periodic size scans do not substitute for write enforcement.
 
-Runnable daemon/client/cleanup commands and a bounded helper adapter now exist.
-The native runtime helper, systemd independent cleanup integration, Docker router
-generalization, coordinator integration and administrative integration are not
-implemented. The new gate therefore does not yet enforce production exclusivity.
-No current launch path may claim protection from this library. The existing web
-service receives no additional endpoint or Docker access.
+Monitoring checks host/ancestor/operation memory and local events, swap, disk,
+output bounds, identities, controller liveness and preflight baselines through
+postflight. Ordinary frozen worker OOM retains frozen evaluator semantics; parent
+OOM, aggregate exhaustion and monitoring loss yield infrastructure failure with
+no score and no automatic retry. Protection failure durably pauses scheduling,
+revokes launch authority, stops creators and verifies absent containers and empty
+owned cgroups for up to 30 seconds. Unverified cleanup retains blocked ownership.
 
-The runtime must launch every controller, acquisition process, Docker client and
-worker in one inspected heavy subtree, with tmpfs and charged page cache included;
-keep the supervisor outside it and charge control overhead to the reserve.
-Derive memory.max from physical RAM minus reserve and every available ancestor
-allowance, bind cgroup birth identities, retain frozen per-worker limits and
-service limits, and prevent launch before preflight. All adapter I/O must have
-independent deadlines and survive lost acknowledgements. The current library
-assumes bounded adapter callbacks; it does not itself kill a stuck callback.
-Supervisor death must independently terminate the subtree, preserving the journal.
-Never certify an ordinary process thread as that independent death barrier.
+## Database and administrative transactions
 
-Coordinator acquisition must precede claim and source acquisition. Low resources
-must defer without an attempt. Protection aborts require no result/score and no
-automatic retry; database disconnection cannot release host ownership. Result
-commit must follow monitored cleanup and postflight. Maintenance retains the
-existing zero-pending transaction fence and cannot bypass accepted queued work.
-New adapter source changes the hosted evaluator fingerprint and requires matching
-release/configuration evidence; historical acceptance is insufficient.
+The dispatcher acquires host ownership before claiming a database job. Resource
+deferral leaves queued jobs without consuming an attempt. It binds existing job,
+attempt, source, epoch and evaluator identities, while retaining database secrets,
+heartbeat and cancellation outside the controller. Controller results are private
+and authenticated. Database outage, lease loss and controller disconnection trigger
+termination; none proves workers stopped.
 
-Native VPS Linux acceptance, real cgroup hierarchy/parent OOM and
-container cleanup tests remain unavailable in this local macOS verification.
-A cached PostgreSQL 17.5 container in the local Linux VM passed all 36 disposable
-loopback admission and maintenance-fence tests, including atomic queue limits,
-competing claims, cleanup-authorized recovery and cancellation fencing. The
-container and its tmpfs data were removed after verification. These tests exposed
-and corrected legacy 0.4.0 admission fixtures; all inputs remain synthetic. Skipped tests are not certification. Complete
-full/rate-limited admission, process/supervisor death, daemon replacement, lost
-acknowledgement, database outage, output exhaustion, failed termination, monitor
-loss and restart interference scenarios before enabling v4 execution.
+Successful postflight retains ownership while the dispatcher records commit intent
+and commits the database transaction. Only acknowledged or transactionally reconciled
+commit permits release. Ambiguous acknowledgement preserves a matching committed
+result; uncommitted orphan output becomes infrastructure failure after cleanup.
+Computation and result insertion are never repeated. Ordinary infrastructure retries
+require verified cleanup. Protection aborts stay paused. Legacy expired jobs remain
+blocked unless resources can be independently reconciled; no schema migration or
+attempt reset is provided.
 
-## Offline packet and commands
+The actual epoch entrypoint routes v4 through `deploy.protected_epoch`: host gate
+first, existing zero-pending maintenance fence second. Queued participant jobs block
+maintenance. Configured create/reference/audit roles use the same protected runtime.
+An unused failed fence releases only after verified cleanup. Administrative commit
+receipts and reconciliation preserve completed outcomes without rerunning roles.
+Legacy unprotected computational streaming is retired; v2/v3 capacity-receipt
+validation requirements remain unchanged.
 
-From the repository root, prepare a new review packet without contacting a host:
+V4 requires `unmeasured_capacity`, owner authorization of exact packet bytes and
+independent review. Control-specific evidence validates scenarios, observations,
+ordering and identity bindings; arbitrary hashed JSON or checkboxes do not pass.
+Native acceptance remains valid only for matching installed runtime/configuration.
+Preparation freshness is 24 hours and live execution freshness five minutes.
+Changed evaluator/configuration evidence cannot inherit historical runtime acceptance.
+Finalization produces immutable candidate configuration, pending matching acceptance
+and authorized installation; it does not silently activate it.
+
+## Configuration and review packet
+
+Three distinct private JSON files are bound together: supervisor (`root`, `socket`,
+`helper`, configured `roles`), native runtime (inspected cgroups/ancestors, daemon,
+Python, images, bounded output mount, retained services and controller config), and
+controller (`native_configuration`, frozen identity/epoch/image and signing key).
+Exact validators live in `workload_service.py` and `native_workload.py`; the packet
+binds their bytes rather than filling guessed host values. Administrative role
+authority also binds operation, packet and canonical native configuration. Grants
+prevent reusing a role or reopening an ambiguous operation.
+
+Prepare an exclusive offline packet and canonical release artifact:
 
 ```sh
-source .venv/bin/activate
-python -m scripts.prepare_workload_packet --output /tmp/mldsafail-workload-review-new.json
-pytest tests/test_workload.py tests/test_workload_policy.py tests/test_evaluator.py tests/test_production_maintenance.py
-make check
-git diff --check
+uv run python -m scripts.prepare_workload_packet \
+  --output /tmp/workload-review-new.json \
+  --release-output /tmp/workload-release-new.json
 ```
 
-The retained [review packet](acceptance/production-preparation/workload-review.json)
-binds implemented source and this runbook, discloses `unmeasured_capacity`, and
-lists unresolved gates. It is intentionally a review schema rather than an
-executable operation packet. No receipt asserts controls that have not passed.
+With a complete reviewed host snapshot, add `--inspection /private/inspection.json`
+and `--unit-output /private/generated`. The snapshot must identify scheduling
+owners and retained services, boot/daemon, delegated ancestor births/limits, private
+socket, bounded persistent output volume, installed source/configuration, acceptance
+inputs and a verified schema-compatible rollback. `deploy.workload_deployment.REQUIRED`
+and its validators define the exact record. Incomplete identities emit blockers and
+no commands. Never copy fixture identities into a host packet.
 
-## Deployment, delegation and recovery contract
+The [immutable local review](acceptance/production-preparation/workload-integrated-review.json)
+and [source release](acceptance/production-preparation/workload-integrated-release.json)
+record local source bytes and explicit missing host prerequisites. They do not
+certify an installed evaluator fingerprint or configuration.
 
-Do not transfer or install this revision as a protected runtime. Exact executable
-deployment/restoration commands cannot be approved until the daemon entrypoint,
-unit names, delegated cgroup paths, socket ownership, target release/configuration
-and retained rollback image IDs exist and have been inspected. Fabricated commands
-would not constitute a concrete safe deployment procedure.
+## Installation, cleanup and recovery
 
-The final packet must bind those exact commands and bytes, owner-reviewed root
-scheduling inventory, recursive trigger/reference closure, cgroup delegation,
-zero-pending maintenance, original service restart settings and inspected birth
-identities. Preserve 24-hour preparation and five-minute execution freshness,
-source/image checks, one-attempt epoch authority and the existing restoration
-safeguards. Require separate owner maintenance/transfer and epoch authorizations;
-this packet requests neither.
+For a complete inspected snapshot, the generator renders exact installation,
+maintenance, cleanup, rollback and restoration commands plus systemd units.
+The supervisor uses notification/watchdog supervision and an independent
+`ExecStopPost` cleanup process outside the heavy subtree. Restart always enters
+reconciliation with scheduling paused; work never resumes automatically.
 
-On interrupted ownership: block scheduling, stop and verify only resources with
-matching workload and birth identity, retain the journal and evidence, then run
-cleanup-only reconciliation. A changed daemon or boot requires independent old
-resource reconciliation; never kill replacements by name. Resume must be an
-explicit operator action after fresh checks, never a consequence of reconciliation.
-Do not resume computational phases.
+Before any host action, obtain separate owner authorization for the exact packet
+and independently reviewed bytes. Verify retained services and scheduling closure,
+stop the identified computational scheduling owners and preserve original settings.
+Install only the bound files and start the supervisor paused. Cleanup-only execution
+requires the same installed configuration and inspected births; it refuses a live
+or replaced supervisor and removes only its matching stale socket. Never delete the
+journal or clear a database lease to bypass ownership.
 
-Rollback must first verify owned resources are gone, retain the journal and pause,
-and restore the inspected compatible installation without starting scheduling.
-The old stale-lease recovery code is unsafe for unresolved resources: independently
-fence its coordinator before rollback. Restore original settings only after
-postflight and verified termination. No shared hardlink mutation or scientific
-evidence deletion is part of this change.
+After failure, reconcile the inspected resources. Resolve any database/operator
+commit ambiguity before explicit resume; a cleaned DB-bound workload cannot be
+resumed around the commit barrier. Fresh resource checks are mandatory. If birth
+identity, daemon identity or termination cannot be established, leave ownership
+blocked and scheduling paused for investigation. Rollback must use the inspected
+compatible release/configuration, preserve the current installation and one verified
+rollback, and keep computation stopped until separate restoration authority.
 
-## Current local checkpoint, 2026-10-21
+## Local verification and native gate
 
-Commit `6a8cf0e` adds journal validation, bounded helper I/O and the private socket
-protocol. Focused verification: 47 passed, one Linux-only socket test skipped on
-macOS. `make check`: 1,400 passed, 45 skipped, 12 warnings; frozen contract: 8
-passed. These tests cover durable duplicate requests, changed request rejection,
-lost launch acknowledgements, request replay across workloads, malformed journals,
-helper deadlines and output caps. They do not certify the missing integrated
-runtime or native VPS behavior. The structured evidence validator rejects hashed
-arbitrary JSON; per-control semantic proof and the native records remain gates.
-The previous retained review packet remains historical and unchanged.
+Local tests cover journal corruption/replay, peer rejection/slow clients, independent
+monitoring, stuck I/O, create/start/completion ambiguity, process contention,
+cleanup failures, parent OOM/swap/disk/output loss, database outage/commit ambiguity,
+cancellation, maintenance fencing and v4 evidence/freshness. Fake cgroups and signed
+synthetic results establish failure logic, not native VPS enforcement.
 
-No host was contacted, no solver executed and no epoch or capacity workload was
-created. Exact installation/restoration commands remain blocked by uninspected
-host delegation, scheduling and rollback identities as well as missing runnable
-components. The native acceptance authorization is absent. This checkpoint does
-not satisfy the requested integrated implementation or executable deployment
-packet; those remain explicit engineering work, not merely an authorization gate.
+Disposable local Linux fixtures exercise actual peer credentials, slow clients,
+process death with surviving workers, independent cleanup and kernel file/volume
+write bounds. Disposable loopback PostgreSQL exercises admission, dispatcher and
+maintenance transactions across real connections. Fixtures are removed after tests.
+The [local verification record](acceptance/production-preparation/workload-integrated-local-verification.md) is committed alongside this runbook; skipped native
+tests are not passing acceptance evidence.
 
-## Previous local verification record
+`deploy.workload_native_acceptance` prepares three bounded control cases: inert
+lifecycle, fixture parent OOM and supervisor death. It requires exact owner authority,
+independent review and installed host/configuration identities, verifies retained
+services before/after and leaves computational scheduling paused. Pressure is
+limited to disposable 64 MiB/32-PID fixture cgroups. Its receipt covers those cases
+only; it cannot manufacture a complete operational-controls receipt. No native
+packet has been executed. Missing authorization, current host inspection, delegated
+controllers, enforced output volume, compatible rollback and matching installed
+release/configuration acceptance remain explicit external gates.
 
-Final `make check`: 1,377 passed, 44 skipped, 12 warnings; the separate frozen
-contract invocation passed 8 tests. The focused gate tests include a separate
-process killed with SIGKILL: the kernel lock is released, but the retained journal
-still blocks a replacement workload. Disposable PostgreSQL: 36 passed. Changed
-runbook links resolve and `git diff --check` passes. None of these checks ran a
-benchmark, created an epoch or contacted the VPS.
+## Earlier local checkpoints
 
+The ownership/result-transaction and runnable-control-entrypoint checkpoints were
+partial predecessors of this integration. Historical packets and acceptance receipts
+remain unchanged; they cannot certify the new native adapter.
 
-## Ownership and result-transaction checkpoint, 2026-10-21
+### Ownership and result-transaction checkpoint, 2026-10-21
 
-The private protocol now requires a matching workload ownership token on every
-mutation after acquisition, validates argument shape and lifecycle before durable
-intent, and exposes separate `postflight`, `commit_intent`,
-`acknowledge_commit` and `release` operations. Postflight verifies cleanup while
-retaining host ownership. The dispatcher must journal a nonempty exact result
-binding before its database transaction, reconcile an ambiguous database outcome
-under the database transaction lock, and acknowledge that same binding before
-release. Cleanup and resume cannot erase a pending commit. The socket no longer
-exposes the combined `complete` compatibility helper. These are adapter contracts;
-no current database dispatcher implements that transaction protocol yet.
+See the integrated transaction and recovery contracts above.
 
-Monitoring and launch adapter I/O no longer share the launch journal mutex.
-Launch repeats resource preflight, rejects reduced ancestor allowance, and binds
-its response to a workload and launch nonce. A protection check can detect a
-failure and request cleanup while launch I/O is blocked. A late birth cannot
-restore running state; outstanding launch responses block resume, acquisition
-and release. Other legacy control methods still hold the journal mutex across
-adapter I/O; runnable native monitoring and bounded control integration remain
-engineering work. No unbounded adapter is made safe by these changes.
+### Runnable control entrypoints checkpoint, 2026-10-21
 
-The protocol's mutation IDs must be canonical positive decimal
-`generation:sequence` pairs. Acquisition uses the next workload generation;
-subsequent new mutations use the current generation and a sequence above the
-durable high-water mark. A client must persist and retry the exact request after
-a transport failure. Once its outcome leaves the replay window, reconciliation
-is required; replay cannot execute it again. Status is private and read-only.
-Completed prior-generation requests are deliberately expired when a new workload
-is acquired, rather than replayed against its new owner.
-
-Local synthetic tests cover retained postflight ownership, matching commit
-acknowledgements across restart, invalid requests leaving journal bytes unchanged,
-bounded request/workload retention, expired replay, shrinking launch headroom,
-and a blocked launcher with concurrent protection failure and rejected late birth.
-These checks do not implement native acceptance. Production coordinator/admin
-routing, the native runtime helper, filesystem output enforcement, independent
-systemd cleanup, database commit
-reconciliation and control-specific v4 evidence remain missing implementation.
-The requested complete deployment packet cannot yet be generated. Exact VPS
-scheduling/delegation/rollback identities and separate native authorization remain
-additional prerequisites. No host operation, solver run or epoch was performed.
-
-Verification for this checkpoint: focused workload/protocol tests passed 38 with
-one Linux-only socket test skipped; `make check` passed 1,406 with 45 skipped and
-12 warnings, followed by all eight frozen contract checks. Skips remain explicit
-native/database acceptance limitations. Changed local documentation links and
-`git diff --check` were checked separately.
-
-
-## Runnable control entrypoints checkpoint, 2026-10-21
-
-`python -m mldsafail.evaluator.workload_service` provides `serve`, `client`, and
-`cleanup` actions, each requiring `--configuration`. Client additionally requires
-`--request`, naming persisted exact JSON request bytes. It never allocates a new
-request ID on retry. This private Linux socket uses owner-only permissions and
-peer UID authentication; no public endpoint is added. The supervisor retains the
-physical-host lock for its lifetime. Cleanup obtains that same lock, verifies
-runtime identity, preserves transaction state and leaves scheduling paused.
-Restart pauses retained ownership; it does not restart a computational phase.
-Explicit resume after a completed workload requires verified absence and fresh
-preflight, while unresolved result transactions remain blocked.
-
-The configuration is a private regular file owned by the service UID, without
-symlink components, with exactly `root`, `socket`, `helper`, and `roles` keys.
-The socket must be directly inside the absolute gate root. `helper` is an
-absolute installed executable and fixed argument list. `roles` maps configured
-names to reviewed frozen launch specifications. Neither the socket caller nor a
-contestant supplies helper commands. There is deliberately no default helper:
-a reviewed native helper must be installed before this service can run work.
-Monitor and control channels use separate bounded subprocess transports. Readiness
-and watchdog messages use systemd's private notification socket when provided.
-
-The native helper must implement the seven operations in `runtime_io.py`, enforce
-all native controls described above, and retain/inspect create and start identity
-before returning. It does not exist yet. The command is therefore an engineering
-entrypoint, not an installed protection system. Independent abnormal-exit cleanup
-still needs a reviewed systemd unit and inspected service/delegation identities.
-No production launch has been rerouted and v4 execution remains disabled.
-
-The [entrypoint review packet](acceptance/production-preparation/workload-entrypoints-review.json)
-is an offline immutable source-hash inventory with explicit blockers. It contains
-no installation or restoration commands and grants no native execution authority.
-Historical review packets and acceptance receipts remain unchanged.
-
-Entrypoint checkpoint verification: 49 focused tests passed with one Linux socket
-skip. Final `make check` passed 1,417 tests with 45 skips and 12 warnings, plus all
-eight frozen contract checks. New coverage includes private configuration,
-independent helper channels with a timed-out launch, cleanup-only preservation of
-pending commit identity, explicit resume of verified completed ownership, and
-ambiguous duplicate/nonfinite wire JSON rejection. This evidence does not certify
-Linux service supervision, real Docker/cgroup controls or PostgreSQL integration.
+See the integrated installation and private configuration contracts above.

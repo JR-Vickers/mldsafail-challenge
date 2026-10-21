@@ -258,7 +258,7 @@ def test_production_compose_synthetic_configuration(tmp_path):
                 'CADDY_IMAGE','POSTGRES_IMAGE']
     env.update({key: 'synthetic' for key in required})
     env.update(PRODUCTION_EVALUATOR_ROOT='/srv/mldsafail-production-evaluator',
-               ROOTLESS_DOCKER_SOCKET='/run/user/1000/docker.sock',
+               ROOTLESS_DOCKER_SOCKET='/run/user/1000/docker.sock', WORKLOAD_SUPERVISOR_ROOT='/srv/mldsafail-workload',
                MLDSAFAIL_BENCHMARK_VERSION='0.5.0',
                PRODUCTION_TLS_ROOT='/srv/synthetic-tls',
                PRODUCTION_ACME_WEBROOT='/srv/synthetic-acme')

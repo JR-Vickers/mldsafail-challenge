@@ -179,23 +179,14 @@ def test_nonblocking_lock(packet):
             with op.locked(p):pytest.fail('second lock admitted')
 
 
-def test_stream_preserves_partial_logs_on_timeout(packet,monkeypatch):
-    _,p,_,_=packet;Path(p['operation']).mkdir(mode=0o700)
-    class Process:
-        returncode=None
-        def __init__(self,args,stdout,stderr,env):stdout.write(b'partial output');stderr.write(b'partial error')
-        def wait(self,timeout):
-            if self.returncode is None:raise subprocess.TimeoutExpired('fixture',timeout)
-            return self.returncode
-        def poll(self):return self.returncode
-        def terminate(self):self.returncode=-15
-    monkeypatch.setattr(op.subprocess,'Popen',Process)
-    stopped=[];monkeypatch.setattr(op,'terminate_owned',lambda p:stopped.append(p['operation_id']))
-    with pytest.raises(subprocess.TimeoutExpired):op.stream(p)
-    assert stopped==[p['operation_id']]
-    assert (Path(p['operation'])/'create.stdout').read_bytes()==b'partial output'
-    assert (Path(p['operation'])/'create.stderr').read_bytes()==b'partial error'
-    assert json.loads((Path(p['operation'])/'create.exit.json').read_text())['terminal']
+@pytest.mark.parametrize('audit', [False, True])
+def test_legacy_stream_cannot_bypass_protected_runtime(packet, monkeypatch, audit):
+    _,p,_,_=packet
+    Path(p['operation']).mkdir(mode=0o700)
+    monkeypatch.setattr(op.subprocess, 'Popen', lambda *args, **kwargs: pytest.fail('unprotected Docker launch'))
+    with pytest.raises(ValueError, match='protected_workload_transport_required'):
+        op.stream(p, audit=audit)
+    assert list(Path(p['operation']).iterdir()) == []
 
 
 def test_audit_mount_is_readonly_and_has_no_socket(packet):
@@ -382,14 +373,6 @@ def test_scheduler_change_invalidates_bound_inventory(monkeypatch):
     monkeypatch.setattr(op.subprocess,'run',lambda c,**kw:subprocess.CompletedProcess(c,0,stdout='new-scheduler.service enabled',stderr=''))
     with pytest.raises((ValueError, KeyError)):op.scheduling_gate({'scheduler_inventory':expected})
 
-
-def test_spawn_failure_retains_terminal_receipt(packet,monkeypatch):
-    _,p,_,_=packet
-    Path(p['operation']).mkdir(mode=0o700)
-    monkeypatch.setattr(op.subprocess,'Popen',lambda *a,**kw:(_ for _ in ()).throw(OSError('spawn')))
-    monkeypatch.setattr(op,'terminate_owned',lambda p:None)
-    with pytest.raises(OSError):op.stream(p)
-    assert json.loads((Path(p['operation'])/'create.exit.json').read_text())=={'returncode':None,'terminal':True}
 
 
 def test_cleanup_failure_is_durable(packet,monkeypatch):

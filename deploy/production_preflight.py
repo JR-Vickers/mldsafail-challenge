@@ -12,7 +12,7 @@ IMAGES = ('WEB_IMAGE', 'COORDINATOR_IMAGE', 'WORKER_IMAGE', 'CADDY_IMAGE', 'POST
 SECRETS = ('POSTGRES_PASSWORD', 'MLDSAFAIL_SECRET_KEY', 'GITHUB_CLIENT_SECRET')
 IDENTITIES = ('MLDSAFAIL_MLWE_EPOCH_ID', 'MLDSAFAIL_HIDDEN_SUITE_VERSION')
 REQUIRED = IMAGES + SECRETS + IDENTITIES + (
-    'GITHUB_CLIENT_ID', 'MLDSAFAIL_DOMAIN', 'ROOTLESS_DOCKER_SOCKET',
+    'GITHUB_CLIENT_ID', 'MLDSAFAIL_DOMAIN', 'ROOTLESS_DOCKER_SOCKET', 'WORKLOAD_SUPERVISOR_ROOT',
     'PRODUCTION_TLS_ROOT', 'PRODUCTION_ACME_WEBROOT',
     'PRODUCTION_EVALUATOR_ROOT', 'MLDSAFAIL_EVALUATOR_FINGERPRINT', 'MLDSAFAIL_WORKER_CLASS',
 )
@@ -65,6 +65,9 @@ def check(environment, staging, *, preparation=False):
     socket = environment.get('ROOTLESS_DOCKER_SOCKET', '')
     if not re.fullmatch(r'/run/user/[1-9][0-9]*/docker.sock', socket):
         errors.append('rootless_socket_required')
+    supervisor_root = Path(environment.get('WORKLOAD_SUPERVISOR_ROOT', ''))
+    if not supervisor_root.is_absolute() or '..' in supervisor_root.parts or len(str(supervisor_root/'supervisor.sock')) >= 108:
+        errors.append('private_workload_supervisor_root_required')
     for key in ('MLDSAFAIL_OUTSTANDING_PER_ACCOUNT', 'MLDSAFAIL_SUBMISSIONS_PER_DAY', 'MLDSAFAIL_QUEUED_GLOBALLY'):
         value = environment.get(key, {'MLDSAFAIL_OUTSTANDING_PER_ACCOUNT': '1', 'MLDSAFAIL_SUBMISSIONS_PER_DAY': '2', 'MLDSAFAIL_QUEUED_GLOBALLY': '10'}[key])
         if not re.fullmatch(r'[1-9][0-9]*', value):

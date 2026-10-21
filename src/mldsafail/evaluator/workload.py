@@ -11,6 +11,7 @@ from dataclasses import asdict, dataclass
 import fcntl
 import hashlib
 import json
+import math
 import os
 import re
 from pathlib import Path
@@ -134,6 +135,9 @@ class HostGate:
             raise WorkloadBlocked('invalid_workload_journal')
         if 'supervisor_generation' in state and not re.fullmatch('[a-f0-9]{32}', str(state['supervisor_generation'])):
             raise WorkloadBlocked('invalid_supervisor_generation')
+        for key in ('heartbeat_deadline', 'heartbeat_monotonic_deadline'):
+            if key in state and (type(state[key]) not in (int,float) or not math.isfinite(state[key]) or state[key] < 0):
+                raise WorkloadBlocked('invalid_heartbeat_journal')
         requests = state.get('requests', {})
         generation = state.get('request_generation', 0)
         sequence = state.get('request_sequence', 0)
@@ -173,10 +177,12 @@ class HostGate:
     @serialized
     def _write(self):
         self._validate(self.state)
+        data = json.dumps(self.state, sort_keys=True, allow_nan=False)
+        if len(data.encode()) > 1024**2: raise WorkloadBlocked('oversized_workload_journal')
         temporary = self.root / (uuid.uuid4().hex + '.tmp')
         fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(fd, 'w') as stream:
-            json.dump(self.state, stream, sort_keys=True)
+            stream.write(data)
             stream.flush()
             os.fsync(stream.fileno())
         os.replace(temporary, self.path)
@@ -219,7 +225,7 @@ class HostGate:
                     opened = os.fstat(stream.fileno())
                     if (opened.st_dev, opened.st_ino) != (info.st_dev, info.st_ino):
                         raise WorkloadBlocked('workload_journal_replaced')
-                    try: self.state = json.loads(stream.read(1024 * 1024 + 1), object_pairs_hook=unique)
+                    try: self.state = json.loads(stream.read(1024 * 1024 + 1), object_pairs_hook=unique, parse_constant=lambda value: (_ for _ in ()).throw(ValueError('nonfinite_journal_value')))
                     except (ValueError, UnicodeError) as error:
                         raise WorkloadBlocked('invalid_workload_journal') from error
                 self._validate(self.state)
@@ -266,6 +272,7 @@ class HostGate:
                           phase='acquired', paused=False, resources=[])
         if getattr(self.runtime, 'requires_heartbeat', False):
             self.state['heartbeat_deadline'] = time.time() + 5
+            self.state['heartbeat_monotonic_deadline'] = time.monotonic() + 5
         self._write()
         if hasattr(self.runtime, 'prepare'):
             try:
@@ -286,7 +293,12 @@ class HostGate:
 
     @serialized
     def pause(self, reason):
-        self.state.update(paused=True, reason=reason)
+        if self.state['paused']:
+            actions=self.state.setdefault('pause_actions',[])
+            actions.append(dict(reason=reason,time=time.time()))
+            self.state['pause_actions']=actions[-16:]
+        else:
+            self.state.update(paused=True,reason=reason)
         self._write()
 
     def check(self):
@@ -297,12 +309,13 @@ class HostGate:
             if self.fd is None or not self.state:
                 raise WorkloadBlocked('host_ownership_required')
             snapshot = copy.deepcopy(self.state)
-            if snapshot.get('heartbeat_deadline', time.time()+1) < time.time() and snapshot['phase'] in ('acquired', 'launch_intent', 'running'):
+            if snapshot.get('heartbeat_monotonic_deadline', time.monotonic()+1) < time.monotonic() and snapshot['phase'] in ('acquired', 'launch_intent', 'running'):
                 self.pause('dispatcher_heartbeat_lost')
                 raise ProtectionAbort('dispatcher_heartbeat_lost')
             if snapshot['paused']:
                 raise ProtectionAbort(snapshot['reason'])
         started = time.monotonic()
+        sample = None
         try:
             if self.runtime.identity() != snapshot['identity']:
                 reason = 'runtime_identity_changed'
@@ -316,6 +329,7 @@ class HostGate:
             if self.state['workload_id'] != snapshot['workload_id']:
                 raise WorkloadBlocked('stale_monitor_response')
             if reason:
+                if sample is not None: self.state['protection_sample']=sample
                 self.pause(reason)
                 raise ProtectionAbort(reason)
             if self.state['paused']:
@@ -375,6 +389,7 @@ class HostGate:
             if self.state['phase'] not in ('acquired', 'launch_intent', 'running'):
                 raise WorkloadBlocked('heartbeat_phase_invalid')
             self.state['heartbeat_deadline'] = time.time() + 5
+            self.state['heartbeat_monotonic_deadline'] = time.monotonic() + 5
             self._write()
 
     def result(self):
@@ -388,7 +403,13 @@ class HostGate:
         return result
 
     def reconcile(self):
-        self._owned()
+        try:
+            self._owned()
+        except BaseException:
+            if self.state and hasattr(self.runtime, 'emergency'):
+                self.pause('runtime_identity_or_monitoring_lost')
+                self.runtime.emergency(copy.deepcopy(self.state))
+            raise
         with self.mutex:
             if self.state['phase'] in ('postflight', 'commit_intent', 'committed', 'complete'):
                 raise WorkloadBlocked('result_reconciliation_required')
@@ -407,6 +428,8 @@ class HostGate:
                 time.sleep(.05)
         except BaseException:
             self.pause('termination_unverified')
+            if hasattr(self.runtime, 'emergency'):
+                self.runtime.emergency(snapshot)
             raise
         with self.mutex:
             if self.state['workload_id'] != snapshot['workload_id']:
@@ -428,15 +451,20 @@ class HostGate:
         self.check()
         if self.state['phase'] != 'cleaned': self.reconcile()
         self.check()
+        session = getattr(self, 'monitor_session', None)
+        if session is not None:
+            session.finish_monitor()
+            if session.failed.is_set(): raise ProtectionAbort(session.reason or 'monitor_failed')
         with self.mutex:
+            if self.state['paused']: raise ProtectionAbort(self.state['reason'])
             self.state['phase'] = 'postflight'
             self._write()
 
     def commit_intent(self, binding):
         self._owned()
         with self.mutex:
-            failure = (type(binding) is dict and binding.get('disposition') in ('infrastructure_failed', 'cancelled'))
-            if not (self.state['phase'] == 'postflight' and not self.state['paused'] or
+            failure = (type(binding) is dict and binding.get('disposition') in ('infrastructure_failed', 'cancelled', 'unused_ownership'))
+            if not (self.state['phase'] == 'postflight' and (not self.state['paused'] or failure) or
                     self.state['phase'] == 'cleaned' and failure):
                 raise WorkloadBlocked('commit_phase_invalid')
             if type(binding) is not dict or not binding:
@@ -448,9 +476,9 @@ class HostGate:
         self._owned()
         with self.mutex:
             if (self.state['phase'] != 'commit_intent' or self.state.get('database_commit') != binding or
-                    type(resolution) is not dict or resolution.get('disposition') != 'infrastructure_failed' or
+                    type(resolution) is not dict or resolution.get('disposition') not in ('infrastructure_failed', 'cancelled') or
                     any(resolution.get(key) != binding.get(key) for key in
-                        ('workload_id', 'job_id', 'attempt_id', 'attempt_number', 'submission_id', 'owner'))):
+                        ('workload_id', 'job_id', 'attempt_id', 'attempt_number', 'submission_id', 'owner', 'operation_id', 'packet_sha256'))):
                 raise WorkloadBlocked('commit_resolution_invalid')
             self.state['original_database_commit'] = binding
             self.state['database_commit'] = resolution
@@ -464,6 +492,71 @@ class HostGate:
             self.state['phase'] = 'committed'
             self._write()
 
+    def read_retained(self, path):
+        from mldsafail.evaluator.workload_socket import decode_request
+        descriptor=os.open(path,os.O_RDONLY|os.O_NOFOLLOW)
+        with os.fdopen(descriptor,'rb') as stream:
+            info=os.fstat(stream.fileno())
+            if not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_nlink!=1 or info.st_mode&0o077 or info.st_size>1024**2:
+                raise WorkloadBlocked('invalid_retained_record')
+            try:return decode_request(stream.read(1024**2+1))
+            except ValueError as error:raise WorkloadBlocked('invalid_retained_record') from error
+
+    @serialized
+    def retain_record(self):
+        directory=self.root/'records'
+        directory.mkdir(mode=0o700,exist_ok=True)
+        info=directory.lstat()
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid!=os.getuid() or info.st_mode&0o077:
+            raise WorkloadBlocked('private_completed_records_required')
+        path=directory/(self.state['workload_id']+'.json')
+        if path.exists() or path.is_symlink():
+            record=self.read_retained(path)
+            if any(record.get(key)!=self.state.get(key) for key in ('workload_id','policy_sha256','identity','reference','database_commit')):
+                raise WorkloadBlocked('retained_record_identity_changed')
+            return  # Closed run records never change on later restarts.
+        record={key:copy.deepcopy(value) for key,value in self.state.items() if key not in ('requests','completed_workloads')}
+        record.update(phase='complete',record_schema='mldsafail.completed-workload.v1',finalized_at=time.time())
+        temporary=directory/(uuid.uuid4().hex+'.tmp')
+        descriptor=os.open(temporary,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+        with os.fdopen(descriptor,'w') as stream:
+            json.dump(record,stream,sort_keys=True,allow_nan=False);stream.flush();os.fsync(stream.fileno())
+        os.replace(temporary,path)
+        descriptor=os.open(directory,os.O_RDONLY)
+        try:os.fsync(descriptor)
+        finally:os.close(descriptor)
+
+    def compact_requests(self, identifier, digest):
+        self._owned()
+        with self.mutex:
+            if self.state['phase'] not in ('cleaned','postflight','commit_intent','committed','complete'):
+                raise WorkloadBlocked('verified_cleanup_required')
+            snapshot=copy.deepcopy(self.state)
+        if self.runtime.stopped(snapshot) is not True: raise WorkloadBlocked('verified_cleanup_required')
+        with self.mutex:
+            directory=self.root/'records';directory.mkdir(mode=0o700,exist_ok=True)
+            info=directory.lstat()
+            if not stat.S_ISDIR(info.st_mode) or info.st_uid!=os.getuid() or info.st_mode&0o077:
+                raise WorkloadBlocked('private_completed_records_required')
+            path=directory/(self.state['workload_id']+'.requests-'+identifier.replace(':','-')+'.json')
+            if not path.exists():
+                temporary=directory/(uuid.uuid4().hex+'.tmp')
+                descriptor=os.open(temporary,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+                with os.fdopen(descriptor,'w') as stream:
+                    json.dump(dict(workload_id=self.state['workload_id'],request_id=identifier,sha256=digest,
+                                   phase='compaction_intent',requests=self.state['requests']),stream,sort_keys=True)
+                    stream.flush();os.fsync(stream.fileno())
+                os.replace(temporary,path)
+                descriptor=os.open(directory,os.O_RDONLY)
+                try:os.fsync(descriptor)
+                finally:os.close(descriptor)
+            archived=self.read_retained(path)
+            if archived.get('workload_id')!=self.state['workload_id'] or archived.get('sha256')!=digest or archived.get('request_id')!=identifier or archived.get('requests')!=self.state['requests']:
+                raise WorkloadBlocked('request_archive_changed')
+            self.state['request_sequence']=int(identifier.split(':')[1])
+            self.state['requests']={identifier:dict(sha256=digest,phase='complete',result=None)}
+            self._write()
+
     def release(self):
         self.check()
         with self.mutex:
@@ -473,6 +566,7 @@ class HostGate:
         if self.runtime.stopped(snapshot) is not True:
             raise WorkloadBlocked('committed_cleanup_required')
         with self.mutex:
+            self.retain_record()
             self.state['phase'] = 'complete'
             self._write()
 
@@ -480,6 +574,10 @@ class HostGate:
         self._owned()
         with self.mutex:
             if self.inflight_launches: raise WorkloadBlocked('creator_response_pending')
+            reference=self.state['reference']
+            if self.state['phase']=='cleaned' and (self.state['kind']=='evaluation' and ('owner' in reference or 'job_id' in reference) or
+                    self.state['kind']=='administration' and 'packet_sha256' in reference and 'fixture' not in reference):
+                raise WorkloadBlocked('database_result_reconciliation_required')
             if self.state['phase'] not in ('cleaned', 'committed', 'complete'):
                 raise WorkloadBlocked('result_reconciliation_required')
             snapshot = copy.deepcopy(self.state)
@@ -488,6 +586,7 @@ class HostGate:
         ceiling = self.runtime.preflight(self.policy)
         if type(ceiling) is not int or ceiling <= 0: raise WorkloadBlocked('resource_deferral')
         with self.mutex:
+            self.retain_record()
             self.state.update(phase='complete', paused=False)
             self._write()
 
@@ -508,9 +607,12 @@ class WorkloadSession:
 
     def start(self):
         self.gate.check()
+        self.workload_id = self.gate.state['workload_id']
         self.last_sample = time.monotonic()
         self.abort_lock = threading.Lock()
         def fail(reason):
+            if self.gate.state['workload_id'] != self.workload_id or self.gate.state['phase'] == 'complete':
+                self.stop.set(); return
             if not self.abort_lock.acquire(blocking=False): return
             self.reason = reason
             self.failed.set()
@@ -523,6 +625,8 @@ class WorkloadSession:
             while not self.stop.is_set() and not self.failed.is_set():
                 deadline += self.gate.policy.interval
                 if self.stop.wait(max(0, deadline-time.monotonic())): return
+                if self.gate.state['workload_id'] != self.workload_id or self.gate.state['phase'] == 'complete':
+                    self.stop.set(); return
                 try:
                     self.gate.check()
                     self.last_sample = time.monotonic()
@@ -541,6 +645,8 @@ class WorkloadSession:
         return self
 
     def checkpoint(self):
+        if self.gate.state['workload_id'] != self.workload_id:
+            raise WorkloadBlocked('session_generation_changed')
         if self.failed.is_set(): raise ProtectionAbort(self.reason or 'monitor_failed')
         self.gate.check()
 
@@ -550,7 +656,8 @@ class WorkloadSession:
         for thread in threads:
             thread.join(timeout=1)
             if thread.is_alive():
-                self.gate.pause('monitor_unresponsive')
+                if self.gate.state['workload_id'] == self.workload_id and self.gate.state['phase'] != 'complete':
+                    self.gate.pause('monitor_unresponsive')
                 raise ProtectionAbort('monitor_unresponsive')
 
     def complete(self):

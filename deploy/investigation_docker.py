@@ -91,7 +91,7 @@ class Router:
             json.dump(dict(name=name, operation_id=self.config['operation_id'], state='create_intent'), stream)
             stream.flush()
             os.fsync(stream.fileno())
-        record = json.loads(path.read_text())
+        record = self.prepare_parent(json.loads(path.read_text()))
         cid = self.command(['create', '--name', name, '--label', self.label + '=' + self.config['operation_id'],
                             '--cgroup-parent', self.config['parent'], *flags]).decode().strip()
         require(re.fullmatch('[a-f0-9]{64}', cid), 'investigation_launch_ambiguous')
@@ -99,6 +99,8 @@ class Router:
         require(created['Id'] == cid and created['Name'] == '/' + name)
         require(created['Config']['Labels'].get(self.label) == self.config['operation_id'])
         require(created['HostConfig']['CgroupParent'] == self.config['parent'])
+        require(created['Config']['Image'] == (flags[-2] if artifact else flags[-1]) and
+                created['Image'] in (self.config['image'], self.config['configuration']))
         record.update(state='created', container_id=cid, created_at=created.get('Created'))
         publish(path, record)
         record.update(container_id=cid, image=flags[-2] if artifact else flags[-1], state='start_intent')
@@ -112,6 +114,7 @@ class Router:
                 break
             require(client.poll() is None and time.monotonic() < deadline, 'investigation_start_ambiguous')
             time.sleep(.02)
+        record.update(self.admit_start(state))
         record.update(state='running', started_at=state['State']['StartedAt'], pid=state['State'].get('Pid'))
         publish(path, record)
         lock = getattr(self, 'lock_fd', None)
@@ -137,7 +140,12 @@ class Router:
             require(not state['State']['Running'])
             self.command(['rm', cid])
             publish(path, dict(record, state='removed'))
+            self.remove_parent(record)
         return result
+
+    def prepare_parent(self, record): return record
+    def admit_start(self, container): return {}
+    def remove_parent(self, record): return None
 
     def dispatch(self, args):
         require(args and all(isinstance(a, str) for a in args))
@@ -196,6 +204,7 @@ class Router:
             require(not self.inspected(state['Id'])['State']['Running'])
             self.command(['rm', state['Id']])
             publish(path, dict(record, state='removed'))
+            self.remove_parent(record)
             return 0
         raise ValueError('investigation_docker_request_rejected')
 

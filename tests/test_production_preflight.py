@@ -12,7 +12,7 @@ def environments(tmp_path):
     production = {key: 'fresh-' + key for key in REQUIRED}
     production.update({key: 'registry/image@sha256:' + 'a' * 64 for key in IMAGES})
     production.update(PRODUCTION_EVALUATOR_ROOT=str(tmp_path / 'production'),
-                      ROOTLESS_DOCKER_SOCKET='/run/user/1000/docker.sock',
+                      ROOTLESS_DOCKER_SOCKET='/run/user/1000/docker.sock', WORKLOAD_SUPERVISOR_ROOT='/srv/mldsafail-workload',
                       MLDSAFAIL_DOMAIN='challenge.example.org', MLDSAFAIL_BENCHMARK_VERSION='0.5.0',
                       PRODUCTION_TLS_ROOT=str(tmp_path/'tls'), PRODUCTION_ACME_WEBROOT=str(tmp_path/'acme'))
     return production, {'EVALUATOR_WORK_DIR': str(tmp_path / 'staging')}

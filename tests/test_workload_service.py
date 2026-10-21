@@ -14,7 +14,7 @@ def configuration(tmp_path):
     path = tmp_path / 'configuration.json'
     content = dict(root=str(tmp_path / 'gate'), socket=str(tmp_path / 'gate' / 'supervisor.sock'),
                    helper=[sys.executable, '-m', 'reviewed_missing_runtime_helper'],
-                   roles={'participant': {'frozen_role': 'participant'}})
+                   roles={'participant': {'role': 'participant'}})
     path.write_text(json.dumps(content))
     path.chmod(0o600)
     return path, content
@@ -111,3 +111,22 @@ def test_explicit_resume_after_restart_of_completed_workload(tmp_path):
         assert gate.state['paused']
         gate.resume()
         gate.acquire('administration', {})
+
+
+def test_runtime_cleanup_transport_excludes_replay_history(monkeypatch):
+    from mldsafail.evaluator import workload_service as module
+    calls = []
+    class Transport:
+        def __init__(self, command): pass
+        def call(self, method, argument):
+            calls.append((method, argument)); return True
+    monkeypatch.setattr(module, 'RuntimeTransport', Transport)
+    runtime = module.HelperRuntime(['/absolute/helper'])
+    state = dict(workload_id='a'*32, identity={'boot_id':'boot','daemon_id':'daemon'},
+                 phase='running', ceiling=1, requests={'oversized':'x'*1024**2},
+                 completed_workloads=['x'*1024**2], reference={'source':'private'}, paused=False)
+    assert runtime.terminate(state)
+    assert 'requests' not in calls[-1][1]['state']
+    assert 'reference' not in calls[-1][1]['state']
+    assert runtime.launch(state, {'role':'participant'})
+    assert calls[-1][1]['state']['reference'] == state['reference']

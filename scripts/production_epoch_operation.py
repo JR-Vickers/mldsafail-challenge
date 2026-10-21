@@ -306,38 +306,10 @@ def terminate_owned(packet):
 
 
 def stream(packet, audit=False):
-    operation = Path(packet['operation'])
-    name = 'audit' if audit else 'create'
-    env = {**os.environ, 'DOCKER_HOST': 'unix://' + packet['host']['socket']}
-    env.pop('DOCKER_CONTEXT', None)
-    with (operation / (name + '.stdout')).open('xb') as out, (operation / (name + '.stderr')).open('xb') as err:
-        process = None
-        try:
-            process = launch_operation(packet, lambda: subprocess.Popen(controller(packet, audit), stdout=out, stderr=err, env=env))
-            result = process.wait(timeout=packet['limits'][name + '_timeout'])
-            publish(operation / (name + '.exit.json'), {'returncode': result})
-            if result:
-                raise RuntimeError('controller_failed')
-            settle_operation(packet, lambda: terminate_owned({**packet, 'cleanup_controller':
-                'production-epoch-' + packet['operation_id'] + '-' + name}))
-        except BaseException:
-            try:
-                if process is not None and process.poll() is None:
-                    process.terminate()
-                    try:
-                        process.wait(timeout=10)
-                    except subprocess.TimeoutExpired:
-                        process.kill()
-                        process.wait(timeout=10)
-                # A stopped client alone cannot disprove an in-flight daemon request.
-                # Require the exact non-auto-removed controller in the cleanup inventory.
-                terminate_owned({**packet, 'cleanup_controller': 'production-epoch-' + packet['operation_id'] + '-' + name})
-            finally:
-                atomic_json(operation / (name + '.exit.json'), {'returncode': process.returncode if process is not None else None, 'terminal': True})
-            raise
-        finally:
-            out.flush(); err.flush()
-            os.fsync(out.fileno()); os.fsync(err.fileno())
+    # v2/v3 evidence validators remain available unchanged. Their old direct
+    # Docker transport cannot establish shared ownership and is not executable
+    # after the production runtime integration. v4 routes through protected_epoch.
+    raise ValueError('production_v4_protected_workload_transport_required')
 
 
 @operation_phase('create')
@@ -454,7 +426,7 @@ def finalize(packet_path, destination):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=('prepare', 'execute', 'audit', 'finalize'))
+    parser.add_argument('action', choices=('prepare', 'execute', 'audit', 'finalize', 'reconcile'))
     parser.add_argument('--packet', type=Path, required=True)
     parser.add_argument('--authorization', type=Path)
     parser.add_argument('--destination', type=Path)
@@ -463,14 +435,24 @@ def main():
         raise KeyboardInterrupt('operation_interrupted')
     signal.signal(signal.SIGTERM, interrupted)
     try:
+        if read_manifest(args.packet).get('schema') == 'mldsafail.production-operation.v4':
+            from deploy import protected_epoch
+            if args.action == 'prepare': print(json.dumps(protected_epoch.prepare(args.packet), sort_keys=True))
+            elif args.action == 'execute': protected_epoch.run(args.packet, args.authorization)
+            elif args.action == 'audit': print(json.dumps(protected_epoch.audit(args.packet), sort_keys=True))
+            elif args.action == 'finalize': protected_epoch.finalize(args.packet, args.destination)
+            else: protected_epoch.reconcile(args.packet)
+            return 0
         if args.action == 'prepare':
             print(json.dumps(prepare(args.packet), sort_keys=True))
         elif args.action == 'execute':
             execute(args.packet, args.authorization)
         elif args.action == 'audit':
             audit(args.packet)
-        else:
+        elif args.action == 'finalize':
             finalize(args.packet, args.destination)
+        else:
+            raise ValueError('legacy reconciliation requires its historical packet')
     except (Exception, KeyboardInterrupt):
         print('production_operation_refused_or_failed_evidence_retained')
         return 1

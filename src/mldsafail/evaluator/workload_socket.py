@@ -53,7 +53,10 @@ class SupervisorProtocol:
             if argument:
                 raise WorkloadBlocked('unexpected_supervisor_argument')
             with self.gate.mutex:
-                return copy.deepcopy(self.gate.state)
+                if self.gate.state is None:return None
+                state={key:copy.deepcopy(value) for key,value in self.gate.state.items() if key not in ('requests','completed_workloads','pause_actions')}
+                state['request_counts']={phase:sum(entry['phase']==phase for entry in self.gate.state.get('requests',{}).values()) for phase in ('intent','complete')}
+                return state
         # Monotone generation/sequence IDs make discarded outcomes permanently
         # non-executable. A caller learns the next generation from private status.
         match = re.fullmatch(r'([1-9][0-9]{0,18}):([1-9][0-9]{0,18})', identifier)
@@ -63,10 +66,10 @@ class SupervisorProtocol:
         fields = {
             'acquire': {'kind', 'reference'}, 'bind': {'ownership', 'reference'},
             'launch': {'ownership', 'role'}, 'heartbeat': {'ownership'}, 'result': {'ownership'}, 'environment': {'ownership'}, 'cancel': {'ownership'},
-            'abort': {'ownership'}, 'postflight': {'ownership'},
+            'abort': {'ownership'}, 'pause': {'ownership'}, 'postflight': {'ownership'},
             'commit_intent': {'ownership', 'binding'},
             'acknowledge_commit': {'ownership', 'binding'}, 'resolve_commit': {'ownership', 'binding', 'resolution'},
-            'release': {'ownership'}, 'reconcile': {'ownership'}, 'resume': {'ownership'},
+            'release': {'ownership'}, 'compact': {'ownership'}, 'reconcile': {'ownership'}, 'resume': {'ownership'},
         }
         # Validate the entire command before writing durable mutation intent.
         if method not in fields or set(argument) != fields[method]:
@@ -82,9 +85,14 @@ class SupervisorProtocol:
         if method in ('commit_intent', 'acknowledge_commit') and (
                 type(argument['binding']) is not dict or not argument['binding']):
             raise WorkloadBlocked('commit_binding_required')
-        if method == 'resolve_commit' and (type(argument['binding']) is not dict or type(argument['resolution']) is not dict or argument['resolution'].get('disposition') != 'infrastructure_failed'):
+        if method == 'resolve_commit' and (type(argument['binding']) is not dict or type(argument['resolution']) is not dict or argument['resolution'].get('disposition') not in ('infrastructure_failed', 'cancelled')):
             raise WorkloadBlocked('commit_resolution_invalid')
-        digest = hashlib.sha256(json.dumps(request, sort_keys=True).encode()).hexdigest()
+        encoded = json.dumps(request, sort_keys=True, allow_nan=False).encode()
+        if method in ('acquire', 'bind') and len(json.dumps(argument['reference'], allow_nan=False).encode()) > 16384:
+            raise WorkloadBlocked('workload_reference_limit')
+        if method in ('commit_intent','acknowledge_commit','resolve_commit') and len(json.dumps(argument,allow_nan=False).encode())>32768:
+            raise WorkloadBlocked('commit_binding_limit')
+        digest = hashlib.sha256(encoded).hexdigest()
         with self.mutex:
             state = self.gate.state
             requests = state.get('requests', {}) if state else {}
@@ -111,10 +119,12 @@ class SupervisorProtocol:
             if method == 'environment':
                 self.gate._owned()
                 return self.gate.runtime.environment()
+            if method=='compact':
+                return self.gate.compact_requests(identifier,digest)
             if len(requests) >= 1024:
                 raise WorkloadBlocked('request_ledger_full')
             phases = {
-                'bind': {'acquired'}, 'launch': {'acquired', 'running'},
+                'bind': {'acquired'}, 'launch': {'acquired', 'running'}, 'heartbeat': {'acquired', 'launch_intent', 'running'},
                 'postflight': {'acquired', 'running', 'cleaned'},
                 'commit_intent': {'postflight', 'cleaned'}, 'acknowledge_commit': {'commit_intent'}, 'resolve_commit': {'commit_intent'},
                 'release': {'committed'}, 'resume': {'cleaned', 'committed', 'complete'},
@@ -124,10 +134,16 @@ class SupervisorProtocol:
             }
             if method in phases and state['phase'] not in phases[method]:
                 raise WorkloadBlocked('supervisor_lifecycle_invalid')
+            if method == 'commit_intent' and state['phase'] == 'cleaned' and argument['binding'].get('disposition') not in ('infrastructure_failed', 'cancelled', 'unused_ownership'):
+                raise WorkloadBlocked('commit_phase_invalid')
+            if method == 'resolve_commit' and any(argument['resolution'].get(key) != argument['binding'].get(key) for key in ('workload_id', 'job_id', 'attempt_id', 'attempt_number', 'submission_id', 'owner', 'operation_id', 'packet_sha256')):
+                raise WorkloadBlocked('commit_resolution_invalid')
+            if method == 'launch' and (argument['role'] == 'participant' and state['kind'] != 'evaluation' or argument['role'] in ('create', 'reference', 'audit', 'inert') and state['kind'] != 'administration'):
+                raise WorkloadBlocked('configured_role_kind_invalid')
             if (method in ('acknowledge_commit', 'resolve_commit') and
                     argument['binding'] != state.get('database_commit')):
                 raise WorkloadBlocked('commit_acknowledgement_invalid')
-            if method in ('bind', 'launch', 'postflight', 'release') and state['paused']:
+            if method in ('bind', 'launch', 'heartbeat', 'postflight', 'release') and state['paused']:
                 raise WorkloadBlocked('scheduling_paused')
             if method == 'acquire':
                 result = self.gate.acquire(argument['kind'], argument['reference'])
@@ -144,6 +160,8 @@ class SupervisorProtocol:
                     result = self.gate.heartbeat()
                 elif method == 'cancel':
                     result = self.gate.reconcile()
+                elif method == 'pause':
+                    result = self.gate.pause('operator_pause')
                 elif method == 'abort':
                     self.gate.pause('dispatcher_abort')
                     result = self.gate.reconcile()

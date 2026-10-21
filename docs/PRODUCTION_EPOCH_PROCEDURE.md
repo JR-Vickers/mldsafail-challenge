@@ -23,29 +23,22 @@ separate [operation entry point](../scripts/production_epoch_operation.py) provi
 `prepare`, `execute`, `audit` and `finalize`. The rehearsal-only entry point and its
 `disposable_rehearsal_only` guard remain unchanged.
 
-## Planned operational-policy replacement
+## Integrated v4 operational policy
 
-The [next engineering phase](PLAN.md#next-engineering-phase--single-workload-scheduling-and-host-protection)
-will replace the measured-capacity prerequisite with a reviewed operational policy
-and matching validator changes. This document does not implement that replacement;
-the existing capacity receipt requirement still blocks execution. Old packets
-cannot be relabelled execution-ready or supplied with fabricated measurements.
+The actual operation entrypoint now routes v4 prepare/execute/audit/finalize and
+reconcile through the [shared protected runtime](SINGLE_WORKLOAD_DEPLOYMENT.md).
+It requires `unmeasured_capacity`, exact-byte owner authorization, independent
+review, control-specific evidence and matching installed runtime/configuration
+acceptance. Host ownership precedes the existing zero-pending maintenance fence.
+Verified cleanup and postflight retain ownership through durable operator commit.
+Ambiguous outcomes reconcile without repeating computation.
 
-Before a replacement can permit epoch execution, verify exclusive heavy-workload
-ownership shared with participant evaluation, zero-pending maintenance admission,
-resource-aware launch deferral, effective host/ancestor limits protecting retained
-services, bounded outputs, and positive termination before ownership release.
-Cover stale leases with surviving workers, concurrent coordinators, alternate
-launch paths, restart interference and failed cleanup. Retain exact owned-resource
-cleanup and restoration only after verified termination and fresh postflight.
-Verify actual deployed compatibility rather than relying on current source alone.
-
-The replacement packet must disclose that capacity is unmeasured, bind the reviewed
-policy and controls to its source and host, and retain separate maintenance,
-transfer and production-epoch approvals. Preserve frozen worker limits and score
-semantics; a single job may still fail to fit. Do not infer capacity certification
-from queuing, floors or configured maxima. No substitute capacity experiment or
-paid infrastructure is authorized. Native correctness acceptance remains separate.
+Existing v2/v3 capacity validators remain unchanged. Unprotected legacy
+computational streaming is retired; historical packets below are evidence only.
+V4 source availability does not authorize installation or epoch execution. Native
+control acceptance, current scheduling/delegation/output-volume/rollback inspection
+and separate owner authority remain pending. A single protected job may still
+fail to fit; no capacity measurement or paid infrastructure is authorized.
 
 ## Current review disposition
 

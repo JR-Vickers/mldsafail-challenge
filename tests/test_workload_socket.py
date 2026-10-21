@@ -198,3 +198,22 @@ def test_completed_workload_records_are_bounded_and_generations_never_reopen(tmp
 def test_ambiguous_wire_requests_rejected_before_dispatch(wire):
     from mldsafail.evaluator.workload_socket import decode_request
     with pytest.raises(ValueError): decode_request(wire)
+
+
+def test_full_unresolved_ledger_can_only_archive_after_verified_cleanup(tmp_path):
+    runtime=Runtime()
+    with HostGate(tmp_path,runtime).locked() as gate:
+        protocol=SupervisorProtocol(gate,{})
+        token=protocol.dispatch(request('acquire','acquire',kind='evaluation',reference={}))
+        gate.state['requests']={f'1:{index}':dict(sha256='a'*64,phase='intent') for index in range(1,1025)}
+        gate.state['request_sequence']=1024;gate._write()
+        compact=dict(id='1:1025',method='compact',argument={'ownership':token})
+        with pytest.raises(WorkloadBlocked,match='verified_cleanup_required'):protocol.dispatch(compact)
+        gate.reconcile()  # Independent cleanup does not rely on free ledger slots.
+        protocol.dispatch(compact)
+        assert list(gate.state['requests'])==['1:1025']
+        archive=next((tmp_path/'records').glob('*.requests-*.json'))
+        import json
+        assert len(json.loads(archive.read_bytes())['requests'])==1024
+        with pytest.raises(WorkloadBlocked,match='expired_request_sequence'):
+            protocol.dispatch(dict(id='1:2',method='resume',argument={'ownership':token}))

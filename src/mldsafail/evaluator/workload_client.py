@@ -73,15 +73,14 @@ class WorkloadClient:
     def bind(self, reference): return self.mutation('bind', reference=reference)
     def launch(self, role): return self.mutation('launch', role=role)
     def heartbeat(self): return self.mutation('heartbeat')
-    def result(self):
-        self.sequence += 1
-        return self.transport(self.socket, dict(id=f'{self.generation}:{self.sequence}', method='result',
-                                               argument={'ownership': self.token}))
+    def _read_owned(self, method):
+        with self.mutex:
+            self.sequence += 1
+            return self.transport(self.socket, dict(id=f'{self.generation}:{self.sequence}', method=method,
+                                                   argument={'ownership': self.token}))
 
-    def environment(self):
-        self.sequence += 1
-        return self.transport(self.socket, dict(id=f'{self.generation}:{self.sequence}', method='environment',
-                                               argument={'ownership': self.token}))
+    def result(self): return self._read_owned('result')
+    def environment(self): return self._read_owned('environment')
 
     def finish(self, binding):
         self.mutation('postflight')
