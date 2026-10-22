@@ -179,4 +179,15 @@ def test_control_matrix_never_claims_unrun_native_controls():
     rows=evidence_matrix()
     assert len(rows)==sum(len(cases) for cases in SCENARIOS.values())
     assert all(row['receipt'] is None and row['accepted'] is False for row in rows)
-    assert sum(row['runner'] is not None for row in rows)==3
+    assert sum(row['runner'] is not None for row in rows)==6
+
+
+def test_declared_native_runners_resolve_to_real_entrypoint_and_case():
+    import importlib
+    from deploy.workload_evidence import evidence_matrix
+    from deploy.workload_native_protocol import CASES
+    for row in evidence_matrix():
+        if row['runner']:
+            module,function=row['runner'].split(':')
+            assert callable(getattr(importlib.import_module(module),function))
+            assert row['runner_case'] in CASES

@@ -19,7 +19,7 @@ Historical receipts remain immutable. Preserve the existing VPS, $0 budget,
 scientific evidence. No production epoch, solver evaluation, capacity measurement,
 public listener, notification, publication, 0.6.0 work or backup setup belongs here.
 
-Current progress is recorded in the [v3 engine and local Linux checkpoint](acceptance/production-preparation/protected-runtime-v3-engine-20261021.md).
+Current progress is recorded in the [offline images and scheduling bindings checkpoint](acceptance/production-preparation/protected-runtime-images-20261022.md). Existing-supervisor handoff and partial-install rollback remain implementation work, separately from privileged host facts.
 The complete synthetic preparation path and fresh offline Linux runtime-package
 installation pass. Real delegated cgroup/output/reboot and disposable PostgreSQL
 fixtures pass within their recorded scope. Full concrete installation/rollback,

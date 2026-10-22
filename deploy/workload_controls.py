@@ -23,6 +23,7 @@ SCENARIOS = {
                        'generation_quota_exhaustion': {'results': 0, 'paused': True}},
     'verified_cleanup': {'surviving_worker': {'ownership_released': False, 'results': 0},
                          'empty_scope_and_absent_containers': {'populated': 0, 'containers': 0}},
+    'abnormal_exit': {'controller_disconnect': {'results':0,'paused':True}},
     'persistent_pause': {'supervisor_sigkill': {'restart_launches': 0, 'paused': True}},
     'explicit_resume': {'failed_preflight': {'resumed': False}, 'fresh_preflight': {'resources': 0, 'resumed': True}},
     'native_linux_acceptance': {'inert_lifecycle_and_cleanup': {'emulated': False, 'fixture_resources_after': 0,

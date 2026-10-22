@@ -253,3 +253,39 @@ def test_kernel_stream_limit_exhaustion_is_a_protection_abort(fixture):
         (Path(record['output'])/'participant.stdout').write_bytes(b'x'*16)
         with pytest.raises(ProtectionAbort):gate.check()
         assert gate.state['paused']
+
+
+def test_inert_launch_requires_exact_case_and_never_retries(fixture,tmp_path):
+    import time
+    runtime,_,_,_,_,_=fixture
+    path=tmp_path/'inert-authority.json'
+    runtime.config['roles']['inert']=dict(timeout_seconds=60,operation_id='a'*32,authorization=str(path))
+    authority=dict(purpose='native_workload_control_only',authorized_by='owner',operation_id='a'*32,
+        packet_sha256='b'*64,native_configuration_sha256=hashlib.sha256(json.dumps(runtime.config,sort_keys=True).encode()).hexdigest(),
+        time=time.time(),native_protocol=dict(sequence=[dict(case='lifecycle',seconds=30)],timeout_seconds=30))
+    native.publish(path,authority)
+    state=dict(workload_id='c'*32,reference=dict(operation_id='a'*32,packet_sha256='b'*64,fixture='parent_oom'))
+    with pytest.raises(WorkloadBlocked,match='exact_case_authority'):runtime.authorize_role(state,'inert')
+    state['reference']['fixture']='lifecycle';runtime.authorize_role(state,'inert')
+    state['workload_id']='d'*32
+    with pytest.raises(WorkloadBlocked,match='already_attempted'):runtime.authorize_role(state,'inert')
+
+
+def test_preflight_never_raises_installed_aggregate_memory_limit(fixture):
+    runtime,_,_,heavy,_,_=fixture
+    write(heavy/'memory.max',768*1024**2)
+    assert runtime.preflight(ResourcePolicy())==768*1024**2
+    assert (heavy/'memory.max').read_text()==str(768*1024**2)
+
+
+def test_expired_short_native_packet_creates_no_case_grant(fixture,tmp_path):
+    import time
+    runtime,_,_,_,_,_=fixture
+    path=tmp_path/'expired-inert-authority.json'
+    runtime.config['roles']['inert']=dict(timeout_seconds=60,operation_id='a'*32,authorization=str(path))
+    native.publish(path,dict(purpose='native_workload_control_only',authorized_by='owner',operation_id='a'*32,
+        packet_sha256='b'*64,native_configuration_sha256=hashlib.sha256(json.dumps(runtime.config,sort_keys=True).encode()).hexdigest(),
+        time=time.time()-100,native_protocol=dict(sequence=[dict(case='lifecycle',seconds=10)],timeout_seconds=20)))
+    state=dict(workload_id='c'*32,reference=dict(operation_id='a'*32,packet_sha256='b'*64,fixture='lifecycle'))
+    with pytest.raises(WorkloadBlocked,match='packet_expired'):runtime.authorize_role(state,'inert')
+    assert not (runtime.root/('a'*32+'.inert-grant.json')).exists()

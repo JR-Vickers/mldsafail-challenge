@@ -1,0 +1,53 @@
+{
+  "benchmark_version": "0.5.0-preview",
+  "budget_usd": 0,
+  "checks": {
+    "diff_check": "passed",
+    "make_check": {
+      "contract_passed": 8,
+      "passed": 1680,
+      "skipped": 46
+    }
+  },
+  "date": "2026-10-22",
+  "evidence": {
+    "fixture-filesystem-inspection-generation-4.json": "ef9bd89990208efbd051bc4b114a1dfde647a167210b77557d29af215422edba",
+    "image-archive-untagged-binding-1.json": "beee455dfea361b5f0a47a6f5bf85366cc4e71160c9e1f640458a0ee6309e3a8",
+    "linux-focused-tests-attempt-1.json": "2ba8d9da7b27f306851c0b2ddc7aa551b00ed9fe61ae57bf01d7a2b0125f1998",
+    "linux-focused-tests-attempt-2.json": "7b55c07c72e81069c2627cd64c647a520302d01e42f80de9fdb01500a0c9efe0",
+    "make-check-14.log": "030723c64e562f23483c6907f74e81785a73fa5b01e0f792eb7db984b5695176",
+    "offline-image-import-attempt-1.json": "31c7c7711832a3e0ace3e3e4f71e76e0a15e7f0c72b9c075321ef3b804171cb3",
+    "offline-package-freeze-2.json": "ff55936967be762d1e0f3924814cc64f73167d203f8dcaa0c3e9a01becffaa4a",
+    "offline-package-linux-attempt-2.json": "a570d6de7e0561a089b1a2da92fdbf203fc0d4654672e89e11eff90b32048492",
+    "peer-probe-coordinator-attempt-1.json": "1965d3cfd44cd49aa3178f981cbf779e8be15c5596ba3d5d2a5a8b318e69903a"
+  },
+  "fixture_retention": {
+    "live_installation_authority": false,
+    "owner": "repository owner",
+    "purpose": "continue authorized local installation and acceptance development",
+    "review_by": "2026-10-29"
+  },
+  "native_vps_evidence": false,
+  "offline_package": {
+    "configuration_bindings": "synthetic_fixture_only",
+    "installed_files": 1757,
+    "manifest_sha256": "5119fa684524ee379f952e057fa94789b74c0856d8349ca6e288fadaefa905cd",
+    "modules_imported": 21,
+    "runtime_wheels": 35
+  },
+  "remaining_implementation": [
+    "concrete full-engine installation/interruption/rollback rehearsal",
+    "existing-supervisor reviewed quiescent handoff",
+    "partial-install guarded rollback",
+    "complete acceptance runners and native watchdog integration",
+    "complete independent source/release/proposal/coverage review"
+  ],
+  "schema": "mldsafail.protected-runtime-progress.v3",
+  "status": {
+    "host_facts": "privileged_collection_outstanding",
+    "implementation": "unfinished",
+    "rehearsal": "partial_local_linux_pass",
+    "review": "findings_open_no_installation_approval"
+  },
+  "vps_mutations": false
+}

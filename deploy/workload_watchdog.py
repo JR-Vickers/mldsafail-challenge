@@ -73,7 +73,14 @@ def native_authority(protocol,review_path,authorization_path,root):
     require(host.get('hostname')==socket.gethostname() and host.get('uid')==os.getuid() and
             host.get('boot_id')==Path('/proc/sys/kernel/random/boot_id').read_text().strip(),
             'watchdog_native_host_changed')
-    claim(authorization_path,protocol,expected_sha256=digest(authority_raw),journal_root=Path(root).parent)
+    # The consumed-authority namespace is part of the reviewed packet. Choosing
+    # another output directory must never provide a fresh replay namespace.
+    journal=host.get('authority_journal',{})
+    require(type(journal) is dict and journal.get('state')=='observed' and
+            type(journal.get('path')) is str and
+            str(Path(root).absolute().parent)==journal['path'] and
+            identity(journal['path'])==journal,'watchdog_native_journal_changed')
+    claim(authorization_path,protocol,expected_sha256=digest(authority_raw),journal_root=journal['path'])
 
 
 def execute(protocol,root,*,birth=process_birth,review_path=None,authorization_path=None):

@@ -190,6 +190,14 @@ def installed_inventory(venv, *, interpreter=None):
     return result
 
 
+def entrypoint_code(bundle,python,module,function):
+    require(re.fullmatch(r'[A-Za-z_][A-Za-z0-9_.]*',module) and
+            re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*',function),'dependency_entrypoint_invalid')
+    return ('#!'+str(python)+'\nimport sys\nsys.dont_write_bytecode = True\nsys.path[:0] = '+
+            repr([str(Path(bundle)/'src'),str(bundle)])+'\nfrom '+module+' import '+function+
+            '\nif __name__ == "__main__":\n    sys.exit('+function+'())\n').encode()
+
+
 def project_entrypoints(bundle,venv):
     """Deterministic source-package entrypoints built at their final paths."""
     from deploy.workload_installation import exclusive
@@ -200,10 +208,7 @@ def project_entrypoints(bundle,venv):
                 re.fullmatch(r'[A-Za-z_][A-Za-z0-9_.]*:[A-Za-z_][A-Za-z0-9_]*',target),
                 'dependency_entrypoint_invalid')
         module,function=target.split(':')
-        code=('#!'+str(venv/'bin/python')+'\nimport sys\nsys.dont_write_bytecode = True\nsys.path[:0] = '+
-              repr([str(bundle/'src'),str(bundle)])+'\nfrom '+module+' import '+function+
-              '\nif __name__ == "__main__":\n    sys.exit('+function+'())\n')
-        exclusive(venv/'bin'/name,code.encode(),0o700)
+        exclusive(venv/'bin'/name,entrypoint_code(bundle,venv/'bin/python',module,function),0o700)
 
 
 def entrypoint_import_command(bundle,venv):
@@ -212,6 +217,8 @@ def entrypoint_import_command(bundle,venv):
     project=tomllib.loads(regular(bundle,'pyproject.toml')[0].decode())['project']
     modules=sorted({target.split(':')[0] for target in project['scripts'].values()} | {
         'mldsafail.evaluator.workload_service','mldsafail.evaluator.native_workload',
+        'mldsafail.evaluator.coordinator','mldsafail.evaluator.worker','mldsafail.evaluator.workload_controller','mldsafail.evaluator.workload_router',
+        'deploy.workload_images','deploy.workload_prerequisites','scripts.prepare_workload_packet',
         'deploy.workload_installation','deploy.workload_installed','deploy.workload_native_acceptance',
         'deploy.workload_artifacts','deploy.workload_socket_probe','deploy.workload_watchdog'})
     require(all(re.fullmatch(r'[A-Za-z_][A-Za-z0-9_.]*',name) for name in modules),'dependency_import_module_invalid')

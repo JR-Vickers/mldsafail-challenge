@@ -12,23 +12,54 @@ from deploy.workload_preparation import manager_prefix, scheduling_commands
 from mldsafail.evaluator.native_workload import require
 
 
+def unit_name(identifier,owner):
+    match=re.fullmatch(r'(system|user):(\d+):(.+)',identifier)
+    if match:
+        require(match[1]==owner['manager'] and int(match[2])==owner['uid'],'scheduling_owner_identifier_changed')
+        identifier=match[3]
+    require(re.fullmatch(r'(?:[A-Za-z0-9@_.:+-]|\\x[0-9A-Fa-f]{2})+\.(service|timer|socket|path)',identifier),'scheduling_unit_name_invalid')
+    return identifier
+
+
+def validate_owners(record,uid):
+    """Qualify same-named units across managers without changing legacy schemas."""
+    require(set(record)=={'unclassified','references_open','receipt_sha256','units','computational_units','owners'} and
+            set(record['units'])==set(record['owners']) and len(record['units'])==len(set(record['units'])) and
+            set(record['computational_units'])<=set(record['units']),'scheduling_closure_required')
+    groups={};seen=set()
+    for identifier in record['units']:
+        owner=record['owners'][identifier];name=unit_name(identifier,owner);key=(owner['manager'],owner['uid'])
+        require((*key,name) not in seen,'scheduling_duplicate_owner_unit');seen.add((*key,name))
+        normalized=dict(owner);triggers=[]
+        for trigger in owner['triggers']:
+            require(trigger in record['owners'],'scheduling_unresolved_trigger')
+            target=record['owners'][trigger]
+            require((target['manager'],target['uid'])==key,'scheduling_cross_manager_trigger_unresolved')
+            triggers.append(unit_name(trigger,target))
+        normalized['triggers']=triggers
+        group=groups.setdefault(key,dict(unclassified=record['unclassified'],references_open=record['references_open'],
+            receipt_sha256=record['receipt_sha256'],units=[],computational_units=[],owners={}))
+        group['units'].append(name);group['owners'][name]=normalized
+        if identifier in record['computational_units']:group['computational_units'].append(name)
+    for group in groups.values():scheduling_commands(group,uid)
+
+
 def proposal(record, uid, gate, unit_directories):
     # Reuse all owner, trigger and disposition checks in the historical renderer.
-    scheduling_commands(record, uid)
+    validate_owners(record, uid)
     gate = Path(gate)
     require(gate.is_absolute() and '..' not in gate.parts and
             re.fullmatch(r'/[A-Za-z0-9_./-]+', str(gate)) is not None,
             'scheduling_gate_path_invalid')
     require(record['unclassified'] == 0 and record['references_open'] == 0 and
             re.fullmatch('[a-f0-9]{64}', record['receipt_sha256']) is not None and
-            set(record['computational_units']) <= set(record['units']) and
-            all(re.fullmatch(r'[A-Za-z0-9@_.:-]+\.(service|timer|socket|path)', unit)
-                for unit in record['units']), 'scheduling_closure_required')
+            set(record['computational_units']) <= set(record['units']), 'scheduling_closure_required')
     owners = record['owners']
     resources, commands, observations = [], [], []
     seen = set()
-    for unit in record['computational_units']:
-        owner = owners[unit]
+    for identifier in record['computational_units']:
+        owner = owners[identifier]
+        unit = unit_name(identifier,owner)
         require(owner['manager'] == 'system' or owner['uid'] == uid,
                 'scheduling_cross_owner_gate_visibility_requires_adapter')
         key = f"{owner['manager']}:{owner['uid']}"

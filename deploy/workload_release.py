@@ -36,26 +36,55 @@ def stable_stat(info):
                                                'st_nlink', 'st_size', 'st_mtime_ns', 'st_ctime_ns'))
 
 
-def regular(root, name):
-    """Refuse symlinks in every path component, including the root."""
-    path = Path(root).absolute()
-    for parent in (*reversed(path.parents), path):
-        require(not parent.is_symlink(), 'release_symlink')
+def regular_path(root,name):
+    """Check every component and exclusively owned regular-file shape."""
+    path=Path(root).absolute()
+    for parent in (*reversed(path.parents),path):require(not parent.is_symlink(),'release_symlink')
     for part in PurePosixPath(relative(name)).parts:
-        path /= part
-        require(not path.is_symlink(), 'release_symlink')
-    require(path.exists(), 'release_missing_file:'+name)
-    before = path.lstat()
-    require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1, 'release_not_exclusive_regular')
+        path/=part;require(not path.is_symlink(),'release_symlink')
+    require(path.exists(),'release_missing_file:'+name)
+    before=path.lstat()
+    require(stat.S_ISREG(before.st_mode) and before.st_nlink==1,'release_not_exclusive_regular')
+    return path,before
+
+
+def regular(root,name):
+    path,before=regular_path(root,name)
     with path.open('rb') as stream:
-        require(stable_stat(os.fstat(stream.fileno())) == stable_stat(before), 'release_changed')
-        data = stream.read()
-        require(stable_stat(os.fstat(stream.fileno())) == stable_stat(before) and stable_stat(path.lstat()) == stable_stat(before), 'release_changed')
-    return data, stat.S_IMODE(before.st_mode)
+        require(stable_stat(os.fstat(stream.fileno()))==stable_stat(before),'release_changed')
+        data=stream.read()
+        require(stable_stat(os.fstat(stream.fileno()))==stable_stat(before) and stable_stat(path.lstat())==stable_stat(before),'release_changed')
+    return data,stat.S_IMODE(before.st_mode)
+
+
+def file_record(root,name):
+    """Hash large frozen artifacts with bounded memory and stable file identity."""
+    path,before=regular_path(root,name);sha=hashlib.sha256();size=0
+    with path.open('rb') as stream:
+        require(stable_stat(os.fstat(stream.fileno()))==stable_stat(before),'release_changed')
+        while chunk:=stream.read(1024**2):sha.update(chunk);size+=len(chunk)
+        require(stable_stat(os.fstat(stream.fileno()))==stable_stat(before) and stable_stat(path.lstat())==stable_stat(before),'release_changed')
+    return dict(sha256=sha.hexdigest(),bytes=size,mode=stat.S_IMODE(before.st_mode))
+
+
+def copy_regular(root,name,destination,expected,*,source_record=None):
+    from deploy.workload_installation import sync_directory
+    path,before=regular_path(root,name);destination=Path(destination);sha=hashlib.sha256();size=0
+    require(not any(parent.is_symlink() for parent in destination.parents),'release_symlink')
+    with path.open('rb') as source,destination.open('xb') as target:
+        os.chmod(destination,expected['mode'])
+        require(stable_stat(os.fstat(source.fileno()))==stable_stat(before),'release_changed')
+        while chunk:=source.read(1024**2):sha.update(chunk);size+=len(chunk);target.write(chunk)
+        require(stable_stat(os.fstat(source.fileno()))==stable_stat(before) and stable_stat(path.lstat())==stable_stat(before),'release_changed')
+        actual=dict(sha256=sha.hexdigest(),bytes=size,mode=stat.S_IMODE(before.st_mode))
+        require(actual==(expected if source_record is None else source_record) and
+                all(actual[key]==expected[key] for key in ('sha256','bytes')),'release_copy_changed')
+        target.flush();os.fsync(target.fileno())
+    sync_directory(destination.parent)
 
 
 def validate(manifest):
-    require(set(manifest) - {'tools', 'dependency_plan', 'inclusion_policy'} == {'schema', 'benchmark_version', 'files', 'interpreter',
+    require(set(manifest) - {'tools', 'dependency_plan', 'inclusion_policy', 'private_artifacts', 'images'} == {'schema', 'benchmark_version', 'files', 'interpreter',
                               'worker_environment', 'evaluator_fingerprint', 'coordinator_image',
                               'configurations', 'dependencies', 'units'}, 'release_manifest_fields')
     require(manifest['schema'] == SCHEMA and manifest['benchmark_version'] == '0.5.0', 'release_schema')
@@ -93,6 +122,13 @@ def validate(manifest):
                 ('-any.whl' in name or 'x86_64.whl' in name and 'linux' in name)
                 for name in manifest['dependencies']), 'release_linux_wheels_required')
     require(all(name.startswith('generated/') for name in manifest['units']), 'release_units_missing')
+    for role,row in manifest.get('private_artifacts',{}).items():
+        require(role=='signing_key' and set(row)=={'sha256','bytes'} and
+                re.fullmatch('[a-f0-9]{64}',row['sha256']) and type(row['bytes']) is int and 32<=row['bytes']<=4096,
+                'release_private_artifact_binding')
+    if 'images' in manifest:
+        from deploy.workload_images import validate_binding
+        validate_binding(manifest)
     if 'tools' in manifest:
         from deploy.workload_artifacts import validate_tools
         validate_tools(manifest)
@@ -114,8 +150,7 @@ def verify(root, manifest):
     frozen, _ = regular(root, 'manifest.json')
     require(frozen == canonical(manifest), 'release_manifest_changed')
     for name, record in manifest['files'].items():
-        data, mode = regular(root, name)
-        require(record == dict(sha256=digest(data), bytes=len(data), mode=mode), 'release_content_changed:'+name)
+        require(record == file_record(root,name), 'release_content_changed:'+name)
     from deploy.workload_wheels import inspect_wheel
     for name in manifest['dependencies']:
         inspect_wheel(root/name, manifest['files'][name]['sha256'], glibc_minor=int(manifest['interpreter'].get('minimum_glibc', '2.17').split('.')[1]))
@@ -126,10 +161,14 @@ def verify(root, manifest):
         from deploy.workload_dependencies import plan
         actual,requirements=plan((root/'uv.lock').read_bytes(),[root/name for name in manifest['dependencies']],python_full_version=manifest['tools']['interpreter']['version'])
         require(actual == manifest['dependency_plan'] and (root/'offline/requirements.txt').read_bytes() == requirements.encode(), 'release_dependency_plan_changed')
+    if 'images' in manifest:
+        from deploy.workload_images import inspect_archive
+        require(inspect_archive(root/manifest['images']['archive'],manifest['images']['selected'])==manifest['images'],
+                'release_image_archive_changed')
     return digest(frozen)
 
 
-def freeze(source, destination, *, source_names, generated_units, wheels, bindings, extra_payload=None):
+def freeze(source, destination, *, source_names, generated_units, wheels, bindings, extra_payload=None, extra_files=None):
     """Create an inspectable bundle exclusively; never activate or overwrite it."""
     destination = Path(destination)
     require(not destination.exists() and not destination.is_symlink(), 'release_destination_exists')
@@ -153,12 +192,20 @@ def freeze(source, destination, *, source_names, generated_units, wheels, bindin
         from deploy.workload_wheels import inspect_wheel
         inspect_wheel(wheel, digest(data), glibc_minor=int(bindings['interpreter'].get('minimum_glibc', '2.17').split('.')[1]))
         payload[key] = (data, 0o600)
-    for name,data in (extra_payload or {}).items():
+    for name,value in (extra_payload or {}).items():
         require(relative(name) not in payload, 'release_duplicate_path')
-        payload[name]=(data,0o600)
+        data,mode=value if type(value) is tuple else (value,0o600)
+        require(type(data) is bytes and mode in (0o600,0o700),'release_extra_payload_invalid')
+        payload[name]=(data,mode)
+    streamed={}
+    for name,path in (extra_files or {}).items():
+        require(relative(name) not in payload and name not in streamed,'release_duplicate_path')
+        path=Path(path);record=file_record(path.parent,path.name)
+        streamed[name]=(path,record)
     manifest = dict(bindings, schema=SCHEMA, benchmark_version='0.5.0',
                     files={name: dict(sha256=digest(data), bytes=len(data), mode=mode)
-                           for name, (data, mode) in payload.items()},
+                           for name, (data, mode) in payload.items()} |
+                          {name:dict(record,mode=0o600) for name,(_,record) in streamed.items()},
                     units=['generated/'+name for name in generated_units],
                     dependencies=['offline/'+Path(wheel).name for wheel in wheels])
     validate(manifest)
@@ -171,6 +218,9 @@ def freeze(source, destination, *, source_names, generated_units, wheels, bindin
             stream.write(data)
             stream.flush()
             os.fsync(stream.fileno())
+    for name,(source_path,record) in streamed.items():
+        path=destination/name;path.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
+        copy_regular(source_path.parent,source_path.name,path,manifest['files'][name],source_record=record)
     verify(destination, manifest)
     return manifest
 
@@ -222,22 +272,39 @@ def runtime_sources(source):
     return sorted(required)
 
 
-def freeze_runtime(source, destination, *, generated_units, wheels, bindings,
-                   interpreter_archive, installer_archive):
+def freeze_runtime(source, destination, *, installation, wheels, bindings,
+                   interpreter_archive, installer_archive, image_archive):
     """Freeze all runtime sources and lock-derived offline tool/dependency inputs."""
     from deploy.workload_artifacts import describe
     from deploy.workload_dependencies import plan
+    from deploy.workload_units import render_v3
+    from deploy.workload_dependencies import entrypoint_code
+    generated_units=render_v3(installation)
     source=Path(source);wheels=list(wheels)
+    require(not Path(destination).exists() and not Path(destination).is_symlink(),'release_destination_exists')
+    names=runtime_sources(source)
     tools=dict(interpreter=describe(interpreter_archive,role='interpreter',version='3.12.10',entrypoint='python/bin/python3.12'),
                installer=describe(installer_archive,role='installer',version='0.13.1',entrypoint='uv-x86_64-unknown-linux-gnu/uv'))
     dependency_plan,requirements=plan((source/'uv.lock').read_bytes(),wheels,python_full_version='3.12.10')
-    names=runtime_sources(source)
+    from deploy.workload_images import without_tags
+    import tempfile
+    parent=Path(destination).absolute().parent
+    require(parent.is_dir() and not any(path.is_symlink() for path in (parent,*parent.parents)),'release_symlink')
+    descriptor,temporary=tempfile.mkstemp(prefix='.workload-images-',dir=parent);os.close(descriptor);Path(temporary).unlink()
+    images=without_tags(image_archive,temporary,dict(coordinator=bindings['coordinator_image'],worker=bindings['worker_environment']['image_id']))
     policy=dict(name='tracked-complete-runtime-v1',sources=names)
     extra={row['archive']:regular(Path(path).parent,Path(path).name)[0]
            for row,path in ((tools['interpreter'],interpreter_archive),(tools['installer'],installer_archive))}
     extra['offline/requirements.txt']=requirements.encode()
-    return freeze(source,destination,source_names=names,generated_units=generated_units,wheels=wheels,
-                  bindings=dict(bindings,tools=tools,dependency_plan=dependency_plan,inclusion_policy=policy),extra_payload=extra)
+    extra['bin/docker']=(entrypoint_code(installation['release'],installation['python'],
+                        'mldsafail.evaluator.workload_router','main'),0o700)
+    temporary_birth=Path(temporary).lstat()
+    result=freeze(source,destination,source_names=names,generated_units=generated_units,wheels=wheels,
+                  bindings=dict(bindings,tools=tools,images=images,dependency_plan=dependency_plan,inclusion_policy=policy),
+                  extra_payload=extra,extra_files={images['archive']:temporary})
+    require(stable_stat(Path(temporary).lstat())==stable_stat(temporary_birth),'release_image_staging_changed')
+    Path(temporary).unlink()
+    return result
 
 
 def public_manifest(manifest):
@@ -250,7 +317,8 @@ def public_manifest(manifest):
         worker_environment_sha256=digest(canonical(manifest['worker_environment'])),
         evaluator_fingerprint=manifest['evaluator_fingerprint'],
         configurations={role:dict(sha256=row['sha256']) for role,row in manifest['configurations'].items()},
-        files=manifest['files'],dependencies=manifest['dependencies'],units=manifest['units'])
+        files=manifest['files'],dependencies=manifest['dependencies'],units=manifest['units'],
+        private_artifacts=manifest.get('private_artifacts',{}))
 
 
 def remaining_allocation(manifest,installed_files,completed=()):
@@ -261,4 +329,5 @@ def remaining_allocation(manifest,installed_files,completed=()):
     if 'tools' not in completed:
         sizes.extend(row.get('bytes',0) for tool in manifest.get('tools',{}).values() for row in tool['members'].values())
     if 'dependencies' not in completed:sizes.extend(row['bytes'] for row in installed_files.values())
-    return sum(((size+4095)//4096)*4096+4096 for size in sizes)+64*1024**2
+    image_reserve=4*manifest.get('images',{}).get('bytes',0) if 'images' not in completed else 0
+    return sum(((size+4095)//4096)*4096+4096 for size in sizes)+64*1024**2+image_reserve

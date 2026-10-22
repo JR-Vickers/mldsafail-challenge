@@ -49,6 +49,8 @@ def proposal(source):
                    dict(path=path,state='proposed',preserve='never_unmount_while_owned_outputs_required')]
     if delegation['state']=='proposed':
         commands.append(['/usr/bin/systemctl','--user','start','mldsafail-heavy.slice'])
+    commands.append([source['recipe']['interpreter']['path'],'-m','deploy.workload_prerequisites',
+                     '--enable-owned-delegation',delegation['path'],'--uid',str(source['host']['uid'])])
     return dict(schema='mldsafail.workload-prerequisite-proposal.v3',execution_authority=False,
         resources=resources,commands=[shlex.join(row) for row in commands],reversal=[shlex.join(row) for row in reversal],
         forbidden=['shared_docker_daemon_mutation','retained_service_ancestor_mutation'],
@@ -81,3 +83,34 @@ def apply(source,command,journal):
         command(['/usr/bin/sudo','-n','/usr/bin/chown',str(source['host']['uid']),str(mount)])
     if source['resources']['delegation']['state']=='proposed':
         command(['/usr/bin/systemctl','--user','start','mldsafail-heavy.slice'])
+    root=source['resources']['delegation']['path']
+    journal.append('delegation_controller_intent',observed=identity(root))
+    observed=enable_delegation(root,source['host']['uid'])
+    journal.append('delegation_controllers_enabled',observed=observed)
+
+
+def enable_delegation(path,uid):
+    """Enable child controllers only on this owner's dedicated heavy slice."""
+    import os
+    root=Path(path)
+    expected='/sys/fs/cgroup/user.slice/user-'+str(uid)+'.slice/user@'+str(uid)+'.service/mldsafail.slice/mldsafail-heavy.slice'
+    require(str(root)==expected and os.getuid()==uid and not any(parent.is_symlink() for parent in (root,*root.parents)) and
+            root.stat().st_uid==uid,'prerequisite_delegation_owner_changed')
+    wanted={'cpu','memory','pids'}
+    require(set((root/'cgroup.controllers').read_text().split())>=wanted,'prerequisite_controllers_unavailable')
+    if not set((root/'cgroup.subtree_control').read_text().split())>=wanted:
+        require(not (root/'cgroup.procs').read_text().strip(),'prerequisite_heavy_internal_processes')
+        (root/'cgroup.subtree_control').write_text('+cpu +memory +pids')
+    require(set((root/'cgroup.subtree_control').read_text().split())>=wanted,'prerequisite_controller_enable_failed')
+    return identity(root)
+
+
+def main():
+    import argparse
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--enable-owned-delegation',required=True)
+    parser.add_argument('--uid',required=True,type=int)
+    args=parser.parse_args();enable_delegation(args.enable_owned_delegation,args.uid)
+
+
+if __name__=='__main__':main()

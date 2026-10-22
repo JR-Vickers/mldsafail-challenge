@@ -68,3 +68,25 @@ def test_postflight_cannot_substitute_retained_service_baseline():
         identities_sha256=digest(canonical(data['identities'])),paused=True,owned_resources=0,
         transactions='resolved',retained_before={'unrelated':True},retained_after={'unrelated':True})
     with pytest.raises(WorkloadBlocked,match='postflight_unresolved'):postflight_observation(json.dumps(row),data)
+
+
+def test_native_claim_journal_is_bound_across_output_directories(tmp_path):
+    import os,socket,time
+    from pathlib import Path
+    from deploy.workload_installation import identity
+    from deploy.workload_watchdog import native_authority
+    journal=tmp_path/'journal';journal.mkdir(mode=0o700)
+    other=tmp_path/'other';other.mkdir(mode=0o700)
+    data=protocol();data['origin']='installed_native'
+    data['identities'].update(hostname=socket.gethostname(),uid=os.getuid(),
+        boot_id=Path('/proc/sys/kernel/random/boot_id').read_text().strip() if Path('/proc/sys/kernel/random/boot_id').exists() else 'fixture',
+        authority_journal=identity(journal))
+    if not Path('/proc/sys/kernel/random/boot_id').exists():pytest.skip('requires Linux boot identity')
+    review=dict(decision='approved',protocol_sha256=digest(canonical(data)),implemented_by='developer',reviewed_by='reviewer')
+    review_path=journal/'review';review_path.write_bytes(canonical(review));review_path.chmod(0o600)
+    now=time.time();authority=dict(schema='mldsafail.workload-native-authority.v3',purpose='native_workload_control_only',authorized_by='owner',
+        protocol_sha256=digest(canonical(data)),review_sha256=digest(canonical(review)),issued_at=now,expires_at=now+60,nonce='a'*32)
+    path=journal/'authority';path.write_bytes(canonical(authority));path.chmod(0o600)
+    native_authority(data,review_path,path,journal/'first')
+    with pytest.raises(WorkloadBlocked,match='journal_changed'):native_authority(data,review_path,path,other/'second')
+    with pytest.raises(WorkloadBlocked,match='consumed'):native_authority(data,review_path,path,journal/'second')

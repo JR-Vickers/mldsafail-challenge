@@ -50,6 +50,7 @@ def retained(source):
 
 def scheduling(proposal, *, include_containers=True):
     from deploy.workload_preparation import manager_prefix
+    from deploy.workload_schedule_v3 import unit_name
     source=proposal['identities']; dropins={}
     for row in proposal['scheduling']['resources']:
         path=Path(row['path']); data,_=read_owned_file(path,run)
@@ -60,7 +61,7 @@ def scheduling(proposal, *, include_containers=True):
             require(identity(path)['state']=='absent','installed_computation_permission_present')
     for unit in source['scheduling']['computational_units']:
         owner=source['scheduling']['owners'][unit]
-        active=run([*manager_prefix(owner,source['host']['uid']),'show',unit,'--property=ActiveState','--value']).strip()
+        active=run([*manager_prefix(owner,source['host']['uid']),'show',unit_name(unit,owner),'--property=ActiveState','--value']).strip()
         require(active in (b'inactive',b'failed'),'installed_computational_unit_active')
     for row in source['containers'] if include_containers else []:
         if row['disposition']=='pause':
@@ -103,11 +104,12 @@ def prerequisites(source):
                 actual['mount_id']==output['mount_id'],'installed_mount_birth_changed')
     verify_ancestor_observations(source)
     delegation=source['resources']['delegation']; root=Path(delegation['path'])
-    require(set((root/'cgroup.controllers').read_text().split())>={'cpu','memory','pids'},'installed_controllers_missing')
+    require(set((root/'cgroup.controllers').read_text().split())>={'cpu','memory','pids'} and
+            set((root/'cgroup.subtree_control').read_text().split())>={'cpu','memory','pids'},'installed_controllers_missing')
     require((root/'memory.swap.max').read_text().strip()=='0' and
             (root/'pids.max').read_text().strip()=='448' and
             (root/'cpu.max').read_text().strip()=='100000 100000' and
-            int((root/'memory.max').read_text().strip())==source['installation']['memory_ceiling'],
+            0<int((root/'memory.max').read_text().strip())<=source['installation']['memory_ceiling'],
             'installed_aggregate_limits_changed')
     for parent in delegation['ancestors']:
         actual_parent=identity(parent['path'])
@@ -117,6 +119,40 @@ def prerequisites(source):
             require(actual_parent['state']=='observed' and actual_parent['uid']==source['host']['uid'],
                     'installed_proposed_ancestor_not_owned')
     return dict(output=actual,delegation=identity(root))
+
+
+def verify_images(source,manifest=None):
+    from deploy.workload_images import installed
+    manifest=source['manifest'] if manifest is None else manifest
+    require('images' in manifest,'installed_image_archive_binding_missing')
+    return installed(manifest['images'],lambda identifier:json.loads(docker(source,['image','inspect',identifier]))[0])
+
+
+def activation_scheduling(proposal):
+    """Fresh final closure, permitting only the reviewed inhibition transitions."""
+    from deploy.workload_registry import observe,references
+    source=proposal['identities']
+    observe(source,run,installed_units=True)
+    references(source,run,inhibited=True)
+    for path,expected in source['inventory']['original_files'].items():
+        require(digest(read_owned_file(path,run)[0])==expected,'installation_original_file_drift')
+    require(all(identity(path)['state']=='absent' for path in source['inventory']['absent_files']),
+            'installation_previously_absent_reference_created')
+    actual=original_settings(source)
+    for unit,row in actual['manager_settings'].items():
+        expected=dict(source['inventory']['manager_settings'][unit])
+        if unit in source['scheduling']['computational_units']:
+            require(row['ActiveState'] in ('inactive','failed'),'installation_scheduling_reactivated')
+            expected['ActiveState']=row['ActiveState']
+        require(row==expected,'installation_original_manager_settings_drift')
+    expected=[]
+    for row in source['containers']:
+        row=dict(row)
+        if row['disposition']=='pause':row.update(restart_policy='no',running=False,process_birth=None)
+        expected.append(row)
+    require(actual['containers']==expected,'installation_original_container_policy_drift')
+    scheduling(proposal)
+    require(retained(source)==source['retained_services'],'installation_retained_service_changed')
 
 
 def inspect_control(action,proposal,journal):
@@ -139,6 +175,7 @@ def inspect_control(action,proposal,journal):
         require(verify(release/'bundle',source['manifest'])==proposal['manifest_sha256'],'installed_frozen_release_changed')
         from deploy.workload_artifacts import verify_installed_tools
         verify_installed_tools(release,source['manifest'])
+        verify_images(source)
         require(installed_inventory(release/'.venv',interpreter=source['recipe']['interpreter']['path'])==source['recipe']['installed_files'],'installed_dependency_files_changed')
         from deploy.workload_dependencies import entrypoint_import_command
         command,modules=entrypoint_import_command(release/'bundle',release/'.venv')
@@ -148,7 +185,8 @@ def inspect_control(action,proposal,journal):
         require(installed_inventory(release/'.venv',interpreter=source['recipe']['interpreter']['path'])==source['recipe']['installed_files'],
                 'installed_dependency_import_drift')
         require(verify(release/'bundle',source['manifest'])==proposal['manifest_sha256'],'installed_import_source_drift')
-        from deploy.workload_configuration import hashes,measured_resources
+        from deploy.workload_configuration import hashes,measured_resources,verify_private_artifacts
+        verify_private_artifacts(source)
         expected=hashes(source,measured_resources(source))
         for role,row in source['manifest']['configurations'].items():
             require(identity(row['path']).get('sha256')==expected[role],'installed_configuration_changed')
@@ -182,6 +220,8 @@ def collect(proposal, *, now=None):
     from mldsafail.evaluator.native_workload import NativeRuntime,private_json
     from mldsafail.evaluator.workload_client import WorkloadClient
     validate_proposal(proposal); source=proposal['identities']
+    from deploy.workload_configuration import verify_private_artifacts
+    verify_private_artifacts(source)
     require(source['origin'] in ('local_linux','host_observation'),'installed_synthetic_source_forbidden')
     native_row=source['manifest']['configurations']['native']
     native=private_json(native_row['path'])
@@ -201,6 +241,7 @@ def collect(proposal, *, now=None):
         if name=='activation': row['target']=current.get('target')
         if name=='delegation':
             row['controllers']=(Path(previous['path'])/'cgroup.controllers').read_text().split()
+            row['enforced_limits']={key:(Path(previous['path'])/key).read_text().strip() for key in ('memory.max','memory.swap.max','pids.max','cpu.max')}
             for parent in row['ancestors']:
                 observed_parent=cgroup_observation(parent['path'])
                 parent.update({key:observed_parent[key] for key in ('controllers','writable','limits')})
@@ -221,12 +262,15 @@ def collect(proposal, *, now=None):
     for name,contents in proposal['units'].items():
         path=Path(source['installation']['unit_directory'])/name
         data,_=regular(path.parent,path.name);unit_hashes[name]=digest(data)
-    images=[source['manifest']['coordinator_image'],source['manifest']['worker_environment']['image_id']]
-    for image in images:
-        row=json.loads(docker(source,['image','inspect',image]))[0]
-        require(row['Id']==image and row['Os']=='linux' and row['Architecture']=='amd64','installed_image_changed')
+    verify_images(source)
     gate=WorkloadClient(source['resources']['socket']['path'],Path(source['recipe']['journal_root'])/'installed-client')
     state=gate.status()
+    from deploy.workload_registry import observe as observe_registry
+    observe_registry(source,run,installed_units=True)
+    from deploy.workload_registry import references
+    references(source,run,inhibited=True)
+    require(all(identity(path)['state']=='absent' for path in source['inventory']['absent_files']),
+            'installed_previously_absent_reference_created')
     prerequisites(source)
     record=dict(schema=INSTALLED,origin=source['origin'],captured_at=time.time() if now is None else now,
         proposal_sha256=sha(proposal),host=deepcopy(source['host']),resources=resources,
@@ -262,8 +306,14 @@ def verify_rollback(source):
             'installed_rollback_dependencies_changed')
     for role,row in rollback['manifest']['configurations'].items():
         require(identity(row['path']).get('sha256')==rollback['configuration_hashes'][role],'installed_rollback_configuration_changed')
+    controller=rollback['manifest']['configurations']['controller']
+    controller_data=json.loads(regular(Path(controller['path']).parent,Path(controller['path']).name)[0])
+    key=Path(controller_data['signing_key']);data,mode=regular(key.parent,key.name)
+    require(rollback['manifest'].get('private_artifacts',{}).get('signing_key')==dict(sha256=digest(data),bytes=len(data)) and
+            mode==0o600 and key.stat().st_uid==os.getuid(),'installed_rollback_private_artifact_changed')
     row=json.loads(docker(source,['image','inspect',rollback['coordinator_image']]))[0]
     require(row['Id']==rollback['coordinator_image'],'installed_rollback_image_changed')
+    verify_images(source,rollback['manifest'])
     require(schema_fingerprint(source)==rollback['schema_sha256'],'installed_schema_changed_rollback_forbidden')
     receipt=Path(rollback['compatibility_receipt_path'])
     require(digest(regular(receipt.parent,receipt.name)[0])==rollback['compatibility_receipt_sha256'],
@@ -274,9 +324,10 @@ def verify_rollback(source):
 def original_settings(source):
     """Fresh raw manager settings and container policies, before inhibition."""
     from deploy.workload_preparation import manager_prefix
+    from deploy.workload_schedule_v3 import unit_name
     units={};containers=[]
     for unit,owner in source['scheduling']['owners'].items():
-        raw=run([*manager_prefix(owner,source['host']['uid']),'show',unit,
+        raw=run([*manager_prefix(owner,source['host']['uid']),'show',unit_name(unit,owner),
                  '--property=ActiveState,UnitFileState,Restart,Triggers']).decode()
         observed=dict(line.split('=',1) for line in raw.splitlines() if '=' in line)
         units[unit]={key:observed.get(key,'') for key in ('ActiveState','UnitFileState','Restart','Triggers')}

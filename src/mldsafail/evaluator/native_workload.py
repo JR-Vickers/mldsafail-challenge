@@ -258,6 +258,8 @@ class NativeRuntime:
         quota = os.statvfs(self.config['output'])
         require(quota.f_bavail*quota.f_frsize >= 1024**2, 'resource_deferral')
         allowances = [memory['MemTotal']-policy.reserve]
+        installed_limit=(self.heavy/'memory.max').read_text().strip()
+        if installed_limit!='max':allowances.append(int(installed_limit))
         for path in paths[1:]:
             limit = (path/'memory.max').read_text().strip() if (path/'memory.max').exists() else 'max'
             if limit != 'max':
@@ -385,11 +387,35 @@ class NativeRuntime:
             authority = private_json(self.config['roles'][role]['authorization'])
             configuration_digest = hashlib.sha256(json.dumps(self.config, sort_keys=True).encode()).hexdigest()
             require(authority.get('purpose') == ('native_workload_control_only' if role == 'inert' else 'production_unmeasured_operation_only') and
-                    authority.get('authorized_by') == 'owner' and authority.get('operation_id') == state['reference'].get('operation_id') and
+                    authority.get('authorized_by') == 'owner' and authority.get('operation_id') == state['reference'].get('operation_id') == self.config['roles'][role]['operation_id'] and
                     authority.get('packet_sha256') == state['reference'].get('packet_sha256') and
                     authority.get('native_configuration_sha256') == configuration_digest, 'native_control_authorization_required')
             if role == 'inert':
                 require(0 <= time.time()-authority.get('time', 0) < 180, 'native_control_authorization_expired')
+                protocol=authority.get('native_protocol',{})
+                sequence=protocol.get('sequence',[])
+                require(type(protocol.get('timeout_seconds')) is int and 0<protocol['timeout_seconds']<=180,
+                        'native_inert_packet_budget_required')
+                require(time.time()<authority['time']+protocol['timeout_seconds'],'native_inert_packet_expired')
+                case=state['reference'].get('fixture')
+                require(type(sequence) is list and sequence and all(type(row) is dict and
+                        set(row)=={'case','seconds'} and type(row['case']) is str and
+                        type(row['seconds']) is int and 0<row['seconds']<=180 for row in sequence) and
+                        len({row['case'] for row in sequence})==len(sequence) and
+                        case in {row['case'] for row in sequence} and sum(row['seconds'] for row in sequence)<=protocol['timeout_seconds'],
+                        'native_inert_exact_case_authority_required')
+                grant_path=self.root/(self.config['roles'][role]['operation_id']+'.inert-grant.json')
+                grant=private_json(grant_path) if grant_path.exists() else dict(packet_sha256=authority['packet_sha256'],
+                    configuration_sha256=configuration_digest,cases_started=[])
+                require(grant['packet_sha256']==authority['packet_sha256'] and
+                        grant['configuration_sha256']==configuration_digest,'native_inert_grant_changed')
+                require(case not in [row['case'] for row in grant['cases_started']],'native_inert_case_already_attempted')
+                require(len(grant['cases_started'])<len(sequence) and sequence[len(grant['cases_started'])]['case']==case,
+                        'native_inert_case_order_changed')
+                grant['cases_started'].append(dict(case=case,workload_id=state['workload_id']))
+                publish(grant_path,grant)
+                return dict(seconds=next(row['seconds'] for row in sequence if row['case']==case),
+                            expires_at=authority['time']+protocol['timeout_seconds'])
             else:
                 grant_path = self.root/(self.config['roles'][role]['operation_id']+'.grant.json')
                 if grant_path.exists():
@@ -417,7 +443,7 @@ class NativeRuntime:
         role = specification['role']
         require(role != 'participant' or state['kind'] == 'evaluation', 'native_role_kind')
         require(role == 'participant' or state['kind'] == 'administration', 'native_role_kind')
-        self.authorize_role(state, role)
+        permission=self.authorize_role(state, role)
         if role != 'participant':
             require(state['reference'].get('operation_id') == self.config['roles'][role]['operation_id'], 'native_administrative_authority')
         output = Path(record['output'])
@@ -435,12 +461,13 @@ class NativeRuntime:
                 resource.setrlimit(resource.RLIMIT_FSIZE,(log_limit,log_limit))
             environment = dict(self.config['environment'])
             require(set(environment) <= {'PATH', 'PYTHONPATH', 'LANG', 'LC_ALL', 'PYTHONUNBUFFERED'}, 'controller_database_credentials_forbidden')
-            environment.update(XDG_RUNTIME_DIR='/run/user/'+str(os.getuid()), DBUS_SESSION_BUS_ADDRESS='unix:path=/run/user/'+str(os.getuid())+'/bus', HOME=str(output), GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL='/dev/null', GIT_TERMINAL_PROMPT='0')
+            environment.update(PYTHONDONTWRITEBYTECODE='1',PYTHONNOUSERSITE='1',XDG_RUNTIME_DIR='/run/user/'+str(os.getuid()), DBUS_SESSION_BUS_ADDRESS='unix:path=/run/user/'+str(os.getuid())+'/bus', HOME=str(output), GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL='/dev/null', GIT_TERMINAL_PROMPT='0')
             process = subprocess.Popen([self.config['python'], '-m', 'mldsafail.evaluator.workload_controller',
                         '--request', str(request)], stdin=subprocess.DEVNULL, stdout=out, stderr=err,
                         env=environment, start_new_session=True, close_fds=True, preexec_fn=limits)
         identity = process_birth(process.pid)
         identity.update(role=role,nonce=state['launch_nonce'],output=str(output),started_at=time.monotonic(),log_limit=log_limit)
+        if role=='inert':identity.update(authorized_seconds=permission['seconds'],authorized_until=permission['expires_at'])
         record['controllers'].append(identity)
         publish(self.record_path(state), record)
         return identity
@@ -509,6 +536,9 @@ class NativeRuntime:
         if state['phase'] in ('launch_intent', 'running'):
             for identity in record['controllers']:
                 require(time.monotonic()-identity['started_at'] <= self.config['roles'][identity['role']]['timeout_seconds'], 'native_controller_deadline')
+                if identity['role']=='inert':
+                    require(time.monotonic()-identity['started_at']<=identity['authorized_seconds'] and
+                            time.time()<identity['authorized_until'],'native_inert_case_deadline')
                 self.inspect(state, identity)
         memory = dict(row.split(':', 1) for row in Path(PROC_ROOT/'meminfo').read_text().splitlines())
         disk = os.statvfs(self.config['disk_root'])

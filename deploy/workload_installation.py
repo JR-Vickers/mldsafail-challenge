@@ -20,7 +20,7 @@ import uuid
 from deploy.workload_release import canonical, digest, regular, verify, stable_stat
 from mldsafail.evaluator.native_workload import require
 
-INSTALL = ('snapshot', 'create_release', 'copy_bundle', 'tools', 'dependencies',
+INSTALL = ('snapshot', 'create_release', 'copy_bundle', 'tools', 'dependencies', 'images',
            'inhibit_scheduling', 'inhibit_containers', 'units', 'prerequisites', 'configurations',
            'verify_release', 'activate', 'start_paused', 'verify_paused')
 ROLLBACK = ('stop_supervisor', 'verify_cleanup', 'restore_activation', 'restore_units', 'verify_rollback')
@@ -232,6 +232,16 @@ class LinuxBackend:
         self.proposal=proposal; self.source=proposal['identities']; self.recipe=self.source['recipe']
         self.root=Path(self.source['resources']['release']['path']); self.bundle=self.root/'bundle'
         self.python=self.source['installation']['python']
+    def selection_expectation(self,journal):
+        for row in reversed(journal.rows):
+            if row.get('step') in ('install:activate','rollback:restore_activation') and row['event'] in ('outcome','reconciled'):
+                return row['observed']
+        return self.source['resources']['activation']
+    def installed_units_selected(self,journal):
+        for row in reversed(journal.rows):
+            if row.get('step') in ('install:units','rollback:restore_units') and row['event'] in ('outcome','reconciled'):
+                return row['step']=='install:units'
+        return False
     def command(self,argv):
         from mldsafail.evaluator.native_workload import process_birth
         import signal
@@ -269,7 +279,8 @@ class LinuxBackend:
         require(os.getuid()==host['uid'] and socket.gethostname()==host['hostname'] and
                 Path('/proc/sys/kernel/random/boot_id').read_text().strip()==host['boot_id'],'installation_wrong_host')
         verify(self.recipe['bundle_root'],self.source['manifest'])
-        from deploy.workload_configuration import templates
+        from deploy.workload_configuration import templates,verify_private_artifacts
+        verify_private_artifacts(self.source)
         from mldsafail.evaluator.native_workload import NativeRuntime
         require(NativeRuntime(templates(self.source)['native']).identity()==host['runtime_identity'],
                 'installation_reconcile_daemon_changed')
@@ -282,6 +293,14 @@ class LinuxBackend:
         require(self.source['origin'] in ('local_linux','host_observation'),'installation_synthetic_origin_forbidden')
         require(sys.platform=='linux' and os.uname().machine=='x86_64','installation_linux_x86_64_required')
         host=self.source['host']
+        # Upgrading a running protected supervisor needs its own bound,
+        # quiescent handoff. Never let daemon-reload redirect its restart or
+        # ExecStopPost to the inactive release while that adapter is absent.
+        from deploy.workload_schedule_v3 import unit_name
+        require(not any(unit_name(name,owner)=='mldsafail-workload-supervisor.service' and
+                owner['manager']=='user' and owner['uid']==host['uid']
+                for name,owner in self.source['scheduling']['owners'].items()),
+                'installation_existing_supervisor_requires_reviewed_handoff')
         manager=identity(host['user_manager']['path'])
         require(all(manager[k]==host['user_manager'][k] for k in ('device','inode')),'installation_user_manager_replaced')
         manager_path=self.command(['/usr/bin/systemctl','--user','show','--property=ControlGroup','--value']).decode().strip()
@@ -306,7 +325,7 @@ class LinuxBackend:
                     'installation_separate_backing_filesystem_requires_evidence')
         allocation=output['bytes'] if output['state']=='proposed' and not journal.outcome('install:prerequisites') else 0
         from deploy.workload_release import remaining_allocation
-        completed=[name for name in ('copy_bundle','tools','dependencies') if journal.outcome('install:'+name)]
+        completed=[name for name in ('copy_bundle','tools','dependencies','images') if journal.outcome('install:'+name)]
         remaining_bytes=remaining_allocation(self.source['manifest'],self.recipe['installed_files'],completed)
         require(memory>=1024**3 and shutil.disk_usage(self.root.parent).free-allocation-remaining_bytes>=5*1024**3,
                 'installation_admission_floor')
@@ -316,10 +335,18 @@ class LinuxBackend:
         daemon=json.loads(docker(self.source,['info','--format','{{json .}}']))
         require(daemon['ID']==host['daemon_id'] and any('rootless' in row for row in daemon['SecurityOptions']),
                 'installation_daemon_identity_changed')
-        for image in (self.source['manifest']['coordinator_image'],self.source['manifest']['worker_environment']['image_id']):
-            actual=json.loads(docker(self.source,['image','inspect',image]))[0]
-            require(actual['Id']==image and actual['Os']=='linux' and actual['Architecture']=='amd64','installation_image_changed')
-        from deploy.workload_configuration import templates
+        docker_root=Path(daemon['DockerRootDir'])
+        require(docker_root.is_dir() and docker_root.stat().st_dev==self.root.parent.stat().st_dev,
+                'installation_docker_storage_requires_separate_admission_evidence')
+        if 'images' in self.source['manifest']:
+            from deploy.workload_images import tag_guard
+            tag_guard(self.source['manifest']['images'],self._image_tags())
+        else:
+            for image in (self.source['manifest']['coordinator_image'],self.source['manifest']['worker_environment']['image_id']):
+                actual=json.loads(docker(self.source,['image','inspect',image]))[0]
+                require(actual['Id']==image and actual['Os']=='linux' and actual['Architecture']=='amd64','installation_image_changed')
+        from deploy.workload_configuration import templates,verify_private_artifacts
+        verify_private_artifacts(self.source)
         from mldsafail.evaluator.native_workload import NativeRuntime
         native=templates(self.source)['native']
         runtime=NativeRuntime(native)
@@ -329,8 +356,7 @@ class LinuxBackend:
         uid_map=[[int(v) for v in line.split()] for line in Path('/proc/'+str(host['runtime_identity']['daemon_birth']['pid'])+'/uid_map').read_text().splitlines()]
         require(uid_map==self.source['uid_mapping']['uid_map'],'installation_actual_uid_mapping_changed')
         activation=identity(self.recipe['activation_pointer'])
-        outcome=journal.outcome('install:activate')
-        expected=outcome['observed'] if outcome and 'observed' in outcome else self.source['resources']['activation']
+        expected=self.selection_expectation(journal)
         require(all(activation.get(k)==v for k,v in expected.items()),'installation_preflight_activation_changed')
         for kind in ('delegation','output'):
             resource=self.source['resources'][kind]
@@ -340,6 +366,13 @@ class LinuxBackend:
         for path,expected in self.source['inventory']['original_files'].items():
             file=Path(path);require(digest(read_owned_file(file,self.command)[0])==expected,'installation_original_file_drift')
         from deploy.workload_installed import verify_rollback,original_settings
+        if self.source['origin']!='synthetic':
+            from deploy.workload_registry import observe as observe_registry
+            observe_registry(self.source,self.command,installed_units=self.installed_units_selected(journal))
+            from deploy.workload_registry import references
+            references(self.source,self.command,inhibited=bool(journal.outcome('install:inhibit_scheduling')))
+            require(all(identity(path)['state']=='absent' for path in self.source['inventory']['absent_files']),
+                    'installation_previously_absent_reference_created')
         settings=original_settings(self.source)
         expected_settings=self.source['inventory']['manager_settings']
         inhibited=journal.outcome('install:inhibit_scheduling')
@@ -362,6 +395,9 @@ class LinuxBackend:
         if action=='create_release':
             value=identity(self.root); require(value['state']=='absent','installation_partial_destination'); return value
         if action in ('activate','restore_activation'):
+            if action=='activate':
+                from deploy.workload_installed import activation_scheduling,observation_runner
+                with observation_runner(self.command):activation_scheduling(self.proposal)
             actual=identity(self.recipe['activation_pointer'])
             expected=self.source['resources']['activation'] if action=='activate' else self._outcome(journal,'install:activate')
             require(all(actual.get(k)==v for k,v in expected.items() if k!='state'),'installation_activation_identity_changed')
@@ -370,6 +406,9 @@ class LinuxBackend:
             path={'snapshot':journal.root/'original-units.json','copy_bundle':self.bundle,'tools':self.root/'tools','dependencies':self.root/'.venv'}[action]
             before=identity(path);require(before['state']=='absent','installation_destination_not_absent')
             return before
+        if action=='images':
+            from deploy.workload_images import tag_guard
+            actual=self._image_tags();tag_guard(self.source['manifest']['images'],actual);return actual
         if action=='configurations':
             rows={role:identity(row['path']) for role,row in self.source['manifest']['configurations'].items()}
             require(all(row['state']=='absent' for row in rows.values()),'installation_configuration_destination_exists')
@@ -429,8 +468,8 @@ class LinuxBackend:
             for name,row in self.source['manifest']['files'].items():
                 destination=self.bundle/name
                 destination.parent.mkdir(parents=True,mode=0o700,exist_ok=True)
-                data,_=regular(self.recipe['bundle_root'],name)
-                exclusive(destination,data,row['mode'])
+                from deploy.workload_release import copy_regular
+                copy_regular(self.recipe['bundle_root'],name,destination,row)
             exclusive(self.bundle/'manifest.json',canonical(self.source['manifest']))
             sync_directory(self.root)
         elif action=='tools':
@@ -449,6 +488,12 @@ class LinuxBackend:
                           *[str(self.bundle/name) for name in self.source['manifest']['dependencies']]])
             from deploy.workload_dependencies import project_entrypoints
             project_entrypoints(self.bundle,self.root/'.venv')
+        elif action=='images':
+            client=self.root/'offline-docker-client';client.mkdir(mode=0o700,exist_ok=False)
+            exclusive(client/'config.json',canonical(dict(auths={})))
+            self.command(['/usr/bin/sudo','-n','/usr/bin/unshare','--net','--setgid='+str(os.getgid()),'--setuid='+str(os.getuid()),
+                          '/usr/bin/docker','--config',str(client),*self._docker()[1:],
+                          'load','--input',str(self.bundle/self.source['manifest']['images']['archive'])])
         elif action=='configurations':
             from deploy.workload_configuration import materialize,measured_resources
             resources=measured_resources(self.source)
@@ -523,6 +568,9 @@ class LinuxBackend:
         elif action in ('verify_release','verify_paused','verify_cleanup','verify_rollback'):
             require(self.valid_outcome(step,self.observe(step,journal),journal),'installation_verification_failed')
         else: require(False,'installation_unknown_step')
+    def _image_tags(self):
+        rows=self.command(self._docker()+['image','ls','--no-trunc','--format','{{.Repository}}:{{.Tag}} {{.ID}}']).decode().splitlines()
+        return {line.rsplit(' ',1)[0]:line.rsplit(' ',1)[1] for line in rows if not line.startswith('<none>')}
     def _docker(self): return ['/usr/bin/docker','--host','unix://'+self.source['host']['runtime_identity']['socket_birth']['path']]
     def _replace_bound(self,path,data,journal):
         original=json.loads((journal.root/'original-units.json').read_bytes())[str(path)]
@@ -551,6 +599,9 @@ class LinuxBackend:
             return {role:dict(identity=identity(self.root/'tools'/role),
                     inventory_sha256=digest(canonical(verify_tree(self.root/'tools'/role,row['members']))))
                     for role,row in tools.items()}
+        if action=='images':
+            from deploy.workload_images import installed
+            return installed(self.source['manifest']['images'],lambda identifier:json.loads(self.command(self._docker()+['image','inspect',identifier]))[0])
         if action=='dependencies':
             from deploy.workload_dependencies import installed_inventory
             return installed_inventory(self.root/'.venv',interpreter=self.recipe['interpreter']['path']) if (self.root/'.venv').exists() else {}
@@ -575,6 +626,7 @@ class LinuxBackend:
         if action in ('snapshot','create_release'): return value.get('state')=='observed'
         if action=='copy_bundle': return value.get('manifest_sha256')==self.proposal['manifest_sha256']
         if action=='tools': return value==self.observe(step,journal)
+        if action=='images': return value==self.observe(step,journal)
         if action=='dependencies': return value==self.recipe['installed_files']
         if action=='configurations':
             from deploy.workload_configuration import hashes,measured_resources

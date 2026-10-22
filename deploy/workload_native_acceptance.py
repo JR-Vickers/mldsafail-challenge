@@ -138,6 +138,26 @@ def execute(packet_path, authorization_path):
                 require(fixture_events['oom_kill'] > fixture_record['before']['oom_kill'] and
                         client.status()['reason'] == 'operation_oom', 'native_parent_oom_not_observed')
             require(time.monotonic() < deadline, 'native_acceptance_deadline')
+            if case in ('ancestor_limit_change','log_exhaustion','controller_exit'):
+                injection=private_json(Path(record['output'])/'injection.json')
+                require(injection['kind']==case and client.status()['paused'] is True,'native_injection_not_observed')
+                if case=='ancestor_limit_change':
+                    leaf=Path(record['leaf']['path'])
+                    require(birth(leaf)==injection['leaf'] and injection['before']==str(512*1024**2) and
+                            injection['after']==str(256*1024**2) and
+                            client.status()['reason']=='monitor_lost','native_limit_change_not_observed')
+                elif case=='log_exhaustion':
+                    log=Path(record['output'])/'inert.stdout';info=log.stat()
+                    require((info.st_dev,info.st_ino)==(injection['device'],injection['inode']) and
+                            info.st_size==injection['log_limit'] and
+                            client.status()['reason']=='monitor_lost','native_log_exhaustion_not_observed')
+                else:
+                    require(injection['requested_exit_code']==23 and client.status()['reason']=='monitor_lost' and
+                            injection['process']=={key:record['controllers'][-1][key] for key in ('pid','start_ticks')} and
+                            not (Path(record['output'])/'inert.result.json').exists(),'native_abnormal_exit_not_observed')
+                    try:process_birth(injection['process']['pid'])
+                    except FileNotFoundError:pass
+                    else:require(False,'native_abnormal_controller_still_present')
             fixture_path.rmdir()
             results.append(dict(fixture_events=fixture_events, case=case, workload_id=client.token, state=client.status(), scope=record['scope'],
                                 retained_before=before, retained_after=after, monotonic=time.monotonic()))
@@ -146,7 +166,7 @@ def execute(packet_path, authorization_path):
                 require(time.monotonic() < deadline, 'native_acceptance_deadline')
                 client.mutation('commit_intent', binding=binding); client.acknowledge(binding)
             require(time.monotonic() < deadline, 'native_acceptance_deadline')
-        # Native receipt covers these three actual fixtures only. Other controls
+        # Native receipt covers only the explicitly selected actual fixtures. Other controls
         # still need their separately reviewed local/native records; this never
         # manufactures a complete v4 operational-controls receipt.
         require(time.monotonic() < packet_deadline, 'native_acceptance_deadline')

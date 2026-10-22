@@ -22,7 +22,7 @@ HEX = re.compile('[a-f0-9]{64}')
 
 
 def absolute(value):
-    require(type(value) is str and re.fullmatch(r'/[A-Za-z0-9_./@-]+',value) and
+    require(type(value) is str and re.fullmatch(r'/(?:[A-Za-z0-9_./@:+-]|\\x[0-9A-Fa-f]{2})+',value) and
             '..' not in Path(value).parts and len(value)<4096,'v3_path_invalid')
     return value
 
@@ -78,7 +78,7 @@ def mapping_valid(mapping, uid):
 
 
 def bootstrap(inspection, *, now=None):
-    from deploy.workload_schedule_v3 import proposal as schedule
+    from deploy.workload_schedule_v3 import proposal as schedule,unit_name
     fields(inspection, 'schema origin captured_at host installation manifest recipe resources scheduling '
            'unit_directories permission_root containers inventory admission rollback retained_services uid_mapping',
            'v3_bootstrap_fields_missing')
@@ -111,7 +111,7 @@ def bootstrap(inspection, *, now=None):
             all(manifest['files']['generated/'+name]['sha256'] == hashlib.sha256(data.encode()).hexdigest()
                 for name, data in units.items()), 'v3_generated_units_changed')
     recipe = inspection['recipe']
-    fields({k:v for k,v in recipe.items() if k!='bootstrap_interpreter'}, 'bundle_root artifact_root interpreter installer dependency_plan installed_files '
+    fields({k:v for k,v in recipe.items() if k not in ('bootstrap_interpreter','private_artifacts')}, 'bundle_root artifact_root interpreter installer dependency_plan installed_files '
            'configuration_sources configuration_templates activation_pointer proposal_path journal_root', 'v3_recipe_incomplete')
     for key in ('bundle_root', 'artifact_root', 'activation_pointer', 'proposal_path', 'journal_root'):
         absolute(recipe[key])
@@ -151,6 +151,13 @@ def bootstrap(inspection, *, now=None):
         hashed(record['sha256'])
         require(type(record['bytes']) is int and record['bytes']>=0,'v3_dependency_file_size_invalid')
         require(record['mode'] in (0o600, 0o644, 0o700, 0o755), 'v3_dependency_file_mode_invalid')
+    release_path=Path(inspection['resources']['release']['path'])
+    require(all(row['path']==str(release_path/'config'/(role+'.json')) for role,row in manifest['configurations'].items()) and
+            installation['configuration']==manifest['configurations']['supervisor']['path'],'v3_configuration_final_paths_required')
+    if inspection['origin']!='synthetic':
+        require('images' in manifest,'v3_offline_images_required')
+        from deploy.workload_configuration import validate_runtime_templates
+        validate_runtime_templates(inspection)
     configs = recipe['configuration_sources']
     require(set(configs) == set(manifest['configurations']), 'v3_private_configuration_missing')
     for path in configs.values(): absolute(path)
@@ -209,9 +216,21 @@ def bootstrap(inspection, *, now=None):
             type(admission['backing_free']) is int and admission['backing_free']-allocation >= 5*1024**3,
             'v3_admission_floor')
     inventory = inspection['inventory']
-    fields(inventory, 'receipt_sha256 errors truncations unknown_owners unresolved_references raw_sha256 original_files manager_settings',
+    fields({key:value for key,value in inventory.items() if key not in ('manager_units','execution_references','absent_files')}, 'receipt_sha256 errors truncations unknown_owners unresolved_references raw_sha256 original_files manager_settings',
            'v3_scheduling_inventory_missing')
     hashed(inventory['receipt_sha256']); hashed(inventory['raw_sha256'])
+    if inspection['origin']!='synthetic':
+        from deploy.workload_registry import validate as validate_registry
+        require('manager_units' in inventory,'v3_manager_registry_missing');validate_registry(inspection)
+        from deploy.workload_registry import REFERENCE_FIELDS
+        refs=inventory.get('execution_references',{})
+        require(set(refs)==set(inspection['scheduling']['owners']) and
+                all(set(row)==set(REFERENCE_FIELDS) and all(type(value) is str for value in row.values()) for row in refs.values()),
+                'v3_execution_references_missing')
+        require(type(inventory.get('absent_files')) is list,'v3_absent_reference_files_missing')
+        for path in inventory['absent_files']:absolute(path)
+        from deploy.workload_registry import validate_reference_files
+        validate_reference_files(inspection)
     require(type(inventory['original_files']) is dict and inventory['original_files'],'v3_original_scheduling_files_missing')
     for path,digest in inventory['original_files'].items(): absolute(path);hashed(digest)
     require(all(type(inventory[k]) is int and inventory[k] == 0 for k in
@@ -225,7 +244,7 @@ def bootstrap(inspection, *, now=None):
                 row['UnitFileState'].startswith('enabled')==owner['enabled'] and
                 row['UnitFileState'].startswith('masked')==owner['masked'] and
                 (row['Restart'] or 'no')==owner['restart'] and
-                sorted(row['Triggers'].split())==sorted(owner['triggers']),'v3_manager_settings_inconsistent')
+                sorted(row['Triggers'].split())==sorted(unit_name(trigger,inspection['scheduling']['owners'][trigger]) for trigger in owner['triggers']),'v3_manager_settings_inconsistent')
     scheduling = schedule(inspection['scheduling'], host['uid'], inspection['permission_root'], inspection['unit_directories'])
     require(inspection['scheduling']['receipt_sha256'] == inventory['receipt_sha256'], 'v3_inventory_receipt_changed')
     containers = inspection['containers']
@@ -309,13 +328,20 @@ def installed(inspection, proposal, *, now=None):
     for name, row in inspection['resources'].items():
         observed(row)
         previous = source['resources'][name]
-        if previous['state'] == 'observed' and name != 'activation':
+        if previous['state'] == 'observed' and name not in ('activation','delegation'):
             require(row == previous, 'v3_observed_resource_changed:'+name)
         else:
             require(row['path'] == previous['path'], 'v3_installation_transition_path_changed:'+name)
         if name == 'activation':
             require(row.get('target') == source['resources']['release']['path'], 'v3_activation_target_changed')
         if name == 'delegation':
+            if previous['state']=='observed':
+                require(all(row.get(key)==value for key,value in previous.items() if key!='enforced_limits'),'v3_observed_delegation_changed')
+            limits=row.get('enforced_limits',{})
+            require(set(limits)=={'memory.max','memory.swap.max','pids.max','cpu.max'} and
+                    limits['memory.max'].isdigit() and 0<int(limits['memory.max'])<=source['installation']['memory_ceiling'] and
+                    limits['memory.swap.max']=='0' and limits['pids.max']=='448' and limits['cpu.max']=='100000 100000',
+                    'v3_installed_aggregate_limits_changed')
             require(set(row.get('controllers', []))>={'cpu','memory','pids'} and
                     len(row.get('ancestors',[]))==len(previous['ancestors']),'v3_installed_delegation_changed')
             for actual,expected in zip(row['ancestors'],previous['ancestors']):

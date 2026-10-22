@@ -143,3 +143,33 @@ def test_reconciliation_binds_exact_proposal_bytes(tmp_path):
     changed=bootstrap(changed['identities'],now=1100)
     with pytest.raises(WorkloadBlocked,match='proposal_bytes_changed'):
         reconcile(changed,raw,review,authority(reconcile=True),Backend(tmp_path))
+
+
+def test_final_scheduler_drift_blocks_activation_before_pointer_change(tmp_path,monkeypatch):
+    from deploy.workload_installation import LinuxBackend
+    import deploy.workload_installed as installed
+    proposal,raw,review,authority=packet(tmp_path);backend=LinuxBackend(proposal)
+    pointer=tmp_path/'active';pointer.symlink_to('/original')
+    backend.recipe['activation_pointer']=str(pointer)
+    journal=Journal(tmp_path/'journal',digest(raw))
+    def drift(proposal):raise WorkloadBlocked('registry_unit_inventory_changed')
+    monkeypatch.setattr(installed,'activation_scheduling',drift)
+    step=dict(id='install:activate',action='activate')
+    with pytest.raises(WorkloadBlocked,match='unit_inventory_changed'):backend.before(step,journal)
+    assert pointer.readlink()==__import__('pathlib').Path('/original')
+    assert not list(tmp_path.glob('active.*.tmp'))
+
+
+def test_rollback_resume_uses_latest_acknowledged_selection_and_units(tmp_path):
+    from deploy.workload_installation import LinuxBackend,identity
+    proposal,raw,review,authority=packet(tmp_path);backend=LinuxBackend(proposal)
+    journal=Journal(tmp_path/'journal',digest(raw))
+    pointer=tmp_path/'active';pointer.symlink_to('/new');selected=identity(pointer)
+    journal.append('outcome',step='install:activate',observed=selected)
+    journal.append('outcome',step='install:units',observed={})
+    assert backend.selection_expectation(journal)==selected and backend.installed_units_selected(journal)
+    pointer.unlink();pointer.symlink_to('/previous');restored=identity(pointer)
+    journal.append('outcome',step='rollback:restore_activation',observed=restored)
+    journal.append('outcome',step='rollback:restore_units',observed={})
+    assert backend.selection_expectation(journal)==identity(pointer)
+    assert not backend.installed_units_selected(journal)

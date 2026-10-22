@@ -39,3 +39,25 @@ def test_unsupported_dispositions_block(mutation):
     else: owner.update(uid=1001, account='other')
     with pytest.raises(WorkloadBlocked):
         proposal(data, 1000, '/srv/gate/paused', {'user:1000': '/home/operator/.config/systemd/user'})
+
+
+def test_same_named_units_in_distinct_managers_keep_distinct_owners():
+    data=record();owner=data['owners']['compute.service']
+    data['units']=['user:1000:compute.service','system:0:compute.service']
+    data['computational_units']=list(data['units'])
+    data['owners']={'user:1000:compute.service':dict(owner),
+                    'system:0:compute.service':dict(owner,manager='system',uid=0,account='root')}
+    result=proposal(data,1000,'/srv/gate/paused',{'user:1000':'/home/operator/.config/systemd/user','system:0':'/etc/systemd/system'})
+    assert len(result['resources'])==2
+    assert {row['path'] for row in result['resources']}=={
+        '/home/operator/.config/systemd/user/compute.service.d/90-mldsafail-paused.conf',
+        '/etc/systemd/system/compute.service.d/90-mldsafail-paused.conf'}
+    assert all('user:1000:compute.service' not in row and 'system:0:compute.service' not in row
+               for row in result['commands_after_exclusive_resource_creation'])
+
+
+def test_qualified_owner_identifier_cannot_redirect_to_another_manager():
+    data=record();data['units'][0]='system:0:compute.service';data['computational_units']=['system:0:compute.service']
+    data['owners']['system:0:compute.service']=data['owners'].pop('compute.service')
+    with pytest.raises(WorkloadBlocked,match='owner_identifier_changed'):
+        proposal(data,1000,'/srv/gate/paused',{'user:1000':'/home/operator/.config/systemd/user'})

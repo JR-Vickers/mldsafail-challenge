@@ -68,4 +68,5 @@ def render_v3(installation):
     units=render(installation)
     name='mldsafail-workload-supervisor.service'
     units[name]=units[name].replace('UMask=0077\n','UMask=0077\nEnvironment=PYTHONDONTWRITEBYTECODE=1\n')
+    units[name]=units[name].replace('ExecStart=', 'ExecStartPre='+installation['python']+' -m deploy.workload_prerequisites --enable-owned-delegation '+installation['heavy_path']+' --uid '+str(installation['uid'])+'\nExecStart=',1)
     return units

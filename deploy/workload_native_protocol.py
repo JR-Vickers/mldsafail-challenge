@@ -11,7 +11,7 @@ import stat
 
 from mldsafail.evaluator.native_workload import require
 
-CASES = ('lifecycle', 'parent_oom', 'supervisor_death')
+CASES = ('lifecycle', 'parent_oom', 'supervisor_death','ancestor_limit_change','log_exhaustion','controller_exit')
 DEFAULT_SEQUENCE = [dict(case='lifecycle', seconds=45), dict(case='parent_oom', seconds=60),
                     dict(case='supervisor_death', seconds=60)]
 

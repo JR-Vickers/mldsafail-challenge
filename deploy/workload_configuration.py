@@ -68,3 +68,59 @@ def materialize(source,resources):
 
 def hashes(source,resources):
     return {role:digest(data) for role,data in materialize(source,resources).items()}
+
+
+def validate_runtime_templates(source):
+    """Bind executable configuration edges and retained private signing material."""
+    from pathlib import Path
+    from mldsafail.evaluator.native_workload import NativeRuntime
+    rows=templates(source);native=rows['native'];supervisor=rows['supervisor'];controller=rows['controller']
+    paths={role:row['path'] for role,row in source['manifest']['configurations'].items()}
+    installation=source['installation'];recipe=source['recipe']
+    NativeRuntime(native)  # Structural validation only; no command or mutation.
+    require(set(supervisor)=={'root','socket','helper','roles'} and
+            supervisor['root']==installation['gate_root'] and supervisor['socket']==source['resources']['socket']['path'] and
+            supervisor['helper']==[installation['python'],'-m','mldsafail.evaluator.native_workload','--configuration',paths['native']] and
+            supervisor['roles'] and all(name in native['roles'] and value=={'role':name} for name,value in supervisor['roles'].items()),
+            'configuration_supervisor_edges_changed')
+    require(set(controller)=={'native_configuration','identity','epoch_path','worker_image','signing_key'} and
+            controller['native_configuration']==paths['native'] and controller['worker_image']==source['manifest']['worker_environment']['image_id'] and
+            native['controller_configuration']==paths['controller'] and
+            native['controller_configuration_sha256']==source['manifest']['configurations']['controller']['sha256'] and
+            native['root']==installation['gate_root'] and native['heavy']==installation['heavy_path'] and
+            native['output']==source['resources']['output']['path'] and native['python']==installation['python'] and
+            native['python_sha256']==recipe['interpreter']['sha256'] and
+            native['worker']['image']==source['manifest']['worker_environment']['image_id'] and
+            native['boot_id']==source['host']['boot_id'] and native['daemon_id']==source['host']['daemon_id'] and
+            native['docker']==['/usr/bin/docker','--host','unix://'+source['host']['runtime_identity']['socket_birth']['path']] and
+            native['retained_services']=={role:row['id'] for role,row in source['retained_services'].items()} and
+            controller['identity'].get('benchmark_version')=='0.5.0' and
+            controller['identity'].get('evaluator_fingerprint')==source['manifest']['evaluator_fingerprint'],
+            'configuration_native_controller_edges_changed')
+    from deploy.workload_dependencies import entrypoint_code
+    wrapper=entrypoint_code(installation['release'],installation['python'],'mldsafail.evaluator.workload_router','main')
+    require(source['manifest']['files'].get('bin/docker')==dict(sha256=digest(wrapper),bytes=len(wrapper),mode=0o700),
+            'configuration_router_artifact_missing')
+    require(native['router']==str(Path(installation['release'])/'bin/docker') and
+            native['environment'].get('PYTHONPATH')==installation['release']+'/src:'+installation['release'],
+            'configuration_frozen_execution_paths_changed')
+    require(set(recipe.get('private_artifacts',{}))==set(source['manifest'].get('private_artifacts',{}))=={'signing_key'},
+            'configuration_private_artifact_missing')
+    key=recipe['private_artifacts']['signing_key'];public=source['manifest']['private_artifacts']['signing_key']
+    require(key.get('state')=='observed' and key.get('path')==controller['signing_key'] and
+            key.get('uid')==source['host']['uid'] and key.get('mode')==0o600 and
+            all(key.get(name)==public[name] for name in ('sha256','bytes')) and
+            all(type(key.get(name)) is int and key[name]>=0 for name in ('device','inode')) and key['inode']>0,
+            'configuration_private_artifact_not_bound')
+
+
+def verify_private_artifacts(source):
+    from pathlib import Path
+    from deploy.workload_installation import identity
+    from deploy.workload_release import regular
+    for role,expected in source['recipe'].get('private_artifacts',{}).items():
+        path=Path(expected['path']);data,mode=regular(path.parent,path.name);actual=identity(path)
+        require(all(actual.get(key)==expected[key] for key in ('device','inode','uid','mode','sha256')) and
+                len(data)==expected['bytes'] and mode==0o600,'configuration_private_artifact_changed')
+    require(source['origin']=='synthetic' or set(source['recipe'].get('private_artifacts',{}))=={'signing_key'},
+            'configuration_private_artifact_missing')

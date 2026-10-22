@@ -88,6 +88,7 @@ def installed(proposal):
     for index,parent in enumerate(resources['delegation']['ancestors'],70):
         if parent['state']=='proposed':
             parent.pop('creation');parent.pop('preserve');parent.update(state='observed',device=1,inode=index)
+    resources['delegation']['enforced_limits']={'memory.max':str(source['installation']['memory_ceiling']),'memory.swap.max':'0','pids.max':'448','cpu.max':'100000 100000'}
     resources['activation'].update(inode=40,target=resources['release']['path'])
     return dict(schema=INSTALLED,origin='synthetic',captured_at=1100,proposal_sha256=sha(proposal),host=deepcopy(source['host']),
         resources=resources,release_sha256=proposal['manifest_sha256'],
