@@ -1,0 +1,153 @@
+{
+  "checks": {
+    "diff_check_passed": true,
+    "focused_linux_passed": 72,
+    "kernel_postflight": {
+      "all_fixture_services_inactive": true,
+      "initial_fixture_failures": 2,
+      "memory_max": 67108864,
+      "passed": true,
+      "pids_max": 32
+    },
+    "local_markdown_links_checked": 59,
+    "make_check": {
+      "contract_passed": 8,
+      "passed": 1816,
+      "skipped": 56
+    }
+  },
+  "date": "2026-10-22",
+  "evidence_sha256": {
+    "host-refresh-6b00f5d18c19462da885f0cbfa95a210/raw.json": "e8221e537e2be243a1ad62f05bade602b448930c9b4de6297b5da8bfaa40f7d8",
+    "host-refresh-6b00f5d18c19462da885f0cbfa95a210/record.json": "697ec25b7c58b2576a9c31e96e03aba203c06badd6951e588e966262c28c244f",
+    "host-refresh-6b00f5d18c19462da885f0cbfa95a210/stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "host-refresh-b267b8ccdc2c4dda932665603a96ee23/raw.json": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "host-refresh-b267b8ccdc2c4dda932665603a96ee23/record.json": "5bae3fc9e51ff37d9310bb002e80b317b9a81fd839cc894290badbb2129d87fe",
+    "host-refresh-b267b8ccdc2c4dda932665603a96ee23/stderr": "45ecdeac66be9dd383d3c28558759a99b037a2d19bfa4f8881022f4633cadfdb",
+    "host-refresh-ddd7108af1fd4811996f0b335f4256b2/raw.json": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "host-refresh-ddd7108af1fd4811996f0b335f4256b2/record.json": "fc93bd18f6399b8ca3f7fce7cbd1ff9914367679898ec2abdb14c6701c323945",
+    "host-refresh-ddd7108af1fd4811996f0b335f4256b2/stderr": "03c1e31d9c6084fd0431f00080001e9583df1e4ca886208432379ae7d0971386",
+    "host-refresh-eae6f3099bc346d69b18663a760bbb2e/record.json": "e88ad3723fcb23b6c014cdc6a12c58b550918fcdf086ab4d1a61a471a10e78ad",
+    "mutation-check-624ddb6c57eb47ebb73c0264c3443bb5-retained-source-manifest.json": "78d5db9500668c6af6738af86d0d8782cd0b45df8117665df51b3935cc36532e",
+    "mutation-check-624ddb6c57eb47ebb73c0264c3443bb5.json": "3f32a1cbe7648d0907259746a9f96807296c426262767d71846f672a872b64a5",
+    "mutation-check-65a35e0261194fd296291c63fe91baa3-retained-source-manifest.json": "a4aa83154946f532730ba8a24cea1030d75ce805022757b9972265232788384c",
+    "mutation-check-65a35e0261194fd296291c63fe91baa3.json": "143e4bb345e65da25a44288172ea0733af437686524d2b13467ae7c5239b54ea",
+    "mutation-check-current.json": "07ae8b17b0e6861d672724ba859793643d8f080c8acf4433d3ebb1249ea4ebbb",
+    "mutation-check-f5a3afaac2124bb3ac0194d1ba8ee1cd-binding.json": "07ae8b17b0e6861d672724ba859793643d8f080c8acf4433d3ebb1249ea4ebbb",
+    "mutation-check-f5a3afaac2124bb3ac0194d1ba8ee1cd-retained-source-manifest.json": "52b9946522bd1b48a1703297f81b4aab0b66fe53d0dc3eee0918c0b3365190b0",
+    "mutation-check-f5a3afaac2124bb3ac0194d1ba8ee1cd.json": "27f9e00fea7147542d44907322ace1b8248c2904438c95ddc69bd61a3ab06799",
+    "mutation-guest-poweroff.json": "9d47dbbbe073f34bf20bbb0e6cea6eca3f98b2cb53a1b000b61b3e6f3192e8a1",
+    "mutation-guest-stopped.json": "5927fc31916ecaeff085832b782d40df4336db1f97ae25afbc300ad59c76646a",
+    "mutation-kernel-postflight-corrected-result.json": "66b2ded7a2386ceb080015cfdece98f49294406dfd48a36bbb85c31d75c1fdcc",
+    "mutation-kernel-postflight-corrected.py": "e09c40e69f30cc1b7146bb7eedfa5eaedd9c4f1869c1af1bfbe4252d381c640f",
+    "mutation-kernel-postflight-delegated-result.json": "264313dffe8748177c52cbe5ae09d1cbf0cf79f4d1ace7fac9d5a55ce27a6be8",
+    "mutation-kernel-postflight-delegated.py": "c19fd3184768977d7259a9992bd487fff1621f696fec3c7124a89cbd25f980e3",
+    "mutation-kernel-postflight-result.json": "d2dde11ca8125bade757e881ea63c2f1d32c5ecf77e3f9046ee271556bd45544",
+    "mutation-kernel-postflight.py": "269334da35368313efa1e5311493caede27aa631b9433f0779040f6f3c28c29a",
+    "mutation-make-check-20261022.log": "749d8a25c9a93dc28b948183dc9f2d8675041b8d93b3ad0245f68b585bacad18",
+    "mutation-make-check-final-20261022.log": "34676b0fc6647cc72e8ca85e34e44722d1c6916d46deb4ed3d0651fb0608baf3",
+    "mutation-native-environment-inventory-20261022.json": "dca726ba07b211bc1edf07ca61dd8e43fb93499a07c5bee88de80c16a90ace0c",
+    "mutation-retirement-guest-result.json": "f89a3dddf371be94b384ef579c811f77c6400bd15aceec9378ff7e9af3d501e6",
+    "mutation-retirement-guest-script.py": "b9e9a57237fcaa7eefca6ed8a322c59d91db341ecda85ce601a7463392cf821a",
+    "mutation-retirement-intent.json": "79cbcf7193d41a74176d601164a564b70b9e35ae8cee728b7f211291849747f3",
+    "mutation-retirement-local-result.json": "afe84bb4b4a75b34d61d209c2aeab21e4d0c80acee0fa7fca9aa289915f64189",
+    "ssh-diagnostic-3a6b9f26647e40ec9ad4f6f9618d5aa9/record.json": "e17eea921f73c64e954567f4fdccd44df8f692369f01e09ddaba60eb89dd7424",
+    "ssh-diagnostic-4c7ffc3182164c6782d9d8611a2a6e2c/record.json": "ac5f9ce781214c3b78ff61acd907f2d48379947d7a28da94d1aff9ff8717c947",
+    "ssh-diagnostic-60640a3c11254de08fb88da72d851da5/record.json": "9ae49b4b1f8c89a31108c59dacb9f498a2333029bed22c6b62ed9df32883d370"
+  },
+  "host_facts": {
+    "collector_command_blockers": [
+      "at",
+      "cron",
+      "privileged_visibility"
+    ],
+    "collector_sha256": "3f81ea33168f06c8dc63da8080d732e041495c1f63f76170f9652dea19b7834a",
+    "endpoint_confirmed_by_owner": true,
+    "fresh_collection_succeeded": true,
+    "latest_private_record": "host-refresh-6b00f5d18c19462da885f0cbfa95a210/record.json",
+    "pin_sha256": "ee77716a0917eae7a40b7477826ddc680feecff1e015b0b5f5bb8186668a3720",
+    "privileged_observations_missing": true,
+    "privileged_visibility": "password_required",
+    "read_only_only": true,
+    "ssh": {
+      "client_only_options": [
+        "IPQoS=none",
+        "KexAlgorithms=curve25519-sha256"
+      ],
+      "endpoint_confirmed_by_owner": true,
+      "failed_attempts_retained": true,
+      "host_pin_enforced": true,
+      "server_settings_changed": false
+    }
+  },
+  "rehearsal": {
+    "complete_runtime_passed": false,
+    "deadline_changed": false,
+    "helper_deadline_seconds": 0.8,
+    "native_host_identified": false,
+    "origin": "local_linux_emulated_x86_64",
+    "retained_cold_helper_seconds": 1.8237351679999847
+  },
+  "retention": {
+    "driver_disposition": "running_assertion_after_requested_poweroff",
+    "driver_returncode": 1,
+    "guest_retirement_blocker": "unprivileged_proc_visibility",
+    "guest_source_copies_retained": 3,
+    "local_archives_removed": 3,
+    "local_bytes_removed": 10301440,
+    "owner": "repository_owner_and_current_task",
+    "qemu_reaped": true,
+    "review_by": "2026-10-29",
+    "source_manifests_retained": true,
+    "unknown_resources_preserved": true
+  },
+  "review": {
+    "full_proposal_approved": false,
+    "implemented_by": "root_agent",
+    "reviewed_by": "independent_proposal_review_agent",
+    "scope": "exact_source_hashes_above",
+    "scoped_concrete_findings": []
+  },
+  "schema": "mldsafail.protected-runtime-mutation-checkpoint.v3",
+  "scope": {
+    "benchmark_version": "0.5.0-preview",
+    "budget_usd": 0,
+    "installation_authorization_requested": false,
+    "native_acceptance": false,
+    "publication": false,
+    "scientific_evaluations": 0,
+    "vps_mutations": false
+  },
+  "source_commit": "b6fe89c1d66ee0389b0f6dc0a16878ebe0675f5e",
+  "source_commits": [
+    "189c517",
+    "b6fe89c"
+  ],
+  "source_sha256": {
+    "deploy/workload_installation.py": "8c394d03311e7f3bc5a9745c4fb1efd5b1d3b01caaecc3266b96aa11b22aca2d",
+    "deploy/workload_mutation.py": "3671430e8707d8fe626175ab7fbb009b58107357cde6be790e409b73dedc5d18",
+    "deploy/workload_observation.py": "f3b0e1c1e3c809a74071b205aa7dd5f5e1878d11796201cd37ba11084755274a",
+    "deploy/workload_prerequisites.py": "8557844e14d502ec8dd5301c7ea3b70b48db5dc59679a64ebf9205380f1d5ea5",
+    "deploy/workload_watchdog.py": "98fafc2dbce5d281361f401917c54ae706f0eddf8ec764bb0ed338c8b2618f82",
+    "tests/test_workload_installation_process.py": "b3d4d001606a6384ad7f9cecef86b855e69022e84605855c04b861f1fb17d624",
+    "tests/test_workload_mutation.py": "9eab12f72f76a6876eae4ba433c729833e72537a4583ffb6857258633f88e302",
+    "tests/test_workload_prerequisite_receipt.py": "6efbf3a2e7e2e595aeecf75c1181a67d5a888f6817d321f40a250572c2f4fe22",
+    "tests/test_workload_watchdog.py": "d80d271d6fe9f282d90df8d3677c4d96656b267701deefc4e353bacd065ac70c"
+  },
+  "status": {
+    "host_facts": "read_only_refresh_passed_privileged_observations_missing",
+    "implementation": "incomplete",
+    "independent_review": "scoped_changes_reviewed_full_proposal_unapproved",
+    "rehearsal": "focused_pass_full_runtime_blocked"
+  },
+  "unfinished": [
+    "complete_reusable_prior_installation_rollback_fixture",
+    "full_concrete_installation_and_handoff_rehearsal",
+    "recoverable_substeps_across_every_installation_mutation",
+    "complete_absent_partial_replaced_reconciliation_and_continuation",
+    "remaining_executable_control_runners",
+    "complete_bounded_acceptance_packets",
+    "privileged_host_scheduling_delegation_uid_storage_facts",
+    "frozen_complete_installation_proposal_and_independent_review"
+  ]
+}

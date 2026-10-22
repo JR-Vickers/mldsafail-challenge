@@ -2,7 +2,9 @@
 
 Status: in progress; no installation or native-test authority granted.
 
-Latest [installation proposal checkpoint](acceptance/production-preparation/protected-runtime-proposal-checkpoint-20261022.md) separates implementation, rehearsal, privileged facts and review. Runtime integration does not complete deployment acceptance. The unchanged 0.8-second helper deadline blocks complete runtime rehearsal on the available emulator; remaining independent implementation is explicitly listed.
+Latest [mutation and termination checkpoint](acceptance/production-preparation/protected-runtime-mutation-evidence-20261022.md) adds durable prerequisite substeps, failed-command receipts, incremental descendant identities and independent final cgroup checks. Complete installation recovery and scenario coverage remain unfinished; scoped review is not full-proposal approval.
+
+Preceding [installation proposal checkpoint](acceptance/production-preparation/protected-runtime-proposal-checkpoint-20261022.md) separates implementation, rehearsal, privileged facts and review. Runtime integration does not complete deployment acceptance. The unchanged 0.8-second helper deadline blocks complete runtime rehearsal on the available emulator; remaining independent implementation is explicitly listed.
 
 The [artifact-hardening checkpoint](acceptance/production-preparation/protected-runtime-artifact-hardening-20261021.md) records positive scheduling permission, wheel integrity checks and a tracked
 full-runtime inclusion policy. The end-to-end implementation remains incomplete.
