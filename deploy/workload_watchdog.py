@@ -52,6 +52,27 @@ def postflight_observation(raw,protocol):
     return row
 
 
+
+def fixture_termination(protocol):
+    """Measure kernel emptiness independently of the postflight command."""
+    from mldsafail.evaluator.native_workload import values
+    scope=Path(protocol['fixture_cgroup'])
+    require(not any(parent.is_symlink() for parent in (scope,*scope.parents)),
+            'watchdog_fixture_symlink')
+    actual=identity(scope)
+    if actual['state']=='absent':
+        # Kernel cgroups can only be removed after their processes are gone.
+        return dict(state='removed',path=str(scope))
+    expected=protocol['identities']['fixture_birth']
+    require(all(actual.get(key)==expected.get(key) for key in ('path','device','inode')),
+            'watchdog_fixture_birth_changed')
+    events=values(scope/'cgroup.events')
+    require(events.get('populated')==0 and not (scope/'cgroup.procs').read_text().strip(),
+            'watchdog_fixture_still_populated')
+    require(identity(scope)==actual,'watchdog_fixture_birth_changed')
+    return dict(state='empty',identity=actual,events=events)
+
+
 def native_authority(protocol,review_path,authorization_path,root):
     """Bind separate native-test authority to exact packet bytes, host and review."""
     from deploy.workload_installation import private
@@ -176,6 +197,8 @@ def execute(protocol,root,*,birth=process_birth,review_path=None,authorization_p
             if postflight_ok:
                 postflight=postflight_observation((root/(str(len(records)-1)+'-command.log')).read_bytes(),protocol)
                 exclusive(root/'postflight-observation.json',canonical(postflight))
+                if protocol['origin']!='synthetic':
+                    exclusive(root/'fixture-termination.json',canonical(fixture_termination(protocol)))
     except BaseException as error:
         uncertain=True;postflight_ok=False
         exclusive(root/'cleanup-failure.json',canonical(dict(type=type(error).__name__,message=str(error))))

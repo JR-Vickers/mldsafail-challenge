@@ -135,3 +135,21 @@ def test_stalled_wrapper_preserves_incremental_births_and_blocks_ownership(tmp_p
             try:actual=process_birth(birth['pid'])
             except FileNotFoundError:actual=None
             if actual==birth:os.kill(birth['pid'],signal.SIGKILL)
+
+
+@pytest.mark.parametrize('mode',['empty','removed','populated','replaced'])
+def test_postflight_requires_actual_owned_cgroup_termination(tmp_path,monkeypatch,mode):
+    import deploy.workload_watchdog as watchdog
+    from deploy.workload_installation import identity
+    scope=tmp_path/'fixture';scope.mkdir()
+    (scope/'cgroup.events').write_text('populated '+('1' if mode=='populated' else '0')+'\n')
+    (scope/'cgroup.procs').write_text('123\n' if mode=='populated' else '')
+    data=protocol();data['fixture_cgroup']=str(scope)
+    data['identities']['fixture_birth']=identity(scope)
+    if mode=='removed':
+        (scope/'cgroup.events').unlink();(scope/'cgroup.procs').unlink();scope.rmdir()
+    if mode=='replaced':data['identities']['fixture_birth']['inode']+=1
+    if mode in ('populated','replaced'):
+        with pytest.raises(WorkloadBlocked,match='populated|birth_changed'):watchdog.fixture_termination(data)
+    else:
+        assert watchdog.fixture_termination(data)['state']==('empty' if mode=='empty' else 'removed')
