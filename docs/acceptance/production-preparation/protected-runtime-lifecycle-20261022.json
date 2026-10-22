@@ -1,0 +1,52 @@
+{
+  "benchmark_version": "0.5.0-preview",
+  "budget_usd": 0,
+  "checks": {
+    "linux_focused_passed": 167,
+    "make_check": {
+      "contract_passed": 8,
+      "passed": 1713,
+      "skipped": 46
+    }
+  },
+  "date": "2026-10-22",
+  "evidence": {
+    "fourth-generation-poweroff-request.json": "acc9490b8403d0032b0ecc21b6c83b91b76feabb8a51f11a4df86b4efd56b366",
+    "guest-records-3-collection.json": "cb33c7edbda83e515f0d1a87d2f16398024636ddb7d9a6227326d5e7e2a5cebc",
+    "linux-focused-tests-attempt-3.json": "1a08f89676fbcdfd968b54cb0ac78be204ba5b4804a84422d9f6207c3f3b605f",
+    "linux-focused-tests-attempt-4.json": "69fefa74c167beb54b58fbbf7f8cf8cae66a6eb28576daabf2cb520cac1a50ca",
+    "make-check-16.log": "44a9361a4b3cd7b0b6822f603086074a102da75590298a87c8aa895ab394e1e9",
+    "postgres-image-inspection-1.json": "0fbcef4ddb32d588630586f60611a2dafd62e3e21208dd62f9d1e5b4c2669737",
+    "postgres-image-pull-attempt-1.json": "286e2072f7fb7d14ca603569d783050af82dd4b4868aee1d2f51ca5898f2d15a",
+    "supervisor-condition-attempt-1.json": "5ba3019e1f2be15b2503a4668ddd6a6bc78f06d236a477d97c26671137eeebc1",
+    "supervisor-condition-attempt-2.json": "29a8b31cda5037ab7c76f3d0bdce1289caf22dce5a07ee28f62d97784354113f"
+  },
+  "fixture_shutdown": {
+    "generation_stopped_receipt_sha256": "1fd32eddc8b2a9a12c6828099a1c6b1d74b9eb706710ea93507a27170f02c793",
+    "graceful_guest_poweroff": true,
+    "qemu_reaped": true,
+    "returncode": 0,
+    "temporary_retention": "owned inactive VM and fixture artifacts for continuing installation rehearsal; review by 2026-10-29"
+  },
+  "remaining": [
+    "existing-supervisor quiescent handoff",
+    "complete concrete installation/reconciliation/rollback rehearsal",
+    "complete private configuration and rollback fixture preparation",
+    "all required acceptance runners and watchdog integration",
+    "privileged host facts",
+    "complete independent source/release/proposal/coverage review"
+  ],
+  "schema": "mldsafail.protected-runtime-lifecycle-progress.v3",
+  "scope": {
+    "installed_native_acceptance": false,
+    "public_listeners": 0,
+    "scientific_evaluations": 0,
+    "vps_mutations": false
+  },
+  "status": {
+    "host_facts": "privileged_collection_outstanding",
+    "implementation": "unfinished",
+    "rehearsal": "focused_local_linux_pass_full_engine_outstanding",
+    "review": "incremental_fixes_reviewed_no_full_plan_approval"
+  }
+}

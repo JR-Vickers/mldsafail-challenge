@@ -77,7 +77,7 @@ The [owner-console procedure](PROTECTED_RUNTIME_OWNER_COLLECTION.md) identifies
 the outstanding privileged collection. Installation remains blocked; do not
 request execution approval against incomplete source artifacts.
 
-Current implementation progress: [offline images and scheduling bindings](acceptance/production-preparation/protected-runtime-images-20261022.md). Fresh offline Linux packaging and actual image/socket rehearsals pass; complete concrete installation/rollback, existing-supervisor handoff, native coverage, privileged host facts and full proposal review remain incomplete.
+Current implementation progress: [supervisor startup and partial rollback](acceptance/production-preparation/protected-runtime-lifecycle-20261022.md). Fresh offline Linux packaging and actual image/socket rehearsals pass; complete concrete installation/rollback, existing-supervisor handoff, native coverage, privileged host facts and full proposal review remain incomplete.
 
 The [next development phase](PROTECTED_RUNTIME_IMPLEMENTATION_PLAN.md) sequences
 v3 integration, complete offline releases, recoverable installation/rollback,

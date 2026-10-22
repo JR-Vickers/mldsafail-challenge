@@ -128,6 +128,20 @@ def verify_images(source,manifest=None):
     return installed(manifest['images'],lambda identifier:json.loads(docker(source,['image','inspect',identifier]))[0])
 
 
+def verify_supervisor_enable(proposal):
+    from deploy.workload_installation import Journal,private,supervisor_enable_contents
+    source=proposal['identities'];raw,loaded=private(source['recipe']['proposal_path'])
+    require(loaded==proposal,'installed_enable_proposal_changed')
+    journal=Journal(source['recipe']['journal_root'],digest(raw))
+    acknowledged=journal.outcome('install:enable_supervisor')
+    path=Path(source['resources']['release']['path'])/'.supervisor-enabled'
+    data,mode=regular(path.parent,path.name);actual=identity(path)
+    require(acknowledged and acknowledged['event'] in ('outcome','reconciled') and
+            actual==acknowledged['observed'] and actual['uid']==source['host']['uid'] and
+            mode==0o600 and data==supervisor_enable_contents(proposal),'installed_supervisor_enable_changed')
+    return actual
+
+
 def activation_scheduling(proposal):
     """Fresh final closure, permitting only the reviewed inhibition transitions."""
     from deploy.workload_registry import observe,references
@@ -193,6 +207,19 @@ def inspect_control(action,proposal,journal):
         return dict(verified=True,manifest_sha256=proposal['manifest_sha256'])
     if action=='verify_cleanup':
         gate=Path(source['installation']['gate_root']); path=gate/'workload.json'
+        if not journal.outcome('install:start_paused'):
+            require(identity(path)['state']=='absent','installed_unacknowledged_runtime_state_preserve')
+            root=Path(source['installation']['heavy_path']);actual=identity(root)
+            previous=source['resources']['delegation']
+            if actual['state']=='observed':
+                prerequisite=journal.outcome('install:prerequisites')
+                expected=(prerequisite['observed']['observed']['delegation'] if prerequisite else previous)
+                require(expected.get('state')=='observed' and all(actual[k]==expected[k] for k in ('device','inode')),
+                        'installed_unacknowledged_delegation_preserve')
+                require(values(root/'cgroup.events')['populated']==0,'installed_owned_cgroup_populated')
+            else:require(previous['state']=='proposed','installed_delegation_disappeared')
+            scheduling(proposal)
+            return dict(verified=True,phase='not_started',paused=True,supervisor_never_started=True)
         state=json.loads(regular(path.parent,path.name)[0])
         require(state['paused'] is True and state['phase'] in ('cleaned','complete'),
                 'installed_cleanup_or_transaction_unresolved')
@@ -220,6 +247,7 @@ def collect(proposal, *, now=None):
     from mldsafail.evaluator.native_workload import NativeRuntime,private_json
     from mldsafail.evaluator.workload_client import WorkloadClient
     validate_proposal(proposal); source=proposal['identities']
+    verify_supervisor_enable(proposal)
     from deploy.workload_configuration import verify_private_artifacts
     verify_private_artifacts(source)
     require(source['origin'] in ('local_linux','host_observation'),'installed_synthetic_source_forbidden')

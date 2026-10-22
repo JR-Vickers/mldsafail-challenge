@@ -1,5 +1,6 @@
 """Synthetic durable-boundary tests; these cannot certify native installation."""
 from copy import deepcopy
+from pathlib import Path
 import json
 import time
 import uuid
@@ -100,6 +101,10 @@ def test_concrete_preconditions_do_not_require_postconditions(tmp_path,monkeypat
     monkeypatch.setattr(backend,'observe',lambda *args:(_ for _ in ()).throw(AssertionError('postcondition before creation')))
     journal=Journal(tmp_path/'journal',digest(raw))
     step=next(row for row in proposal['steps'] if row['action']==action)
+    if action=='start_paused':
+        from deploy.workload_installation import identity
+        backend.enable_path=tmp_path/'enabled';backend.enable_path.write_bytes(b'fixture')
+        journal.append('outcome',step='install:enable_supervisor',observed=identity(backend.enable_path))
     assert backend.before(step,journal) is not None
 
 
@@ -173,3 +178,155 @@ def test_rollback_resume_uses_latest_acknowledged_selection_and_units(tmp_path):
     journal.append('outcome',step='rollback:restore_units',observed={})
     assert backend.selection_expectation(journal)==identity(pointer)
     assert not backend.installed_units_selected(journal)
+
+
+def test_rollback_refuses_unreconciled_installation_before_backend_calls(tmp_path):
+    proposal,raw,review,authority=packet(tmp_path);backend=Backend(tmp_path)
+    journal=Journal(tmp_path/'journal',digest(raw));journal.append('intent',step='install:create_release',before={})
+    with pytest.raises(WorkloadBlocked,match='reconcile_before_rollback'):
+        execute(proposal,raw,review,authority('rollback'),backend,phase='rollback')
+    assert not backend.calls
+
+
+def test_partial_rollback_leaves_unmodified_selection_and_unknown_units_untouched(tmp_path):
+    from deploy.workload_installation import LinuxBackend,identity
+    proposal,raw,review,authority=packet(tmp_path);backend=LinuxBackend(proposal)
+    pointer=tmp_path/'active';pointer.symlink_to('/previous');bound=identity(pointer)
+    backend.recipe['activation_pointer']=str(pointer);backend.source['resources']['activation']=bound
+    backend.source['rollback']['target']='/previous'
+    unknown=tmp_path/'unknown.service';unknown.write_text('unrelated')
+    journal=Journal(tmp_path/'journal',digest(raw))
+    backend.command=lambda argv:(_ for _ in ()).throw(AssertionError('unexpected mutation'))
+    backend.enable_path=tmp_path/'absent-marker'
+    for action in ('stop_supervisor','restore_activation','restore_units'):
+        step=dict(id='rollback:'+action,action=action)
+        backend.apply(step,journal)
+        assert backend.valid_outcome(step,backend.observe(step,journal),journal)
+    assert identity(pointer)==bound and unknown.read_text()=='unrelated'
+    assert not list(tmp_path.glob('active.*.tmp'))
+
+
+def test_rollback_never_removes_replaced_supervisor_enable_file(tmp_path):
+    from deploy.workload_installation import LinuxBackend,identity
+    proposal,raw,review,authority=packet(tmp_path);backend=LinuxBackend(proposal)
+    journal=Journal(tmp_path/'journal',digest(raw))
+    marker=tmp_path/'marker';marker.write_bytes(b'approved');backend.enable_path=marker
+    journal.append('outcome',step='install:enable_supervisor',observed=identity(marker))
+    replacement=tmp_path/'other';replacement.write_bytes(b'unknown');replacement.replace(marker)
+    with pytest.raises(WorkloadBlocked,match='enable_identity_changed'):
+        backend.apply(dict(id='rollback:stop_supervisor',action='stop_supervisor'),journal)
+    assert marker.read_bytes()==b'unknown'
+
+
+def test_rollback_keeps_existing_acknowledged_inhibition_without_reapplying(tmp_path):
+    from deploy.workload_installation import LinuxBackend
+    proposal,raw,review,authority=packet(tmp_path);backend=LinuxBackend(proposal)
+    journal=Journal(tmp_path/'journal',digest(raw))
+    backend.command=lambda argv:(_ for _ in ()).throw(AssertionError('inhibition replay'))
+    for action in ('inhibit_scheduling','inhibit_containers'):
+        journal.append('outcome',step='install:'+action,observed=dict(verified=True))
+        backend.apply(dict(id='rollback:'+action,action=action),journal)
+
+
+@pytest.mark.parametrize('boundary',['intent','applied','outcome'])
+@pytest.mark.parametrize('action',ROLLBACK)
+def test_rollback_boundaries_require_reconciliation_without_automatic_retries(tmp_path,action,boundary):
+    proposal,raw,review,authority=packet(tmp_path);backend=Backend(tmp_path)
+    execute(proposal,raw,review,authority(),backend)
+    def interrupt(step,point):
+        if step=='rollback:'+action and point==boundary:raise InterruptedError('injected rollback interruption')
+    with pytest.raises(InterruptedError):execute(proposal,raw,review,authority('rollback'),backend,phase='rollback',fault=interrupt)
+    calls=list(backend.calls)
+    if boundary!='outcome':
+        with pytest.raises(WorkloadBlocked,match='ambiguous'):
+            execute(proposal,raw,review,authority('rollback'),backend,phase='rollback')
+        assert backend.calls==calls
+        if boundary=='intent':
+            with pytest.raises(WorkloadBlocked):reconcile(proposal,raw,review,authority('rollback',reconcile=True),backend,phase='rollback')
+            return
+        reconcile(proposal,raw,review,authority('rollback',reconcile=True),backend,phase='rollback')
+    execute(proposal,raw,review,authority('rollback'),backend,phase='rollback')
+    assert backend.calls.count('rollback:'+action)==1
+
+
+def test_restore_units_preserves_identical_bytes_with_unknown_birth(tmp_path):
+    from deploy.workload_installation import LinuxBackend,identity
+    proposal,raw,review,authority=packet(tmp_path);backend=LinuxBackend(proposal)
+    directory=tmp_path/'units';directory.mkdir()
+    backend.source['installation']['unit_directory']=str(directory)
+    original={};installed={}
+    for name,contents in proposal['units'].items():
+        path=directory/name;original[str(path)]=dict(state='absent',path=str(path))
+        path.write_bytes(contents.encode());installed[name]=identity(path)
+    journal=Journal(tmp_path/'journal',digest(raw));journal.append('outcome',step='install:units',observed=installed)
+    (journal.root/'original-units.json').write_bytes(canonical(original))
+    name=next(iter(proposal['units']));path=directory/name
+    replacement=directory/'replacement';replacement.write_bytes(path.read_bytes());replacement.replace(path)
+    with pytest.raises(WorkloadBlocked,match='unit_replaced'):backend.apply(dict(id='rollback:restore_units',action='restore_units'),journal)
+    assert path.read_bytes()==proposal['units'][name].encode()
+
+
+def test_installed_marker_requires_acknowledged_birth_and_contents(tmp_path):
+    import os
+    from deploy.workload_installation import identity,supervisor_enable_contents
+    from deploy.workload_installed import verify_supervisor_enable
+    proposal,_,_,_=packet(tmp_path);source=proposal['identities']
+    root=tmp_path/'release';root.mkdir(mode=0o700)
+    source['resources']['release']['path']=str(root);source['host']['uid']=os.getuid()
+    source['recipe']['proposal_path']=str(tmp_path/'proposal.json');raw=canonical(proposal)
+    path=tmp_path/'proposal.json';path.write_bytes(raw);path.chmod(0o600)
+    marker=root/'.supervisor-enabled';marker.write_bytes(supervisor_enable_contents(proposal));marker.chmod(0o600)
+    journal=Journal(tmp_path/'journal',digest(raw));journal.append('outcome',step='install:enable_supervisor',observed=identity(marker))
+    assert verify_supervisor_enable(proposal)==identity(marker)
+    replacement=root/'other';replacement.write_bytes(marker.read_bytes());replacement.chmod(0o600);replacement.replace(marker)
+    with pytest.raises(WorkloadBlocked,match='enable_changed'):verify_supervisor_enable(proposal)
+    marker.unlink()
+    with pytest.raises((FileNotFoundError,WorkloadBlocked)):verify_supervisor_enable(proposal)
+
+
+def test_existing_unit_mode_owner_and_group_survive_round_trip(tmp_path):
+    from deploy.workload_installation import LinuxBackend,identity
+    proposal,raw,review,authority=packet(tmp_path);backend=LinuxBackend(proposal)
+    directory=tmp_path/'units';directory.mkdir();backend.source['installation']['unit_directory']=str(directory)
+    originals={}
+    for name in proposal['units']:
+        path=directory/name;path.write_bytes(b'original unit bytes');path.chmod(0o644)
+        originals[str(path)]=dict(identity(path),gid=path.stat().st_gid,contents_hex=path.read_bytes().hex())
+    journal=Journal(tmp_path/'journal',digest(raw));(journal.root/'original-units.json').write_bytes(canonical(originals))
+    backend.command=lambda argv:b''
+    install=dict(id='install:units',action='units');backend.apply(install,journal)
+    journal.append('outcome',step='install:units',observed=backend.observe(install,journal))
+    restore=dict(id='rollback:restore_units',action='restore_units');backend.apply(restore,journal)
+    assert backend.valid_outcome(restore,backend.observe(restore,journal),journal)
+    for path,row in originals.items():
+        actual=Path(path).stat()
+        assert Path(path).read_bytes()==b'original unit bytes'
+        assert actual.st_mode&0o777==0o644 and (actual.st_uid,actual.st_gid)==(row['uid'],row['gid'])
+
+
+def test_partial_cleanup_without_supervisor_rejects_unacknowledged_state(tmp_path,monkeypatch):
+    import deploy.workload_installed as installed
+    proposal,raw,review,authority=packet(tmp_path);source=proposal['identities']
+    gate=tmp_path/'gate';gate.mkdir();source['installation']['gate_root']=str(gate)
+    source['installation']['heavy_path']=str(tmp_path/'absent-heavy')
+    monkeypatch.setattr(installed,'scheduling',lambda proposal:dict(verified=True))
+    journal=Journal(tmp_path/'journal',digest(raw))
+    assert installed.inspect_control('verify_cleanup',proposal,journal)['supervisor_never_started']
+    path=gate/'workload.json';path.write_bytes(b'unknown runtime ownership')
+    with pytest.raises(WorkloadBlocked,match='unacknowledged_runtime_state'):
+        installed.inspect_control('verify_cleanup',proposal,journal)
+    assert path.read_bytes()==b'unknown runtime ownership'
+
+
+def test_expired_final_verification_cannot_publish_completed_phase(tmp_path,monkeypatch):
+    import deploy.workload_installation as engine
+    proposal,raw,review,authority=packet(tmp_path);backend=Backend(tmp_path);approved=authority()
+    initial=time.time();clock=[initial]
+    monkeypatch.setattr(engine.time,'time',lambda:clock[0])
+    def expire(step,point):
+        if step=='install:verify_paused' and point=='outcome':clock[0]=approved['expires_at']+1
+    with pytest.raises(WorkloadBlocked,match='exact_owner_authority'):
+        execute(proposal,raw,review,approved,backend,fault=expire)
+    journal=Journal(tmp_path/'journal',digest(raw))
+    assert journal.outcome('install:verify_paused')['event']=='outcome'
+    assert not any(row['event']=='phase_complete' for row in journal.rows)
