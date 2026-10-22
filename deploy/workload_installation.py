@@ -269,11 +269,28 @@ def reconcile(proposal,proposal_raw,review_raw,authority,backend,*,phase='instal
             previous=journal.outcome(step['id'])
             if previous and previous['event']=='intent':
                 authorize(proposal_raw,review_raw,authority,phase)
-                actual=backend.observe(step,journal)
-                require(backend.valid_outcome(step,actual,journal),'installation_ambiguous_resource_preserve_and_block')
+                try:
+                    actual=backend.observe(step,journal)
+                    valid=backend.valid_outcome(step,actual,journal)
+                    bound=valid and backend.reconcilable(step,actual,journal)
+                    status='completed' if bound else 'ambiguous'
+                    substeps=[]
+                    # Substep receipts are evidence, never automatic adoption.
+                    for row in journal.rows[journal.rows.index(previous)+1:]:
+                        if row['event']=='mutation_intent':
+                            substeps.append(dict(resource=row['resource'],status='observation_required'))
+                    if hasattr(backend,'reconciliation_status'):
+                        status=backend.reconciliation_status(step,actual,journal,completed=bound)
+                    journal.append('reconciliation_observation',step_id=step['id'],status=status,
+                                   observed=actual,substeps=substeps)
+                except BaseException as error:
+                    journal.append('reconciliation_observation_failed',step_id=step['id'],
+                                   error=dict(type=type(error).__name__,message=str(error)))
+                    raise
+                require(valid,'installation_ambiguous_resource_preserve_and_block')
                 # Creation without an acknowledged identity cannot establish
                 # ownership from its name or bytes alone.
-                require(backend.reconcilable(step,actual,journal),'installation_creation_identity_unacknowledged')
+                require(bound,'installation_creation_identity_unacknowledged')
                 authorize(proposal_raw,review_raw,authority,phase)
                 journal.append('reconciled',step=step['id'],observed=actual)
     return journal.rows
@@ -358,31 +375,68 @@ class LinuxBackend:
         return json.loads(raw)
     def command(self,argv):
         from mldsafail.evaluator.native_workload import process_birth
-        import signal
-        import resource
+        import signal,resource,sys
         limit=min(35,max(.001,getattr(self,'deadline',time.monotonic()+35)-time.monotonic()))
+        require(sys.platform=='linux' and limit>.15,'installation_command_budget_or_platform')
         journal=getattr(self,'journal',None)
         token=uuid.uuid4().hex
         if journal: journal.append('subcommand_intent',command=token,argv_sha256=digest(canonical(argv)))
-        log=(journal.root if journal else Path(self.recipe['journal_root']))/('command-'+token+'.log')
+        root=journal.root if journal else Path(self.recipe['journal_root'])
+        log=root/('command-'+token+'.log');report=root/('command-'+token+'-descendants.json')
+        reserve=min(.25,limit/4)
+        wrapped=[sys.executable,'-I',str(Path(__file__).with_name('workload_observation.py')),str(report),
+                 str(limit-reserve-.05),'--cleanup-seconds',str(reserve),*argv]
         def bound_log(): resource.setrlimit(resource.RLIMIT_FSIZE,(1024**2,1024**2))
-        with log.open('xb') as stream:
-            os.chmod(log,0o600)
-            process=subprocess.Popen(argv,stdout=stream,stderr=subprocess.STDOUT,start_new_session=True,preexec_fn=bound_log,
-                env={**os.environ,'PYTHONDONTWRITEBYTECODE':'1','UV_OFFLINE':'1','UV_NO_CACHE':'1','PIP_NO_INDEX':'1',
-                     'PYTHONPATH':str(self.bundle/'src')+':'+str(self.bundle)})
-            birth=process_birth(process.pid)
-            if journal: journal.append('subcommand_client',command=token,birth=birth)
-            try:
-                code=process.wait(timeout=limit)
-                require(code==0,'installation_subcommand_failed:'+token)
-            finally:
-                if process.poll() is None:
-                    require(process_birth(process.pid)==birth,'installation_command_client_replaced')
-                    os.killpg(process.pid,signal.SIGKILL); process.wait(timeout=3)
-                stream.flush(); os.fsync(stream.fileno())
+        process=None;recorded=None;failure=None;cleanup_errors=[];containment=None;births=[];wrapper_timeout=False
+        try:
+            with log.open('xb') as stream:
+                os.chmod(log,0o600)
+                try:
+                    process=subprocess.Popen(wrapped,stdout=stream,stderr=subprocess.STDOUT,start_new_session=True,preexec_fn=bound_log,
+                        env={**os.environ,'PYTHONDONTWRITEBYTECODE':'1','UV_OFFLINE':'1','UV_NO_CACHE':'1','PIP_NO_INDEX':'1',
+                             'PYTHONPATH':str(self.bundle/'src')+':'+str(self.bundle)})
+                    recorded=process_birth(process.pid)
+                    if journal: journal.append('subcommand_client',command=token,birth=recorded)
+                    process.wait(timeout=limit)
+                except subprocess.TimeoutExpired:
+                    wrapper_timeout=True
+                    raise
+                finally:
+                    if process is not None and process.poll() is None:
+                        try:
+                            require(process_birth(process.pid)==recorded,'installation_command_client_replaced')
+                            os.killpg(process.pid,signal.SIGKILL);process.wait(timeout=.1)
+                        except BaseException as error:
+                            cleanup_errors.append(dict(type=type(error).__name__,message=str(error)))
+                    if process is not None:
+                        try:os.killpg(process.pid,0)
+                        except ProcessLookupError:pass
+                        except OSError as error:cleanup_errors.append(dict(type=type(error).__name__,message=str(error)))
+                        else:cleanup_errors.append(dict(type='ProcessGroupRemaining',pid=process.pid))
+                    stream.flush();os.fsync(stream.fileno())
+        except BaseException as error:
+            failure=dict(type=type(error).__name__,message=str(error))
+        finally:
+            try:containment=json.loads(report.read_bytes())
+            except (OSError,ValueError) as error:
+                cleanup_errors.append(dict(type=type(error).__name__,message=str(error)))
+            progress=Path(str(report)+'.births.jsonl')
+            if progress.exists():
+                for line in progress.read_bytes().splitlines():
+                    try:births.append(json.loads(line))
+                    except ValueError:cleanup_errors.append(dict(type='PartialDescendantRecord'))
+            if journal:
+                journal.append('subcommand_outcome',command=token,birth=recorded,
+                    returncode=process.returncode if process else None,log=identity(log),failure=failure,
+                    wrapper_timeout=wrapper_timeout,containment=containment,descendant_births=births,
+                    cleanup_errors=cleanup_errors)
+        require(not cleanup_errors and containment is not None and not containment['remaining'] and
+                not containment['errors'] and not containment['descendants'],
+                'installation_subcommand_containment_unverified:'+token)
+        require(failure is None and not wrapper_timeout and not containment['timed_out'] and
+                process.returncode==0 and containment['returncode']==0,'installation_subcommand_failed:'+token)
         data=log.read_bytes()
-        if journal: journal.append('subcommand_outcome',command=token,returncode=code,log=identity(log),birth=birth)
+        require(len(data)<1024**2,'installation_subcommand_output_limit:'+token)
         return data
     @measured_by_engine
     def reconcile_preflight(self,journal):
@@ -866,6 +920,17 @@ class LinuxBackend:
                       path.stat().st_gid!=original['gid']):return False
             return set(value)==set(self.proposal['units'])
         return value.get('verified') is True
+    def reconciliation_status(self,step,value,journal,*,completed):
+        if completed:return 'completed'
+        pending=journal.outcome(step['id'])
+        if value==pending['before'] and isinstance(value,dict) and value.get('state')=='absent':
+            return 'absent'
+        # Distinguish acknowledged substeps from a fully reconciled operation.
+        # Missing observations cannot establish replacement or safe replay.
+        rows=journal.rows[journal.rows.index(pending)+1:]
+        if any(row['event']=='mutation_outcome' for row in rows):return 'partially_completed'
+        return 'ambiguous'
+
     def reconcilable(self,step,value,journal):
         # Any unacknowledged creation might belong to another operation.
         if step['action'] in ('activate','restore_activation'):

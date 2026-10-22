@@ -25,7 +25,7 @@ def test_success_after_cleanup_and_postflight(tmp_path):
 
 
 def test_timeout_stops_following_cases_and_runs_cleanup_once(tmp_path):
-    data=protocol();data['cases'][0].update(argv=[sys.executable,'-c','import time;time.sleep(30)'],seconds=.05)
+    data=protocol();data['cases'][0].update(argv=[sys.executable,'-c','import time;time.sleep(30)'],seconds=.5)
     receipt=execute(data,tmp_path/'run',birth=lambda pid:dict(pid=pid))
     assert not receipt['passed']
     assert [r['name'] for r in receipt['records']]==['startup','one','cleanup','postflight']
@@ -90,3 +90,48 @@ def test_native_claim_journal_is_bound_across_output_directories(tmp_path):
     native_authority(data,review_path,path,journal/'first')
     with pytest.raises(WorkloadBlocked,match='journal_changed'):native_authority(data,review_path,path,other/'second')
     with pytest.raises(WorkloadBlocked,match='consumed'):native_authority(data,review_path,path,journal/'second')
+
+
+@pytest.mark.skipif(sys.platform!='linux',reason='Linux subreaper containment')
+@pytest.mark.parametrize('escape',[False,True])
+def test_descendant_after_zero_exit_fails_case_and_preserves_births(tmp_path,escape):
+    from pathlib import Path
+    data=protocol()
+    data['cases'][0]['argv']=[sys.executable,'-c',
+        'import subprocess,sys;subprocess.Popen([sys.executable,"-c",'+
+        repr('import os,time;'+('os.setsid();' if escape else '')+'time.sleep(30)')+'])']
+    receipt=execute(data,tmp_path/'run')
+    assert not receipt['passed']
+    assert [r['name'] for r in receipt['records']]==['startup','one','cleanup','postflight']
+    row=receipt['records'][1]
+    assert row['containment']['descendants'] and row['descendant_births']
+    assert not row['containment']['remaining'] and not row['containment']['errors']
+    for birth in row['containment']['observed']:
+        path=Path('/proc')/str(birth['pid'])/'stat'
+        assert not path.exists() or path.read_text().rsplit(')',1)[1].split()[0]=='Z'
+
+
+@pytest.mark.skipif(sys.platform!='linux',reason='Linux stalled-wrapper failure')
+def test_stalled_wrapper_preserves_incremental_births_and_blocks_ownership(tmp_path):
+    import os,signal,time
+    from pathlib import Path
+    from mldsafail.evaluator.native_workload import process_birth
+    marker=tmp_path/'child.json';data=protocol()
+    data['cases'][0].update(seconds=.7,argv=[sys.executable,'-c',
+        'import json,os,pathlib,signal,time;os.setsid();'
+        's=pathlib.Path("/proc/self/stat").read_text().rsplit(")",1)[1].split();'
+        'pathlib.Path('+repr(str(marker))+').write_text(json.dumps(dict(pid=os.getpid(),start_ticks=int(s[19]))));'
+        'time.sleep(.2);os.kill(os.getppid(),signal.SIGSTOP);time.sleep(30)'])
+    try:
+        receipt=execute(data,tmp_path/'run')
+        assert not receipt['passed'] and receipt['ownership']=='blocked'
+        birth=json.loads(marker.read_bytes())
+        row=receipt['records'][1]
+        assert row['timed_out'] and row['containment'] is None
+        assert any(item['birth']==birth for item in row['descendant_births'])
+    finally:
+        if marker.exists():
+            birth=json.loads(marker.read_bytes())
+            try:actual=process_birth(birth['pid'])
+            except FileNotFoundError:actual=None
+            if actual==birth:os.kill(birth['pid'],signal.SIGKILL)

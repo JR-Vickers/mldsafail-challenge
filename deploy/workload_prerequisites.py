@@ -88,7 +88,10 @@ def proposal(source):
         rollback='preserve_output_mount_and_inhibition')
 
 
-def apply(source,command,journal):
+def apply(source,command,journal,*,fault=None):
+    from deploy.workload_mutation import mutate
+    def change(name,observe,action):
+        return mutate(journal,name,observe,action,fault=fault)
     output=source['resources']['output']
     if output['state']=='proposed':
         import os
@@ -104,28 +107,47 @@ def apply(source,command,journal):
         link=Path('/etc/systemd/system/local-fs.target.wants')/name
         require(identity(unit,content=False)['state']==identity(link)['state']=='absent','prerequisite_mount_unit_destination_exists')
         absent_mount_namespace(name,command)
-        fd=os.open(backing,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
-        with os.fdopen(fd,'wb') as stream:
-            os.posix_fallocate(stream.fileno(),0,output['bytes']); stream.flush(); os.fsync(stream.fileno())
+        def allocate():
+            from deploy.workload_installation import sync_directory
+            fd=os.open(backing,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+            with os.fdopen(fd,'wb') as stream:
+                os.posix_fallocate(stream.fileno(),0,output['bytes']); stream.flush(); os.fsync(stream.fileno())
+            sync_directory(backing.parent)
+        change('output_backing',lambda:identity(backing,content=False),allocate)
         created_backing=identity(backing,content=False)
         journal.append('resource_created',resource='output_backing',observed=created_backing)
-        mount.mkdir(mode=0o700)
+        def create_mountpoint():
+            from deploy.workload_installation import sync_directory
+            mount.mkdir(mode=0o700);sync_directory(mount.parent)
+        change('output_mountpoint',lambda:identity(mount),create_mountpoint)
         journal.append('resource_created',resource='output_mountpoint',observed=identity(mount))
         require(identity(backing,content=False)==created_backing,'prerequisite_backing_replaced')
-        command(['/usr/bin/sudo','-n','/usr/sbin/mkfs.ext4','-F',str(backing)])
-        written=json.loads(command(root_exclusive_write(unit,contents.encode())))
+        def backing_format():
+            # Bind format observations to the original backing birth and header.
+            from deploy.workload_release import digest
+            require(identity(backing,content=False)==created_backing,'prerequisite_backing_replaced')
+            with backing.open('rb') as stream:header=stream.read(4096)
+            require(identity(backing,content=False)==created_backing,'prerequisite_backing_replaced')
+            return dict(identity=created_backing,header_sha256=digest(header))
+        change('output_format',backing_format,
+               lambda:command(['/usr/bin/sudo','-n','/usr/sbin/mkfs.ext4','-F',str(backing)]))
+        written=json.loads(change('output_mount_unit',lambda:identity(unit,content=False),
+                                  lambda:command(root_exclusive_write(unit,contents.encode()))))
         from deploy.workload_release import digest
         require(written==dict(identity(unit,content=False),sha256=digest(contents.encode())) and
                 written['uid']==0 and written['mode']==0o600,'prerequisite_mount_unit_ack_changed')
         journal.append('resource_created',resource='output_mount_unit',observed=written)
-        command(['/usr/bin/sudo','-n','/usr/bin/systemctl','daemon-reload'])
+        change('output_daemon_reload',lambda:mount_namespace(name,command),
+               lambda:command(['/usr/bin/sudo','-n','/usr/bin/systemctl','daemon-reload']))
         selected_mount_namespace(name,written,command)
         require(identity(backing,content=False)==created_backing,'prerequisite_backing_replaced')
-        command(['/usr/bin/sudo','-n','/usr/bin/systemctl','enable','--now',name])
+        change('output_mount_activation',lambda:dict(unit=mount_namespace(name,command),link=identity(link),directory=identity(mount)),
+               lambda:command(['/usr/bin/sudo','-n','/usr/bin/systemctl','enable','--now',name]))
         enabled=identity(link)
         require(enabled.get('target')==str(unit) and enabled.get('uid')==0,'prerequisite_mount_enable_changed')
         journal.append('resource_created',resource='output_mount_enable',observed=enabled)
-        command(['/usr/bin/sudo','-n','/usr/bin/chown',str(source['host']['uid']),str(mount)])
+        change('output_mount_owner',lambda:identity(mount),
+               lambda:command(['/usr/bin/sudo','-n','/usr/bin/chown',str(source['host']['uid']),str(mount)]))
         from deploy.workload_installed import mount as inspect_mount,loop_backing
         mounted=inspect_mount(mount)
         require(identity(backing,content=False)==created_backing,'prerequisite_backing_replaced')
@@ -135,10 +157,13 @@ def apply(source,command,journal):
                        directory=identity(mount),backing=created_backing,
                        loop_backing=loop_backing(mounted,created_backing,command))
     if source['resources']['delegation']['state']=='proposed':
-        command(['/usr/bin/systemctl','--user','start','mldsafail-heavy.slice'])
+        change('delegation_start',lambda:identity(source['resources']['delegation']['path']),
+               lambda:command(['/usr/bin/systemctl','--user','start','mldsafail-heavy.slice']))
     root=source['resources']['delegation']['path']
     journal.append('delegation_controller_intent',observed=identity(root))
-    observed=enable_delegation(root,source['host']['uid'])
+    def controllers():
+        return dict(identity=identity(root),subtree_control=(Path(root)/'cgroup.subtree_control').read_text().strip())
+    observed=change('delegation_controllers',controllers,lambda:enable_delegation(root,source['host']['uid']))
     journal.append('delegation_controllers_enabled',observed=observed)
 
 

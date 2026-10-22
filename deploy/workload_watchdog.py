@@ -12,6 +12,7 @@ import signal
 import resource
 import subprocess
 import time
+import sys
 
 from deploy.workload_release import canonical, digest
 from deploy.workload_installation import exclusive,identity
@@ -106,35 +107,58 @@ def execute(protocol,root,*,birth=process_birth,review_path=None,authorization_p
     def run(row):
         nonlocal uncertain
         path=root/(str(len(records))+'-command.log')
-        process=None;identity=None;timed_out=False
+        process=None;identity=None;timed_out=False;containment=None
+        report=root/(str(len(records))+'-descendants.json')
+        retained_births=[]
+        allowance=min(row['seconds'],max(.001,deadline-time.monotonic()))
+        argv=row['argv']
+        if sys.platform=='linux':
+            reserve=min(.25,allowance/4)
+            argv=[sys.executable,'-I',str(Path(__file__).with_name('workload_observation.py')),
+                  str(report),str(max(.001,allowance-reserve-.05)),
+                  '--cleanup-seconds',str(reserve),*argv]
         start=time.monotonic()
         with path.open('xb') as output:
             try:
                 def limit_output(): resource.setrlimit(resource.RLIMIT_FSIZE,(1024**2,1024**2))
-                process=subprocess.Popen(row['argv'],stdout=output,stderr=subprocess.STDOUT,start_new_session=True,preexec_fn=limit_output)
+                process=subprocess.Popen(argv,stdout=output,stderr=subprocess.STDOUT,start_new_session=True,preexec_fn=limit_output)
                 identity=birth(process.pid)
                 exclusive(root/(str(len(records))+'-birth.json'),canonical(identity))
-                process.wait(timeout=min(row['seconds'],max(.001,deadline-time.monotonic())))
+                process.wait(timeout=allowance)
             except subprocess.TimeoutExpired:
                 timed_out=True
             finally:
                 if process is not None and process.poll() is None:
                     try:
                         require(birth(process.pid)==identity,'watchdog_client_birth_changed')
-                        os.killpg(process.pid,signal.SIGKILL);process.wait(timeout=min(2,max(.001,deadline-time.monotonic())))
+                        os.killpg(process.pid,signal.SIGKILL);process.wait(timeout=min(.1,max(.001,deadline-time.monotonic())))
                     except BaseException:
                         uncertain=True
                 if process is not None and process.poll() is not None:
                     try: os.killpg(process.pid,0)
                     except ProcessLookupError: pass
                     else: uncertain=True
+                if sys.platform=='linux':
+                    try:
+                        containment=json.loads(report.read_bytes())
+                        if containment['remaining'] or containment['errors']:uncertain=True
+                        timed_out=timed_out or containment['timed_out']
+                    except (OSError,ValueError,KeyError):
+                        uncertain=True
+                    progress=Path(str(report)+'.births.jsonl')
+                    if progress.exists():
+                        for line in progress.read_bytes().splitlines():
+                            try:retained_births.append(json.loads(line))
+                            except ValueError:uncertain=True
                 output.flush();os.fsync(output.fileno())
         record=dict(name=row['name'],argv_sha256=digest(canonical(row['argv'])),birth=identity,
-                    returncode=process.returncode if process else None,timed_out=timed_out,
+                    returncode=(containment['returncode'] if containment is not None else process.returncode if process else None),
+                    containment=containment,descendant_births=retained_births,timed_out=timed_out,
                     elapsed_seconds=time.monotonic()-start,log_sha256=digest(path.read_bytes()),
                     termination_verified=process is not None and process.poll() is not None and not uncertain)
         records.append(record);exclusive(root/(str(len(records)-1)+'-outcome.json'),canonical(record))
-        return record['returncode']==0 and not timed_out and record['termination_verified']
+        return (record['returncode']==0 and not timed_out and record['termination_verified'] and
+                not (containment and containment['descendants']))
     try:
         failed=not run(protocol['startup'])
         if not failed:
