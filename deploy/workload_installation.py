@@ -230,16 +230,20 @@ def execute(proposal,proposal_raw,review_raw,authority,backend,*,phase='install'
         for step in (s for s in proposal['steps'] if s['phase']==phase):
             authorize(proposal_raw,review_raw,authority,phase)
             prior=journal.outcome(step['id'])
-            if prior:
+            if prior and prior['event']!='reconciled_absent':
                 require(prior['event'] in ('outcome','reconciled'),'installation_ambiguous_outcome_reconcile_required')
                 require(backend.observe(step,journal)==prior['observed'],'installation_completed_step_identity_changed')
                 continue
             before=backend.before(step,journal)
+            if prior:
+                require(before==prior['observed'],'installation_reconciled_absence_changed')
             authorize(proposal_raw,review_raw,authority,phase)
             journal.append('intent',step=step['id'],before=before)
             if fault: fault(step['id'],'intent')
             authorize(proposal_raw,review_raw,authority,phase)
             backend.apply(step,journal)
+            if fault: fault(step['id'],'unacknowledged')
+            if hasattr(backend,'acknowledge_apply'):backend.acknowledge_apply(step,journal)
             if fault: fault(step['id'],'applied')
             outcome=backend.observe(step,journal)
             require(backend.valid_outcome(step,outcome,journal),'installation_outcome_not_verified')
@@ -273,6 +277,7 @@ def reconcile(proposal,proposal_raw,review_raw,authority,backend,*,phase='instal
                     actual=backend.observe(step,journal)
                     valid=backend.valid_outcome(step,actual,journal)
                     bound=valid and backend.reconcilable(step,actual,journal)
+                    absent=not valid and hasattr(backend,'absent_reconcilable') and backend.absent_reconcilable(step,actual,journal)
                     status='completed' if bound else 'ambiguous'
                     substeps=[]
                     # Substep receipts are evidence, never automatic adoption.
@@ -281,12 +286,17 @@ def reconcile(proposal,proposal_raw,review_raw,authority,backend,*,phase='instal
                             substeps.append(dict(resource=row['resource'],status='observation_required'))
                     if hasattr(backend,'reconciliation_status'):
                         status=backend.reconciliation_status(step,actual,journal,completed=bound)
+                    if absent:status='absent'
                     journal.append('reconciliation_observation',step_id=step['id'],status=status,
                                    observed=actual,substeps=substeps)
                 except BaseException as error:
                     journal.append('reconciliation_observation_failed',step_id=step['id'],
                                    error=dict(type=type(error).__name__,message=str(error)))
                     raise
+                if absent:
+                    authorize(proposal_raw,review_raw,authority,phase)
+                    journal.append('reconciled_absent',step=step['id'],observed=actual)
+                    continue
                 require(valid,'installation_ambiguous_resource_preserve_and_block')
                 # Creation without an acknowledged identity cannot establish
                 # ownership from its name or bytes alone.
@@ -631,7 +641,8 @@ class LinuxBackend:
             return {name:identity(Path(self.source['installation']['unit_directory'])/name) for name in self.unit_names(action)}
         return self.observe(step,journal)
     def _outcome(self,journal,name):
-        row=journal.outcome(name); require(row and 'observed' in row,'installation_required_prior_outcome_missing'); return row['observed']
+        row=journal.outcome(name); require(row and row['event'] in ('outcome','reconciled') and 'observed' in row,
+                                          'installation_required_prior_outcome_missing'); return row['observed']
     def apply(self,step,journal):
         action=step['action']
         self.mutation_deadline()
@@ -793,10 +804,13 @@ class LinuxBackend:
                 require(actual==self._outcome(journal,'install:supervisor_unit')[name],
                         'installation_supervisor_unit_identity_changed')
                 self.command(['/usr/bin/systemctl','--user','stop',name])
-            if journal.outcome('install:enable_supervisor'):
+            enabled=journal.outcome('install:enable_supervisor')
+            if enabled and enabled['event'] in ('outcome','reconciled'):
                 require(identity(self.enable_path)==self._outcome(journal,'install:enable_supervisor'),
                         'installation_supervisor_enable_identity_changed')
                 self.enable_path.unlink();sync_directory(self.root)
+            elif enabled and enabled['event']=='reconciled_absent':
+                require(identity(self.enable_path)['state']=='absent','installation_supervisor_enable_identity_changed')
         elif action in ('verify_release','verify_paused','verify_cleanup','verify_rollback'):
             require(self.valid_outcome(step,self.observe(step,journal),journal),'installation_verification_failed')
         else: require(False,'installation_unknown_step')
@@ -882,9 +896,9 @@ class LinuxBackend:
                         supervisor_generation=record['supervisor_generation'])
         if action=='stop_supervisor':
             if not journal.outcome('install:supervisor_unit'):
-                return dict(stopped=True,enabled=self.enable_path.exists())
+                return dict(stopped=True,enabled=identity(self.enable_path)['state']!='absent')
             result=self.command(['/usr/bin/systemctl','--user','show','mldsafail-workload-supervisor.service','--property=ActiveState','--value'])
-            return dict(stopped=result.strip() in (b'inactive',b'failed'),enabled=self.enable_path.exists())
+            return dict(stopped=result.strip() in (b'inactive',b'failed'),enabled=identity(self.enable_path)['state']!='absent')
         if action in ('inhibit_scheduling','inhibit_containers','prerequisites','verify_release','verify_cleanup','verify_rollback'):
             from deploy.workload_installed import inspect_control
             return inspect_control(action,self.proposal,journal)
@@ -920,8 +934,34 @@ class LinuxBackend:
                       path.stat().st_gid!=original['gid']):return False
             return set(value)==set(self.proposal['units'])
         return value.get('verified') is True
+    def apply_acknowledgements(self,step,journal):
+        pending=journal.outcome(step['id'])
+        if not pending or pending['event']!='intent':return []
+        return [row for row in journal.rows[journal.rows.index(pending)+1:]
+                if row['event']=='resource_acknowledgement' and row.get('step_id')==step['id']]
+    def acknowledge_apply(self,step,journal):
+        # A whole-step resource acknowledgement is distinct from its final
+        # engine outcome. Interruption after it need not discard proven births.
+        observed=self.observe(step,journal)
+        require(self.valid_outcome(step,observed,journal),'installation_apply_not_verified')
+        journal.append('resource_acknowledgement',step_id=step['id'],observed=observed)
+    def absent_reconcilable(self,step,value,journal):
+        # Only these operations have no external effects beyond the observed
+        # files. Scheduling, Docker, units and prerequisite partial progress
+        # require their own reconciliation and are never replayed here.
+        if self.apply_acknowledgements(step,journal):return False
+        pending=journal.outcome(step['id'])
+        if not pending or pending['event']!='intent' or value!=pending['before']:return False
+        if step['action'] in ('create_release','enable_supervisor'):
+            return value.get('state')=='absent'
+        if step['action']=='snapshot':
+            return set(value)==set(SNAPSHOTS) and all(row.get('state')=='absent' for row in value.values())
+        return False
+
     def reconciliation_status(self,step,value,journal,*,completed):
         if completed:return 'completed'
+        acknowledgements=self.apply_acknowledgements(step,journal)
+        if acknowledgements and any(row['observed']!=value for row in acknowledgements):return 'replaced'
         pending=journal.outcome(step['id'])
         if value==pending['before'] and isinstance(value,dict) and value.get('state')=='absent':
             return 'absent'
@@ -932,6 +972,8 @@ class LinuxBackend:
         return 'ambiguous'
 
     def reconcilable(self,step,value,journal):
+        acknowledgements=self.apply_acknowledgements(step,journal)
+        if acknowledgements:return len(acknowledgements)==1 and acknowledgements[0]['observed']==value
         # Any unacknowledged creation might belong to another operation.
         if step['action'] in ('activate','restore_activation'):
             if step['action']=='restore_activation' and not journal.outcome('install:activate'):
