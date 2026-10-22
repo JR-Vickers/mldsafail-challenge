@@ -69,3 +69,47 @@ volatile facts at eventual authorized admission. Infeasibility is a blocker.
 Return only private evidence references/hashes and a redacted classification
 summary to the deployment review. No installation authorization should be
 requested until the complete executable proposal, rollback and coverage exist.
+
+## Optional fixed-command sudo access
+
+When an administrator is available in the root console but root SSH is disabled,
+keep root SSH disabled. `scripts/prepare_owner_collection_access.py` builds a
+separate, deterministic scheduling-collection archive. It embeds the two readers
+above and empty package initializers, with exact source hashes. It does not
+contain deployment, shell, package-installation or benchmark entrypoints.
+
+The administrator must exclusively create
+`/root/mldsafail-owner-facts-20261022` (mode 0700), copy `collector.pyz` there,
+and compare its SHA-256 against the locally reviewed artifact **before running
+it**. The entire installed path must be root-owned and not writable by other
+accounts. Existing destinations must be preserved and investigated.
+
+Only the administrator runs the archive with `--install-rule`. It checks the
+existing sudo configuration, exclusively writes a validated candidate and then
+an exclusive 0440 fragment at `/etc/sudoers.d/mldsafail-owner-facts`, and validates
+the complete configuration again. It does not edit an existing fragment. The rule
+allows only this exact command, with no additional arguments:
+
+```sh
+sudo -n /usr/bin/python3 -I -B /root/mldsafail-owner-facts-20261022/collector.pyz
+```
+
+In particular, the rule does not allow `--install-rule`, a Python expression, a
+shell, an alternate archive, arbitrary arguments or general passwordless sudo.
+Python runs isolated, the collector clears its environment and sets a fixed
+system PATH, and embedded sources are verified and extracted privately. Inventory
+uses the existing 180-second deadline and an additional 32 MiB raw-export bound.
+The JSON export includes raw scheduling evidence; capture it privately. Failure
+and incomplete results remain blockers. No discovered script is executed.
+
+This first archive covers scheduling inventory only. Recursive reference review,
+at-job contents, other-owner daemon restart policies, delegation/UID observations
+and storage feasibility still require their matching observations. A future change
+to the fixed reader requires a newly reviewed artifact and administrator action;
+the runtime account cannot update the root-owned reader.
+
+To revoke this access, the administrator first verifies the exact contents/hash
+of `/etc/sudoers.d/mldsafail-owner-facts`, then removes only that owned fragment
+and runs `visudo -c`. The root-owned archive can remain inert pending retention
+review. Do not remove an unknown or replaced fragment. This procedure grants no
+protected-runtime installation or launch authority.
