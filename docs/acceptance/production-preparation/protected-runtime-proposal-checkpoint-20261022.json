@@ -1,0 +1,101 @@
+{
+  "checks": {
+    "disposable_loop_backing_verified": true,
+    "disposable_loop_cleanup_verified": true,
+    "linux_focused_passed": 58,
+    "make_check": {
+      "contract_passed": 8,
+      "passed": 1782,
+      "skipped": 50
+    }
+  },
+  "date": "2026-10-22",
+  "evidence_sha256": {
+    "current_generation_stopped.json": "e57da68f2353c36acee329f283c1a52ebcf955101ab0e9ef112984081706dc1a",
+    "proposal-focused-linux-20261022.json": "2c2c4298a2adb5a67896d4af5efbf507e3ccbfdbffa11d71289f941a0e635850",
+    "proposal-focused-linux-corrected-fixture-20261022.json": "b8d49d62e2dc8ce4a211de0eb3c32994c009a5f477e2ccbf9e23c878162a1b59",
+    "proposal-focused-linux-final-20261022.json": "74ac0e68a290229f8c33cfcc12d32a08bbcc87992b9510a5cd6fd8054f32df8d",
+    "proposal-focused-linux-reviewed-20261022.json": "996a468ea80b59ad449469b54be87f0a2cf6850ec4fd9247deafe66de034ae3b",
+    "proposal-guest-poweroff-20261022.json": "a9a5ad99034e85539a291e58b8af44d5b65412802e3df47988b5c30a8ab7390d",
+    "proposal-loop-kernel-20261022.json": "3e71d440ac6559f6348a6c544be6f06596a7ce684d2459f4535a878fe5aabdaf",
+    "proposal-make-check-20261022.log": "ffb16473cf455df703a288abab18e38b376a01c416076c47970e8949b8d169a1",
+    "proposal-resume-driver-20261022.log": "1fdc4c11167e0e56d8fe95267fbe97d87abf70f601e923d207462d88429a2b2a",
+    "runtime-helper-feasibility-attempt-2.json": "c616ff37921ee4a1c49c76229501603837305c7785b4aa9aa3e1c8c4cfca3bed"
+  },
+  "rehearsal": {
+    "available_host": "Darwin_arm64",
+    "deadline_changed": false,
+    "docker_desktop_daemon": "unavailable",
+    "full_runtime_passed": false,
+    "helper_deadline_seconds": 0.8,
+    "native_host_identified": false,
+    "origin": "local_linux_emulated_x86_64",
+    "retained_cold_helper_seconds": 1.8237351679999847
+  },
+  "retention": {
+    "deleted_artifacts": [],
+    "driver_exit": "nonzero_expected_running_assertion_after_guest_poweroff",
+    "guest": "gracefully_powered_off_and_qemu_reaped",
+    "owner": "repository_owner_and_current_development_task",
+    "review_by": "2026-10-29",
+    "temporary_exception": "owned_stopped_guest_and_compact_test_sources_for_incomplete_installation_fixture",
+    "unknown_ownership_resources_preserved": true
+  },
+  "review": {
+    "corrected_findings": [
+      "escaped_observation_descendants",
+      "unsignalable_descendant_birth_retention",
+      "report_retention_on_group_output_and_wrapper_timeout_failures",
+      "actual_loop_backing_identity",
+      "original_backing_birth_preservation"
+    ],
+    "full_installation_proposal_approved": false,
+    "implemented_by": "root_agent",
+    "remaining_checkpoint_findings": [],
+    "reviewer": "independent_agent_review_checkpoint",
+    "scope": "exact_changed_source_files_above_only"
+  },
+  "schema": "mldsafail.protected-runtime-proposal-checkpoint.v3",
+  "scope": {
+    "benchmark_version": "0.5.0-preview",
+    "budget_usd": 0,
+    "installed_native_acceptance": false,
+    "publication": false,
+    "scientific_evaluations": 0,
+    "vps_mutations": false
+  },
+  "source_commit": "d7ee5e71781953030ea67658326e71d7e81faf3d",
+  "source_sha256": {
+    "deploy/workload_acceptance_packet.py": "0785fd6a720c90f6869e3bf323d0be624d93bfc4a206e7841e1c68e1832d3689",
+    "deploy/workload_dependencies.py": "22ad707f147d90f65ac3acd755ee9cf4f4f2c8c0667d0c0501a30276481b1809",
+    "deploy/workload_installation.py": "c0ac29f55061751da6a4c5670f2920e69d0737d1d1407ffc0dad17b606572d46",
+    "deploy/workload_installed.py": "ededb0a679c53ca3bf68aae9b44428d2fdb7a4b1d0a8ed202356c6330427321c",
+    "deploy/workload_observation.py": "a35a03951de893d913e954f406837990b87dee8e8ac4e2ded89bdb130d2c32ac",
+    "deploy/workload_policy.py": "0863764e04bc25724c58584ad20dccef28239a88b7d2d3a8a830178cd13ac97b",
+    "deploy/workload_prerequisites.py": "c092bd21db627657d1c0c612f26871db8ede454da96214c2293b8ce06ca03e1a",
+    "scripts/inspect_workload_rollback.py": "0e696883a8dae84bf9540f76b152711fac9edd75584d282f7f31b604505f4fa9",
+    "scripts/workload_control_packet.py": "f798432a4eb59cc3d060ff106d616dc58db5b6d10d1745604770f47ee2fb1c7e",
+    "tests/test_workload_acceptance_packet.py": "db93aab127cca186d58a7074dd24612dfd805292024dea86bba6703b4592f493",
+    "tests/test_workload_dependencies.py": "b5fd33d7b12188acc2d8176b7fe514dc447da1118fc863cc4bcb48ccd8a6a76a",
+    "tests/test_workload_installation.py": "b22ff4ba282f7f662bef707959711cf4deebbfd4c59dd2a7ba4dd7937d32ec56",
+    "tests/test_workload_observation_process.py": "78868a92b380a208aa61780799a4b101fca3cf1bdc1255a7721ab98e2a6106bb",
+    "tests/test_workload_policy.py": "ee80a1f525a1be4713b3d1a7c7834d15e326cb26a3c6132ef9968667304b77ac",
+    "tests/test_workload_prerequisite_receipt.py": "6b80ceec5cee2efa68868acdb80026648788fa9dd323f38a4fcc476bae2212de",
+    "tests/test_workload_rollback_receipt.py": "4d80d7d354a1ff2e0bb47af2feb53b6a9b32addf3bdddef691e47ccaafe941c1"
+  },
+  "status": {
+    "host_facts": "privileged_observations_missing",
+    "implementation": "incomplete",
+    "rehearsal": "focused_checks_pass_full_runtime_blocked",
+    "review": "incremental_findings_resolved_full_proposal_unreviewed"
+  },
+  "unfinished": [
+    "complete_private_prior_installation_and_rollback_fixture",
+    "concrete_installation_and_actual_handoff",
+    "every_mutating_boundary_interruption_reconciliation_and_rollback",
+    "remaining_coverage_extension_required_runners",
+    "complete_bounded_acceptance_packets_and_end_to_end_execution",
+    "privileged_host_scheduling_delegation_storage_and_uid_observations",
+    "complete_frozen_proposal_and_independent_approval"
+  ]
+}
