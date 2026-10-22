@@ -1,0 +1,85 @@
+{
+  "checks": {
+    "focused_passed": 128,
+    "make_check": {
+      "contract_passed": 8,
+      "passed": 1837,
+      "skipped": 56
+    },
+    "new_linux_rehearsal": false,
+    "new_recovery_cases": 21,
+    "origin": "local_real_filesystem_synthetic_orchestration"
+  },
+  "date": "2026-10-22",
+  "evidence_sha256": {
+    "recovery-make-check-20261022.log": "a042cb4a37b986f1473b1ce5b6a738c4f992bf42078b128be9c72753e35263a3",
+    "recovery-make-check-final-20261022.log": "1b2916ef63fceb5c530fa72911675145fbcd265a74037a978a9340e43713ffb9",
+    "root-access-check-9bde384fec3040fb8e23048879424d4e/record.json": "680d08fda961cf1e01d4370286d2b6ee13bc89f123b2a9db821bd321e485d831"
+  },
+  "host_facts": {
+    "administrator_involvement_required": true,
+    "fresh_unprivileged_refresh": "previous_checkpoint_passed",
+    "root_existing_identity": "permission_denied_publickey",
+    "runtime_passwordless_sudo": false,
+    "sudoers_changed": false
+  },
+  "recovery": {
+    "acknowledgement": "verified_identity_bound_whole_step_before_final_engine_outcome",
+    "fresh_execution_authority_required": true,
+    "fresh_reconciliation_authority_required": true,
+    "partial_substep_continuation": false,
+    "proven_absence_allowlist": [
+      "create_release",
+      "enable_supervisor",
+      "snapshot"
+    ],
+    "rechecks_absence_before_new_intent": true,
+    "replaced_resources": "preserve_and_block",
+    "unacknowledged_creation": "preserve_and_block"
+  },
+  "retention": {
+    "guest_copy_exception_review_by": "2026-10-29",
+    "guest_powered_off_reaped": true,
+    "prior_checkpoint_disposition_unchanged": true
+  },
+  "review": {
+    "corrected_findings": [
+      "rollback_after_reconciled_absent_enable_marker"
+    ],
+    "full_proposal_approved": false,
+    "implemented_by": "root_agent",
+    "remaining_scoped_concrete_findings": [],
+    "reviewed_by": "independent_proposal_review_agent",
+    "scope": "exact_source_hashes_above"
+  },
+  "schema": "mldsafail.protected-runtime-recovery-checkpoint.v3",
+  "scope": {
+    "benchmark_version": "0.5.0-preview",
+    "budget_usd": 0,
+    "installation_authority_requested": false,
+    "publication": false,
+    "scientific_evaluations": 0,
+    "vps_mutations": false
+  },
+  "source_commit": "9d27564419a2dc048d299b621dc27e35fb700882",
+  "source_sha256": {
+    "deploy/workload_installation.py": "1e3052d49380b59f2702421535615377d7aaca336da75c0945e63a20e7a76187",
+    "tests/test_workload_installation_reconciliation.py": "daec1726496868bb95222797bd76811401060fa401ac2967f304c546466e3abd"
+  },
+  "status": {
+    "host_facts": "privileged_observations_missing",
+    "implementation": "incomplete",
+    "independent_review": "scoped_findings_resolved_full_proposal_unapproved",
+    "rehearsal": "prior_emulator_helper_deadline_failure_blocks_complete_runtime"
+  },
+  "unfinished": [
+    "complete_reusable_prior_installation_rollback_fixture",
+    "full_concrete_installation_and_handoff_rehearsal",
+    "every_substep_intent_and_identity_acknowledgement",
+    "partial_substep_reconciliation_and_continuation",
+    "remaining_executable_control_runners",
+    "complete_bounded_acceptance_packets",
+    "privileged_host_scheduling_delegation_uid_storage_facts",
+    "frozen_complete_installation_proposal_and_independent_review"
+  ]
+}
