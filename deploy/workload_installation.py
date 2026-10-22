@@ -19,11 +19,14 @@ import uuid
 from deploy.workload_release import canonical, digest, regular, verify, stable_stat
 from mldsafail.evaluator.native_workload import require
 
-INSTALL = ('snapshot', 'create_release', 'copy_bundle', 'tools', 'dependencies', 'images',
+INSTALL = ('snapshot', 'quiesce_supervisor', 'create_release', 'copy_bundle', 'tools', 'dependencies', 'images',
            'inhibit_scheduling', 'inhibit_containers', 'units', 'prerequisites', 'configurations',
-           'verify_release', 'activate', 'enable_supervisor', 'start_paused', 'verify_paused')
+           'verify_release', 'activate', 'supervisor_unit', 'enable_supervisor', 'start_paused', 'verify_paused')
 ROLLBACK = ('inhibit_scheduling', 'inhibit_containers', 'stop_supervisor', 'verify_cleanup',
             'restore_activation', 'restore_units', 'verify_rollback')
+SNAPSHOTS=('original-units.json','original-scheduling-files.json','original-scheduling.json','original-container-policies.json')
+SCHEDULING_FILE_MAX=1024**2
+SCHEDULING_SNAPSHOT_MAX=16*1024**2
 
 
 def supervisor_enable_contents(proposal):
@@ -74,20 +77,43 @@ def identity(path, *, content=True):
     return value
 
 
-def read_owned_file(path,command):
+def read_owned_file(path,command,*,metadata=False):
     path=Path(path)
-    try: return regular(path.parent,path.name)
+    try:
+        before=path.lstat();data,mode=regular(path.parent,path.name,max_bytes=SCHEDULING_FILE_MAX)
+        record=dict(identity(path,content=False),gid=path.stat().st_gid)
+        require(stable_stat(before)==stable_stat(path.lstat()),'installation_original_file_race')
     except PermissionError:
-        require(path.lstat().st_uid==0,'installation_unreadable_nonroot_artifact')
-        script=('import hashlib,json,os,pathlib,stat,sys; p=pathlib.Path(sys.argv[1]); '
+        script=('import json,os,pathlib,stat,sys; p=pathlib.Path(sys.argv[1]); '
                 'assert not any(q.is_symlink() for q in (p,*p.parents)); '
                 'fd=os.open(p,os.O_RDONLY|os.O_NOFOLLOW); s=os.fstat(fd); '
-                'assert stat.S_ISREG(s.st_mode) and s.st_uid==0 and s.st_nlink==1; '
-                'f=os.fdopen(fd,"rb");data=f.read();t=os.fstat(f.fileno()); '
-                'assert (s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns)==(t.st_dev,t.st_ino,t.st_size,t.st_mtime_ns,t.st_ctime_ns); '
-                'print(json.dumps(dict(hex=data.hex(),mode=stat.S_IMODE(s.st_mode))))')
-        row=json.loads(command(['/usr/bin/sudo','-n','/usr/bin/python3','-c',script,str(path)]))
-        return bytes.fromhex(row['hex']),row['mode']
+                'assert stat.S_ISREG(s.st_mode) and s.st_nlink==1 and s.st_size<=1048576; '
+                'f=os.fdopen(fd,"rb");f.seek(int(sys.argv[2]));data=f.read(262144);t=os.fstat(f.fileno()); '
+                'keys=("st_dev","st_ino","st_mode","st_uid","st_gid","st_nlink","st_size","st_mtime_ns","st_ctime_ns"); '
+                'birth=[getattr(s,k) for k in keys];assert birth==[getattr(t,k) for k in keys] and birth==[getattr(p.lstat(),k) for k in keys]; '
+                'print(json.dumps(dict(hex=data.hex(),identity=birth)))')
+        chunks=[];bound=None;offset=0
+        while True:
+            row=json.loads(command(['/usr/bin/sudo','-n','/usr/bin/python3','-c',script,str(path),str(offset)]))
+            current=row['identity'];require(bound is None or bound==current,'installation_original_file_race');bound=current
+            chunk=bytes.fromhex(row['hex']);chunks.append(chunk);offset+=len(chunk)
+            require(offset<=bound[6]<=SCHEDULING_FILE_MAX and (chunk or offset==bound[6]),'installation_original_file_size_changed')
+            if offset==bound[6]:break
+        data=b''.join(chunks);mode=stat.S_IMODE(bound[2])
+        record=dict(state='observed',path=str(path),device=bound[0],inode=bound[1],uid=bound[3],gid=bound[4],mode=mode)
+    return (data,mode,record) if metadata else (data,mode)
+
+
+def scheduling_size(source,command):
+    paths=list(source['inventory']['original_files'])
+    require(len(paths)<=2048,'installation_scheduling_file_count_limit')
+    try:sizes=[Path(path).lstat().st_size for path in paths]
+    except PermissionError:
+        script='import json,pathlib,sys;print(json.dumps([pathlib.Path(p).lstat().st_size for p in sys.argv[1:]]))'
+        sizes=json.loads(command(['/usr/bin/sudo','-n','/usr/bin/python3','-c',script,*paths]))
+    require(len(sizes)==len(paths) and all(type(size) is int and 0<=size<=SCHEDULING_FILE_MAX for size in sizes) and
+            sum(sizes)<=SCHEDULING_SNAPSHOT_MAX,'installation_scheduling_snapshot_size_limit')
+    return sum(sizes)
 
 
 def private(path, *, parse=True):
@@ -186,6 +212,7 @@ def execute(proposal,proposal_raw,review_raw,authority,backend,*,phase='install'
                 require(backend.observe(step,journal)==prior['observed'],'installation_completed_step_identity_changed')
                 continue
             before=backend.before(step,journal)
+            authorize(proposal_raw,review_raw,authority,phase)
             journal.append('intent',step=step['id'],before=before)
             if fault: fault(step['id'],'intent')
             authorize(proposal_raw,review_raw,authority,phase)
@@ -250,9 +277,43 @@ class LinuxBackend:
         return self.source['resources']['activation']
     def installed_units_selected(self,journal):
         for row in reversed(journal.rows):
-            if row.get('step') in ('install:units','rollback:restore_units') and row['event'] in ('outcome','reconciled'):
-                return row['step']=='install:units'
+            if row.get('step') in ('install:supervisor_unit','rollback:restore_units') and row['event'] in ('outcome','reconciled'):
+                return row['step']=='install:supervisor_unit'
         return False
+    def unit_names(self,action):
+        name='mldsafail-workload-supervisor.service'
+        return [key for key in self.proposal['units'] if (key==name if action=='supervisor_unit' else key!=name)]
+    def unit_records(self,journal):
+        restored=journal.outcome('rollback:restore_units')
+        if restored and restored['event'] in ('outcome','reconciled'):
+            value=restored['observed']
+            return {} if 'skipped' in value else value
+        result={}
+        for action in ('units','supervisor_unit'):
+            row=journal.outcome('install:'+action)
+            if row and row['event'] in ('outcome','reconciled'):result.update(row['observed'])
+        return result
+    def unit_transitions(self,journal):
+        from deploy.workload_handoff import identifier
+        rows=self.unit_records(journal);replacements={};overrides={}
+        for name,record in rows.items():
+            path=str(Path(self.source['installation']['unit_directory'])/name)
+            require(identity(path)==record,'installation_unit_identity_changed')
+            if self.installed_units_selected(journal) or name!='mldsafail-workload-supervisor.service' and not journal.outcome('rollback:restore_units'):
+                replacements[path]=dict(contents=self.proposal['units'][name],identity=record)
+                if name=='mldsafail-workload-supervisor.service' and identifier(self.source):
+                    overrides[identifier(self.source)]=self.proposal['units'][name]
+        return replacements,overrides
+    def quiesced_units(self,journal):
+        from deploy.workload_handoff import identifier
+        name=identifier(self.source)
+        return (name,) if name and self.acknowledged('quiesce_supervisor',journal) else ()
+    def scheduling_transition(self,journal):
+        from deploy.workload_installed import activation_scheduling,observation_runner
+        replacements,overrides=self.unit_transitions(journal)
+        with observation_runner(self.command):
+            activation_scheduling(self.proposal,installed_units=self.installed_units_selected(journal),
+                replacements=replacements,overrides=overrides,quiesced=self.quiesced_units(journal))
     def acknowledged(self,action,journal):
         return next((row for row in reversed(journal.rows) if row.get('step','').split(':')[-1]==action and
                      row['event'] in ('outcome','reconciled')),None)
@@ -262,6 +323,16 @@ class LinuxBackend:
         created=journal.outcome('install:create_release')
         if created and created['event'] in ('outcome','reconciled'):
             require(identity(self.root)==created['observed'],'installation_release_replaced')
+    def mutation_deadline(self):
+        require(time.monotonic()<getattr(self,'deadline',float('inf')),'installation_authority_deadline')
+    def original_units(self,journal):
+        expected=self._outcome(journal,'install:snapshot')
+        require(set(expected)==set(SNAPSHOTS),'installation_snapshot_inventory_changed')
+        for name in SNAPSHOTS:
+            require(identity(journal.root/name)==expected[name],'installation_snapshot_changed')
+        raw,_=regular(journal.root,'original-units.json')
+        require(digest(raw)==expected['original-units.json']['sha256'],'installation_snapshot_changed')
+        return json.loads(raw)
     def command(self,argv):
         from mldsafail.evaluator.native_workload import process_birth
         import signal
@@ -299,6 +370,8 @@ class LinuxBackend:
         require(os.getuid()==host['uid'] and socket.gethostname()==host['hostname'] and
                 Path('/proc/sys/kernel/random/boot_id').read_text().strip()==host['boot_id'],'installation_wrong_host')
         verify(self.recipe['bundle_root'],self.source['manifest'])
+        if journal.outcome('install:snapshot') and journal.outcome('install:snapshot')['event'] in ('outcome','reconciled'):
+            self.original_units(journal)
         from deploy.workload_configuration import templates,verify_private_artifacts
         verify_private_artifacts(self.source)
         from mldsafail.evaluator.native_workload import NativeRuntime
@@ -313,14 +386,9 @@ class LinuxBackend:
         require(self.source['origin'] in ('local_linux','host_observation'),'installation_synthetic_origin_forbidden')
         require(sys.platform=='linux' and os.uname().machine=='x86_64','installation_linux_x86_64_required')
         host=self.source['host']
-        # Upgrading a running protected supervisor needs its own bound,
-        # quiescent handoff. Never let daemon-reload redirect its restart or
-        # ExecStopPost to the inactive release while that adapter is absent.
-        from deploy.workload_schedule_v3 import unit_name
-        require(not any(unit_name(name,owner)=='mldsafail-workload-supervisor.service' and
-                owner['manager']=='user' and owner['uid']==host['uid']
-                for name,owner in self.source['scheduling']['owners'].items()),
-                'installation_existing_supervisor_requires_reviewed_handoff')
+        scheduling_size(self.source,self.command)
+        if journal.outcome('install:snapshot') and journal.outcome('install:snapshot')['event'] in ('outcome','reconciled'):
+            self.original_units(journal)
         manager=identity(host['user_manager']['path'])
         require(all(manager[k]==host['user_manager'][k] for k in ('device','inode')),'installation_user_manager_replaced')
         manager_path=self.command(['/usr/bin/systemctl','--user','show','--property=ControlGroup','--value']).decode().strip()
@@ -384,16 +452,15 @@ class LinuxBackend:
             if resource['state']=='observed':
                 actual=identity(resource['path'])
                 require(all(actual.get(k)==resource[k] for k in ('device','inode')),'installation_preflight_resource_changed')
-        for path,expected in self.source['inventory']['original_files'].items():
-            file=Path(path);require(digest(read_owned_file(file,self.command)[0])==expected,'installation_original_file_drift')
+        replacements,overrides=self.unit_transitions(journal)
         from deploy.workload_installed import verify_rollback,original_settings
         if self.source['origin']!='synthetic':
             from deploy.workload_registry import observe as observe_registry
             observe_registry(self.source,self.command,installed_units=self.installed_units_selected(journal))
-            from deploy.workload_registry import references
-            references(self.source,self.command,inhibited=bool(self.acknowledged('inhibit_scheduling',journal)))
-            require(all(identity(path)['state']=='absent' for path in self.source['inventory']['absent_files']),
-                    'installation_previously_absent_reference_created')
+            from deploy.workload_registry import references,bound_files
+            references(self.source,self.command,inhibited=bool(self.acknowledged('inhibit_scheduling',journal)),
+                       quiesced=self.quiesced_units(journal),overrides=overrides)
+            bound_files(self.source,self.command,replacements=replacements)
         settings=original_settings(self.source)
         expected_settings=self.source['inventory']['manager_settings']
         inhibited=self.acknowledged('inhibit_scheduling',journal)
@@ -402,6 +469,11 @@ class LinuxBackend:
             if inhibited and inhibited.get('event') in ('outcome','reconciled') and unit in self.source['scheduling']['computational_units']:
                 require(actual['ActiveState'] in ('inactive','failed'),'installation_scheduling_reactivated')
                 expected['ActiveState']=actual['ActiveState']
+            if unit in self.quiesced_units(journal):
+                require(actual['ActiveState'] in (('active','inactive','failed') if self.installed_units_selected(journal) else ('inactive','failed')),
+                        'handoff_previous_supervisor_reactivated')
+                expected['ActiveState']=actual['ActiveState']
+            if unit in overrides:expected.update(Restart='on-failure',Triggers='')
             require(actual==expected,'installation_original_manager_settings_drift')
         container_inhibited=self.acknowledged('inhibit_containers',journal)
         expected_containers=[dict(row) for row in self.source['containers']]
@@ -410,21 +482,33 @@ class LinuxBackend:
                 if row['disposition']=='pause':row.update(restart_policy='no',running=False,process_birth=None)
         require(settings['containers']==expected_containers,'installation_original_container_policy_drift')
         verify_rollback(self.source)
+        from deploy.workload_handoff import observe as previous_supervisor
+        if self.acknowledged('quiesce_supervisor',journal):self.observe(dict(action='quiesce_supervisor'),journal)
+        else:require(previous_supervisor(self.source,self.command)==self.source['rollback'].get('supervisor'),
+                     'handoff_previous_observation_changed')
         verify(self.recipe['bundle_root'],self.source['manifest'])
     def before(self,step,journal):
         action=step['action']
         if step.get('id','').startswith('install:'):self.owned_release(journal)
         if action=='create_release':
             value=identity(self.root); require(value['state']=='absent','installation_partial_destination'); return value
+        if action=='quiesce_supervisor':
+            from deploy.workload_handoff import observe
+            actual=observe(self.source,self.command)
+            require(actual==self.source['rollback'].get('supervisor'),'handoff_previous_observation_changed')
+            return dict(previous_supervisor=actual)
         if action in ('activate','restore_activation'):
             if action=='activate':
-                from deploy.workload_installed import activation_scheduling,observation_runner
-                with observation_runner(self.command):activation_scheduling(self.proposal)
+                self.scheduling_transition(journal)
             actual=identity(self.recipe['activation_pointer'])
             expected=self.selection_expectation(journal)
             require(all(actual.get(k)==v for k,v in expected.items() if k!='state'),'installation_activation_identity_changed')
             return actual
         if action in ('snapshot','copy_bundle','tools','dependencies'):
+            if action=='snapshot':
+                before={name:identity(journal.root/name) for name in SNAPSHOTS}
+                require(all(row['state']=='absent' for row in before.values()),'installation_snapshot_destination_not_absent')
+                return before
             path={'snapshot':journal.root/'original-units.json','copy_bundle':self.bundle,'tools':self.root/'tools','dependencies':self.root/'.venv'}[action]
             before=identity(path);require(before['state']=='absent','installation_destination_not_absent')
             return before
@@ -460,18 +544,28 @@ class LinuxBackend:
             before=identity(self.enable_path)
             require(before['state']=='absent','installation_supervisor_enable_already_present')
             return before
-        if action=='units':
-            return {name:identity(Path(self.source['installation']['unit_directory'])/name) for name in self.proposal['units']}
+        if action in ('units','supervisor_unit'):
+            if action=='supervisor_unit':
+                require(identity(self.recipe['activation_pointer'])==self._outcome(journal,'install:activate'),
+                        'installation_supervisor_unit_before_activation')
+                require(self.valid_outcome(dict(action='verify_release'),self.observe(dict(action='verify_release'),journal),journal),
+                        'installation_release_changed_before_supervisor_unit')
+            self.scheduling_transition(journal)
+            return {name:identity(Path(self.source['installation']['unit_directory'])/name) for name in self.unit_names(action)}
         return self.observe(step,journal)
     def _outcome(self,journal,name):
         row=journal.outcome(name); require(row and 'observed' in row,'installation_required_prior_outcome_missing'); return row['observed']
     def apply(self,step,journal):
         action=step['action']
+        self.mutation_deadline()
         if step.get('id','').startswith('install:'):self.owned_release(journal)
         if action in ('inhibit_scheduling','inhibit_containers') and self.acknowledged(action,journal):return
         if action=='restore_activation' and not journal.outcome('install:activate'):return
         if action=='restore_units' and not journal.outcome('install:units'):return
-        if action=='snapshot':
+        if action=='quiesce_supervisor':
+            from deploy.workload_handoff import stop
+            stop(self.source,self.command)
+        elif action=='snapshot':
             snapshot={}
             for name in [*self.proposal['units'],*[Path(r['path']).name for r in self.proposal['scheduling']['resources']]]:
                 if name in self.proposal['units']:
@@ -484,9 +578,9 @@ class LinuxBackend:
             exclusive(journal.root/'original-units.json',canonical(snapshot))
             originals={}
             for path,expected in self.source['inventory']['original_files'].items():
-                file=Path(path);data,mode=read_owned_file(file,self.command)
+                file=Path(path);data,mode,record=read_owned_file(file,self.command,metadata=True)
                 require(digest(data)==expected,'installation_original_scheduling_file_changed')
-                originals[path]=dict(identity(file,content=False),sha256=digest(data),contents_hex=data.hex())
+                originals[path]=dict(record,sha256=digest(data),contents_hex=data.hex())
             exclusive(journal.root/'original-scheduling-files.json',canonical(originals))
             from deploy.workload_installed import original_settings,observation_runner
             with observation_runner(self.command):observed_settings=original_settings(self.source)
@@ -566,17 +660,20 @@ class LinuxBackend:
         elif action=='prerequisites':
             from deploy.workload_prerequisites import apply
             apply(self.source,self.command,journal)
-        elif action in ('units','restore_units'):
+        elif action in ('units','supervisor_unit','restore_units'):
             directory=Path(self.source['installation']['unit_directory'])
-            if action=='units':
-                for name,contents in self.proposal['units'].items():
-                    self._replace_bound(directory/name,contents.encode(),journal)
+            if action in ('units','supervisor_unit'):
+                for name in self.unit_names(action):
+                    self._replace_bound(directory/name,self.proposal['units'][name].encode(),journal)
             else:
-                originals=json.loads((journal.root/'original-units.json').read_bytes())
+                originals=self.original_units(journal)
                 for path,row in originals.items():
+                    action_name='supervisor_unit' if Path(path).name=='mldsafail-workload-supervisor.service' else 'units'
+                    installed=journal.outcome('install:'+action_name)
+                    if not installed:continue
                     if row['state']=='absent':
                         actual=identity(path)
-                        expected=self._outcome(journal,'install:units')[Path(path).name]
+                        expected=self._outcome(journal,'install:'+action_name)[Path(path).name]
                         require(actual==expected,'installation_unit_replaced'); Path(path).unlink()
                         sync_directory(Path(path).parent)
                     else: self._replace_bound(Path(path),bytes.fromhex(row['contents_hex']),journal,
@@ -589,6 +686,7 @@ class LinuxBackend:
             candidate=identity(temporary)
             journal.append('activation_candidate',step_id=step['id'],observed=candidate)
             before=self.before(step,journal)
+            self.mutation_deadline()
             import ctypes
             library=ctypes.CDLL(None,use_errno=True)
             exchange=library.renameat2
@@ -605,13 +703,17 @@ class LinuxBackend:
                     'installation_activation_changed_before_enable')
             require(self.valid_outcome(dict(action='verify_release'),self.observe(dict(action='verify_release'),journal),journal),
                     'installation_release_changed_before_enable')
+            self.scheduling_transition(journal)
+            from deploy.workload_registry import generated_supervisor
+            generated_supervisor(self.proposal,self.command)
+            self.mutation_deadline()
             exclusive(self.enable_path,supervisor_enable_contents(self.proposal))
         elif action=='start_paused': self.command(['/usr/bin/systemctl','--user','start','mldsafail-workload-supervisor.service'])
         elif action=='stop_supervisor':
-            if journal.outcome('install:units'):
+            if journal.outcome('install:supervisor_unit'):
                 name='mldsafail-workload-supervisor.service'
                 actual=identity(Path(self.source['installation']['unit_directory'])/name)
-                require(actual==self._outcome(journal,'install:units')[name],
+                require(actual==self._outcome(journal,'install:supervisor_unit')[name],
                         'installation_supervisor_unit_identity_changed')
                 self.command(['/usr/bin/systemctl','--user','stop',name])
             if journal.outcome('install:enable_supervisor'):
@@ -626,27 +728,33 @@ class LinuxBackend:
         return {line.rsplit(' ',1)[0]:line.rsplit(' ',1)[1] for line in rows if not line.startswith('<none>')}
     def _docker(self): return ['/usr/bin/docker','--host','unix://'+self.source['host']['runtime_identity']['socket_birth']['path']]
     def _replace_bound(self,path,data,journal,*,mode=0o600,owner=None):
-        original=json.loads((journal.root/'original-units.json').read_bytes())[str(path)]
+        original=self.original_units(journal)[str(path)]
         actual=identity(path)
         allowed=[original]
         if path.name in self.proposal['units']:
-            installed=journal.outcome('install:units')
+            action_name='supervisor_unit' if path.name=='mldsafail-workload-supervisor.service' else 'units'
+            installed=journal.outcome('install:'+action_name)
             if installed and 'observed' in installed:
                 allowed.append(installed['observed'][path.name])
         require(any(all((path.stat().st_gid if k=='gid' else actual.get(k))==v
                         for k,v in row.items() if k not in ('contents_hex',)) for row in allowed),
                 'installation_unknown_unit_preserve')
         temporary=path.with_name(path.name+'.'+uuid.uuid4().hex+'.tmp')
+        self.mutation_deadline()
         exclusive(temporary,data,mode=mode)
         if owner is not None and (temporary.stat().st_uid,temporary.stat().st_gid)!=owner:
             self.command(['/usr/bin/sudo','-n','/usr/bin/chown',str(owner[0])+':'+str(owner[1]),'--',str(temporary)])
         require(owner is None or (temporary.stat().st_uid,temporary.stat().st_gid)==owner,
                 'installation_unit_owner_restore_failed')
+        self.mutation_deadline()
         os.replace(temporary,path); sync_directory(path.parent)
     @measured_by_engine
     def observe(self,step,journal):
         action=step['action']
-        if action=='snapshot': return identity(journal.root/'original-units.json')
+        if action=='quiesce_supervisor':
+            from deploy.workload_handoff import stopped
+            return stopped(self.source,self.command,replacement=self.unit_records(journal).get('mldsafail-workload-supervisor.service'))
+        if action=='snapshot': return {name:identity(journal.root/name) for name in SNAPSHOTS}
         if action=='create_release': return identity(self.root)
         if action=='copy_bundle':
             if not self.bundle.exists(): return dict(state='absent')
@@ -668,10 +776,11 @@ class LinuxBackend:
             return {role:identity(row['path']) for role,row in self.source['manifest']['configurations'].items()}
         if action=='enable_supervisor':return identity(self.enable_path)
         if action in ('activate','restore_activation'): return identity(self.recipe['activation_pointer'])
-        if action in ('units','restore_units'):
+        if action in ('units','supervisor_unit','restore_units'):
             if action=='restore_units' and not journal.outcome('install:units'):
                 return dict(skipped='units_never_replaced')
-            return {name:identity(Path(self.source['installation']['unit_directory'])/name) for name in self.proposal['units']}
+            names=self.proposal['units'] if action=='restore_units' else self.unit_names(action)
+            return {name:identity(Path(self.source['installation']['unit_directory'])/name) for name in names}
         if action in ('start_paused','verify_paused'):
             from mldsafail.evaluator.workload_client import WorkloadClient
             from mldsafail.evaluator.native_workload import private_json,process_birth
@@ -695,7 +804,7 @@ class LinuxBackend:
             return dict(paused=state['paused'],phase=state['phase'],process=process,socket=actual,
                         supervisor_generation=record['supervisor_generation'])
         if action=='stop_supervisor':
-            if not journal.outcome('install:units'):
+            if not journal.outcome('install:supervisor_unit'):
                 return dict(stopped=True,enabled=self.enable_path.exists())
             result=self.command(['/usr/bin/systemctl','--user','show','mldsafail-workload-supervisor.service','--property=ActiveState','--value'])
             return dict(stopped=result.strip() in (b'inactive',b'failed'),enabled=self.enable_path.exists())
@@ -705,7 +814,8 @@ class LinuxBackend:
         return {}
     def valid_outcome(self,step,value,journal):
         action=step['action']
-        if action in ('snapshot','create_release'): return value.get('state')=='observed'
+        if action=='snapshot':return set(value)==set(SNAPSHOTS) and all(row.get('state')=='observed' for row in value.values())
+        if action=='create_release': return value.get('state')=='observed'
         if action=='enable_supervisor':
             return value.get('sha256')==digest(supervisor_enable_contents(self.proposal))
         if action=='copy_bundle': return value.get('manifest_sha256')==self.proposal['manifest_sha256']
@@ -720,10 +830,11 @@ class LinuxBackend:
             return value.get('target')==(str(self.root) if action=='activate' else self.source['rollback']['target'])
         if action in ('start_paused','verify_paused'): return value.get('paused') is True
         if action=='stop_supervisor': return value.get('stopped') is True and value.get('enabled') is False
-        if action=='units': return all(value[name].get('sha256')==digest(data.encode()) for name,data in self.proposal['units'].items())
+        if action in ('units','supervisor_unit'):
+            return set(value)==set(self.unit_names(action)) and all(value[name].get('sha256')==digest(self.proposal['units'][name].encode()) for name in value)
         if action=='restore_units':
             if not journal.outcome('install:units'):return value==dict(skipped='units_never_replaced')
-            originals=json.loads((journal.root/'original-units.json').read_bytes())
+            originals=self.original_units(journal)
             for name,actual in value.items():
                 path=Path(self.source['installation']['unit_directory'])/name;original=originals[str(path)]
                 if original['state']=='absent':
@@ -747,7 +858,7 @@ class LinuxBackend:
             return False
         if step['action']=='restore_units' and not journal.outcome('install:units'):
             return value==dict(skipped='units_never_replaced')
-        return step['action'] in ('inhibit_containers','stop_supervisor','verify_release',
+        return step['action'] in ('quiesce_supervisor','inhibit_containers','stop_supervisor','verify_release',
                                   'verify_paused','verify_cleanup','verify_rollback')
 
 

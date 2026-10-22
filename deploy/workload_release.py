@@ -48,11 +48,13 @@ def regular_path(root,name):
     return path,before
 
 
-def regular(root,name):
+def regular(root,name,*,max_bytes=None):
     path,before=regular_path(root,name)
+    require(max_bytes is None or before.st_size<=max_bytes,'release_file_size_limit')
     with path.open('rb') as stream:
         require(stable_stat(os.fstat(stream.fileno()))==stable_stat(before),'release_changed')
-        data=stream.read()
+        data=stream.read() if max_bytes is None else stream.read(max_bytes+1)
+        require(max_bytes is None or len(data)<=max_bytes,'release_file_size_limit')
         require(stable_stat(os.fstat(stream.fileno()))==stable_stat(before) and stable_stat(path.lstat())==stable_stat(before),'release_changed')
     return data,stat.S_IMODE(before.st_mode)
 

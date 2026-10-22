@@ -191,10 +191,25 @@ def bootstrap(inspection, *, now=None):
                 type(parent.get('writable')) is bool and type(parent.get('retained_service_ancestor')) is bool,
                 'v3_ancestor_permissions_missing')
         if parent['state']=='observed':
-            from deploy.workload_installed import CGROUP_LIMITS
+            from deploy.workload_installed import CGROUP_LIMITS,CGROUP_PERMISSIONS
             require(type(parent.get('limits')) is dict and set(parent['limits'])==set(CGROUP_LIMITS) and
                     all(value is None or type(value) is str and '\n' not in value for value in parent['limits'].values()),
                     'v3_ancestor_limits_missing')
+            require(type(parent.get('subtree_control')) is list and
+                    parent['subtree_control']==sorted(set(parent['subtree_control'])) and
+                    set(parent['subtree_control'])>={'cpu','memory','pids'},
+                    'v3_ancestor_controllers_not_enabled')
+            permissions=parent.get('control_permissions')
+            require(type(permissions) is dict and set(permissions)==set(CGROUP_PERMISSIONS),
+                    'v3_ancestor_control_permissions_missing')
+            for row in permissions.values():
+                require(type(row) is dict and set(row)=={'uid','gid','mode','writable'} and
+                        all(type(row[key]) is int and row[key]>=0 for key in ('uid','gid','mode')) and
+                        row['mode']<=0o7777 and type(row['writable']) is bool,
+                        'v3_ancestor_control_permissions_invalid')
+            if index==0 or parent['path']==host['user_manager']['path']:
+                require(all(row['writable'] for row in permissions.values()),
+                        'v3_delegation_control_not_writable')
         if parent['state']=='proposed':
             require(index==0 and parent['path']==host['user_manager']['path']+'/mldsafail.slice' and
                     parent['writable'] is True and parent['retained_service_ancestor'] is False,
@@ -222,6 +237,9 @@ def bootstrap(inspection, *, now=None):
     if inspection['origin']!='synthetic':
         from deploy.workload_registry import validate as validate_registry
         require('manager_units' in inventory,'v3_manager_registry_missing');validate_registry(inspection)
+        require({installation['unit_directory']+'/'+name for name in units}<=
+                set(inventory['original_files'])|set(inventory.get('absent_files',[])),
+                'v3_generated_unit_original_states_missing')
         from deploy.workload_registry import REFERENCE_FIELDS
         refs=inventory.get('execution_references',{})
         require(set(refs)==set(inspection['scheduling']['owners']) and
@@ -260,7 +278,7 @@ def bootstrap(inspection, *, now=None):
                 row['restart_policy'] in ('no','always','unless-stopped','on-failure') and
                 type(row['running']) is bool and row['disposition'] in ('pause','retain'), 'v3_container_policy_invalid')
     rollback = inspection['rollback']
-    fields(rollback, 'release manifest_sha256 configuration_hashes coordinator_image schema_sha256 '
+    fields({key:value for key,value in rollback.items() if key!='supervisor'}, 'release manifest_sha256 configuration_hashes coordinator_image schema_sha256 '
            'installed_schema_sha256 compatibility_receipt_sha256 compatibility_receipt_path verified_files target manifest installed_files python_sha256 schema', 'v3_rollback_missing')
     absolute(rollback['release'])
     absolute(rollback['compatibility_receipt_path'])
@@ -280,6 +298,8 @@ def bootstrap(inspection, *, now=None):
     require(re.fullmatch('sha256:[a-f0-9]{64}', rollback['coordinator_image']) is not None and
             set(rollback['configuration_hashes']) == {'supervisor','native','controller'}, 'v3_rollback_artifacts_missing')
     for value in rollback['configuration_hashes'].values(): hashed(value)
+    from deploy.workload_handoff import validate as validate_handoff
+    validate_handoff(inspection)
     require(type(inspection['retained_services']) is dict and
             set(inspection['retained_services']) >= {'web','database','proxy'}, 'v3_retained_services_missing')
     for row in inspection['retained_services'].values():

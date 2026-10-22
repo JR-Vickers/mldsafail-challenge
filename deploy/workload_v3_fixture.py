@@ -32,6 +32,9 @@ def inspection():
     while True:
         ancestors.append(dict(observed(str(parent),50+len(ancestors)),writable=str(parent)==manager,
                               controllers=['cpu','memory','pids'],retained_service_ancestor=str(parent)!=manager,
+                              subtree_control=['cpu','memory','pids'],
+                              control_permissions={name:dict(uid=1000 if str(parent)==manager else 0,gid=1000 if str(parent)==manager else 0,
+                                  mode=0o644,writable=str(parent)==manager) for name in ('cgroup.procs','cgroup.subtree_control')},
                               limits={name:None for name in ('memory.max','memory.high','memory.swap.max','pids.max','cpu.max','cpuset.cpus.effective')}))
         if str(parent)=='/sys/fs/cgroup':break
         parent=parent.parent

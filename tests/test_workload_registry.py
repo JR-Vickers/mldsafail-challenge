@@ -86,3 +86,38 @@ def test_inhibition_allows_process_accounting_but_rejects_loaded_command_changes
     references(data,command,inhibited=True)
     def changed(argv):return command(argv).replace(b'argv[]=/bin/true',b'argv[]=/bin/false')
     with pytest.raises(WorkloadBlocked,match='loaded_execution_changed'):references(data,changed,inhibited=True)
+
+
+@pytest.mark.parametrize('field,value',[
+    ('Environment','PYTHONPATH=/unapproved'),
+    ('DropInPaths','/run/override.conf'),
+    ('ExecStart','{ path=/bin/false ; argv[]=/bin/false ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }'),
+])
+def test_new_supervisor_loaded_references_must_match_generated_bytes(field,value):
+    from deploy.workload_registry import generated_supervisor,REFERENCE_FIELDS
+    from deploy.workload_handoff import NAME
+    data=source();data['scheduling']['owners']={}
+    data['inventory']['execution_references']={}
+    data['installation']={'unit_directory':'/home/operator/.config/systemd/user'}
+    proposal=dict(identities=data,units={NAME:'[Service]\nExecStart=/bin/true\nEnvironment=PYTHONPATH=/approved\nWorkingDirectory=/approved\n'})
+    row={key:'' for key in REFERENCE_FIELDS}
+    row.update(FragmentPath=data['installation']['unit_directory']+'/'+NAME,Names=NAME,
+        Environment='PYTHONPATH=/approved',WorkingDirectory='/approved',
+        ExecStart='{ path=/bin/true ; argv[]=/bin/true ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }')
+    def command(argv):return '\n'.join(key+'='+value for key,value in row.items()).encode()
+    generated_supervisor(proposal,command)
+    row[field]=value
+    with pytest.raises(WorkloadBlocked,match='registry_'):generated_supervisor(proposal,command)
+
+
+def test_approved_unit_replacement_requires_its_acknowledged_birth(tmp_path):
+    from deploy.workload_registry import bound_files
+    from deploy.workload_installation import identity
+    path=tmp_path/'unit';path.write_bytes(b'approved')
+    data=dict(inventory=dict(original_files={},absent_files=[str(path)]))
+    replacements={str(path):dict(identity=identity(path),contents='approved')}
+    bound_files(data,None,replacements=replacements)
+    other=tmp_path/'replacement';other.write_bytes(path.read_bytes());other.replace(path)
+    with pytest.raises(WorkloadBlocked,match='installed_file_identity_changed'):
+        bound_files(data,None,replacements=replacements)
+    assert path.read_bytes()==b'approved'

@@ -48,6 +48,15 @@ controllers, subtree allowances, memory/swap/PID/CPU limits and control-file
 permissions. Bind the actual rootless daemon UID map and coordinator image UID.
 Do not change a shared Docker daemon or retained-service ancestor.
 
+The runtime account can collect its complete existing ancestor chain with
+`python3 -m scripts.workload_cgroup_collection --output /absolute/private/unused.json`
+from the reviewed checkout. The output parent must already be owner-private.
+This reader records enabled subtree controllers and control-file permissions;
+it performs no writes to cgroups. Missing dedicated slice paths remain proposed
+without births. It conservatively protects all observed ancestors; privately join
+retained-service placements before final classification. Its output supplies
+cgroup facts only and does not close scheduling, storage or review requirements.
+
 For storage, identify an existing compliant persistent ext4/xfs filesystem first.
 Record `findmnt` source/target/type/options, mount identity, ownership, capacity,
 backing-device free bytes and preservation inventory. Missing compliant storage

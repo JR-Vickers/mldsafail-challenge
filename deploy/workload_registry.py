@@ -1,6 +1,7 @@
 """Fresh complete systemd manager/unit name closure, with owner-qualified IDs."""
 import json
 import re
+import shlex
 from deploy.workload_preparation import manager_prefix
 from deploy.workload_schedule_v3 import unit_name
 from mldsafail.evaluator.native_workload import require
@@ -58,12 +59,12 @@ def observe(source,command,*,installed_units=False):
 
 
 EXECUTION_FIELDS=('ExecCondition','ExecStart','ExecStartPre','ExecStartPost','ExecStop','ExecStopPost')
-REFERENCE_FIELDS=('FragmentPath','DropInPaths','EnvironmentFiles','Names','TriggeredBy',*EXECUTION_FIELDS)
+REFERENCE_FIELDS=('FragmentPath','DropInPaths','EnvironmentFiles','Environment','WorkingDirectory','Names','TriggeredBy',*EXECUTION_FIELDS)
 
 
 def stable_execution(value):
     """Discard only systemd's terminal per-command process accounting fields."""
-    if not value:return value
+    if not value:return ()
     pattern=re.compile(r'\{ (path=.*? ; argv\[\]=.*? ; ignore_errors=(?:yes|no)) ; '
         r'start_time=\[[^\]\n]*\] ; stop_time=\[[^\]\n]*\] ; pid=\d+ ; '
         r'code=[^;{}\n]+ ; status=[^;{}\n]+ \}')
@@ -72,7 +73,8 @@ def stable_execution(value):
     return tuple(row[1] for row in rows)
 
 
-def references(source,command,*,inhibited=False):
+def references(source,command,*,inhibited=False,quiesced=(),overrides=None):
+    overrides={} if overrides is None else overrides
     expected=source['inventory'].get('execution_references',{})
     require(set(expected)==set(source['scheduling']['owners']),'registry_execution_references_missing')
     actual={}
@@ -85,6 +87,23 @@ def references(source,command,*,inhibited=False):
         row=dict(line.split('=',1) for line in raw.splitlines() if '=' in line)
         require(set(row)==set(REFERENCE_FIELDS),'registry_reference_collection_incomplete')
         wanted=dict(before)
+        replacement=overrides.get(identifier)
+        if replacement is not None:
+            require(before['DropInPaths']==before['EnvironmentFiles']=='','registry_control_override_requires_adapter')
+            fields={}
+            for line in replacement.splitlines():
+                if '=' in line:
+                    key,value=line.split('=',1);fields.setdefault(key,[]).append(value)
+            for field in EXECUTION_FIELDS:
+                commands=[]
+                for value in fields.get(field,[]):
+                    argv=shlex.split(value)
+                    require(argv and argv[0].startswith('/'),'registry_generated_execution_invalid')
+                    commands.append('path='+argv[0]+' ; argv[]='+' '.join(argv)+' ; ignore_errors=no')
+                require(stable_execution(row[field])==tuple(commands),'registry_loaded_execution_changed')
+                wanted[field]=row[field]
+            wanted['Environment']=' '.join(fields.get('Environment',[]))
+            wanted['WorkingDirectory']=''.join(fields.get('WorkingDirectory',[]))
         if inhibited and owner['disposition']=='pause':
             key=owner['manager']+':'+str(owner['uid'])
             path=source['unit_directories'][key]+'/'+unit_name(identifier,owner)+'.d/90-mldsafail-paused.conf'
@@ -92,12 +111,15 @@ def references(source,command,*,inhibited=False):
             require(bool(before['FragmentPath']),'registry_transient_computation_requires_adapter')
             # Stopping a file-backed unit changes execution timestamps/status.
             # Approved fragment/drop-in bytes and all reference paths stay bound.
+        if replacement is None and (identifier in quiesced or inhibited and owner['disposition']=='pause'):
             for field in EXECUTION_FIELDS:
                 require(stable_execution(before[field])==stable_execution(row[field]),
                         'registry_loaded_execution_changed')
                 wanted[field]=row[field]
         for key in ('DropInPaths','Names','TriggeredBy'):
             row[key]=' '.join(sorted(row[key].split()));wanted[key]=' '.join(sorted(wanted[key].split()))
+        row['Environment']=' '.join(sorted(shlex.split(row['Environment'])))
+        wanted['Environment']=' '.join(sorted(shlex.split(wanted['Environment'])))
         require(row==wanted,'registry_execution_reference_changed')
         actual[identifier]=row
     return actual
@@ -114,3 +136,31 @@ def validate_reference_files(source):
         require(not environment or ' '.join(match[0] for match in matches)==environment,'registry_environment_reference_syntax')
         paths.update(match[1] for match in matches)
         require(paths<=existing|absent,'registry_unbound_reference_file')
+
+
+def bound_files(source,command,*,replacements=None):
+    from deploy.workload_installation import identity,read_owned_file
+    from deploy.workload_release import digest
+    replacements={} if replacements is None else replacements
+    existing=source['inventory']['original_files'];absent=source['inventory']['absent_files']
+    for path in set(existing)|set(absent):
+        transition=replacements.get(path)
+        if transition is not None:
+            require(identity(path)==transition['identity'],'registry_installed_file_identity_changed')
+            require(read_owned_file(path,command)[0]==transition['contents'].encode(),'registry_installed_file_changed')
+        elif path in existing:
+            require(digest(read_owned_file(path,command)[0])==existing[path],'installation_original_file_drift')
+        else:require(identity(path)['state']=='absent','installation_previously_absent_reference_created')
+
+
+def generated_supervisor(proposal,command):
+    """Inspect loaded commands/environment even when the unit did not exist before."""
+    from deploy.workload_handoff import NAME,identifier
+    source=proposal['identities'];name=identifier(source) or NAME
+    before=dict(source['inventory']['execution_references'].get(name,{field:'' for field in REFERENCE_FIELDS}))
+    before.update(FragmentPath=source['installation']['unit_directory']+'/'+NAME)
+    if not before['Names']:before['Names']=NAME
+    owner=dict(manager='user',uid=source['host']['uid'],account='')
+    scoped=dict(source,scheduling=dict(owners={name:owner}),
+                inventory=dict(execution_references={name:before}))
+    return references(scoped,command,overrides={name:proposal['units'][NAME]})[name]

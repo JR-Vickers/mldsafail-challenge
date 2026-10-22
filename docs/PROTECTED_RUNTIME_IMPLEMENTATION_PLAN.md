@@ -19,7 +19,7 @@ Historical receipts remain immutable. Preserve the existing VPS, $0 budget,
 scientific evidence. No production epoch, solver evaluation, capacity measurement,
 public listener, notification, publication, 0.6.0 work or backup setup belongs here.
 
-Current progress is recorded in the [supervisor startup and partial rollback checkpoint](acceptance/production-preparation/protected-runtime-lifecycle-20261022.md). Existing-supervisor handoff and partial-install rollback remain implementation work, separately from privileged host facts.
+Current progress is recorded in the [paused handoff and delegation checkpoint](acceptance/production-preparation/protected-runtime-handoff-20261022.md). Handoff is implemented with synthetic coverage; real handoff and full-engine/rollback rehearsal remain unfinished, separately from privileged host facts.
 The complete synthetic preparation path and fresh offline Linux runtime-package
 installation pass. Real delegated cgroup/output/reboot and disposable PostgreSQL
 fixtures pass within their recorded scope. Full concrete installation/rollback,

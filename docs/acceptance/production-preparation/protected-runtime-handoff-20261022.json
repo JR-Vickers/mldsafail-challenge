@@ -1,0 +1,51 @@
+{
+  "benchmark_version": "0.5.0-preview",
+  "budget_usd": 0,
+  "checks": {
+    "linux_focused_passed": 160,
+    "make_check": {
+      "contract_passed": 8,
+      "passed": 1751,
+      "skipped": 46
+    }
+  },
+  "date": "2026-10-22",
+  "evidence": {
+    "cgroup-controller-attempt-1.json": "b11e10ea1b252c215c4a69768c57673746eb13bdbb25960927c3e301c371107a",
+    "cgroup-observation-attempt-1.json": "42699aefd3169437f93d63444a6447458298ec2acdfdab74fbbeec7747fc6271",
+    "fifth-generation-ready-observation-2.json": "c4ad057464554523d05e064bfa416cc5f7773c88645dfeae2a63e50db720a24b",
+    "fifth-generation-ready-observation.json": "7d9959cddf5369ff5d1204b4202f5cccecdf2565741a1d3b38413bda9f61863b",
+    "linux-focused-tests-attempt-5.json": "13ecfff994453d62b2a89ebd54d8a0149eb4da6d0177d1b2d0d8ad8a6aa0c103",
+    "make-check-17.log": "b2a17531d964fab99f2f2a98d825307e7626e53ef6782cb7a48fa06098a8f5db",
+    "make-check-18.log": "550ad112887d3fb2df834f06fffc0e2dbd25a5a7fee61ce0f5058b59bcb38d58",
+    "make-check-19.log": "890ec767bd82d3965e8aaf25388d51271b5011949c08a363c67974a40ef5b56a",
+    "verification-source-v3-4-binding.json": "5244d88b1b02db3b7e9d998170370605f9f0d68c5401dafc1097b3d4a034372f"
+  },
+  "fixture": {
+    "generation": "resume-bb1a487b284245898def346709f08113",
+    "owned_controller_primitive_cleaned": true,
+    "retention_review": "2026-10-29",
+    "state": "running_owned_local_guest_for_continued_rehearsal"
+  },
+  "remaining": [
+    "real previous-supervisor handoff rehearsal",
+    "complete concrete installation/reconciliation/rollback rehearsal",
+    "complete private configuration and rollback fixture",
+    "all acceptance runners and native watchdog integration",
+    "privileged VPS facts",
+    "full source/release/proposal/coverage independent review"
+  ],
+  "schema": "mldsafail.protected-runtime-handoff-progress.v3",
+  "scope": {
+    "installed_native_acceptance": false,
+    "public_listeners": 0,
+    "scientific_evaluations": 0,
+    "vps_mutations": false
+  },
+  "status": {
+    "host_facts": "privileged_vps_collection_outstanding",
+    "implementation": "unfinished",
+    "rehearsal": "focused_linux_and_owned_delegation_pass_full_engine_outstanding",
+    "review": "incremental_no_findings_full_proposal_unreviewed"
+  }
+}

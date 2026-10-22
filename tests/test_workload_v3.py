@@ -96,3 +96,13 @@ def test_configuration_births_derive_from_observed_permitted_chain():
 def test_disk_floor_includes_complete_release_allocation():
     data=inspection();data['admission']['backing_free']=5*1024**3
     with pytest.raises(WorkloadBlocked,match='admission_floor'):bootstrap_commands(data,now=1100)
+
+
+@pytest.mark.parametrize('change,reason',[
+    (lambda row:row.pop('control_permissions'),'control_permissions_missing'),
+    (lambda row:row.update(subtree_control=['cpu','pids']),'controllers_not_enabled'),
+    (lambda row:row['control_permissions']['cgroup.procs'].update(writable=False),'control_not_writable'),
+])
+def test_existing_ancestor_must_already_delegate_required_controllers(change,reason):
+    record=inspection();change(record['resources']['delegation']['ancestors'][1])
+    with pytest.raises(WorkloadBlocked,match=reason):bootstrap_commands(record,now=1100)

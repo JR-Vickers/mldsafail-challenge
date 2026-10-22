@@ -37,14 +37,14 @@ def inventory(accounts):
             for kind, args in (
                 ('units', ['list-units', '--all', '--plain', '--no-pager', '--no-legend']),
                 ('files', ['list-unit-files', '--no-pager', '--no-legend']),
-                ('identities', ['show', '*.service', '*.timer', '*.socket', '*.path',
-                               '--property=Id,Names,ActiveState,UnitFileState,ControlGroup,Delegate,Triggers,TriggeredBy,Restart,FragmentPath,DropInPaths,ExecStart,ExecStartPre,ExecStartPost,ExecStop,EnvironmentFiles'])):
+                ('identities', ['show', '--all', '*.service', '*.timer', '*.socket', '*.path',
+                               '--property=Id,Names,ActiveState,UnitFileState,ControlGroup,Delegate,Triggers,TriggeredBy,Restart,FragmentPath,DropInPaths,ExecCondition,ExecStart,ExecStartPre,ExecStartPost,ExecStop,ExecStopPost,EnvironmentFiles,Environment,WorkingDirectory'])):
                 sections['account_'+name+'_'+kind] = prefix+args
     # Include vendor units and global user units, not only local overrides.
     roots.extend(['/usr/lib/systemd/system', '/usr/lib/systemd/user', '/etc/systemd/user',
                   '/etc/containers/systemd', '/etc/rc.local', '/etc/init.d'])
-    sections['system_execution_references'] = ['systemctl', 'show', '*.service', '*.timer', '*.socket', '*.path',
-        '--property=Id,ExecStart,ExecStartPre,ExecStartPost,ExecStop,EnvironmentFiles,FragmentPath,DropInPaths,Triggers,TriggeredBy']
+    sections['system_execution_references'] = ['systemctl', 'show', '--all', '*.service', '*.timer', '*.socket', '*.path',
+        '--property=Id,Names,ExecCondition,ExecStart,ExecStartPre,ExecStartPost,ExecStop,ExecStopPost,EnvironmentFiles,Environment,WorkingDirectory,FragmentPath,DropInPaths,Triggers,TriggeredBy']
     return sections, tuple(dict.fromkeys(roots)), owners
 
 

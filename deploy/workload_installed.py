@@ -73,15 +73,26 @@ def scheduling(proposal, *, include_containers=True):
 
 
 CGROUP_LIMITS=('memory.max','memory.high','memory.swap.max','pids.max','cpu.max','cpuset.cpus.effective')
+CGROUP_PERMISSIONS=('cgroup.procs','cgroup.subtree_control')
 
 
 def cgroup_observation(path):
     path=Path(path)
     row=identity(path)
     require(row['state']=='observed','installed_cgroup_missing')
+    permissions={}
+    for name in CGROUP_PERMISSIONS:
+        target=path/name;info=target.lstat()
+        require(not target.is_symlink(),'installed_cgroup_control_symlink')
+        permissions[name]=dict(uid=info.st_uid,gid=info.st_gid,mode=info.st_mode&0o7777,
+                               writable=os.access(target,os.W_OK))
     row.update(controllers=sorted((path/'cgroup.controllers').read_text().split()),
+               subtree_control=sorted((path/'cgroup.subtree_control').read_text().split()),
+               control_permissions=permissions,
                writable=os.access(path,os.W_OK),
                limits={name:(path/name).read_text().strip() if (path/name).exists() else None for name in CGROUP_LIMITS})
+    require(identity(path)=={key:value for key,value in row.items() if key not in
+            ('controllers','subtree_control','control_permissions','writable','limits')},'installed_cgroup_observation_race')
     return row
 
 
@@ -89,7 +100,7 @@ def verify_ancestor_observations(source):
     for parent in source['resources']['delegation']['ancestors']:
         if parent['state']!='observed':continue
         actual=cgroup_observation(parent['path'])
-        require(all(actual[k]==parent[k] for k in ('device','inode','writable','limits')) and
+        require(all(actual[k]==parent[k] for k in ('device','inode','writable','limits','subtree_control','control_permissions')) and
                 set(actual['controllers'])==set(parent['controllers']),'installed_cgroup_ancestor_changed')
 
 
@@ -142,22 +153,23 @@ def verify_supervisor_enable(proposal):
     return actual
 
 
-def activation_scheduling(proposal):
+def activation_scheduling(proposal,*,installed_units=False,replacements=None,overrides=None,quiesced=()):
     """Fresh final closure, permitting only the reviewed inhibition transitions."""
-    from deploy.workload_registry import observe,references
+    from deploy.workload_registry import observe,references,bound_files
     source=proposal['identities']
-    observe(source,run,installed_units=True)
-    references(source,run,inhibited=True)
-    for path,expected in source['inventory']['original_files'].items():
-        require(digest(read_owned_file(path,run)[0])==expected,'installation_original_file_drift')
-    require(all(identity(path)['state']=='absent' for path in source['inventory']['absent_files']),
-            'installation_previously_absent_reference_created')
+    observe(source,run,installed_units=installed_units)
+    references(source,run,inhibited=True,overrides=overrides,quiesced=quiesced)
+    bound_files(source,run,replacements=replacements)
     actual=original_settings(source)
     for unit,row in actual['manager_settings'].items():
         expected=dict(source['inventory']['manager_settings'][unit])
         if unit in source['scheduling']['computational_units']:
             require(row['ActiveState'] in ('inactive','failed'),'installation_scheduling_reactivated')
             expected['ActiveState']=row['ActiveState']
+        if unit in quiesced:
+            require(row['ActiveState'] in ('inactive','failed'),'handoff_previous_supervisor_reactivated')
+            expected['ActiveState']=row['ActiveState']
+        if overrides and unit in overrides:expected.update(Restart='on-failure',Triggers='')
         require(row==expected,'installation_original_manager_settings_drift')
     expected=[]
     for row in source['containers']:
@@ -248,6 +260,15 @@ def collect(proposal, *, now=None):
     from mldsafail.evaluator.workload_client import WorkloadClient
     validate_proposal(proposal); source=proposal['identities']
     verify_supervisor_enable(proposal)
+    from deploy.workload_installation import Journal,LinuxBackend,private
+    proposal_raw,loaded=private(source['recipe']['proposal_path'])
+    require(loaded==proposal,'installed_proposal_changed')
+    journal=Journal(source['recipe']['journal_root'],digest(proposal_raw));backend=LinuxBackend(proposal)
+    require(backend.installed_units_selected(journal),'installed_supervisor_unit_transition_missing')
+    replacements,overrides=backend.unit_transitions(journal)
+    from deploy.workload_registry import generated_supervisor,bound_files
+    generated_supervisor(proposal,run)
+    bound_files(source,run,replacements=replacements)
     from deploy.workload_configuration import verify_private_artifacts
     verify_private_artifacts(source)
     require(source['origin'] in ('local_linux','host_observation'),'installed_synthetic_source_forbidden')
@@ -272,7 +293,7 @@ def collect(proposal, *, now=None):
             row['enforced_limits']={key:(Path(previous['path'])/key).read_text().strip() for key in ('memory.max','memory.swap.max','pids.max','cpu.max')}
             for parent in row['ancestors']:
                 observed_parent=cgroup_observation(parent['path'])
-                parent.update({key:observed_parent[key] for key in ('controllers','writable','limits')})
+                parent.update({key:observed_parent[key] for key in ('controllers','writable','limits','subtree_control','control_permissions')})
         if name=='output':
             measured=mount(previous['path']);row['mount_id']=measured['mount_id']
             require(set(measured['mount_options'])>=set(previous['mount_options']),'installed_mount_options_changed')
@@ -296,9 +317,7 @@ def collect(proposal, *, now=None):
     from deploy.workload_registry import observe as observe_registry
     observe_registry(source,run,installed_units=True)
     from deploy.workload_registry import references
-    references(source,run,inhibited=True)
-    require(all(identity(path)['state']=='absent' for path in source['inventory']['absent_files']),
-            'installed_previously_absent_reference_created')
+    references(source,run,inhibited=True,overrides=overrides,quiesced=backend.quiesced_units(journal))
     prerequisites(source)
     record=dict(schema=INSTALLED,origin=source['origin'],captured_at=time.time() if now is None else now,
         proposal_sha256=sha(proposal),host=deepcopy(source['host']),resources=resources,

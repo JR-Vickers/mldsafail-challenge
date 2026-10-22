@@ -42,6 +42,14 @@ def packet(tmp_path):
     return proposal,raw,review,authority
 
 
+
+def seal_snapshots(journal,originals):
+    from deploy.workload_installation import SNAPSHOTS,identity
+    for name in SNAPSHOTS:
+        path=journal.root/name;path.write_bytes(canonical(originals if name=='original-units.json' else {}));path.chmod(0o600)
+    journal.append('outcome',step='install:snapshot',observed={name:identity(journal.root/name) for name in SNAPSHOTS})
+
+
 def test_complete_install_and_rollback(tmp_path):
     proposal,raw,review,authority=packet(tmp_path); backend=Backend(tmp_path)
     execute(proposal,raw,review,authority(),backend)
@@ -157,7 +165,7 @@ def test_final_scheduler_drift_blocks_activation_before_pointer_change(tmp_path,
     pointer=tmp_path/'active';pointer.symlink_to('/original')
     backend.recipe['activation_pointer']=str(pointer)
     journal=Journal(tmp_path/'journal',digest(raw))
-    def drift(proposal):raise WorkloadBlocked('registry_unit_inventory_changed')
+    def drift(proposal,**kwargs):raise WorkloadBlocked('registry_unit_inventory_changed')
     monkeypatch.setattr(installed,'activation_scheduling',drift)
     step=dict(id='install:activate',action='activate')
     with pytest.raises(WorkloadBlocked,match='unit_inventory_changed'):backend.before(step,journal)
@@ -171,7 +179,7 @@ def test_rollback_resume_uses_latest_acknowledged_selection_and_units(tmp_path):
     journal=Journal(tmp_path/'journal',digest(raw))
     pointer=tmp_path/'active';pointer.symlink_to('/new');selected=identity(pointer)
     journal.append('outcome',step='install:activate',observed=selected)
-    journal.append('outcome',step='install:units',observed={})
+    journal.append('outcome',step='install:supervisor_unit',observed={})
     assert backend.selection_expectation(journal)==selected and backend.installed_units_selected(journal)
     pointer.unlink();pointer.symlink_to('/previous');restored=identity(pointer)
     journal.append('outcome',step='rollback:restore_activation',observed=restored)
@@ -258,8 +266,10 @@ def test_restore_units_preserves_identical_bytes_with_unknown_birth(tmp_path):
     for name,contents in proposal['units'].items():
         path=directory/name;original[str(path)]=dict(state='absent',path=str(path))
         path.write_bytes(contents.encode());installed[name]=identity(path)
-    journal=Journal(tmp_path/'journal',digest(raw));journal.append('outcome',step='install:units',observed=installed)
-    (journal.root/'original-units.json').write_bytes(canonical(original))
+    journal=Journal(tmp_path/'journal',digest(raw))
+    for action in ('units','supervisor_unit'):
+        journal.append('outcome',step='install:'+action,observed={name:installed[name] for name in backend.unit_names(action)})
+    seal_snapshots(journal,original)
     name=next(iter(proposal['units']));path=directory/name
     replacement=directory/'replacement';replacement.write_bytes(path.read_bytes());replacement.replace(path)
     with pytest.raises(WorkloadBlocked,match='unit_replaced'):backend.apply(dict(id='rollback:restore_units',action='restore_units'),journal)
@@ -292,9 +302,10 @@ def test_existing_unit_mode_owner_and_group_survive_round_trip(tmp_path):
     for name in proposal['units']:
         path=directory/name;path.write_bytes(b'original unit bytes');path.chmod(0o644)
         originals[str(path)]=dict(identity(path),gid=path.stat().st_gid,contents_hex=path.read_bytes().hex())
-    journal=Journal(tmp_path/'journal',digest(raw));(journal.root/'original-units.json').write_bytes(canonical(originals))
+    journal=Journal(tmp_path/'journal',digest(raw));seal_snapshots(journal,originals)
     backend.command=lambda argv:b''
     install=dict(id='install:units',action='units');backend.apply(install,journal)
+    assert (directory/'mldsafail-workload-supervisor.service').read_bytes()==b'original unit bytes'
     journal.append('outcome',step='install:units',observed=backend.observe(install,journal))
     restore=dict(id='rollback:restore_units',action='restore_units');backend.apply(restore,journal)
     assert backend.valid_outcome(restore,backend.observe(restore,journal),journal)
@@ -330,3 +341,80 @@ def test_expired_final_verification_cannot_publish_completed_phase(tmp_path,monk
     journal=Journal(tmp_path/'journal',digest(raw))
     assert journal.outcome('install:verify_paused')['event']=='outcome'
     assert not any(row['event']=='phase_complete' for row in journal.rows)
+
+
+def test_expired_precondition_does_not_leave_an_ambiguous_mutation_intent(tmp_path,monkeypatch):
+    import deploy.workload_installation as engine
+    proposal,raw,review,authority=packet(tmp_path);backend=Backend(tmp_path);approved=authority()
+    clock=[time.time()]
+    monkeypatch.setattr(engine.time,'time',lambda:clock[0])
+    original=backend.before
+    def before(step,journal):
+        result=original(step,journal);clock[0]=approved['expires_at']+1;return result
+    backend.before=before
+    with pytest.raises(WorkloadBlocked,match='exact_owner_authority'):
+        execute(proposal,raw,review,approved,backend)
+    journal=Journal(tmp_path/'journal',digest(raw))
+    assert not any(row['event']=='intent' for row in journal.rows)
+    assert not backend.calls
+
+
+def test_supervisor_unit_is_deferred_until_after_verified_activation(tmp_path):
+    from deploy.workload_installation import LinuxBackend
+    proposal,raw,review,authority=packet(tmp_path);backend=LinuxBackend(proposal)
+    assert 'mldsafail-workload-supervisor.service' not in backend.unit_names('units')
+    assert backend.unit_names('supervisor_unit')==['mldsafail-workload-supervisor.service']
+    assert INSTALL.index('verify_release')<INSTALL.index('activate')<INSTALL.index('supervisor_unit')<INSTALL.index('enable_supervisor')
+    journal=Journal(tmp_path/'journal',digest(raw))
+    with pytest.raises(WorkloadBlocked,match='required_prior_outcome_missing'):
+        backend.before(dict(action='supervisor_unit'),journal)
+
+
+@pytest.mark.parametrize('name',['original-units.json','original-scheduling-files.json','original-scheduling.json','original-container-policies.json'])
+def test_each_original_snapshot_is_immutable_before_restoration(tmp_path,name):
+    from deploy.workload_installation import LinuxBackend
+    proposal,raw,review,authority=packet(tmp_path);backend=LinuxBackend(proposal)
+    journal=Journal(tmp_path/'journal',digest(raw));seal_snapshots(journal,{})
+    assert backend.original_units(journal)=={}
+    (journal.root/name).write_bytes(b'changed')
+    with pytest.raises(WorkloadBlocked,match='snapshot_changed'):backend.original_units(journal)
+
+
+def test_privileged_file_reader_chunks_below_command_log_limit(tmp_path,monkeypatch):
+    import deploy.workload_installation as engine
+    import subprocess,sys
+    path=tmp_path/'original';data=b'x'*800000;path.write_bytes(data);path.chmod(0o600)
+    monkeypatch.setattr(engine,'regular',lambda *args,**kwargs:(_ for _ in ()).throw(PermissionError()))
+    sizes=[]
+    def command(argv):
+        result=subprocess.run([sys.executable,*argv[3:]],capture_output=True,check=True)
+        sizes.append(len(result.stdout));return result.stdout
+    actual,mode,record=engine.read_owned_file(path,command,metadata=True)
+    assert actual==data and mode==0o600 and record['inode']==path.stat().st_ino
+    assert len(sizes)==4 and max(sizes)<1024**2
+
+
+def test_privileged_reader_rejects_replacement_between_chunks(tmp_path,monkeypatch):
+    import deploy.workload_installation as engine
+    import subprocess,sys
+    path=tmp_path/'original';path.write_bytes(b'x'*800000)
+    monkeypatch.setattr(engine,'regular',lambda *args,**kwargs:(_ for _ in ()).throw(PermissionError()))
+    calls=[]
+    def command(argv):
+        result=subprocess.run([sys.executable,*argv[3:]],capture_output=True,check=True)
+        if not calls:
+            replacement=tmp_path/'replacement';replacement.write_bytes(path.read_bytes());replacement.replace(path)
+        calls.append(argv);return result.stdout
+    with pytest.raises(WorkloadBlocked,match='original_file_race'):engine.read_owned_file(path,command)
+    assert path.stat().st_size==800000
+
+
+def test_scheduling_snapshot_allocation_is_bounded_before_reading(tmp_path):
+    from deploy.workload_installation import scheduling_size
+    files={}
+    for index in range(17):
+        path=tmp_path/str(index)
+        with path.open('xb') as stream:stream.truncate(1024**2)
+        files[str(path)]='a'*64
+    with pytest.raises(WorkloadBlocked,match='snapshot_size_limit'):
+        scheduling_size(dict(inventory=dict(original_files=files)),None)
