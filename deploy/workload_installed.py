@@ -20,10 +20,48 @@ def observation_runner(command):
     finally:_RUNNER.reset(token)
 
 
-def run(argv):
+def run(argv,*,timeout=8):
     injected=_RUNNER.get()
     if injected is not None:return injected(argv)
-    return subprocess.run(argv,check=True,capture_output=True,timeout=8).stdout
+    import resource,signal,tempfile,sys
+    require(type(timeout) in (int,float) and 0<timeout<=35,'installed_observation_budget_invalid')
+    def bound_output():resource.setrlimit(resource.RLIMIT_FSIZE,(1024**2,1024**2))
+    require(sys.platform=='linux','installed_observation_requires_linux')
+    with tempfile.TemporaryDirectory() as directory,tempfile.TemporaryFile() as output,tempfile.TemporaryFile() as errors:
+        report=Path(directory)/'report.json'
+        wrapped=[sys.executable,'-I',str(Path(__file__).with_name('workload_observation.py')),str(report),str(timeout),*argv]
+        process=subprocess.Popen(wrapped,stdout=output,stderr=errors,start_new_session=True,preexec_fn=bound_output)
+        recorded=process_birth(process.pid);group_unverified=False;wrapper_timeout=False
+        def evidence():
+            result=json.loads(report.read_bytes()) if report.is_file() else None
+            return json.dumps(dict(wrapper=recorded,report=result))
+        try:
+            process.wait(timeout=timeout+3)
+        except subprocess.TimeoutExpired:wrapper_timeout=True
+        finally:
+            if process.poll() is None:
+                require(process_birth(process.pid)==recorded,'installed_observation_client_replaced:'+evidence())
+                os.killpg(process.pid,signal.SIGKILL)
+                try:process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    require(False,'installed_observation_termination_unverified:'+evidence())
+            # An exited leader is not proof that its process group is empty.
+            # Do not signal a group after losing its live leader birth binding;
+            # retain an explicit blocker for separately reviewed reconciliation.
+            try:os.killpg(process.pid,0)
+            except ProcessLookupError:pass
+            else:group_unverified=True
+        output.seek(0);errors.seek(0);raw=output.read(1024**2);stderr=errors.read(1024**2)
+        require(len(raw)<1024**2 and len(stderr)<1024**2,'installed_observation_output_limit:'+evidence())
+        require(not wrapper_timeout,'installed_observation_termination_unverified:'+evidence())
+        require(not group_unverified,'installed_observation_descendants_unverified:'+evidence())
+        require(process.returncode==0 and report.is_file(),'installed_observation_termination_unverified:'+evidence())
+        result=json.loads(report.read_bytes())
+        require(not result['remaining'] and not result.get('errors'),'installed_observation_termination_unverified:'+json.dumps(result))
+        if result['timed_out']:raise subprocess.TimeoutExpired(argv,timeout,raw,stderr)
+        require(not result['descendants'],'installed_observation_descendants_unverified:'+json.dumps(result))
+        if result['returncode']:raise subprocess.CalledProcessError(result['returncode'],argv,raw,stderr)
+        return raw
 
 
 def mount(path):
@@ -34,6 +72,35 @@ def mount(path):
             matches.append(dict(mount_id=int(fields[0]),source_device=extra[1],filesystem=extra[0],
                 mount_options=sorted(set(fields[5].split(','))|set(extra[2].split(',')))))
     require(len(matches)==1,'installed_output_mount_missing_or_ambiguous'); return matches[0]
+
+
+def loop_backing(mounted,backing,command):
+    """Inspect the kernel loop association, not a receipt or source filename."""
+    import re
+    require(re.fullmatch(r'/dev/loop[0-9]+',mounted['source_device']) is not None,
+            'installed_output_loop_device_required')
+    script=('import os,sys,stat,fcntl,struct,json; '
+        'fd=os.open(sys.argv[1],os.O_RDONLY|os.O_NOFOLLOW);s=os.fstat(fd); '
+        'assert stat.S_ISBLK(s.st_mode); '
+        'v=struct.unpack("=QQQQQIIII64s64s32sQQ",fcntl.ioctl(fd,0x4C05,bytes(232))); '
+        'print(json.dumps(dict(device=v[0],inode=v[1],offset=v[3],size_limit=v[4],rdev=s.st_rdev)))')
+    actual=json.loads(command(['/usr/bin/sudo','-n','/usr/bin/python3','-c',script,mounted['source_device']]))
+    require(actual['device']==backing['device'] and actual['inode']==backing['inode'] and
+            actual['offset']==0 and actual['size_limit']==0,'installed_output_backing_changed')
+    return actual
+
+
+def verify_output_ownership(source,mounted,journal,command):
+    output=source['resources']['output']
+    require(journal is not None,'installed_output_ownership_journal_required')
+    rows=[row for row in journal.rows if row['event']=='resource_created' and row.get('resource')=='output_active_mount']
+    require(len(rows)==1,'installed_output_mount_ack_missing_or_ambiguous')
+    row=rows[0];backing=identity(output['backing_file'],content=False)
+    originals=[r['observed'] for r in journal.rows if r['event']=='resource_created' and r.get('resource')=='output_backing']
+    require(originals==[backing],'installed_output_original_backing_changed')
+    require(backing==row['backing'] and identity(output['path'])==row['directory'] and
+            mounted==row['observed'],'installed_output_mount_ownership_changed')
+    require(loop_backing(mounted,backing,command)==row['loop_backing'],'installed_output_loop_binding_changed')
 
 
 def docker(source,args):
@@ -104,7 +171,7 @@ def verify_ancestor_observations(source):
                 set(actual['controllers'])==set(parent['controllers']),'installed_cgroup_ancestor_changed')
 
 
-def prerequisites(source):
+def prerequisites(source,journal=None):
     output=source['resources']['output']; actual=mount(output['path'])
     require(actual['filesystem']==output['filesystem'] and
             set(actual['mount_options'])>={'noexec','nosuid','nodev'},'installed_mount_enforcement_changed')
@@ -113,6 +180,7 @@ def prerequisites(source):
     if output['state']=='observed':
         require(all(identity(output['path'])[k]==output[k] for k in ('device','inode')) and
                 actual['mount_id']==output['mount_id'],'installed_mount_birth_changed')
+    else:verify_output_ownership(source,actual,journal,run)
     verify_ancestor_observations(source)
     delegation=source['resources']['delegation']; root=Path(delegation['path'])
     require(set((root/'cgroup.controllers').read_text().split())>={'cpu','memory','pids'} and
@@ -194,7 +262,7 @@ def inspect_control(action,proposal,journal):
                 require(actual['State']['Running'] is False and actual['HostConfig']['RestartPolicy']['Name']=='no','installed_container_inhibition_failed')
             rows.append(dict(id=actual['Id'],running=actual['State']['Running'],restart_policy=actual['HostConfig']['RestartPolicy']['Name']))
         return dict(verified=True,observed=rows)
-    if action=='prerequisites': return dict(verified=True,observed=prerequisites(source))
+    if action=='prerequisites': return dict(verified=True,observed=prerequisites(source,journal))
     if action=='verify_release':
         from deploy.workload_dependencies import installed_inventory
         release=Path(source['resources']['release']['path'])
@@ -318,7 +386,7 @@ def collect(proposal, *, now=None):
     observe_registry(source,run,installed_units=True)
     from deploy.workload_registry import references
     references(source,run,inhibited=True,overrides=overrides,quiesced=backend.quiesced_units(journal))
-    prerequisites(source)
+    prerequisites(source,journal)
     record=dict(schema=INSTALLED,origin=source['origin'],captured_at=time.time() if now is None else now,
         proposal_sha256=sha(proposal),host=deepcopy(source['host']),resources=resources,
         release_sha256=verify(Path(source['resources']['release']['path'])/'bundle',source['manifest']),
@@ -340,8 +408,40 @@ def schema_fingerprint(source):
     return digest(stable)
 
 
-def verify_rollback(source):
-    from deploy.workload_dependencies import installed_inventory
+def rollback_private_files(rollback):
+    records={};controller=None
+    for role,row in rollback['manifest']['configurations'].items():
+        path=Path(row['path']);data,mode=regular(path.parent,path.name);actual=identity(path)
+        require(mode==0o600 and actual['uid']==os.getuid() and
+                digest(data)==rollback['configuration_hashes'][role],
+                'installed_rollback_configuration_changed')
+        records[role]=dict(actual,bytes=len(data))
+        if role=='controller':controller=json.loads(data)
+    require(controller is not None,'installed_rollback_controller_missing')
+    key=Path(controller['signing_key']);data,mode=regular(key.parent,key.name);actual=identity(key)
+    require(rollback['manifest'].get('private_artifacts',{}).get('signing_key')==dict(sha256=digest(data),bytes=len(data)) and
+            mode==0o600 and actual['uid']==os.getuid() and 32<=len(data)<=4096,
+            'installed_rollback_private_artifact_changed')
+    return dict(configurations=records,signing_key=dict(actual,bytes=len(data)))
+
+
+def observe_rollback(source):
+    """Verify actual previous bytes and imports before describing compatibility.
+
+    Compatibility is restricted to selecting the preserved release with the
+    unchanged schema and computation inhibited. It never authorizes starting an
+    older coordinator or downgrading a schema.
+    """
+    import sys
+    from deploy.workload_dependencies import installed_inventory,entrypoint_import_command
+    from deploy.workload_release import canonical
+    require(sys.platform=='linux' and source['origin'] in ('local_linux','host_observation'),
+            'installed_rollback_native_observation_required')
+    import socket
+    require(os.uname().machine=='x86_64' and socket.gethostname()==source['host']['hostname'] and
+            os.getuid()==source['host']['uid'] and
+            Path('/proc/sys/kernel/random/boot_id').read_text().strip()==source['host']['boot_id'],
+            'installed_rollback_observation_wrong_host')
     rollback=source['rollback'];root=Path(rollback['release'])
     require(verify(root/'bundle',rollback['manifest'])==rollback['manifest_sha256'],'installed_rollback_manifest_changed')
     from deploy.workload_artifacts import verify_installed_tools
@@ -351,20 +451,37 @@ def verify_rollback(source):
             'installed_rollback_interpreter_changed')
     require(installed_inventory(root/'.venv',interpreter=python.resolve())==rollback['installed_files'],
             'installed_rollback_dependencies_changed')
-    for role,row in rollback['manifest']['configurations'].items():
-        require(identity(row['path']).get('sha256')==rollback['configuration_hashes'][role],'installed_rollback_configuration_changed')
-    controller=rollback['manifest']['configurations']['controller']
-    controller_data=json.loads(regular(Path(controller['path']).parent,Path(controller['path']).name)[0])
-    key=Path(controller_data['signing_key']);data,mode=regular(key.parent,key.name)
-    require(rollback['manifest'].get('private_artifacts',{}).get('signing_key')==dict(sha256=digest(data),bytes=len(data)) and
-            mode==0o600 and key.stat().st_uid==os.getuid(),'installed_rollback_private_artifact_changed')
+    private_files=rollback_private_files(rollback)
     row=json.loads(docker(source,['image','inspect',rollback['coordinator_image']]))[0]
     require(row['Id']==rollback['coordinator_image'],'installed_rollback_image_changed')
     verify_images(source,rollback['manifest'])
     require(schema_fingerprint(source)==rollback['schema_sha256'],'installed_schema_changed_rollback_forbidden')
+    command,modules=entrypoint_import_command(root/'bundle',root/'.venv',release_files=rollback['manifest']['files'])
+    require(json.loads(run(command,timeout=35))==modules,'installed_rollback_entrypoint_import_failed')
+    verify_installed_tools(root,rollback['manifest'])
+    require(installed_inventory(root/'.venv',interpreter=python.resolve())==rollback['installed_files'] and
+            verify(root/'bundle',rollback['manifest'])==rollback['manifest_sha256'],
+            'installed_rollback_import_drift')
+    require(rollback_private_files(rollback)==private_files,'installed_rollback_private_import_drift')
+    return dict(schema='mldsafail.workload-rollback-compatibility.v3',origin=source['origin'],
+        hostname=source['host']['hostname'],release=rollback['release'],
+        manifest_sha256=rollback['manifest_sha256'],
+        installed_files_sha256=digest(canonical(rollback['installed_files'])),
+        configuration_hashes=rollback['configuration_hashes'],python_sha256=rollback['python_sha256'],
+        private_files=private_files,
+        coordinator_image=rollback['coordinator_image'],worker_image=rollback['manifest']['worker_environment']['image_id'],
+        database_schema_sha256=rollback['schema_sha256'],database=rollback['schema'],entrypoints=modules,
+        compatibility='unchanged_schema_and_inhibited_release_selection',coordinator_start_authorized=False)
+
+
+def verify_rollback(source):
+    expected=observe_rollback(source)
+    rollback=source['rollback']
     receipt=Path(rollback['compatibility_receipt_path'])
-    require(digest(regular(receipt.parent,receipt.name)[0])==rollback['compatibility_receipt_sha256'],
+    raw,_=regular(receipt.parent,receipt.name)
+    require(digest(raw)==rollback['compatibility_receipt_sha256'],
             'installed_rollback_compatibility_receipt_changed')
+    require(json.loads(raw)==expected,'installed_rollback_compatibility_binding_changed')
     return True
 
 

@@ -211,16 +211,28 @@ def project_entrypoints(bundle,venv):
         exclusive(venv/'bin'/name,entrypoint_code(bundle,venv/'bin/python',module,function),0o700)
 
 
-def entrypoint_import_command(bundle,venv):
+def entrypoint_import_command(bundle,venv,*,release_files=None):
     """Import runtime entrypoints in isolated Python with network namespace disabled."""
     bundle=Path(bundle);venv=Path(venv)
     project=tomllib.loads(regular(bundle,'pyproject.toml')[0].decode())['project']
-    modules=sorted({target.split(':')[0] for target in project['scripts'].values()} | {
+    declared={target.split(':')[0] for target in project['scripts'].values()}
+    helpers={
         'mldsafail.evaluator.workload_service','mldsafail.evaluator.native_workload',
         'mldsafail.evaluator.coordinator','mldsafail.evaluator.worker','mldsafail.evaluator.workload_controller','mldsafail.evaluator.workload_router',
         'deploy.workload_images','deploy.workload_prerequisites','scripts.prepare_workload_packet',
         'deploy.workload_installation','deploy.workload_installed','deploy.workload_native_acceptance',
-        'deploy.workload_artifacts','deploy.workload_socket_probe','deploy.workload_watchdog'})
+        'deploy.workload_artifacts','deploy.workload_socket_probe','deploy.workload_watchdog',
+        'scripts.inspect_workload_rollback','scripts.workload_cgroup_collection',
+        'deploy.workload_acceptance_packet','deploy.workload_observation','scripts.workload_control_packet'}
+    if release_files is not None:
+        # A preserved release imports its own frozen helper set, rather than
+        # depending on deployment modules introduced by a newer checkout.
+        essentials={'mldsafail.evaluator.workload_service','mldsafail.evaluator.native_workload',
+                    'mldsafail.evaluator.workload_controller','mldsafail.evaluator.workload_router'}
+        def source_name(name):return ('src/' if name.startswith('mldsafail.') else '')+name.replace('.','/')+'.py'
+        require(all(source_name(name) in release_files for name in essentials),'dependency_rollback_runtime_incomplete')
+        helpers={name for name in helpers if source_name(name) in release_files}
+    modules=sorted(declared|helpers)
     require(all(re.fullmatch(r'[A-Za-z_][A-Za-z0-9_.]*',name) for name in modules),'dependency_import_module_invalid')
     code=('import sys,importlib,json;sys.dont_write_bytecode=True;sys.path[:0]='+repr([str(bundle/'src'),str(bundle)])+
           ';modules='+repr(modules)+';[importlib.import_module(name) for name in modules];print(json.dumps(modules))')

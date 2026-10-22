@@ -1,5 +1,6 @@
 """Scoped prerequisite proposals. No shared-daemon or ancestor reconfiguration."""
 from pathlib import Path
+import json
 import shlex
 
 from deploy.workload_installation import exclusive, identity
@@ -16,10 +17,39 @@ def mount_unit(output):
 
 
 def root_exclusive_write(path,data):
-    script=('import os,sys; p=sys.argv[1]; '
+    script=('import os,sys,pathlib,json,hashlib,stat; p=pathlib.Path(sys.argv[1]); '
+            'assert not any(q.is_symlink() for q in (p,*p.parents));data=bytes.fromhex(sys.argv[2]); '
             'fd=os.open(p,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600); '
-            'os.write(fd,bytes.fromhex(sys.argv[2]));os.fsync(fd);os.close(fd)')
+            'stream=os.fdopen(fd,"wb");stream.write(data);stream.flush();os.fsync(stream.fileno()); '
+            's=os.fstat(stream.fileno());assert s==p.lstat() and s.st_nlink==1 and s.st_size==len(data); '
+            'record=dict(state="observed",path=str(p),device=s.st_dev,inode=s.st_ino,uid=s.st_uid,mode=stat.S_IMODE(s.st_mode),sha256=hashlib.sha256(data).hexdigest()); '
+            'stream.close();parent=os.open(p.parent,os.O_RDONLY|os.O_DIRECTORY);os.fsync(parent);os.close(parent); '
+            'print(json.dumps(record))')
     return ['/usr/bin/sudo','-n','/usr/bin/python3','-c',script,str(path),data.hex()]
+
+
+def mount_namespace(name,command):
+    fields=('LoadState','ActiveState','FragmentPath','SourcePath','Transient')
+    raw=command(['/usr/bin/sudo','-n','/usr/bin/systemctl','show',name,'--all','--property='+','.join(fields)]).decode()
+    rows=[line.split('=',1) for line in raw.splitlines() if '=' in line]
+    require(len(rows)==len(fields) and {key for key,value in rows}==set(fields),
+            'prerequisite_mount_namespace_observation_incomplete')
+    return dict(rows)
+
+
+def absent_mount_namespace(name,command):
+    require(mount_namespace(name,command)==dict(LoadState='not-found',ActiveState='inactive',
+            FragmentPath='',SourcePath='',Transient='no'),'prerequisite_mount_namespace_not_absent')
+
+
+def selected_mount_namespace(name,written,command):
+    from deploy.workload_installation import read_owned_file
+    from deploy.workload_release import digest
+    require(identity(written['path'],content=False)=={key:value for key,value in written.items() if key!='sha256'} and
+            digest(read_owned_file(written['path'],command)[0])==written['sha256'],
+            'prerequisite_mount_unit_replaced')
+    require(mount_namespace(name,command)==dict(LoadState='loaded',ActiveState='inactive',
+            FragmentPath=written['path'],SourcePath='',Transient='no'),'prerequisite_mount_namespace_changed')
 
 
 def proposal(source):
@@ -69,18 +99,41 @@ def apply(source,command,journal):
         require(backing.parent.stat().st_dev==release.parent.stat().st_dev,
                 'prerequisite_separate_backing_filesystem_requires_evidence')
         require(identity(backing)['state']==identity(mount)['state']=='absent','prerequisite_destination_not_absent')
+        name,contents=mount_unit(output)
+        unit=Path('/etc/systemd/system')/name
+        link=Path('/etc/systemd/system/local-fs.target.wants')/name
+        require(identity(unit,content=False)['state']==identity(link)['state']=='absent','prerequisite_mount_unit_destination_exists')
+        absent_mount_namespace(name,command)
         fd=os.open(backing,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
         with os.fdopen(fd,'wb') as stream:
             os.posix_fallocate(stream.fileno(),0,output['bytes']); stream.flush(); os.fsync(stream.fileno())
-        journal.append('resource_created',resource='output_backing',observed=identity(backing,content=False))
+        created_backing=identity(backing,content=False)
+        journal.append('resource_created',resource='output_backing',observed=created_backing)
         mount.mkdir(mode=0o700)
         journal.append('resource_created',resource='output_mountpoint',observed=identity(mount))
+        require(identity(backing,content=False)==created_backing,'prerequisite_backing_replaced')
         command(['/usr/bin/sudo','-n','/usr/sbin/mkfs.ext4','-F',str(backing)])
-        name,contents=mount_unit(output)
-        command(root_exclusive_write('/etc/systemd/system/'+name,contents.encode()))
+        written=json.loads(command(root_exclusive_write(unit,contents.encode())))
+        from deploy.workload_release import digest
+        require(written==dict(identity(unit,content=False),sha256=digest(contents.encode())) and
+                written['uid']==0 and written['mode']==0o600,'prerequisite_mount_unit_ack_changed')
+        journal.append('resource_created',resource='output_mount_unit',observed=written)
         command(['/usr/bin/sudo','-n','/usr/bin/systemctl','daemon-reload'])
+        selected_mount_namespace(name,written,command)
+        require(identity(backing,content=False)==created_backing,'prerequisite_backing_replaced')
         command(['/usr/bin/sudo','-n','/usr/bin/systemctl','enable','--now',name])
+        enabled=identity(link)
+        require(enabled.get('target')==str(unit) and enabled.get('uid')==0,'prerequisite_mount_enable_changed')
+        journal.append('resource_created',resource='output_mount_enable',observed=enabled)
         command(['/usr/bin/sudo','-n','/usr/bin/chown',str(source['host']['uid']),str(mount)])
+        from deploy.workload_installed import mount as inspect_mount,loop_backing
+        mounted=inspect_mount(mount)
+        require(identity(backing,content=False)==created_backing,'prerequisite_backing_replaced')
+        require(mounted['filesystem']=='ext4' and set(mounted['mount_options'])>={'noexec','nosuid','nodev'},
+                'prerequisite_mount_enforcement_changed')
+        journal.append('resource_created',resource='output_active_mount',observed=mounted,
+                       directory=identity(mount),backing=created_backing,
+                       loop_backing=loop_backing(mounted,created_backing,command))
     if source['resources']['delegation']['state']=='proposed':
         command(['/usr/bin/systemctl','--user','start','mldsafail-heavy.slice'])
     root=source['resources']['delegation']['path']

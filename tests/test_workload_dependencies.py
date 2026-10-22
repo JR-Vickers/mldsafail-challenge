@@ -19,6 +19,18 @@ def test_markers_use_target_environment(expression,expected):
     assert marker(expression,ENV)==expected
 
 
+def test_previous_release_imports_its_frozen_helpers_not_new_checkout_modules(tmp_path):
+    from deploy.workload_dependencies import entrypoint_import_command
+    (tmp_path/'pyproject.toml').write_text('[project.scripts]\nprevious="previous:main"\n')
+    files={'src/mldsafail/evaluator/'+name+'.py':{} for name in
+           ('workload_service','native_workload','workload_controller','workload_router')}
+    _,modules=entrypoint_import_command(tmp_path,tmp_path/'venv',release_files=files)
+    assert 'previous' in modules and 'deploy.workload_images' not in modules
+    files.pop('src/mldsafail/evaluator/workload_router.py')
+    with pytest.raises(WorkloadBlocked,match='rollback_runtime_incomplete'):
+        entrypoint_import_command(tmp_path,tmp_path/'venv',release_files=files)
+
+
 def test_unsupported_marker_cannot_execute_code():
     with pytest.raises(WorkloadBlocked): marker("__import__('os').system('false')",ENV)
 

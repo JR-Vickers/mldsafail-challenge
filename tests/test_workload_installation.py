@@ -106,6 +106,10 @@ def test_partial_journal_blocks_replay(tmp_path):
 def test_concrete_preconditions_do_not_require_postconditions(tmp_path,monkeypatch,action):
     from deploy.workload_installation import LinuxBackend
     proposal,raw,review,authority=packet(tmp_path); backend=LinuxBackend(proposal)
+    if action=='prerequisites':
+        # This contract test must not depend on whether a separately owned
+        # Linux rehearsal currently has the standard dedicated slice installed.
+        backend.source['resources']['delegation']['path']=str(tmp_path/'proposed-heavy')
     monkeypatch.setattr(backend,'observe',lambda *args:(_ for _ in ()).throw(AssertionError('postcondition before creation')))
     journal=Journal(tmp_path/'journal',digest(raw))
     step=next(row for row in proposal['steps'] if row['action']==action)
@@ -384,7 +388,7 @@ def test_privileged_file_reader_chunks_below_command_log_limit(tmp_path,monkeypa
     import deploy.workload_installation as engine
     import subprocess,sys
     path=tmp_path/'original';data=b'x'*800000;path.write_bytes(data);path.chmod(0o600)
-    monkeypatch.setattr(engine,'regular',lambda *args,**kwargs:(_ for _ in ()).throw(PermissionError()))
+    monkeypatch.setattr(engine,'read_host_regular',lambda *args,**kwargs:(_ for _ in ()).throw(PermissionError()))
     sizes=[]
     def command(argv):
         result=subprocess.run([sys.executable,*argv[3:]],capture_output=True,check=True)
@@ -398,7 +402,7 @@ def test_privileged_reader_rejects_replacement_between_chunks(tmp_path,monkeypat
     import deploy.workload_installation as engine
     import subprocess,sys
     path=tmp_path/'original';path.write_bytes(b'x'*800000)
-    monkeypatch.setattr(engine,'regular',lambda *args,**kwargs:(_ for _ in ()).throw(PermissionError()))
+    monkeypatch.setattr(engine,'read_host_regular',lambda *args,**kwargs:(_ for _ in ()).throw(PermissionError()))
     calls=[]
     def command(argv):
         result=subprocess.run([sys.executable,*argv[3:]],capture_output=True,check=True)

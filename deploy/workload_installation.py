@@ -77,10 +77,33 @@ def identity(path, *, content=True):
     return value
 
 
+def read_host_regular(path):
+    """Read host files, including literal systemd escaped unit names.
+
+    Bundle-relative paths keep their stricter portable archive policy. Host
+    filenames may contain backslashes; those are literal bytes, not separators.
+    """
+    path=Path(path)
+    require(path.is_absolute() and '..' not in path.parts and
+            not any(parent.is_symlink() for parent in (path,*path.parents)),
+            'installation_host_file_path_invalid')
+    before=path.lstat()
+    require(stat.S_ISREG(before.st_mode) and before.st_nlink==1 and before.st_size<=SCHEDULING_FILE_MAX,
+            'installation_host_file_invalid')
+    descriptor=os.open(path,os.O_RDONLY|os.O_NOFOLLOW)
+    with os.fdopen(descriptor,'rb') as stream:
+        require(stable_stat(os.fstat(stream.fileno()))==stable_stat(before),'installation_original_file_race')
+        data=stream.read(SCHEDULING_FILE_MAX+1)
+        require(len(data)<=SCHEDULING_FILE_MAX and
+                stable_stat(os.fstat(stream.fileno()))==stable_stat(before) and
+                stable_stat(path.lstat())==stable_stat(before),'installation_original_file_race')
+    return data,stat.S_IMODE(before.st_mode)
+
+
 def read_owned_file(path,command,*,metadata=False):
     path=Path(path)
     try:
-        before=path.lstat();data,mode=regular(path.parent,path.name,max_bytes=SCHEDULING_FILE_MAX)
+        before=path.lstat();data,mode=read_host_regular(path)
         record=dict(identity(path,content=False),gid=path.stat().st_gid)
         require(stable_stat(before)==stable_stat(path.lstat()),'installation_original_file_race')
     except PermissionError:

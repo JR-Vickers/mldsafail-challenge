@@ -105,6 +105,14 @@ def rewrite_receipt(packet, evidence, path):
     packet['operational_receipt_sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def test_abnormal_exit_evidence_is_required_for_operational_acceptance(tmp_path):
+    packet,evidence,path=fixture(tmp_path)
+    assert 'abnormal_exit' in CONTROLS
+    evidence['controls'].pop('abnormal_exit');evidence['evidence'].pop('abnormal_exit')
+    rewrite_receipt(packet,evidence,path)
+    with pytest.raises(ValueError):validate_controls(packet,now=1100)
+
+
 def test_generic_passing_checkbox_does_not_certify_a_control(tmp_path):
     packet, evidence, path = fixture(tmp_path)
     artifact_path = tmp_path/'shared_host_gate.json'

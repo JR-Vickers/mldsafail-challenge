@@ -10,13 +10,7 @@ import time
 from mldsafail.evaluator.workload import ResourcePolicy
 from deploy.workload_controls import SCENARIOS, validate_case
 
-CONTROLS = frozenset({
-    'shared_host_gate', 'coordinator_routing', 'administrative_routing',
-    'zero_pending_fence', 'inspected_births', 'durable_launch_intent',
-    'common_cgroup', 'ancestor_limits', 'continuous_monitor', 'bounded_output',
-    'verified_cleanup', 'persistent_pause', 'explicit_resume', 'native_linux_acceptance',
-    'delegation', 'scheduling_exclusion',
-})
+CONTROLS = frozenset(SCENARIOS)
 
 
 def require(value):
