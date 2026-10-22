@@ -84,6 +84,13 @@ and compare its SHA-256 against the locally reviewed artifact **before running
 it**. The entire installed path must be root-owned and not writable by other
 accounts. Existing destinations must be preserved and investigated.
 
+After verifying the artifact hash, the administrator runs this **absolute-path**
+command in the root console (a relative `collector.pyz` is deliberately rejected):
+
+```sh
+/usr/bin/python3 -I -B /root/mldsafail-owner-facts-20261022/collector.pyz --install-rule
+```
+
 Only the administrator runs the archive with `--install-rule`. It checks the
 existing sudo configuration, exclusively writes a validated candidate and then
 an exclusive 0440 fragment at `/etc/sudoers.d/mldsafail-owner-facts`, and validates
