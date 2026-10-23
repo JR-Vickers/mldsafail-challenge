@@ -1,0 +1,83 @@
+{
+  "approval": {
+    "complete_proposal_frozen": false,
+    "independent_review_obtained": false,
+    "installation_readiness": false,
+    "old_proposals_grant_changed_source_authority": false
+  },
+  "baseline_commit": "d5245ad",
+  "checks": {
+    "git_diff_check": true,
+    "installed_native_acceptance": false,
+    "make_check": {
+      "contract_passed": 8,
+      "log_sha256": "5545490de6b0ee7ec6e302fbbd2d508ef61ee13ef78591062c7026a33cdb8ea4",
+      "passed": 1897,
+      "skipped": 58,
+      "warnings": 12
+    },
+    "native_rehearsal_executed": false
+  },
+  "date": "2026-10-23",
+  "environment": {
+    "architecture": "arm64",
+    "docker_desktop_daemon_available": false,
+    "emulator_started": false,
+    "native_host_created": false,
+    "platform": "Darwin",
+    "running_qemu_guest_observed": false
+  },
+  "gates": {
+    "implementation": "incomplete",
+    "independent_review": "not_obtained",
+    "privileged_host_facts": "blocked_successor_not_installed_and_dossier_incomplete",
+    "rehearsal": "incomplete_prior_emulator_deadline_failure_preserved"
+  },
+  "recovery": {
+    "artifact_receipt_steps": [
+      "install:copy_bundle",
+      "install:tools",
+      "install:configurations"
+    ],
+    "legacy_journal_protocol": 1,
+    "legacy_partial_continuation": false,
+    "new_journal_protocol": 2,
+    "partial_continuation_allowlist": [
+      "install:snapshot"
+    ],
+    "reconciliation_is_execution_authority": false
+  },
+  "remaining": [
+    "complete_reusable_concrete_installation_and_rollback_fixture",
+    "durable_external_effect_substeps_and_operation_specific_partial_continuation",
+    "rollback_dependency_configuration_image_and_unit_completion",
+    "recursive_scheduler_ownership_reference_closure_and_privileged_host_joins",
+    "remaining_21_acceptance_runners_and_v3_packet_audit",
+    "exact_complete_release_proposal_rollback_packet_freeze_and_independent_review"
+  ],
+  "retention": {
+    "existing_resources_removed": false,
+    "external_resources_created": false,
+    "permanent_record": "this_redacted_checkpoint",
+    "prior_emulator_deadline_seconds": 0.8,
+    "prior_lifecycle_records": "unchanged",
+    "temporary_resources": "pytest_owned_temporary_files_only"
+  },
+  "schema": "mldsafail.protected-runtime-substep-checkpoint.v1",
+  "scope": {
+    "benchmark": "0.5.0_preview",
+    "budget_usd": 0,
+    "publication": false,
+    "runtime_installation_authority_requested": false,
+    "scientific_evaluations": 0,
+    "vps_mutations": false
+  },
+  "source_commit": "e908ecc8df86499b5e661528fce686d7f3a07fa8",
+  "source_sha256": {
+    "deploy/workload_installation.py": "31b3efaeb9dfb2f798a209c6c61ff63952ed3a870546ba880015001051052f25",
+    "deploy/workload_mutation.py": "c3a1b070b1a7047957ce665d2b2d8053c084ad084f6620c106a02f9fd3ad1820",
+    "tests/test_workload_installation_substeps.py": "af4e22cfd33f8b350d506d797d5390a420ca3002e30e45ae2723d628627766dd",
+    "tests/test_workload_snapshot_continuation.py": "b7343dc35cc0cbd34dda3cf1da781f4d924f3947187c48cadd6e156e02f5792b"
+  },
+  "unchanged_lockfile_sha256": "58d4165666f7461539ed348cf696a00524c0f356b7d23f874c2e4e2bb5cea329"
+}

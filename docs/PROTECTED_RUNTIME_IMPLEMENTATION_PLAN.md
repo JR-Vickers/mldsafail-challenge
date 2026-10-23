@@ -2,6 +2,12 @@
 
 Status: in progress; no installation or native-test authority granted.
 
+Latest [substep recovery checkpoint](acceptance/production-preparation/protected-runtime-substeps-20261023.md)
+versions new recovery journals, binds snapshot and artifact substeps, and permits
+identity-checked snapshot continuation after separate reconciliation and fresh
+execution authority. External mutations retain conservative recovery. This is
+component engineering, not completion of the installation proposal or acceptance.
+
 Latest [host-reader checkpoint](acceptance/production-preparation/protected-runtime-reader-successor-20261023.md) corrects symlink/absence races and prepares a separately versioned fixed-reader successor. Existing privileged scan and private prerequisite dossier remain incomplete; full installation/rollback and acceptance implementation are still outstanding.
 
 Latest [conservative recovery checkpoint](acceptance/production-preparation/protected-runtime-recovery-20261022.md) adds identity-bound whole-step acknowledgement recovery and three narrow proven-absence transitions. Partial substep continuation, the complete fixture and acceptance coverage remain unfinished.

@@ -54,6 +54,8 @@ No deployment, epoch, capacity measurement or activation is authorized by this w
 
 ### Current host preparation — bootstrap and installed acceptance remain separate
 
+The [2026-10-23 substep checkpoint](acceptance/production-preparation/protected-runtime-substeps-20261023.md) adds versioned recovery journals, verified snapshot/artifact receipts and narrowly authorized snapshot continuation. Full fixture, external-effect recovery, executable acceptance and complete proposal review remain unfinished.
+
 The [2026-10-23 host-reader checkpoint](acceptance/production-preparation/protected-runtime-reader-successor-20261023.md) fixes symlink absence/race handling and prepares a separate fixed-reader successor. Its private dossier preserves the incomplete 34-account scan; no successor or protected runtime has been installed. Full fixture, recovery, executable acceptance and complete proposal review remain unfinished.
 
 Local integration is complete at the source level. Versioned bootstrap preparation
