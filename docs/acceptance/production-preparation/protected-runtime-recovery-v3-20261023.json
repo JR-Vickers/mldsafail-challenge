@@ -1,0 +1,77 @@
+{
+  "cleanup": {
+    "created": "pytest-owned temporary files only",
+    "retained_resources_removed": false,
+    "trial_resources_created": false
+  },
+  "complete_proposal": false,
+  "date": "2026-10-23",
+  "gates": {
+    "implementation": "partial",
+    "independent_review": "component_only",
+    "privileged_host_facts": "blocked",
+    "rehearsal": "unpassed"
+  },
+  "host_observations": {
+    "docker": "daemon_unreachable",
+    "platform": "Darwin 24.6.0 arm64",
+    "retained_emulator_modified": false,
+    "running_linux_guest": "none_observed",
+    "vps_accessed": false
+  },
+  "installation_authority": false,
+  "log_retention": "compact verification summary and original-output hash retained here; temporary full test output is not permanent evidence",
+  "outstanding": [
+    "reusable complete concrete-engine fixture",
+    "external-effect durable recovery and rollback completion",
+    "21 additional executable scenario mappings",
+    "successful complete local Linux/PostgreSQL rehearsal",
+    "administrator successor collector installation and privileged facts",
+    "exact complete frozen proposal independent review"
+  ],
+  "parent_checkpoint": "30e63534a72a66dfaa8bc408604b93046ed81ea7",
+  "review": {
+    "complete_proposal_approval": false,
+    "disposition": "pass_no_remaining_material_findings",
+    "findings": [
+      {
+        "disposition": "resolved_with_regressions",
+        "issue": "snapshot continuation omitted v3 receipt binding checks"
+      },
+      {
+        "disposition": "resolved_with_symlink_and_parent_birth_regressions",
+        "issue": "configuration parent symlink preserved final file identities"
+      }
+    ],
+    "focused_tests_passed": 52,
+    "implemented_by": "/root",
+    "reviewer": "independent agent /root/review_recovery",
+    "scope": "listed component files only"
+  },
+  "reviewed_files": {
+    "deploy/workload_installation.py": "256604dcdc2d5f8474cc0e63c4a351b71b4f0a24aeacb79298800115338ba4ca",
+    "deploy/workload_mutation.py": "4dd5a6ad3d26acb8af6ef52d75ca53849eaad8103db228f69d7d1b98cb4e61c4",
+    "docs/PLAN.md": "c17ac7e5637aa6d71293137102465b03c37be5cd02417499731acffadd5c23dd",
+    "tests/test_workload_mutation.py": "3d868cd58185474ce0dfc187f58fa23ca465d3d2500ce43963e5ab644cc6ad3e",
+    "tests/test_workload_recovery_v3.py": "fa66e0a0d1aa8ea359310c4dd4c276c79719063b1b7c0ff2eb0ea09b001a033b",
+    "tests/test_workload_snapshot_continuation.py": "483ac9659903c75322eee338dd84495888d339d6c7ce4be7b3fdc4376ef1a91e"
+  },
+  "schema": "mldsafail.protected-runtime.component-checkpoint.v1",
+  "source_checkpoint": "7b6f9a2",
+  "verification": {
+    "focused_tests": 52,
+    "make_check": {
+      "contract_passed": 8,
+      "exit_code": 0,
+      "passed": 1924,
+      "skipped": 58,
+      "stdout_sha256": "57cf5ded7917f2671cf63999a590e3b50d1c16605089c59bed93c37416407d81"
+    },
+    "native_rehearsal": false,
+    "origins": [
+      "synthetic",
+      "local_filesystem"
+    ],
+    "postgresql_rehearsal": false
+  }
+}

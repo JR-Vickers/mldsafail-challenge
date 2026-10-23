@@ -2,6 +2,8 @@
 
 Status: in progress; no installation or native-test authority granted.
 
+Latest [protocol-three recovery checkpoint](acceptance/production-preparation/protected-runtime-recovery-v3-20261023.md) adds exact intent bindings and acknowledged configuration continuation, preserving protocol-2 snapshot-only behavior. It is a reviewed component checkpoint; complete fixture, external-effect recovery, 27 executable scenarios and whole-proposal review remain unfinished.
+
 Latest [substep recovery checkpoint](acceptance/production-preparation/protected-runtime-substeps-20261023.md)
 versions new recovery journals, binds snapshot and artifact substeps, and permits
 identity-checked snapshot continuation after separate reconciliation and fresh
