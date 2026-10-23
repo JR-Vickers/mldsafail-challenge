@@ -172,7 +172,8 @@ class Journal:
                 self.rows.append(row)
         headers=[row for row in self.rows if row['event']=='recovery_protocol']
         require(not headers or (len(headers)==1 and self.rows[0]==headers[0] and
-                headers[0].get('version')==RECOVERY_PROTOCOL),'installation_recovery_protocol_invalid')
+                type(headers[0].get('version')) is int and
+                headers[0]['version']==RECOVERY_PROTOCOL),'installation_recovery_protocol_invalid')
     @property
     def recovery_protocol(self):
         return self.rows[0]['version'] if self.rows and self.rows[0]['event']=='recovery_protocol' else 1
@@ -235,7 +236,7 @@ def execute(proposal,proposal_raw,review_raw,authority,backend,*,phase='install'
             pending=journal.outcome(pending_step['id'])
             require(not pending or pending['event']!='intent','installation_ambiguous_outcome_reconcile_required')
         if phase=='rollback':
-            require(all(not journal.outcome('install:'+name) or journal.outcome('install:'+name)['event']!='intent'
+            require(all(not journal.outcome('install:'+name) or journal.outcome('install:'+name)['event'] not in ('intent','reconciled_partial')
                         for name in INSTALL),'installation_ambiguous_installation_reconcile_before_rollback')
         backend.journal=journal
         backend.deadline=time.monotonic()+max(0,authority['expires_at']-time.time())
@@ -287,17 +288,20 @@ def reconcile(proposal,proposal_raw,review_raw,authority,backend,*,phase='instal
             previous=journal.outcome(step['id'])
             if previous and previous['event']=='intent':
                 authorize(proposal_raw,review_raw,authority,phase)
+                substeps=backend.observe_substeps(step,journal) if hasattr(backend,'observe_substeps') else []
+                if substeps:
+                    journal.append('substep_reconciliation_observation',step_id=step['id'],substeps=substeps)
                 try:
                     actual=backend.observe(step,journal)
                     valid=backend.valid_outcome(step,actual,journal)
                     bound=valid and backend.reconcilable(step,actual,journal)
                     absent=not valid and hasattr(backend,'absent_reconcilable') and backend.absent_reconcilable(step,actual,journal)
                     status='completed' if bound else 'ambiguous'
-                    substeps=[]
                     # Substep receipts are evidence, never automatic adoption.
-                    for row in journal.rows[journal.rows.index(previous)+1:]:
-                        if row['event']=='mutation_intent':
-                            substeps.append(dict(resource=row['resource'],status='observation_required'))
+                    if not substeps:
+                        substeps=[dict(resource=row['resource'],status='observation_required')
+                                  for row in journal.rows[journal.rows.index(previous)+1:]
+                                  if row['event']=='mutation_intent']
                     if hasattr(backend,'reconciliation_status'):
                         status=backend.reconciliation_status(step,actual,journal,completed=bound)
                     if absent:status='absent'
@@ -665,6 +669,31 @@ class LinuxBackend:
     def snapshot_substeps(self,journal):
         return [row for row in journal.rows if row.get('step_id')=='install:snapshot' and
                 row['event'] in ('mutation_intent','mutation_outcome','mutation_failed')]
+    def observe_substeps(self,step,journal):
+        """Read bound file/tree births; external effects require their own observer."""
+        from deploy.workload_mutation import classify
+        result=[]
+        for row in journal.rows:
+            if row['event']!='mutation_intent' or row.get('step_id')!=step['id']:continue
+            effect=row.get('expected_effect') or {}
+            record=dict(resource=row['resource'],expected_effect=effect)
+            try:
+                if effect.get('effect') in ('exclusive_file','exclusive_private_snapshot'):
+                    actual=identity(effect['path'])
+                elif step['action']=='tools' and 'inventory_sha256' in effect:
+                    from deploy.workload_artifacts import verify_tree
+                    role=row['resource'].removeprefix(step['id']+':')
+                    target=Path(effect['path']);actual=identity(target)
+                    if actual['state']!='absent':
+                        actual=dict(identity=actual,inventory_sha256=digest(canonical(
+                            verify_tree(target,self.source['manifest']['tools'][role]['members']))))
+                else:
+                    result.append(dict(record,status='observation_required'));continue
+                result.append(dict(record,status=classify(journal,row['resource'],actual),observed=actual))
+            except BaseException as error:
+                result.append(dict(record,status='ambiguous',
+                    error=dict(type=type(error).__name__,message=str(error))))
+        return result
     def partial_reconcilable(self,step,value,journal):
         # The only partial-continuation policy currently admitted is exclusive
         # snapshot files. File absence never permits repeating external effects.
@@ -689,6 +718,15 @@ class LinuxBackend:
         value=self.observe(step,journal)
         require(self.partial_reconcilable(step,value,journal),'installation_partial_resources_changed')
         return value
+    def file_substep(self,step,journal,path,expected,action):
+        """Record exclusive file effects without granting partial replay rights."""
+        from deploy.workload_mutation import mutate
+        path=Path(path)
+        require(identity(path)['state']=='absent','installation_substep_destination_not_absent')
+        self.mutation_deadline()
+        mutate(journal,step['id']+':'+str(path),lambda:identity(path),action,
+               step_id=step['id'],expected_effect=dict(path=str(path),effect='exclusive_file',**expected),
+               validate=lambda actual:all(actual.get(key)==value for key,value in expected.items()))
     def snapshot_file(self,journal,name,data):
         from deploy.workload_mutation import mutate
         path=journal.root/name;resource='snapshot:'+name
@@ -750,17 +788,35 @@ class LinuxBackend:
                 destination=self.bundle/name
                 destination.parent.mkdir(parents=True,mode=0o700,exist_ok=True)
                 from deploy.workload_release import copy_regular
-                copy_regular(self.recipe['bundle_root'],name,destination,row)
-            exclusive(self.bundle/'manifest.json',canonical(self.source['manifest']))
+                self.file_substep(step,journal,destination,dict(sha256=row['sha256'],mode=row['mode']),
+                    lambda:copy_regular(self.recipe['bundle_root'],name,destination,row))
+            data=canonical(self.source['manifest'])
+            self.file_substep(step,journal,self.bundle/'manifest.json',dict(sha256=digest(data),mode=0o600),
+                lambda:exclusive(self.bundle/'manifest.json',data))
             sync_directory(self.root)
         elif action=='tools':
             tools=self.source['manifest'].get('tools')
             if tools:
-                from deploy.workload_artifacts import extract
+                from deploy.workload_artifacts import extract,verify_tree
+                from deploy.workload_mutation import mutate
                 root=self.root/'tools';root.mkdir(mode=0o700);sync_directory(root.parent)
                 for role,row in tools.items():
                     data,_=regular(self.bundle,row['archive'])
-                    extract(data,root/role,row['members'])
+                    target=root/role
+                    def observe_tool():
+                        actual=identity(target)
+                        if actual['state']=='absent':return actual
+                        return dict(identity=actual,inventory_sha256=digest(canonical(verify_tree(target,row['members']))))
+                    from pathlib import PurePosixPath
+                    expanded=dict(row['members'])
+                    for name in row['members']:
+                        for parent in PurePosixPath(name).parents:
+                            if str(parent)!='.':expanded.setdefault(str(parent),dict(kind='directory',mode=0o700))
+                    expected_inventory=digest(canonical(expanded))
+                    self.mutation_deadline()
+                    mutate(journal,step['id']+':'+role,observe_tool,lambda:extract(data,target,row['members']),
+                        step_id=step['id'],expected_effect=dict(path=str(target),inventory_sha256=expected_inventory),
+                        validate=lambda actual:actual.get('inventory_sha256')==expected_inventory)
         elif action=='dependencies':
             self.command(['/usr/bin/sudo','-n','/usr/bin/unshare','--net','--setgid='+str(os.getgid()),'--setuid='+str(os.getuid()),'/usr/bin/env','PYTHONDONTWRITEBYTECODE=1',self.recipe['installer']['path'],'--no-cache','--no-config',
                           'venv','--offline','--no-project','--python',self.recipe['interpreter']['path'],str(self.root/'.venv')])
@@ -783,7 +839,9 @@ class LinuxBackend:
                 source=Path(self.recipe['configuration_sources'][role]); data,_=regular(source.parent,source.name)
                 require(digest(data)==row['sha256'],'installation_private_configuration_changed')
                 destination=Path(row['path']); require(destination.is_relative_to(self.root),'installation_configuration_outside_release')
-                destination.parent.mkdir(mode=0o700,exist_ok=True); exclusive(destination,contents[role])
+                destination.parent.mkdir(mode=0o700,exist_ok=True)
+                self.file_substep(step,journal,destination,dict(sha256=digest(contents[role]),mode=0o600),
+                    lambda:exclusive(destination,contents[role]))
         elif action=='inhibit_scheduling':
             gate=Path(self.source['permission_root']); gate.mkdir(mode=0o700,exist_ok=False)
             for row in self.proposal['scheduling']['resources']:

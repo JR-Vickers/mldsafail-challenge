@@ -103,3 +103,13 @@ def test_unknown_protocol_is_rejected(tmp_path, version):
     root=tmp_path/'journal';root.mkdir(mode=0o700)
     journal=Journal(root,'a'*64);journal.append('recovery_protocol',version=version)
     with pytest.raises(WorkloadBlocked,match='recovery_protocol_invalid'):Journal(root,'a'*64)
+
+
+def test_partial_snapshot_is_not_a_completed_install_for_rollback(tmp_path):
+    proposal,raw,review,authority=packet(tmp_path)
+    backend=SnapshotBackend(tmp_path);backend.interrupt=SNAPSHOTS[0]
+    with pytest.raises(InterruptedError):execute(proposal,raw,review,authority(),backend)
+    reconcile(proposal,raw,review,authority(reconcile=True),backend)
+    with pytest.raises(WorkloadBlocked,match='ambiguous_installation'):
+        execute(proposal,raw,review,authority('rollback'),backend,phase='rollback')
+    assert not any(call.startswith('rollback:') for call in backend.calls)
