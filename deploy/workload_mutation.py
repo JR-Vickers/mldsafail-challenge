@@ -6,17 +6,24 @@ resource. The containing installation intent remains blocked until reconciliatio
 from mldsafail.evaluator.native_workload import require
 
 
-def mutate(journal, resource, observe, action, *, fault=None):
+def mutate(journal, resource, observe, action, *, fault=None, step_id=None,
+           expected_effect=None, validate=None):
     require(journal is not None, 'mutation_journal_required')
     require(not any(row.get('resource') == resource and row['event'] == 'mutation_intent'
                     for row in journal.rows), 'mutation_already_attempted_reconcile_required')
+    if step_id is None:
+        pending=next((row for row in reversed(journal.rows) if row['event']=='intent'),None)
+        step_id=pending['step'] if pending else None
+    binding=dict(step_id=step_id,expected_effect=expected_effect)
     before = observe()
-    journal.append('mutation_intent', resource=resource, before=before)
+    journal.append('mutation_intent', resource=resource, before=before,**binding)
     if fault: fault(resource, 'intent')
     try:
         result = action()
         if fault: fault(resource, 'applied')
         after = observe()
+        if validate is not None:
+            require(validate(after),'mutation_effect_not_verified')
     except BaseException as error:
         # A failure is not an acknowledgement of successful creation or cleanup.
         # Preserve observations even if the command mutated and then failed.
@@ -28,9 +35,9 @@ def mutate(journal, resource, observe, action, *, fault=None):
             observation_error = dict(type=type(observation_failure).__name__, message=str(observation_failure))
         journal.append('mutation_failed', resource=resource, observed=after,
                        error=dict(type=type(error).__name__, message=str(error)),
-                       observation_error=observation_error)
+                       observation_error=observation_error,**binding)
         raise
-    journal.append('mutation_outcome', resource=resource, observed=after)
+    journal.append('mutation_outcome', resource=resource, observed=after,**binding)
     if fault: fault(resource, 'outcome')
     return result
 

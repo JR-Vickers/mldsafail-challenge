@@ -27,6 +27,7 @@ ROLLBACK = ('inhibit_scheduling', 'inhibit_containers', 'stop_supervisor', 'veri
 SNAPSHOTS=('original-units.json','original-scheduling-files.json','original-scheduling.json','original-container-policies.json')
 SCHEDULING_FILE_MAX=1024**2
 SCHEDULING_SNAPSHOT_MAX=16*1024**2
+RECOVERY_PROTOCOL = 2
 
 
 def supervisor_enable_contents(proposal):
@@ -72,8 +73,13 @@ def identity(path, *, content=True):
     if stat.S_ISLNK(before.st_mode): value['target']=os.readlink(path)
     elif stat.S_ISREG(before.st_mode):
         if content:
-            value['sha256']=digest(path.read_bytes()); require(stable_stat(before)==stable_stat(path.lstat()),'installation_identity_race')
+            descriptor=os.open(path,os.O_RDONLY|os.O_NOFOLLOW)
+            with os.fdopen(descriptor,'rb') as stream:
+                require(stable_stat(before)==stable_stat(os.fstat(stream.fileno())),'installation_identity_race')
+                value['sha256']=digest(stream.read())
+                require(stable_stat(before)==stable_stat(os.fstat(stream.fileno())),'installation_identity_race')
     else: require(stat.S_ISDIR(before.st_mode) or stat.S_ISSOCK(before.st_mode),'installation_unknown_resource_kind')
+    require(stable_stat(before)==stable_stat(path.lstat()),'installation_identity_race')
     return value
 
 
@@ -164,6 +170,12 @@ class Journal:
                 row=json.loads(line)
                 require(row['proposal_sha256']==self.binding and row['previous']==self.head,'installation_journal_changed')
                 self.rows.append(row)
+        headers=[row for row in self.rows if row['event']=='recovery_protocol']
+        require(not headers or (len(headers)==1 and self.rows[0]==headers[0] and
+                headers[0].get('version')==RECOVERY_PROTOCOL),'installation_recovery_protocol_invalid')
+    @property
+    def recovery_protocol(self):
+        return self.rows[0]['version'] if self.rows and self.rows[0]['event']=='recovery_protocol' else 1
     @property
     def head(self): return digest(canonical(self.rows[-1])) if self.rows else '0'*64
     def append(self,event,**values):
@@ -215,6 +227,7 @@ def execute(proposal,proposal_raw,review_raw,authority,backend,*,phase='install'
     authorize(proposal_raw,review_raw,authority,phase)
     journal=Journal(proposal['identities']['recipe']['journal_root'],digest(proposal_raw))
     with journal.locked():
+        if not journal.rows:journal.append('recovery_protocol',version=RECOVERY_PROTOCOL)
         claim=digest(canonical(authority))
         require(not any(row.get('claim')==claim for row in journal.rows),'installation_authority_replay')
         journal.append('authority_claim',claim=claim,phase=phase)
@@ -230,11 +243,12 @@ def execute(proposal,proposal_raw,review_raw,authority,backend,*,phase='install'
         for step in (s for s in proposal['steps'] if s['phase']==phase):
             authorize(proposal_raw,review_raw,authority,phase)
             prior=journal.outcome(step['id'])
-            if prior and prior['event']!='reconciled_absent':
+            if prior and prior['event'] not in ('reconciled_absent','reconciled_partial'):
                 require(prior['event'] in ('outcome','reconciled'),'installation_ambiguous_outcome_reconcile_required')
                 require(backend.observe(step,journal)==prior['observed'],'installation_completed_step_identity_changed')
                 continue
-            before=backend.before(step,journal)
+            before=(backend.continuation_before(step,journal) if prior and prior['event']=='reconciled_partial'
+                    else backend.before(step,journal))
             if prior:
                 require(before==prior['observed'],'installation_reconciled_absence_changed')
             authorize(proposal_raw,review_raw,authority,phase)
@@ -296,6 +310,11 @@ def reconcile(proposal,proposal_raw,review_raw,authority,backend,*,phase='instal
                 if absent:
                     authorize(proposal_raw,review_raw,authority,phase)
                     journal.append('reconciled_absent',step=step['id'],observed=actual)
+                    continue
+                if (not bound and journal.recovery_protocol==RECOVERY_PROTOCOL and
+                        hasattr(backend,'partial_reconcilable') and backend.partial_reconcilable(step,actual,journal)):
+                    authorize(proposal_raw,review_raw,authority,phase)
+                    journal.append('reconciled_partial',step=step['id'],observed=actual)
                     continue
                 require(valid,'installation_ambiguous_resource_preserve_and_block')
                 # Creation without an acknowledged identity cannot establish
@@ -643,6 +662,51 @@ class LinuxBackend:
     def _outcome(self,journal,name):
         row=journal.outcome(name); require(row and row['event'] in ('outcome','reconciled') and 'observed' in row,
                                           'installation_required_prior_outcome_missing'); return row['observed']
+    def snapshot_substeps(self,journal):
+        return [row for row in journal.rows if row.get('step_id')=='install:snapshot' and
+                row['event'] in ('mutation_intent','mutation_outcome','mutation_failed')]
+    def partial_reconcilable(self,step,value,journal):
+        # The only partial-continuation policy currently admitted is exclusive
+        # snapshot files. File absence never permits repeating external effects.
+        if journal.recovery_protocol!=RECOVERY_PROTOCOL or step['id']!='install:snapshot':return False
+        rows=self.snapshot_substeps(journal)
+        if not rows or set(value)!=set(SNAPSHOTS):return False
+        for name in SNAPSHOTS:
+            resource='snapshot:'+name
+            records=[row for row in rows if row['resource']==resource]
+            intents=[row for row in records if row['event']=='mutation_intent']
+            outcomes=[row for row in records if row['event']=='mutation_outcome']
+            if not records:
+                if value[name].get('state')!='absent':return False
+                continue
+            if len(records)!=2 or len(intents)!=1 or len(outcomes)!=1:return False
+            expected=intents[0].get('expected_effect')
+            if not expected or outcomes[0].get('expected_effect')!=expected:return False
+            if (outcomes[0]['observed']!=value[name] or value[name].get('sha256')!=expected.get('sha256') or
+                    expected.get('path')!=str(journal.root/name)):return False
+        return all(row['resource'] in {'snapshot:'+name for name in SNAPSHOTS} for row in rows)
+    def continuation_before(self,step,journal):
+        value=self.observe(step,journal)
+        require(self.partial_reconcilable(step,value,journal),'installation_partial_resources_changed')
+        return value
+    def snapshot_file(self,journal,name,data):
+        from deploy.workload_mutation import mutate
+        path=journal.root/name;resource='snapshot:'+name
+        expected=dict(path=str(path),sha256=digest(data),effect='exclusive_private_snapshot')
+        records=[row for row in self.snapshot_substeps(journal) if row['resource']==resource]
+        if records:
+            require(journal.recovery_protocol==RECOVERY_PROTOCOL and
+                    any(row['event']=='reconciled_partial' and row.get('step')=='install:snapshot'
+                        for row in journal.rows),'installation_partial_reconciliation_required')
+            outcome=next((row for row in records if row['event']=='mutation_outcome'),None)
+            require(outcome and outcome.get('expected_effect')==expected and outcome['observed']==identity(path),
+                    'installation_snapshot_substep_changed')
+            return
+        require(identity(path)['state']=='absent','installation_snapshot_destination_not_absent')
+        self.mutation_deadline()
+        mutate(journal,resource,lambda:identity(path),lambda:exclusive(path,data),
+               step_id='install:snapshot',expected_effect=expected,
+               validate=lambda actual:actual.get('sha256')==expected['sha256'] and actual.get('mode')==0o600)
     def apply(self,step,journal):
         action=step['action']
         self.mutation_deadline()
@@ -663,19 +727,19 @@ class LinuxBackend:
                         row['contents_hex']=regular(path.parent,path.name)[0].hex()
                         row['gid']=path.stat().st_gid
                     snapshot[str(path)]=row
-            exclusive(journal.root/'original-units.json',canonical(snapshot))
+            self.snapshot_file(journal,'original-units.json',canonical(snapshot))
             originals={}
             for path,expected in self.source['inventory']['original_files'].items():
                 file=Path(path);data,mode,record=read_owned_file(file,self.command,metadata=True)
                 require(digest(data)==expected,'installation_original_scheduling_file_changed')
                 originals[path]=dict(record,sha256=digest(data),contents_hex=data.hex())
-            exclusive(journal.root/'original-scheduling-files.json',canonical(originals))
+            self.snapshot_file(journal,'original-scheduling-files.json',canonical(originals))
             from deploy.workload_installed import original_settings,observation_runner
             with observation_runner(self.command):observed_settings=original_settings(self.source)
             require(observed_settings['manager_settings']==self.source['inventory']['manager_settings'] and
                     observed_settings['containers']==self.source['containers'],'installation_original_settings_changed_before_snapshot')
-            exclusive(journal.root/'original-scheduling.json',canonical(observed_settings['manager_settings']))
-            exclusive(journal.root/'original-container-policies.json',canonical(observed_settings['containers']))
+            self.snapshot_file(journal,'original-scheduling.json',canonical(observed_settings['manager_settings']))
+            self.snapshot_file(journal,'original-container-policies.json',canonical(observed_settings['containers']))
         elif action=='create_release':
             self.root.mkdir(mode=0o700); sync_directory(self.root.parent)
         elif action=='copy_bundle':
@@ -950,6 +1014,7 @@ class LinuxBackend:
         # files. Scheduling, Docker, units and prerequisite partial progress
         # require their own reconciliation and are never replayed here.
         if self.apply_acknowledgements(step,journal):return False
+        if step['action']=='snapshot' and self.snapshot_substeps(journal):return False
         pending=journal.outcome(step['id'])
         if not pending or pending['event']!='intent' or value!=pending['before']:return False
         if step['action'] in ('create_release','enable_supervisor'):
