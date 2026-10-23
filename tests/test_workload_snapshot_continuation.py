@@ -37,9 +37,11 @@ class SnapshotBackend(Backend):
         return super().valid_outcome(step, value, journal)
 
 
+@pytest.mark.parametrize('version', [2, RECOVERY_PROTOCOL])
 @pytest.mark.parametrize('count', [1, 2, 3, 4])
-def test_snapshot_continuation_preserves_acknowledged_births(tmp_path, count):
+def test_snapshot_continuation_preserves_acknowledged_births(tmp_path, count, version):
     proposal, raw, review, authority = packet(tmp_path)
+    journal=Journal(tmp_path/'journal',digest(raw));journal.append('recovery_protocol',version=version)
     backend = SnapshotBackend(tmp_path);backend.interrupt = SNAPSHOTS[count-1]
     with pytest.raises(InterruptedError):execute(proposal, raw, review, authority(), backend)
     saved = {name:identity(tmp_path/'journal'/name) for name in SNAPSHOTS[:count]}
@@ -47,7 +49,7 @@ def test_snapshot_continuation_preserves_acknowledged_births(tmp_path, count):
         execute(proposal, raw, review, authority(), backend)
     reconcile(proposal, raw, review, authority(reconcile=True), backend)
     journal = Journal(tmp_path/'journal', digest(raw))
-    assert journal.recovery_protocol == RECOVERY_PROTOCOL
+    assert journal.recovery_protocol == version
     assert journal.outcome('install:snapshot')['event'] == 'reconciled_partial'
     # Reconciliation only observes: the remaining files are still absent.
     assert all(identity(tmp_path/'journal'/name)['state']=='absent' for name in SNAPSHOTS[count:])
@@ -98,7 +100,7 @@ def test_legacy_journal_cannot_acquire_partial_continuation(tmp_path):
     assert Journal(tmp_path/'journal', digest(raw)).recovery_protocol==1
 
 
-@pytest.mark.parametrize('version', [1, 3, None])
+@pytest.mark.parametrize('version', [1, 4, None])
 def test_unknown_protocol_is_rejected(tmp_path, version):
     root=tmp_path/'journal';root.mkdir(mode=0o700)
     journal=Journal(root,'a'*64);journal.append('recovery_protocol',version=version)

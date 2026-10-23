@@ -5,10 +5,13 @@ from deploy.workload_mutation import mutate, classify
 from mldsafail.evaluator.workload import WorkloadBlocked
 
 
+@pytest.mark.parametrize('version', [1,2,3])
 @pytest.mark.parametrize('point', ['intent', 'applied', 'outcome'])
-def test_interruption_records_actual_state_and_refuses_replay(tmp_path, point):
+def test_interruption_records_actual_state_and_refuses_replay(tmp_path, point, version):
     root=tmp_path/'journal';root.mkdir(mode=0o700)
     journal=Journal(root,'a'*64);target=tmp_path/'resource'
+    if version!=1:journal.append('recovery_protocol',version=version)
+    journal.append('intent',step='install:fixture',before=identity(target))
     def fault(resource, boundary):
         if boundary==point:raise InterruptedError(boundary)
     def create():target.write_bytes(b'owned')

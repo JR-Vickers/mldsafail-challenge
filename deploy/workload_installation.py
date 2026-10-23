@@ -27,7 +27,7 @@ ROLLBACK = ('inhibit_scheduling', 'inhibit_containers', 'stop_supervisor', 'veri
 SNAPSHOTS=('original-units.json','original-scheduling-files.json','original-scheduling.json','original-container-policies.json')
 SCHEDULING_FILE_MAX=1024**2
 SCHEDULING_SNAPSHOT_MAX=16*1024**2
-RECOVERY_PROTOCOL = 2
+RECOVERY_PROTOCOL = 3
 
 
 def supervisor_enable_contents(proposal):
@@ -173,7 +173,7 @@ class Journal:
         headers=[row for row in self.rows if row['event']=='recovery_protocol']
         require(not headers or (len(headers)==1 and self.rows[0]==headers[0] and
                 type(headers[0].get('version')) is int and
-                headers[0]['version']==RECOVERY_PROTOCOL),'installation_recovery_protocol_invalid')
+                headers[0]['version'] in (2, RECOVERY_PROTOCOL)),'installation_recovery_protocol_invalid')
     @property
     def recovery_protocol(self):
         return self.rows[0]['version'] if self.rows and self.rows[0]['event']=='recovery_protocol' else 1
@@ -315,7 +315,7 @@ def reconcile(proposal,proposal_raw,review_raw,authority,backend,*,phase='instal
                     authorize(proposal_raw,review_raw,authority,phase)
                     journal.append('reconciled_absent',step=step['id'],observed=actual)
                     continue
-                if (not bound and journal.recovery_protocol==RECOVERY_PROTOCOL and
+                if (not bound and journal.recovery_protocol in (2, RECOVERY_PROTOCOL) and
                         hasattr(backend,'partial_reconcilable') and backend.partial_reconcilable(step,actual,journal)):
                     authorize(proposal_raw,review_raw,authority,phase)
                     journal.append('reconciled_partial',step=step['id'],observed=actual)
@@ -695,9 +695,11 @@ class LinuxBackend:
                     error=dict(type=type(error).__name__,message=str(error))))
         return result
     def partial_reconcilable(self,step,value,journal):
-        # The only partial-continuation policy currently admitted is exclusive
-        # snapshot files. File absence never permits repeating external effects.
-        if journal.recovery_protocol!=RECOVERY_PROTOCOL or step['id']!='install:snapshot':return False
+        # Protocol 2 retains snapshot-only continuation. Protocol 3 additionally
+        # admits acknowledged configuration files. Neither replays external effects.
+        if journal.recovery_protocol==3 and step['id']=='install:configurations':
+            return self.configuration_continuable(step,value,journal)
+        if journal.recovery_protocol not in (2,3) or step['id']!='install:snapshot':return False
         rows=self.snapshot_substeps(journal)
         if not rows or set(value)!=set(SNAPSHOTS):return False
         for name in SNAPSHOTS:
@@ -709,23 +711,71 @@ class LinuxBackend:
                 if value[name].get('state')!='absent':return False
                 continue
             if len(records)!=2 or len(intents)!=1 or len(outcomes)!=1:return False
+            if journal.recovery_protocol==3:
+                from deploy.workload_mutation import classify
+                if classify(journal,resource,value[name])!='completed':return False
             expected=intents[0].get('expected_effect')
             if not expected or outcomes[0].get('expected_effect')!=expected:return False
             if (outcomes[0]['observed']!=value[name] or value[name].get('sha256')!=expected.get('sha256') or
                     expected.get('path')!=str(journal.root/name)):return False
         return all(row['resource'] in {'snapshot:'+name for name in SNAPSHOTS} for row in rows)
+    def configuration_continuable(self,step,value,journal):
+        """Only unchanged acknowledged writes and never-attempted files continue.
+
+        An absent attempted file is deliberately insufficient: it could have
+        been removed after an unacknowledged write.
+        """
+        from deploy.workload_configuration import hashes,measured_resources
+        from deploy.workload_mutation import classify
+        expected=hashes(self.source,measured_resources(self.source))
+        configurations=self.source['manifest']['configurations']
+        if set(value)!=set(configurations) or set(expected)!=set(configurations):return False
+        rows=[row for row in journal.rows if row.get('step_id')==step['id'] and
+              row['event'] in ('mutation_intent','mutation_outcome','mutation_failed')]
+        allowed=set()
+        for role,configuration in configurations.items():
+            path=configuration['path'];resource=step['id']+':'+path;allowed.add(resource)
+            destination=Path(path)
+            if any(parent.is_symlink() for parent in (destination,*destination.parents)):return False
+            records=[row for row in rows if row['resource']==resource]
+            if not records:
+                if value[role].get('state')!='absent':return False
+                continue
+            if len(records)!=2:return False
+            effect=dict(path=path,effect='exclusive_file',sha256=expected[role],mode=0o600,
+                        parent_identity=identity(destination.parent))
+            if any(row.get('expected_effect')!=effect for row in records):return False
+            if classify(journal,resource,value[role])!='completed':return False
+            if value[role].get('sha256')!=expected[role] or value[role].get('mode')!=0o600:return False
+        return bool(rows) and all(row['resource'] in allowed for row in rows)
     def continuation_before(self,step,journal):
         value=self.observe(step,journal)
         require(self.partial_reconcilable(step,value,journal),'installation_partial_resources_changed')
         return value
     def file_substep(self,step,journal,path,expected,action):
-        """Record exclusive file effects without granting partial replay rights."""
+        """Record exclusive writes; v3 may skip reconciled configuration births."""
         from deploy.workload_mutation import mutate
         path=Path(path)
+        effect=dict(path=str(path),effect='exclusive_file',**expected)
+        if journal.recovery_protocol==3 and step['id']=='install:configurations':
+            require(not any(parent.is_symlink() for parent in (path,*path.parents)),
+                    'installation_configuration_parent_symlink')
+            effect['parent_identity']=identity(path.parent)
+        resource=step['id']+':'+str(path)
+        records=[row for row in journal.rows if row.get('resource')==resource and
+                 row['event']=='mutation_intent']
+        if records and journal.recovery_protocol==3 and step['id']=='install:configurations':
+            from deploy.workload_mutation import classify
+            require(any(row['event']=='reconciled_partial' and row.get('step')==step['id']
+                        for row in journal.rows),'installation_partial_reconciliation_required')
+            require(records[0].get('expected_effect')==effect and
+                    classify(journal,resource,identity(path))=='completed',
+                    'installation_configuration_substep_changed')
+            return
         require(identity(path)['state']=='absent','installation_substep_destination_not_absent')
         self.mutation_deadline()
         mutate(journal,step['id']+':'+str(path),lambda:identity(path),action,
-               step_id=step['id'],expected_effect=dict(path=str(path),effect='exclusive_file',**expected),
+               step_id=step['id'],expected_effect=effect,
                validate=lambda actual:all(actual.get(key)==value for key,value in expected.items()))
     def snapshot_file(self,journal,name,data):
         from deploy.workload_mutation import mutate
@@ -733,9 +783,13 @@ class LinuxBackend:
         expected=dict(path=str(path),sha256=digest(data),effect='exclusive_private_snapshot')
         records=[row for row in self.snapshot_substeps(journal) if row['resource']==resource]
         if records:
-            require(journal.recovery_protocol==RECOVERY_PROTOCOL and
+            require(journal.recovery_protocol in (2,3) and
                     any(row['event']=='reconciled_partial' and row.get('step')=='install:snapshot'
                         for row in journal.rows),'installation_partial_reconciliation_required')
+            if journal.recovery_protocol==3:
+                from deploy.workload_mutation import classify
+                require(classify(journal,resource,identity(path))=='completed',
+                        'installation_snapshot_substep_changed')
             outcome=next((row for row in records if row['event']=='mutation_outcome'),None)
             require(outcome and outcome.get('expected_effect')==expected and outcome['observed']==identity(path),
                     'installation_snapshot_substep_changed')
