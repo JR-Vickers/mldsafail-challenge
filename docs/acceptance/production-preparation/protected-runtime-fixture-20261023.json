@@ -1,0 +1,55 @@
+{
+  "cases": {
+    "complete": "not_run_against_complete_fixture",
+    "interrupted-rollback": "not_run_against_complete_fixture",
+    "partial-configurations": "not_run_against_complete_fixture",
+    "partial-snapshots": "not_run_against_complete_fixture",
+    "peer_uid_probe": "not_run_against_complete_fixture",
+    "unacknowledged-images": "not_run_against_complete_fixture"
+  },
+  "checks": {
+    "changed_document_links": 61,
+    "contract_passed": 8,
+    "diff_check": true,
+    "focused_passed": 26,
+    "make_check_passed": 1950,
+    "make_check_skipped": 58,
+    "native_acceptance": false
+  },
+  "date": "2026-10-23",
+  "evidence_sha256": {
+    "attempts.json": "fce47be5615253e11b73f0ef7c412ece1ab25b84ba4756ef31ceb98eead25a0d",
+    "documentation-links.json": "db475036cf5fa5ec55e97bf6fda8f0f98ed53e2f314a588bdfa2e5663be0cd8a",
+    "environment.json": "2702f31dc01cae993dadacab96a115561ab451d49ccda41f93f14d35830ba85f",
+    "independent-review.json": "23f3d4344d85b81c7dafa9d3b14b1368bdc45135f7ed71630e36bcd26a89848d",
+    "make-check-initial.log": "7f532969017346ea64a2cdb7950f157c8dfe7b4d1112c3e48bd106e129119e69",
+    "make-check-passed.log": "6e977548e3f3fa82c6ef57ca793a54967ac67fa2fb0e5f883d43a656a92745d1"
+  },
+  "retention": {
+    "bulk_deleted": false,
+    "external_resources_created": false,
+    "private_evidence_preserved": true,
+    "retained_guest_ownership_verified": false,
+    "retained_guest_reused": false
+  },
+  "schema": "mldsafail.fixture-lifecycle-checkpoint.v1",
+  "scope": {
+    "budget_usd": 0,
+    "installation_authority_requested": false,
+    "publication": false,
+    "scientific_evaluations": 0,
+    "vps_actions": false
+  },
+  "source_commit": "754f545",
+  "source_sha256": {
+    "docs/WORKLOAD_INSTALLATION_FIXTURE.md": "21dd3545a2ea1c8ac15f7105f669f6bebf45afc8d6244bd6059a522ec6b74c64",
+    "scripts/workload_installation_fixture.py": "5b43bd41774aba93cc6792505431de9a11229249b0221301eecf3ee5f779387f",
+    "tests/test_workload_installation_fixture.py": "b18dadc8ffd8c6c568097f330052bff77c1dafc66c0ab8b837f9fba483186ea8"
+  },
+  "status": {
+    "implementation": "incomplete_lifecycle_foundation_only",
+    "independent_review": "passed_prepare_inspect_fail_closed_only",
+    "privileged_host_facts": "unchanged_incomplete",
+    "rehearsal": "not_run_environment_and_engineering_blockers"
+  }
+}

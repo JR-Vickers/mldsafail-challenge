@@ -54,6 +54,17 @@ No deployment, epoch, capacity measurement or activation is authorized by this w
 
 ### Current host preparation — bootstrap and installed acceptance remain separate
 
+The [2026-10-23 protocol-3 checkpoint](acceptance/production-preparation/protected-runtime-recovery-v3-20261023.md)
+is the current recovery protocol reference. The
+[fixture lifecycle checkpoint](acceptance/production-preparation/protected-runtime-fixture-20261023.md)
+adds independently reviewed preparation, inspection and fail-closed lifecycle
+handling. **The complete fixture milestone remains unfinished:** concrete
+provisioning, native observations, worker lock handoff, interruption runners,
+peer-UID probe integration and verified cleanup still need implementation. Native
+transitions are disabled. Docker is unreachable from both the agent session and
+the owner's Terminal; that rehearsal blocker does not resolve the engineering
+gaps. No protected-runtime installation authority is requested.
+
 The [2026-10-23 substep checkpoint](acceptance/production-preparation/protected-runtime-substeps-20261023.md) adds versioned recovery journals, verified snapshot/artifact receipts and narrowly authorized snapshot continuation. Full fixture, external-effect recovery, executable acceptance and complete proposal review remain unfinished.
 
 The [2026-10-23 host-reader checkpoint](acceptance/production-preparation/protected-runtime-reader-successor-20261023.md) fixes symlink absence/race handling and prepares a separate fixed-reader successor. Its private dossier preserves the incomplete 34-account scan; no successor or protected runtime has been installed. Full fixture, recovery, executable acceptance and complete proposal review remain unfinished.
