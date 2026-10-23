@@ -36,6 +36,33 @@ class CollectionDeadline(Exception):
     """Bypass per-command and per-path recoverable error handlers."""
 
 
+AT_EXECUTABLES = ('/usr/bin/at', '/usr/bin/atq', '/usr/sbin/atd',
+                  '/bin/at', '/bin/atq', '/sbin/atd')
+AT_SPOOLS = ('/var/spool/at', '/var/spool/atjobs', '/var/spool/atspool',
+             '/var/spool/cron/atjobs', '/var/spool/cron/atspool')
+
+
+def at_observation(sections, paths):
+    """Corroborate utility absence; never certify arbitrary scheduler closure."""
+    queue = sections.get('at_queue', {})
+    service = sections.get('at_service', {})
+    processes = sections.get('processes', {})
+    by_path = {row['path']: row for row in paths}
+    missing = [name for name in (*AT_EXECUTABLES, *AT_SPOOLS)
+               if by_path.get(name, {}).get('absent') is not True or
+               'error' in by_path.get(name, {})]
+    corroborated = (queue.get('error') == 'FileNotFoundError' and
+                    service.get('error') is None and service.get('returncode') == 0 and
+                    not service.get('truncated', True) and service.get('not_found') is True and
+                    service.get('inactive') is True and
+                    processes.get('error') is None and processes.get('returncode') == 0 and
+                    not processes.get('truncated', True) and
+                    processes.get('at_daemon_seen') is False and not missing)
+    return dict(state='standard_locations_absent' if corroborated else 'requires_review',
+                missing_utility_corroborated=corroborated,
+                unresolved_paths=missing, scheduling_owner_classification_required=True)
+
+
 MAX_HOPS = 16
 MAX_ENTRIES = 2048
 MAX_FILE = 1048576
@@ -49,16 +76,29 @@ def identity(st):
 
 def inspect_path(path):
     """Resolve literal links, including parent links, and recheck every identity."""
-    original = os.path.abspath(path)
+    original = os.fspath(path)
+    if not os.path.isabs(original):
+        original = os.path.join(os.getcwd(), original)
     row = dict(path=original, chain=[])
     watched = []
     pending = Path(original).parts[1:]
     current = Path('/')
     seen = set()
+    unresolved_links = 0
+    missing = None
     try:
         while pending:
-            current = current / pending[0]
-            pending = pending[1:]
+            component, pending = pending[0], pending[1:]
+            if isinstance(component, tuple):
+                unresolved_links -= 1
+                seen.remove(component[1])
+                continue
+            if component == '..':
+                if not stat.S_ISDIR(current.lstat().st_mode):
+                    raise NotADirectoryError(str(current))
+                current = current.parent
+                continue
+            current = current / component
             st = current.lstat()
             watched.append((current, identity(st)))
             if stat.S_ISLNK(st.st_mode):
@@ -68,9 +108,17 @@ def inspect_path(path):
                 target = os.readlink(current)
                 row['chain'].append(dict(path=str(current), literal_target=target,
                                          identity=identity(st)))
-                resolved = os.path.normpath(str(current.parent / target))
-                pending = Path(resolved).parts[1:] + tuple(pending)
-                current = Path('/')
+                target_parts = Path(target).parts
+                link_path = str(current)
+                if os.path.isabs(target):
+                    current = Path('/')
+                    target_parts = target_parts[1:]
+                else:
+                    current = current.parent
+                # Do not normalize '..' across an unresolved intermediate link:
+                # the kernel applies it to that link's resolved directory.
+                pending = target_parts + (('resolved_link', link_path),) + tuple(pending)
+                unresolved_links += 1
         st = current.lstat()
         row.update(final_target=str(current), identity=identity(st),
                    symlink=bool(row['chain']), mask=str(current) == '/dev/null')
@@ -86,20 +134,39 @@ def inspect_path(path):
             row['sha256'] = hashlib.sha256(data).hexdigest()
         elif not stat.S_ISDIR(st.st_mode) and not row['mask']:
             raise ValueError('unsupported_target')
-        for item, before in watched:
-            if identity(item.lstat()) != before:
-                raise ValueError('target_changed')
     except FileNotFoundError:
-        if not row['chain'] and not os.path.lexists(original):
-            row['absent'] = True
-        else:
+        # A link target must resolve before absence can be called optional. A
+        # missing child after that boundary does not make its parent dangling.
+        missing = current
+        if unresolved_links:
             row['error'] = 'dangling_target'
+        else:
+            row['absent'] = True
+            row['missing_path'] = str(current)
     except (OSError, ValueError) as exc:
         row['error'] = str(exc) if isinstance(exc, ValueError) else type(exc).__name__
+    finally:
+        # Failed lookups also depend on every traversed identity. Never certify
+        # absence or preserve an earlier error across a replaced parent/link.
+        try:
+            for item, before in watched:
+                if identity(item.lstat()) != before:
+                    raise ValueError('target_changed')
+            if missing is not None:
+                try:
+                    missing.lstat()
+                except FileNotFoundError:
+                    pass
+                else:
+                    raise ValueError('target_changed')
+        except (OSError, ValueError):
+            row.pop('absent', None)
+            row.pop('missing_path', None)
+            row['error'] = 'target_changed'
     return row
 
 
-def _collect(collector_hash, raw_stream, reviewed_paths=()):
+def _collect(collector_hash, raw_stream, reviewed_paths=(), command_runner=None):
     """raw_stream is an owner-created private binary file, never stdout."""
     started = time.monotonic()
     started_wall = time.time()
@@ -111,31 +178,45 @@ def _collect(collector_hash, raw_stream, reviewed_paths=()):
         try:
             if expired():
                 raise ValueError('collection_deadline')
-            import tempfile
-            with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
-                def output_limit():
-                    import resource
-                    resource.setrlimit(resource.RLIMIT_FSIZE, (262144, 262144))
-                process = subprocess.run(command, stdout=out, stderr=err, preexec_fn=output_limit,
-                                         timeout=min(10, 180-(time.monotonic()-started)))
-                out.seek(0); err.seek(0)
-                stdout, stderr = out.read(262145), err.read(262145)
+            if command_runner is not None:
+                observed = command_runner(command, timeout=min(10, 180-(time.monotonic()-started)))
+                stdout, stderr = observed['stdout'], observed['stderr']
+                row['containment'] = observed['containment']
+                if not observed['containment']['verified']:
+                    row['error'] = 'command_containment_unverified'
+                returncode = observed['returncode']
+            else:
+                import tempfile
+                with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
+                    def output_limit():
+                        import resource
+                        resource.setrlimit(resource.RLIMIT_FSIZE, (262144, 262144))
+                    process = subprocess.run(command, stdout=out, stderr=err, preexec_fn=output_limit,
+                                             timeout=min(10, 180-(time.monotonic()-started)))
+                    out.seek(0); err.seek(0)
+                    stdout, stderr = out.read(262145), err.read(262145)
+                returncode = process.returncode
             raw = json.dumps(dict(section=name, stdout=stdout.hex(), stderr=stderr.hex()),
                              sort_keys=True).encode() + b'\n'
             raw_stream.write(raw)
-            row.update(returncode=process.returncode, raw_sha256=hashlib.sha256(raw).hexdigest(),
+            row.update(returncode=returncode, raw_sha256=hashlib.sha256(raw).hexdigest(),
                        sha256=hashlib.sha256(stdout + stderr).hexdigest(),
                        truncated=len(stdout) >= 262144 or len(stderr) >= 262144,
                        no_crontab=b'no crontab for' in stderr)
             if name == 'at_service':
-                row['not_found'] = b'LoadState=not-found' in stdout
-        except (OSError, subprocess.SubprocessError, ValueError) as exc:
+                row['not_found'] = b'LoadState=not-found' in stdout.splitlines()
+                row['inactive'] = b'ActiveState=inactive' in stdout.splitlines()
+            if name == 'processes':
+                row['at_daemon_seen'] = any(line.split()[-1:] == [b'atd'] for line in stdout.splitlines())
+        except (OSError, subprocess.SubprocessError, ValueError, RuntimeError) as exc:
             row.update(error=type(exc).__name__, returncode=None)
+            if isinstance(exc, RuntimeError):
+                row['retained_cleanup_evidence'] = str(exc)
             raw = json.dumps(dict(section=name, stdout='', stderr='', error=row['error']), sort_keys=True).encode() + b'\n'
             raw_stream.write(raw)
             row['raw_sha256'] = hashlib.sha256(raw).hexdigest()
         sections[name] = row
-    for root in (*ROOTS, *reviewed_paths):
+    for root in dict.fromkeys((*ROOTS, *AT_EXECUTABLES, *AT_SPOOLS, *reviewed_paths)):
         try:
             if expired():
                 raise ValueError('collection_deadline')
@@ -159,18 +240,19 @@ def _collect(collector_hash, raw_stream, reviewed_paths=()):
     known = {p['path'] for p in paths}
     for target in {p['final_target'] for p in paths if 'final_target' in p} - known:
         paths.append(inspect_path(target))
+    at = at_observation(sections, paths)
     return dict(schema='mldsafail.scheduling-collection.v2', host=socket.gethostname(),
+                at_observation=at,
                 uid=os.getuid(), time=started_wall, provenance='owner_root_console',
                 collector_sha256=collector_hash, sections=sections, paths=paths,
                 reviewed_paths=list(reviewed_paths), complete=not expired() and
                 all('error' not in p for p in paths) and
-                all(not r['truncated'] and ((r['error'] is None and
-                    (r.get('returncode') == 0 or r.get('no_crontab') is True and r.get('returncode') == 1)) or
-                    (name == 'at_queue' and r['error'] == 'FileNotFoundError'))
+                all(not r['truncated'] and ((name == 'at_queue' and at['missing_utility_corroborated']) or (r['error'] is None and
+                    (r.get('returncode') == 0 or r.get('no_crontab') is True and r.get('returncode') == 1)))
                     for name, r in sections.items()))
 
 
-def collect(collector_hash, raw_stream, reviewed_paths=()):
+def collect(collector_hash, raw_stream, reviewed_paths=(), command_runner=None):
     # Linux owner-console collection is bounded even on a blocking filesystem read.
     import signal
     def deadline(signum, frame):
@@ -178,7 +260,7 @@ def collect(collector_hash, raw_stream, reviewed_paths=()):
     previous = signal.signal(signal.SIGALRM, deadline)
     signal.alarm(180)
     try:
-        return _collect(collector_hash, raw_stream, reviewed_paths)
+        return _collect(collector_hash, raw_stream, reviewed_paths, command_runner)
     except CollectionDeadline:
         return dict(schema='mldsafail.scheduling-collection.v2', complete=False,
                     error='collection_deadline', collector_sha256=collector_hash)

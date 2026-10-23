@@ -155,3 +155,133 @@ def test_nonzero_observation_cannot_claim_complete(monkeypatch):
     monkeypatch.setattr(collector.subprocess, 'run', denied)
     result = collector.collect('hash', io.BytesIO())
     assert result['complete'] is False
+
+
+@pytest.mark.parametrize('nested', [False, True])
+def test_valid_symlink_parent_with_missing_optional_child(tmp_path, nested):
+    target = tmp_path/'usr'; target.mkdir()
+    (target/'bin').mkdir()
+    link = tmp_path/'bin'; link.symlink_to('usr/bin')
+    if nested:
+        other = tmp_path/'other'; other.symlink_to('bin')
+        link = other
+    row = collector.inspect_path(link/'optional'/'child')
+    assert row['absent'] is True
+    assert 'error' not in row
+    assert row['chain']
+
+
+def test_dangling_parent_is_not_optional_absence(tmp_path):
+    link = tmp_path/'bin'; link.symlink_to('missing')
+    row = collector.inspect_path(link/'optional')
+    assert row['error'] == 'dangling_target'
+    assert 'absent' not in row
+
+
+@pytest.mark.parametrize('failure', ['absent', 'permission', 'dangling'])
+def test_failed_lookup_rechecks_traversed_identities(tmp_path, monkeypatch, failure):
+    target = tmp_path/'target'; target.mkdir()
+    link = tmp_path/'link'; link.symlink_to('target' if failure != 'dangling' else 'missing')
+    original = Path.lstat
+    mutated = False
+    def raced(self):
+        nonlocal mutated
+        if self == tmp_path/('missing' if failure == 'dangling' else 'target/child') and not mutated:
+            mutated = True
+            link.unlink(); link.symlink_to('replacement')
+            if failure == 'permission': raise PermissionError()
+            raise FileNotFoundError()
+        return original(self)
+    monkeypatch.setattr(Path, 'lstat', raced)
+    row = collector.inspect_path(link/'child')
+    assert mutated
+    assert row['error'] == 'target_changed'
+    assert 'absent' not in row
+
+
+def test_absence_becoming_present_is_a_race(tmp_path, monkeypatch):
+    p = tmp_path/'missing'; original = Path.lstat
+    def raced(self):
+        if self == p and not p.exists():
+            p.write_text('new')
+            raise FileNotFoundError()
+        return original(self)
+    monkeypatch.setattr(Path, 'lstat', raced)
+    assert collector.inspect_path(p)['error'] == 'target_changed'
+
+
+def at_absence_fixture():
+    sections = dict(at_queue=dict(error='FileNotFoundError'),
+        at_service=dict(error=None, returncode=0, truncated=False, not_found=True, inactive=True),
+        processes=dict(error=None, returncode=0, truncated=False, at_daemon_seen=False))
+    paths = [dict(path=name, absent=True) for name in (*collector.AT_EXECUTABLES, *collector.AT_SPOOLS)]
+    return sections, paths
+
+
+def test_missing_atq_requires_correlated_observations():
+    assert not collector.at_observation({'at_queue': dict(error='FileNotFoundError')}, [])['missing_utility_corroborated']
+    sections, paths = at_absence_fixture()
+    assert collector.at_observation(sections, paths)['missing_utility_corroborated']
+
+
+@pytest.mark.parametrize('failure', ['unreadable', 'spool', 'executable', 'service', 'process', 'truncated', 'omitted'])
+def test_at_absence_rejects_incomplete_or_conflicting_inventory(failure):
+    sections, paths = at_absence_fixture()
+    if failure == 'unreadable': paths[-1]['error'] = 'PermissionError'
+    if failure == 'spool': paths[-1].pop('absent')
+    if failure == 'executable': paths[0].pop('absent')
+    if failure == 'service': sections['at_service']['inactive'] = False
+    if failure == 'process': sections['processes']['at_daemon_seen'] = True
+    if failure == 'truncated': sections['processes']['truncated'] = True
+    if failure == 'omitted': paths.pop()
+    assert not collector.at_observation(sections, paths)['missing_utility_corroborated']
+
+
+def test_link_target_dotdot_follows_intermediate_link_before_parent(tmp_path):
+    (tmp_path/'real').mkdir(); (tmp_path/'real'/'sub').mkdir()
+    (tmp_path/'real'/'file').write_text('kernel target')
+    (tmp_path/'file').write_text('wrong lexical target')
+    (tmp_path/'intermediate').symlink_to('real/sub')
+    link = tmp_path/'link'; link.symlink_to('intermediate/../file')
+    row = collector.inspect_path(link)
+    assert row['sha256'] == hashlib.sha256(link.read_bytes()).hexdigest()
+    assert row['final_target'] == str(tmp_path/'real'/'file')
+
+
+def test_link_can_be_traversed_again_after_resolution(tmp_path):
+    (tmp_path/'target').mkdir()
+    (tmp_path/'target'/'file').write_text('target')
+    link = tmp_path/'link'; link.symlink_to('target')
+    outer = tmp_path/'outer'; outer.symlink_to('link/../link/file')
+    assert 'error' not in collector.inspect_path(outer)
+
+
+def test_dotdot_cannot_cross_a_regular_file(tmp_path):
+    (tmp_path/'file').write_text('data')
+    link = tmp_path/'link'; link.symlink_to('file/../file')
+    assert collector.inspect_path(link)['error'] == 'NotADirectoryError'
+
+
+def test_successor_scheduling_commands_use_containment_and_cannot_hide_failure(monkeypatch):
+    monkeypatch.setattr(collector, 'ROOTS', ())
+    monkeypatch.setattr(collector, 'SECTIONS', {'test': ['systemctl', 'show']})
+    calls = []
+    def runner(command, **kw):
+        calls.append(command)
+        return dict(returncode=0, stdout=b'', stderr=b'',
+                    containment=dict(verified=False, retained_evidence='/private/receipt'))
+    c = collector.collect('hash', io.BytesIO(), command_runner=runner)
+    assert calls == [['systemctl', 'show']]
+    assert not c['complete']
+    assert c['sections']['test']['error'] == 'command_containment_unverified'
+    assert c['sections']['test']['containment']['retained_evidence'] == '/private/receipt'
+
+
+def test_literal_input_dotdot_is_resolved_after_parent_symlink(tmp_path):
+    (tmp_path/'real').mkdir(); (tmp_path/'real'/'sub').mkdir()
+    (tmp_path/'real'/'file').write_text('kernel target')
+    (tmp_path/'file').write_text('wrong lexical target')
+    (tmp_path/'link').symlink_to('real/sub')
+    literal = tmp_path/'link'/'..'/'file'
+    row = collector.inspect_path(literal)
+    assert row['sha256'] == hashlib.sha256(literal.read_bytes()).hexdigest()

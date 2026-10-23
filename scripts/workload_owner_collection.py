@@ -48,7 +48,7 @@ def inventory(accounts):
     return sections, tuple(dict.fromkeys(roots)), owners
 
 
-def collect(raw_stream, reviewed_paths=()):
+def collect(raw_stream, reviewed_paths=(), command_runner=None):
     if os.getuid() != 0:
         raise ValueError('owner_root_console_required')
     accounts = pwd.getpwall()
@@ -56,7 +56,7 @@ def collect(raw_stream, reviewed_paths=()):
     original_sections, original_roots = base.SECTIONS, base.ROOTS
     try:
         base.SECTIONS, base.ROOTS = sections, roots
-        result = base.collect(hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), raw_stream, reviewed_paths)
+        result = base.collect(hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), raw_stream, reviewed_paths, command_runner)
     finally:
         base.SECTIONS, base.ROOTS = original_sections, original_roots
     result.update(schema='mldsafail.scheduling-collection.v3', owners=owners,
