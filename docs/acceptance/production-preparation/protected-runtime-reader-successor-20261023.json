@@ -1,0 +1,123 @@
+{
+  "checks": {
+    "documentation_links": true,
+    "focused_emulated_linux": {
+      "origin": "local_linux_emulated",
+      "passed": 65
+    },
+    "make_check": {
+      "contract_passed": 8,
+      "passed": 1877,
+      "skipped": 58
+    },
+    "native_runtime_rehearsal": false
+  },
+  "date": "2026-10-23",
+  "evidence_sha256": {
+    "documentation-links.json": "e814ee4ec422bea5898e3da3af82d8588938319495fbe9bfad77b67025334444",
+    "emulator-poweroff.json": "294f7f7e34ec006b2ac83d7b89346cda9e43e9a065e5d85d5b3b653bcedeccfe",
+    "host-readiness-dossier.json": "9f7a7eab5600958bf415320f2b21561e4fb04ff4d63e8979060dc59c653ce0e0",
+    "independent-scoped-review.json": "234dfb81247f5731567707ce5064584fb89c830f515ec6b1bdd2013652cea5ba",
+    "linux-focused-attempt-1.json": "be244266dc96d122ce03c2bdb282457913e27683b6eb8037f659eec3b29cc779",
+    "linux-focused-cleanup-root-inspection.json": "cdf473bbc808a84332c13a2b765f4206ff2917e6d36cabbb19adbb394cdaf96b",
+    "linux-focused-cleanup.json": "e3079000f3ec3631aa8cecbfde3171c5dbde1c3d04bbdc1b432d2877e009495a",
+    "linux-focused-final.json": "a30de2baa96cdf8e7128bfdcc9ba510f9ed8a4c0dd8f579737015bd7f680bcdf",
+    "make-check-frozen.log": "2ca261ccb66af6f1d134b8f6e88f2dd6aefa0ce88d85a6f3261bd717e5f9d0b7",
+    "native-environment-observation.json": "476eaef3f0b3bd3ae0c955f62dc6282add137fbf4d6abab4fb64439da24a0700",
+    "retention-and-lifecycle.json": "9df85f1f47c4fdf0ca19297324f12531ca8a94dd126c2dadef85523bce0fdc93",
+    "successor-artifact-reviewed.json": "ac5fe9adebc2399836a6039579e19558384d3fab087500b24c036bae5d05af6d",
+    "successor-plan.json": "c899dfa227e62f8b43f30062d6594ee0093da1a0f5066846562130ed0a50d5c2"
+  },
+  "host": {
+    "accounts": 34,
+    "paths": 895,
+    "prerequisites": 10,
+    "readiness": false,
+    "sections": 88,
+    "successor_installed": false
+  },
+  "retention": {
+    "driver_disposition": "requested_poweroff_observed_by_running_state_assertion",
+    "driver_returncode": 1,
+    "final_cleanup": "root_inspection_verified_ownership_hashes_all_process_cwds_and_mounts_before_removal",
+    "focused_fixture_removed": true,
+    "guest_process_absent": true,
+    "guest_reaped": true,
+    "initial_cleanup": "blocked_on_proc_cwd_permission_without_mutation",
+    "removed": [
+      {
+        "bytes": 102400,
+        "name": "linux-focused-transfer.tar",
+        "sha256": "4a09af8b4be8e64844cb2404ff2b41bd7111e25a475d7c9e5d54785df378c821"
+      }
+    ],
+    "retained_guest_exception": {
+      "owner": "repository_owner_and_development_task",
+      "question": "unfinished_full_installation_and_rollback_fixture",
+      "review_by": "2026-10-29"
+    }
+  },
+  "review": {
+    "archive_sha256": "eff9a40adc7da44936075f82cd9eb26ebd51a8e37fbf7ca7ce93eb01dd0f7b9e",
+    "corrected_findings": [
+      "privileged_script_disclosure",
+      "immediate_child_only_timeout_cleanup",
+      "mixed_cgroup_permission_observations",
+      "scheduling_command_containment_integration",
+      "supplemental_completeness_aggregation"
+    ],
+    "disposition": "no_outstanding_actionable_findings",
+    "full_proposal_approved": false,
+    "implemented_by": "root_agent",
+    "reviewed_by": "independent_review_collector_agent",
+    "scope": "collector_source_and_fixed_archive_only",
+    "source_sha256": {
+      "deploy/privileged_scheduling.py": "cd78dfc123d7ac174eb400d45face428fab5b1d1d155baa6745cc159c253332a",
+      "deploy/workload_owner_readers.py": "cd06da7f5081e8a262b9d9077e7f0b782a4c2a2e22aaa938b8944ac45aa5a35c",
+      "scripts/prepare_owner_collection_successor.py": "00bcd38918a7fa13c970d0327d1b230016508512c71199b4d972640f76495694",
+      "scripts/workload_owner_collection.py": "b1b9c4f4e442c30f01c6d6f6a229bf278caf52714daeac44ee18197a769a5fef",
+      "tests/test_scheduling_v2.py": "f6874dce17df74417e95d99a01012041a5d53fb9df53ba47ceed7638775b005d",
+      "tests/test_workload_owner_readers.py": "1bb2d3623d37325e9afcf03d76b5ed2a791240b103d706d185721480217879e0"
+    }
+  },
+  "schema": "mldsafail.protected-runtime-reader-checkpoint.v1",
+  "scope": {
+    "benchmark": "0.5.0_preview",
+    "budget_usd": 0,
+    "installation_authority_requested": false,
+    "publication": false,
+    "scientific_evaluations": 0,
+    "vps_mutations": false
+  },
+  "source_commit": "d5cf02ff80fbab9c049001e8515c05283114d4ab",
+  "source_sha256": {
+    "deploy/privileged_scheduling.py": "cd78dfc123d7ac174eb400d45face428fab5b1d1d155baa6745cc159c253332a",
+    "deploy/workload_owner_readers.py": "cd06da7f5081e8a262b9d9077e7f0b782a4c2a2e22aaa938b8944ac45aa5a35c",
+    "scripts/prepare_owner_collection_successor.py": "00bcd38918a7fa13c970d0327d1b230016508512c71199b4d972640f76495694",
+    "scripts/workload_owner_collection.py": "b1b9c4f4e442c30f01c6d6f6a229bf278caf52714daeac44ee18197a769a5fef",
+    "tests/test_scheduling_v2.py": "f6874dce17df74417e95d99a01012041a5d53fb9df53ba47ceed7638775b005d",
+    "tests/test_workload_owner_readers.py": "1bb2d3623d37325e9afcf03d76b5ed2a791240b103d706d185721480217879e0"
+  },
+  "status": {
+    "implementation": "incomplete",
+    "independent_review": "collector_scope_only; full_proposal_unapproved",
+    "privileged_host_facts": "incomplete_original_scan_preserved",
+    "rehearsal": "focused_checks_only; prior_0.8_second_helper_failure_unchanged"
+  },
+  "successor": {
+    "archive_sha256": "eff9a40adc7da44936075f82cd9eb26ebd51a8e37fbf7ca7ce93eb01dd0f7b9e",
+    "current_collector_preserved": true,
+    "root": "/root/mldsafail-owner-facts-20261022-v2",
+    "script_hash_bindings": 38,
+    "sudoers": "/etc/sudoers.d/mldsafail-owner-facts-v2"
+  },
+  "unfinished": [
+    "recursive_scheduling_classification_and_reference_closure",
+    "successor_root_console_installation_and_observations",
+    "runtime_uid_delegation_storage_and_preservation_joins",
+    "complete_reusable_actual_installation_rollback_fixture",
+    "all_substep_durable_intents_and_partial_continuation",
+    "remaining_21_executable_acceptance_runners_and_packets",
+    "complete_source_release_proposal_freeze_and_review"
+  ]
+}

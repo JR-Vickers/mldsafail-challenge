@@ -120,3 +120,40 @@ of `/etc/sudoers.d/mldsafail-owner-facts`, then removes only that owned fragment
 and runs `visudo -c`. The root-owned archive can remain inert pending retention
 review. Do not remove an unknown or replaced fragment. This procedure grants no
 protected-runtime installation or launch authority.
+
+## Successor reader preparation (not installed)
+
+The first root-owned archive and its sudo rule remain unchanged. The corrected
+reader distinguishes absent optional children beneath valid links from dangling
+links, rechecks traversed identities after failed lookups, and resolves `..`
+after intermediate links using filesystem semantics. A missing `atq` requires
+corroborating inactive/not-found service, process, executable and spool evidence;
+that only establishes absence at standard locations and never scheduling closure.
+
+[scripts/prepare_owner_collection_successor.py](../scripts/prepare_owner_collection_successor.py)
+builds the separate `/root/mldsafail-owner-facts-20261022-v2/collector.pyz` and
+`/etc/sudoers.d/mldsafail-owner-facts-v2` proposal. Its embedded plan has exactly
+`runtime_account` (fixed to `mldsafail`), `reviewed_paths`, `reviewed_sha256` and
+`output_paths`. Every script path requires its reviewed SHA-256. A substituted
+file exports neither its contents nor its hash. The allowlist cannot be supplied
+or extended at runtime. New recursive references require a new reviewed archive.
+The builder grants no authority and does not transfer or install anything.
+
+The supplemental readers collect other-owner standard Docker endpoint inventories
+and filtered restart/image/user fields through each owner's read-only client,
+daemon process births and UID/GID maps, existing mount/backing observations,
+and individually identified `at -c` job contents. They do not run those jobs.
+Cgroup observations execute as the runtime account and compare repeated ownership,
+mode, permission, limit and ancestry snapshots. Root visibility is never used to
+claim runtime-user writability. Nonstandard daemon endpoints, unresolved image UID
+joins, recursive references and retained-service placements remain review blockers.
+Raw output, including script/job contents, is private and must not enter Git.
+
+Both scheduling and supplemental command paths use the packaged Linux subreaper.
+They reserve cleanup time and reject escaped descendants, timeout or unverified
+termination, preserving compact failed-command evidence. The combined collector
+uses the existing 180-second bound; truncation, incomplete visibility and cleanup
+errors never establish readiness. The successor source and archive need their
+own independent review and administrator action through the existing root-console
+procedure, with the new exact root and sudo paths. Preserve the first installation.
+Do not request installation of an incomplete collector/proposal or broaden sudo.

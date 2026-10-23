@@ -2,6 +2,8 @@
 
 Status: in progress; no installation or native-test authority granted.
 
+Latest [host-reader checkpoint](acceptance/production-preparation/protected-runtime-reader-successor-20261023.md) corrects symlink/absence races and prepares a separately versioned fixed-reader successor. Existing privileged scan and private prerequisite dossier remain incomplete; full installation/rollback and acceptance implementation are still outstanding.
+
 Latest [conservative recovery checkpoint](acceptance/production-preparation/protected-runtime-recovery-20261022.md) adds identity-bound whole-step acknowledgement recovery and three narrow proven-absence transitions. Partial substep continuation, the complete fixture and acceptance coverage remain unfinished.
 
 Preceding [mutation and termination checkpoint](acceptance/production-preparation/protected-runtime-mutation-evidence-20261022.md) adds durable prerequisite substeps, failed-command receipts, incremental descendant identities and independent final cgroup checks. Complete installation recovery and scenario coverage remain unfinished; scoped review is not full-proposal approval.
