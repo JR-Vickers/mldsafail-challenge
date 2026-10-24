@@ -217,6 +217,7 @@ class Fixture:
         for name, expected in self.manifest['source_hashes'].items():
             require(digest(regular(executing,name)[0])==expected,'fixture_executing_source_changed')
         self.journal = Journal(self.root/'journal', self.binding)
+        self.lifecycle_journal = self.journal
         for name, expected in self.manifest['directories'].items():
             require(identity(directory(self.root/name)) == expected, 'fixture_directory_replaced')
         for name, expected in self.manifest['inputs'].items():
@@ -246,7 +247,7 @@ class Fixture:
                 'fixture_vm_marker_changed')
 
     def deadline(self, *, cleanup=False):
-        attempt = next((r for r in self.journal.rows if r['event']=='fixture_attempt_started'),None)
+        attempt = next((r for r in self.lifecycle_journal.rows if r['event']=='fixture_attempt_started'),None)
         require(attempt is not None, 'fixture_attempt_not_started')
         remaining = (attempt['started_monotonic']-time.monotonic() if 'started_monotonic' in attempt
                      else attempt['started_at']-time.time())+(1800 if cleanup else 1500)

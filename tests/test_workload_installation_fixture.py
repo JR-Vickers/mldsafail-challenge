@@ -281,3 +281,15 @@ def test_command_failures_always_record_results(prepared, monkeypatch, dispositi
     row = value.journal.rows[-1]
     assert row['event'] == 'fixture_command_result'
     assert row['cleanup_errors'] or row['failure'] or row['group_remaining']
+
+
+def test_worker_runtime_journal_cannot_replace_parent_attempt_budget(prepared):
+    from deploy.workload_installation import Journal
+    value = fixture.Fixture(prepared)
+    value.journal.append('fixture_attempt_started', started_monotonic=time.monotonic()-1501)
+    value.journal = Journal(prepared/'runtime-journal', value.binding)
+    # A worker journal has no parent phase records and cannot grant a new budget.
+    value.journal.append('fixture_attempt_started', started_monotonic=time.monotonic())
+    with pytest.raises(WorkloadBlocked, match='expired_preserve'):
+        value.deadline()
+    assert 0 < value.deadline(cleanup=True) < 300
