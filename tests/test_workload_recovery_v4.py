@@ -333,9 +333,9 @@ def test_initial_unit_acknowledgement_rejects_unreviewed_loaded_sources(tmp_path
         assert instance.reconcilable(step,instance.observe(step,journal),journal)
 
 
-@pytest.mark.parametrize('replacement',[None,'selected','preserved'])
+@pytest.mark.parametrize('replacement',[None,'selected','preserved','selected_uid','selected_mode'])
 @pytest.mark.parametrize('action',['activate','restore_activation'])
-def test_activation_operation_receipt_requires_both_proven_pointer_births(tmp_path,action,replacement):
+def test_activation_operation_receipt_requires_both_proven_pointer_births(tmp_path,monkeypatch,action,replacement):
     instance,journal=backend(tmp_path)
     selected=tmp_path/'selected';selected.symlink_to('/old')
     temporary=tmp_path/'candidate';temporary.symlink_to('/new')
@@ -347,8 +347,17 @@ def test_activation_operation_receipt_requires_both_proven_pointer_births(tmp_pa
     saved=tmp_path/'exchange';selected.rename(saved);temporary.rename(selected);saved.rename(temporary)
     instance.recipe['activation_pointer']=str(selected)
     if replacement:
-        target=selected if replacement=='selected' else temporary
-        unknown=tmp_path/'unknown';unknown.symlink_to(target.readlink());unknown.replace(target)
+        if replacement in ('selected_uid','selected_mode'):
+            import deploy.workload_installation as installation
+            original_identity=installation.identity
+            def changed_identity(path,**kwargs):
+                value=original_identity(path,**kwargs)
+                if str(path)==str(selected):value[replacement.removeprefix('selected_')]+=1
+                return value
+            monkeypatch.setattr(installation,'identity',changed_identity)
+        else:
+            target=selected if replacement=='selected' else temporary
+            unknown=tmp_path/'unknown';unknown.symlink_to(target.readlink());unknown.replace(target)
         with pytest.raises(WorkloadBlocked,match='activation_.*changed|activation_candidate_replaced'):
             instance.recovery_observation(step,journal)
     else:
