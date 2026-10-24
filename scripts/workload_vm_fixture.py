@@ -161,7 +161,7 @@ def _run(root, *, budget):
                   ssh_pwauth=False,ssh_keys=dict(ed25519_private=(root/'host-key').read_text(),ed25519_public=host_public),
                   write_files=[dict(path='/etc/systemd/system/user@.service.d/50-workload-fixture-delegate.conf',
                                     permissions='0644',content='[Service]\nDelegate=cpu cpuset io memory pids\n')],
-                  package_update=True,packages=['git','python3-venv','python3-pip','uidmap','dbus-user-session','docker.io'],
+                  package_update=True,packages=['git','python3-venv','python3-pip','uidmap','dbus-user-session','docker.io','rootlesskit','slirp4netns'],
                   runcmd=[['systemctl','disable','--now','docker.service','docker.socket'],
                           ['systemctl','daemon-reload'],
                           ['loginctl','enable-linger','ubuntu'],['touch','/home/ubuntu/provisioned']])
