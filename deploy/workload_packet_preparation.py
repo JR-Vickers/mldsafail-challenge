@@ -40,7 +40,7 @@ def prepare(proposal_path, inspection_path, *, packet_path, output_path, control
         blockers.append('fresh_installed_inspection_required')
     else:
         installed(load_reference(inspection_ref),proposal,now=now)
-    source=proposal['identities']; release=Path(source['resources']['release']['path'])
+    source=proposal['identities']
     packet_path=Path(packet_path); output_path=Path(output_path)
     require(packet_path.is_absolute() and output_path.is_absolute() and
             str(packet_path)==str(packet_path.resolve(strict=False)) and
@@ -49,16 +49,14 @@ def prepare(proposal_path, inspection_path, *, packet_path, output_path, control
             'packet_output_overlaps_packet')
     origin={'synthetic':'synthetic','local_linux':'local_linux','host_observation':'installed_native'}[source['origin']]
     files=source['manifest']['files']
-    required=['scripts/workload_control_case.py','deploy/workload_control_runners.py',
+    required=['scripts/workload_control_case.py','deploy/workload_control_fixture.py','deploy/workload_control_registry.py',
               'deploy/workload_controls.py','deploy/workload_watchdog.py',
               'deploy/workload_acceptance_packet.py']
     hashes={name:files[name]['sha256'] for name in required if name in files}
     for name in required:
         if name not in hashes:blockers.append('frozen_runner_source_missing:'+name)
-    command=['/usr/bin/env','PYTHONPATH='+str(release/'bundle/src')+':'+str(release/'bundle'),
-             'PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1',str(release/'.venv/bin/python'),
-             '-P','-m','scripts.workload_control_case','--packet',str(packet_path),
-             '--control',control,'--scenario',scenario,'--output',str(output_path)]
+    from scripts.workload_control_case import case_command
+    command=case_command(packet_path,proposal,control,scenario,output_path)
     # Lifecycle commands need generation-owned fixture bindings. Do not invent
     # a scope, journal, ownership receipt, daemon birth or cleanup command.
     blockers.extend(['generation_owned_fixture_and_lifecycle_bindings_required',

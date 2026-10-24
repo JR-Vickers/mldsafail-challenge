@@ -1,6 +1,5 @@
 """Prepare one bounded control case for review; never execute or grant authority."""
 import argparse
-import json
 from pathlib import Path
 from deploy.workload_installation import exclusive
 from deploy.workload_packet_preparation import prepare
