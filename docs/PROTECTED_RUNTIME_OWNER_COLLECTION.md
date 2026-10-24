@@ -157,3 +157,23 @@ errors never establish readiness. The successor source and archive need their
 own independent review and administrator action through the existing root-console
 procedure, with the new exact root and sudo paths. Preserve the first installation.
 Do not request installation of an incomplete collector/proposal or broaden sudo.
+
+## Local collection handoff packet
+
+[prepare_owner_collection_handoff.py](../scripts/prepare_owner_collection_handoff.py)
+wraps the successor builder in a preparation-only private handoff. Supply the
+existing private dossier, the frozen reviewed plan and its exact reviewed byte
+hash. A changed plan is rejected before creating output. The exclusive 0700
+output directory contains the deterministic archive, source/artifact hashes,
+0600 administrator instructions and a 0600 handoff record binding the dossier.
+The record preserves every prerequisite whose status is not `evidenced`.
+It does not convert proposed facts or matching script hashes into host readiness.
+
+The administrator instructions freeze the separate root/sudo paths, archive and
+sudo-fragment hashes, exclusive installation, stop-on-error behavior, private
+capture location and identity-checked revocation. They require independent exact
+artifact review and separate owner authority before any transfer or execution.
+The original collector remains preserved. A local packet is neither an installed
+collector nor authorization to collect; unknown scheduling owners/references,
+daemon policies, delegation, UID joins, storage and rollback preservation still
+require their own evidence and review.
