@@ -7,6 +7,7 @@ single-use worker request. Installed-native owner authority is never inferred.
 from pathlib import Path
 import os
 import re
+import time
 
 from deploy.workload_acceptance_packet import reference,load_reference
 from deploy.workload_installation import exclusive,private,identity
@@ -72,6 +73,7 @@ def prepare(manifest_path,proposal_path,inspection_path,*,packet_path,control,sc
 
 def execute(packet_path,control,scenario,output):
     """Use the fixture's existing lock/worker, not packet-manufactured authority."""
+    started=time.monotonic();packet_deadline=started+sum(ENVELOPE.values())
     raw,packet=private(packet_path);validate(packet)
     require(str(Path(packet_path).absolute())==packet['packet_path'],'fixture_control_packet_path_changed')
     require((control,scenario,str(Path(output).absolute()))==(packet['control'],packet['scenario'],packet['output']),
@@ -87,13 +89,14 @@ def execute(packet_path,control,scenario,output):
         require(fixture.proposal()[0]==private(packet['proposal']['path'],parse=False)[0],
             'fixture_control_packet_proposal_changed')
         fixture.require_control_inspection(packet['inspection'])
-        require(fixture.deadline()>=180,'fixture_control_insufficient_attempt_budget')
+        require(0<packet_deadline-time.monotonic()<=fixture.deadline(),
+            'fixture_control_insufficient_attempt_budget')
         parent=output.parent.stat()
         require(parent.st_uid==os.getuid() and not parent.st_mode&0o077,'fixture_control_packet_private_output_required')
         exclusive(output,canonical(dict(schema='mldsafail.fixture-control-case-intent.v1',
             packet_sha256=digest(raw),generation=fixture.manifest['generation'],control=control,scenario=scenario)))
         try:
-            receipt=fixture.control(control,scenario)
+            receipt=fixture.control(control,scenario,packet_deadline=packet_deadline)
         except BaseException as error:
             exclusive(output.with_name(output.name+'.failure.json'),canonical(dict(
                 packet_sha256=digest(raw),type=type(error).__name__,message=str(error),ownership='blocked_preserve')))

@@ -90,7 +90,8 @@ def execution_context(tmp_path,monkeypatch,*,authorized=True):
         def require_control_inspection(self,reference):
             assert reference==value['inspection']
         def deadline(self):return 180
-        def control(self,control,scenario):
+        def control(self,control,scenario,*,packet_deadline=None):
+            assert packet_deadline is not None
             calls.append((control,scenario))
             retained=dict(verified=True,database='fixture')
             return dict(fixture_only=True,generation=self.manifest['generation'],control=control,scenario=scenario,
@@ -128,8 +129,8 @@ def test_partial_or_unverified_result_never_publishes_success(tmp_path,monkeypat
     from deploy.workload_fixture_control_packet import execute
     value,path,calls,context=execution_context(tmp_path,monkeypatch)
     original=context.control
-    def broken(self,*args):
-        receipt=original(self,*args);receipt[field]={};return receipt
+    def broken(self,*args,**kwargs):
+        receipt=original(self,*args,**kwargs);receipt[field]={};return receipt
     monkeypatch.setattr(context,'control',broken)
     with pytest.raises(WorkloadBlocked):execute(path,value['control'],value['scenario'],value['output'])
     assert Path(value['output']).exists()
