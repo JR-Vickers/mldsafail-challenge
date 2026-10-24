@@ -11,7 +11,7 @@ from pathlib import Path
 import secrets
 import time
 
-from deploy.workload_installation import exclusive,private
+from deploy.workload_installation import exclusive,private,identity
 from deploy.workload_release import canonical
 from mldsafail.evaluator.native_workload import require
 
@@ -63,9 +63,13 @@ class OwnedDatabase:
         self.binding=dict(id=row['Id'],created_at=row['Created'],started_at=None,image=row['Image'])
         self.inspect(require_started=False)
         exclusive(self.root/'created.json',canonical(self.binding))
+        self.fixture.journal.append('fixture_control_database_created',token=self.token,
+            observed=identity(self.root/'created.json'),binding=dict(self.binding))
         self.call(['start',self.identifier])
         row=self.inspect(require_started=False);require(row['State']['Running'],'fixture_database_start_unverified')
         self.binding['started_at']=row['State']['StartedAt'];exclusive(self.root/'started.json',canonical(self.binding))
+        self.fixture.journal.append('fixture_control_database_started',token=self.token,
+            observed=identity(self.root/'started.json'),binding=dict(self.binding))
         ports=row['NetworkSettings']['Ports'].get('5432/tcp')
         require(type(ports) is list and len(ports)==1 and ports[0]['HostIp']=='127.0.0.1' and
             ports[0]['HostPort'].isdecimal(),'fixture_database_port_not_loopback')
@@ -76,8 +80,8 @@ class OwnedDatabase:
             self.inspect()
             try:
                 with self.connect() as connection:
-                    identity=connection.execute('SELECT current_database(),(SELECT oid FROM pg_database WHERE datname=current_database())').fetchone()
-                self.databases.append(dict(name=identity[0],oid=identity[1]))
+                    database_identity=connection.execute('SELECT current_database(),(SELECT oid FROM pg_database WHERE datname=current_database())').fetchone()
+                self.databases.append(dict(name=database_identity[0],oid=database_identity[1]))
                 exclusive(self.root/'database.json',canonical(dict(container=self.binding,databases=self.databases)))
                 break
             except self.psycopg.OperationalError:
@@ -146,6 +150,11 @@ class OwnedDatabase:
         self.deadline=deadline
         # A missing create/start acknowledgement receives no name/label adoption.
         # Preserve the intent for fixture reconciliation instead of guessing.
+        for event,name in (('fixture_control_database_created','created.json'),('fixture_control_database_started','started.json')):
+            records=[row for row in self.fixture.journal.rows if row['event']==event and row.get('token')==self.token]
+            path=self.root/name
+            require(len(records)==1 and records[0].get('observed')==identity(path) and
+                records[0].get('binding')==private(path)[1], 'fixture_database_receipt_unacknowledged_or_replaced')
         row=self.inspect(require_started=self.binding is not None and self.binding.get('started_at') is not None)
         require(self.binding.get('started_at') is not None,'fixture_database_start_ack_missing_preserve')
         self.call(['rm','-f',self.identifier])

@@ -32,7 +32,9 @@ def database(tmp_path,monkeypatch):
     import scripts.rehearse_workload_installation_fixture as review
     monkeypatch.setattr(worker,'inherited_lock',lambda *args:None)
     monkeypatch.setattr(review,'component_review',lambda *args:None)
-    fixture=SimpleNamespace(root=tmp_path,lock_fd=5,require_target=lambda:None,binding='f'*64,manifest=dict(generation='c'*32))
+    from deploy.workload_installation import Journal
+    journal_root=tmp_path/'journal';journal_root.mkdir(mode=0o700)
+    fixture=SimpleNamespace(journal=Journal(journal_root,'f'*64),root=tmp_path,lock_fd=5,require_target=lambda:None,binding='f'*64,manifest=dict(generation='c'*32))
     native=SimpleNamespace(config=dict(retained_services={'database':'retained'}));resources=Resources()
     control_root=tmp_path/'artifacts'/('control-'+'d'*32);control_root.mkdir(mode=0o700,parents=True)
     (control_root/'intent.json').write_bytes(canonical(dict(generation='c'*32,manifest_sha256='f'*64,token='d'*32)))
@@ -74,7 +76,7 @@ def test_substituted_resource_blocks_cleanup_without_rm(tmp_path,monkeypatch,cha
 
 def test_missing_create_ack_never_adopts_name_or_label(tmp_path,monkeypatch):
     db,resources,_=database(tmp_path,monkeypatch)
-    with pytest.raises(WorkloadBlocked,match='unacknowledged_preserve'):db.cleanup(time.monotonic()+10)
+    with pytest.raises(WorkloadBlocked,match='unacknowledged_or_replaced'):db.cleanup(time.monotonic()+10)
     assert not resources.calls
 
 
@@ -91,3 +93,11 @@ def test_database_oid_replacement_closes_connection_and_blocks(tmp_path,monkeypa
     monkeypatch.setattr(psycopg,'connect',lambda **kwargs:connection)
     with pytest.raises(WorkloadBlocked,match='oid_changed_preserve'):db.connect()
     assert connection.closed
+
+
+@pytest.mark.parametrize('name',['created.json','started.json'])
+def test_substituted_database_receipt_blocks_even_matching_settings(tmp_path,monkeypatch,name):
+    db,resources,_=database(tmp_path,monkeypatch);db.start()
+    path=db.root/name;raw=path.read_bytes();path.rename(path.with_suffix('.preserved'));path.write_bytes(raw);path.chmod(0o600)
+    with pytest.raises(WorkloadBlocked,match='receipt_unacknowledged_or_replaced'):db.cleanup(time.monotonic()+10)
+    assert resources.row is not None and not any(args[0]=='rm' for args in resources.calls)
