@@ -113,7 +113,7 @@ def test_fixed_entrypoint_exclusive_output_and_replay(tmp_path,monkeypatch):
 
 
 @pytest.mark.parametrize('field',['runner','injection','observer','cleanup','required_origin',
-    'fixture_origin','native_runner','native_case','identity_bindings','extra'])
+    'fixture_origin','native_runner','native_case','local_runner','owned_fixture_runner','owned_fixture_context','identity_bindings','extra'])
 def test_registry_rejects_every_substituted_binding(field):
     rows=registry();rows[0][field]='substituted'
     with pytest.raises(WorkloadBlocked,match='unsupported'):registry(rows)

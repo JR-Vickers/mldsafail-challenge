@@ -8,7 +8,7 @@ def evidence_matrix():
     for entry in registry():
         row=dict(entry)
         row.update(runner_case=entry['native_case'],
-            runner_status='fixture_implemented_native_not_executed' if entry['native_case'] else 'fixture_implemented_native_adapter_required',
+            runner_status='owned_fixture_implemented_native_unaccepted',
             validator='deploy.workload_controls.validate_case',
             expected_observations=SCENARIOS[entry['control']][entry['scenario']],
             raw_required=['injection_and_observation_monotonic_trace','before_after_kernel_or_transaction_reads'],

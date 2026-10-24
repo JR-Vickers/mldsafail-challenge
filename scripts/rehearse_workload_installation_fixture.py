@@ -10,12 +10,30 @@ from deploy.workload_release import canonical, digest
 from mldsafail.evaluator.native_workload import require
 from scripts.workload_installation_fixture import CASES, Fixture, lifecycle_lock, prepare
 
-REVIEW_FILES = ('deploy/workload_fixture_resources.py','deploy/workload_installation.py','deploy/workload_log.py',
-                'deploy/workload_observation.py','scripts/workload_vm_fixture.py',
-                'scripts/prepare_installation_fixture_recipe.py',
-                'scripts/provision_installation_fixture_guest.py',
-                'scripts/workload_fixture_worker.py','scripts/workload_installation_fixture.py',
-                'scripts/rehearse_workload_installation_fixture.py')
+REVIEW_FILES = (
+    'deploy/workload_fixture_control_cleanup.py',
+    'deploy/workload_fixture_database.py',
+    'deploy/workload_fixture_routing.py',
+    'deploy/workload_routing_fixture.py',
+    'deploy/protected_epoch.py',
+    'deploy/workload_bound_control_observers.py',
+    'deploy/workload_fixture_control_packet.py',
+    'scripts/workload_control_case.py',
+    'deploy/workload_fixture_faults.py',
+    'deploy/workload_mutation.py',
+    'deploy/workload_fixture_controls.py',
+    'deploy/workload_control_registry.py',
+    'deploy/workload_fixture_resources.py',
+    'deploy/workload_installation.py',
+    'deploy/workload_log.py',
+    'deploy/workload_observation.py',
+    'scripts/workload_vm_fixture.py',
+    'scripts/prepare_installation_fixture_recipe.py',
+    'scripts/provision_installation_fixture_guest.py',
+    'scripts/workload_fixture_worker.py',
+    'scripts/workload_installation_fixture.py',
+    'scripts/rehearse_workload_installation_fixture.py',
+)
 
 
 def component_review(fixture):

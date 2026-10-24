@@ -11,6 +11,7 @@ from pathlib import Path
 import pwd
 import re
 import shutil
+import sys
 import time
 
 from deploy.workload_installation import exclusive, identity, read_owned_file
@@ -77,8 +78,17 @@ class Resources:
         require(name in self.fixture.manifest['inputs'], 'fixture_offline_input_missing:'+name)
         return self.root/'inputs'/name
 
-    def run(self, argv, *, seconds=35):
+    def run(self, argv, *, seconds=35, inner_seconds=None):
         self.check_daemon()
+        if inner_seconds is not None:
+            require(type(inner_seconds) in (int,float) and 0<inner_seconds<=.65,
+                    'fixture_inner_command_deadline_invalid')
+            require(seconds>4,'fixture_inner_wrapper_cleanup_reserve_required')
+            base=self.fixture.manifest['source_root']
+            code=('import sys;sys.path[:0]='+repr([base+'/src',base])+
+                ';from mldsafail.evaluator.native_workload import command;sys.stdout.buffer.write(command('+
+                repr(argv)+',timeout='+repr(inner_seconds)+'))')
+            argv=[sys.executable,'-I','-B','-c',code]
         data = self.fixture.command(argv, cleanup=self.cleanup_mode, seconds=seconds).read_bytes()
         self.check_daemon()
         return data

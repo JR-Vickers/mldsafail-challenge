@@ -54,7 +54,10 @@ def assertions(receipt):
 
 
 def run(packet_path, control, scenario, output):
-    raw,packet=private(packet_path);validate(packet)
+    raw,packet=private(packet_path)
+    from deploy.workload_fixture_control_packet import SCHEMA as FIXTURE_SCHEMA, execute as fixture_execute
+    if packet.get('schema')==FIXTURE_SCHEMA:return fixture_execute(packet_path,control,scenario,output)
+    validate(packet)
     require(packet['protocol']['origin'] in ('synthetic','local_linux'),'control_case_native_context_adapter_required')
     runner=execute
     if packet['protocol']['origin']=='local_linux':
@@ -97,7 +100,7 @@ def main():
     print(json.dumps(dict(origin=receipt['origin'],packet_sha256=receipt['packet_sha256'],
         control=args.control,scenario=args.scenario,installed_native_eligible=False,
         assertions=receipt['assertions']),sort_keys=True))
-    raise SystemExit(0 if receipt['assertions']['full_scenario_passed'] else 2)
+    raise SystemExit(0 if (receipt['assertions'].get('full_scenario_passed') or receipt['assertions'].get('fixture_scenario_passed')) else 2)
 
 
 if __name__=='__main__':main()

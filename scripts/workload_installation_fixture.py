@@ -8,6 +8,7 @@ import argparse
 from contextlib import contextmanager
 import fcntl
 import json
+import math
 import os
 from pathlib import Path
 import platform
@@ -22,6 +23,7 @@ import uuid
 from deploy.workload_installation import Journal, exclusive, identity, private, sync_directory
 from deploy.workload_release import canonical, digest, regular, runtime_sources, stable_stat
 from mldsafail.evaluator.native_workload import require
+from mldsafail.evaluator.workload import WorkloadBlocked
 
 
 SCHEMA = 'mldsafail.installation-fixture.v1'
@@ -99,16 +101,17 @@ def validate_recipe(recipe, root):
     require(len(set(paths)) == len(paths), 'fixture_duplicate_resource')
 
 
-def prepare(root, *, recipe=None, case='complete', source=None):
+def prepare(root, *, recipe=None, case='complete', source=None, recovery_fault_plan=None):
     """Exclusive namespace creation. Even an unavailable host gets a durable record."""
     root = absolute(root)
     require(case in CASES, 'fixture_case_unknown')
+    require(recovery_fault_plan is None or case=='complete','fixture_fault_plan_cannot_combine_historical_case')
     root.mkdir(mode=0o700)  # Never merge with or adopt an existing namespace.
     sync_directory(root.parent)
     exclusive(root/'prepare-intent.json', canonical(dict(schema=SCHEMA, fixture_only=True,
               root=identity(root), case=case, started_at=time.time())))
     try:
-        return _prepare(root, recipe=recipe, case=case, source=source)
+        return _prepare(root, recipe=recipe, case=case, source=source, recovery_fault_plan=recovery_fault_plan)
     except BaseException as error:
         exclusive(root/'prepare-failed.json', canonical(dict(schema=SCHEMA, fixture_only=True,
                   error=dict(type=type(error).__name__, message=str(error)),
@@ -116,8 +119,12 @@ def prepare(root, *, recipe=None, case='complete', source=None):
         raise
 
 
-def _prepare(root, *, recipe, case, source):
+def _prepare(root, *, recipe, case, source, recovery_fault_plan=None):
     generation = uuid.uuid4().hex
+    bound_fault=None
+    if recovery_fault_plan is not None:
+        from deploy.workload_fixture_faults import bind
+        bound_fault=bind(recovery_fault_plan,generation)
     with lifecycle_lock(root):
         for name in ('inputs', 'artifacts', 'journal', 'runtime-journal'):
             (root/name).mkdir(mode=0o700)
@@ -179,6 +186,7 @@ def _prepare(root, *, recipe, case, source):
                         recipe=value, inputs=inputs, environment=environment(),
                         implementation_blockers=list(IMPLEMENTATION_BLOCKERS),
                         execution_authority=False, vps_authority=False)
+        if bound_fault is not None:manifest['recovery_fault_plan']=bound_fault
         exclusive(root/'manifest.json', canonical(manifest))
         journal = Journal(root/'journal', digest(canonical(manifest)))
         journal.append('fixture_prepared', generation=generation,
@@ -367,6 +375,74 @@ class Fixture:
         self.journal.append('fixture_worker_complete',token=token,observed=identity(output))
         return result['result']
 
+    def require_control_inspection(self, reference=None):
+        """A supervisor shock invalidates old observations, never historical packets."""
+        runtime=Journal(self.root/'runtime-journal',self.binding)
+        invalid=[row for row in runtime.rows if row['event']=='fixture_installed_inspection_invalidated']
+        if not invalid:return
+        target=digest(canonical(invalid[-1]))
+        refreshed=[row for row in self.lifecycle_journal.rows if row['event']=='fixture_installed_inspection_refreshed' and
+            row.get('runtime_invalidation_sha256')==target and row.get('generation')==self.manifest['generation']]
+        require(bool(refreshed),'fixture_control_fresh_installed_inspection_required')
+        observed=refreshed[-1]['observed']
+        require(identity(observed['path'])==observed,'fixture_control_fresh_inspection_replaced')
+        if reference is not None:
+            require(reference==dict(path=observed['path'],sha256=observed['sha256']),
+                'fixture_control_packet_inspection_invalidated')
+
+    def control(self, control, scenario, *, packet_deadline=None):
+        """Independently supervise case, cleanup and postflight within one packet."""
+        entered=time.monotonic()
+        require(packet_deadline is None or type(packet_deadline) in (int,float) and math.isfinite(packet_deadline),
+            'fixture_control_parent_deadline_invalid')
+        deadline=min(entered+180,packet_deadline) if packet_deadline is not None else entered+180
+        started=deadline-180
+        from scripts.workload_fixture_worker import inherited_lock
+        from scripts.rehearse_workload_installation_fixture import component_review
+        from deploy.workload_fixture_controls import CASES
+        inherited_lock(self.root,self.lock_fd);self.require_target();component_review(self)
+        require((control,scenario) in CASES,'fixture_control_native_adapter_not_implemented')
+        require(deadline>time.monotonic() and self.deadline()>=deadline-time.monotonic(),
+            'fixture_control_insufficient_attempt_budget')
+        self.require_control_inspection()
+        require(not any(row['event']=='fixture_control_disposition' and row.get('disposition')=='blocked_preserve'
+            for row in self.lifecycle_journal.rows),'fixture_control_previous_failure_requires_handoff')
+        require(not any(row['event']=='fixture_control_requested' and row.get('control')==control and
+            row.get('scenario')==scenario for row in self.lifecycle_journal.rows),'fixture_control_case_already_attempted')
+        requested=[row for row in self.lifecycle_journal.rows if row['event']=='fixture_control_requested']
+        resolved={(row['control'],row['scenario']) for row in self.lifecycle_journal.rows if
+            row['event']=='fixture_control_disposition' and row.get('disposition')=='verified_fixture_only' and
+            (row.get('cleanup') or {}).get('verified') is True and (row.get('postflight') or {}).get('verified') is True}
+        require(all((row['control'],row['scenario']) in resolved for row in requested),
+            'fixture_control_prior_ownership_unresolved')
+        require(deadline-time.monotonic()>64,'fixture_control_cleanup_budget_not_reserved')
+        self.lifecycle_journal.append('fixture_control_requested',control=control,scenario=scenario,
+            generation=self.manifest['generation'],envelope_seconds=180,started_monotonic=started,packet_deadline=deadline)
+        result=None;case_error=None;cleanup_error=None;cleanup=None;postflight=None
+        try:
+            result=self.worker('control',seconds=min(120,max(0,deadline-time.monotonic()-60)),phase=control+':'+scenario)
+        except BaseException as error:case_error=error
+        requests=[row for row in self.lifecycle_journal.rows if row['event']=='fixture_worker_intent' and
+            row['operation']=='control' and row['phase']==control+':'+scenario]
+        require(len(requests)==1,'fixture_control_original_request_ambiguous')
+        token=requests[0]['token'];selection=control+':'+scenario+':'+token
+        try:
+            cleanup=self.worker('control-cleanup',cleanup=True,seconds=min(45,max(0,deadline-time.monotonic())),phase=selection)
+            require(cleanup.get('verified') is True,'fixture_control_independent_cleanup_unverified')
+            postflight=self.worker('control-postflight',cleanup=True,seconds=min(15,max(0,deadline-time.monotonic())),phase=selection)
+            require(postflight.get('verified') is True,'fixture_control_independent_postflight_unverified')
+            require(time.monotonic()<deadline,'fixture_control_parent_packet_expired')
+        except BaseException as error:cleanup_error=error
+        self.lifecycle_journal.append('fixture_control_disposition',control=control,scenario=scenario,token=token,
+            case_failure=dict(type=type(case_error).__name__,message=str(case_error)) if case_error else None,
+            cleanup_failure=dict(type=type(cleanup_error).__name__,message=str(cleanup_error)) if cleanup_error else None,
+            cleanup=cleanup,postflight=postflight,elapsed_seconds=time.monotonic()-started,
+            disposition='blocked_preserve' if case_error or cleanup_error else 'verified_fixture_only')
+        if cleanup_error:raise WorkloadBlocked('fixture_control_independent_cleanup_or_postflight_blocked') from cleanup_error
+        if case_error:raise case_error
+        result['independent_cleanup']=cleanup;result['independent_postflight']=postflight
+        return result
+
     def artifact(self, label, value):
         path = self.root/'artifacts'/(label+'-'+uuid.uuid4().hex+'.json')
         exclusive(path, canonical(value))
@@ -418,7 +494,14 @@ class Fixture:
         if self.last('provision') and self.last('provision')['event']=='fixture_phase_complete':
             result['resources'] = self.adapter('inspect')
             result['runtime_suitability_verified'] = True
-        return self.artifact('inspection', result)
+        artifact=self.artifact('inspection', result)
+        if result.get('resources',{}).get('installed'):
+            runtime=Journal(self.root/'runtime-journal',self.binding)
+            invalid=[row for row in runtime.rows if row['event']=='fixture_installed_inspection_invalidated']
+            self.lifecycle_journal.append('fixture_installed_inspection_refreshed',observed=artifact,
+                generation=self.manifest['generation'],monotonic_ns=time.monotonic_ns(),
+                runtime_invalidation_sha256=digest(canonical(invalid[-1])) if invalid else None)
+        return artifact
 
     def transition(self, phase, *, authority=None, review=None, engine_phase='install'):
         if self.lock_fd is None:
@@ -507,10 +590,19 @@ def fixture_engine(root, *, phase, review, authority, reconciliation=False, lock
                 case == 'interrupted-rollback' and step == 'rollback:restore_activation') and point == 'unacknowledged':
             interrupt(step+':'+point)
     backend = Backend(proposal)
+    from deploy.workload_fixture_faults import FaultInjector
+    injector=FaultInjector(fixture.root,fixture.manifest,fixture.binding,proposal)
+    historical_fault=fault
+    def fault(step,point):
+        historical_fault(step,point)
+        injector.operation(backend.journal,step,point)
     if reconciliation:
         reconcile(proposal, raw, review_raw, authorized, backend, phase=phase)
     else:
-        execute(proposal, raw, review_raw, authorized, backend, phase=phase, fault=fault)
+        with injector.scope():
+            execute(proposal, raw, review_raw, authorized, backend, phase=phase, fault=fault)
+        plan=fixture.manifest.get('recovery_fault_plan')
+        if plan is None or plan['step'].split(':',1)[0]==phase:injector.assert_fired(backend.journal)
 
 
 def main():
@@ -518,6 +610,7 @@ def main():
     parser.add_argument('phase', choices=(*PHASES, '_engine'))
     parser.add_argument('root', type=Path)
     parser.add_argument('--recipe', type=Path)
+    parser.add_argument('--recovery-fault-plan',type=Path)
     parser.add_argument('--case', choices=CASES, default='complete')
     parser.add_argument('--review', type=Path)
     parser.add_argument('--authorization', type=Path)
@@ -525,9 +618,11 @@ def main():
     parser.add_argument('--reconcile-engine', action='store_true')
     args = parser.parse_args()
     if args.phase == 'prepare':
-        value = prepare(args.root, recipe=args.recipe, case=args.case)
+        plan=private(args.recovery_fault_plan)[1] if args.recovery_fault_plan else None
+        value = prepare(args.root, recipe=args.recipe, case=args.case,recovery_fault_plan=plan)
         print(json.dumps(dict(generation=value['generation'], environment=value['environment'], execution_authority=False)))
         return
+    require(args.recovery_fault_plan is None,'fixture_fault_plan_prepare_only')
     if args.phase == '_engine':
         # The child lock handoff is unfinished. Refuse the private worker route
         # rather than exposing an unlocked mutation entrypoint.

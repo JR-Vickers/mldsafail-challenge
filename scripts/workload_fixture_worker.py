@@ -98,6 +98,29 @@ def work(root, fd, token, operation, output, *, phase='install',review=None,auth
         elif operation=='cleanup':
             proposal = fixture.proposal()[1] if (fixture.root/'proposal.json').exists() else None
             result = resources.cleanup(proposal)
+        elif operation in ('control-cleanup','control-postflight'):
+            from deploy.workload_fixture_control_cleanup import cleanup as control_cleanup,postflight as control_postflight
+            selected=phase.split(':')
+            require(len(selected)==3 and not reconciliation and review is None and authority is None,
+                'fixture_control_recovery_request_invalid')
+            control,scenario,original_token=selected
+            original=[row for row in fixture.lifecycle_journal.rows if row['event']=='fixture_worker_intent' and
+                row['operation']=='control' and row['token']==original_token and row['phase']==control+':'+scenario]
+            require(len(original)==1,'fixture_control_recovery_original_request_changed')
+            resources.cleanup_mode=True
+            method=control_cleanup if operation=='control-cleanup' else control_postflight
+            result=method(fixture,resources,control,scenario,original_token)
+        elif operation=='control':
+            from deploy.workload_fixture_controls import execute as control_execute
+            selected=phase.split(':')
+            require(len(selected)==2 and not reconciliation and review is None and authority is None,
+                    'fixture_control_request_invalid')
+            control,scenario=selected
+            require(not any(row['event']=='fixture_control_case_claim' and row.get('control')==control and
+                row.get('scenario')==scenario for row in fixture.journal.rows), 'fixture_control_case_already_attempted')
+            fixture.journal.append('fixture_control_case_claim',control=control,scenario=scenario,
+                generation=fixture.manifest['generation'],token=token)
+            result=control_execute(fixture,resources,control,scenario,token)
         elif operation=='peer-probe':
             _,proposal = fixture.proposal()
             from deploy.workload_socket_probe import probe
