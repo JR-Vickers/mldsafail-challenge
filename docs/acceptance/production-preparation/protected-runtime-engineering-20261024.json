@@ -1,0 +1,72 @@
+{
+  "checks": {
+    "contracts_passed": 8,
+    "disposable_postgres_passed": 45,
+    "docker_components_passed": 44,
+    "local_linux_process_variants_passed": 8,
+    "make_check_passed": 2218,
+    "make_check_skipped": 68,
+    "postgres_cleanup_verified": true,
+    "retained_container_inventory_unchanged": true
+  },
+  "collection_artifact_sha256": "f42a728ea0d4d1e2facbc4bb4891527c5501294340c708c07d97ca15084d7342",
+  "control_coverage": {
+    "legacy_native_runners": 6,
+    "missing_installed_native_adapters": [
+      "shared_host_gate/cross_database_and_admin",
+      "coordinator_routing/deferred_admission",
+      "coordinator_routing/result_after_cleanup",
+      "administrative_routing/host_gate_before_fence",
+      "administrative_routing/queued_blocks_admin",
+      "zero_pending_fence/queued_claimed_running",
+      "inspected_births/daemon_replacement",
+      "inspected_births/container_restart",
+      "durable_launch_intent/lost_create_ack",
+      "durable_launch_intent/lost_start_ack",
+      "common_cgroup/controller_worker_descendants",
+      "continuous_monitor/stuck_control_io",
+      "continuous_monitor/stale_sample",
+      "bounded_output/generation_quota_exhaustion",
+      "verified_cleanup/surviving_worker",
+      "verified_cleanup/empty_scope_and_absent_containers",
+      "explicit_resume/failed_preflight",
+      "explicit_resume/fresh_preflight",
+      "delegation/missing_controller",
+      "delegation/inspected_limits",
+      "scheduling_exclusion/retained_trigger_inventory"
+    ],
+    "scenarios": 27,
+    "synthetic_paths": 27
+  },
+  "date": "2026-10-24",
+  "engineering_complete": false,
+  "evidence_sha256": {
+    "control-linux-outcomes.json": "ba0977023d2768b6fd12e047d5f924415f93461f0d0028eda48a62f343d60392",
+    "control-linux-run-record.json": "ee907988325e0816b9a346d7738af7bcaad2a9712c0cc91790a5c58983525c8f",
+    "docker-components.json": "2ce817f3573de85d2c341e9ecdb3182a065856b3f21b26c91c5a2f6cc1f6aa29",
+    "docker-components.log": "70bd93f29a65727e5cc0991aac37bb59b433f6d667824853361ad51e262a38ec",
+    "independent-component-review-final.json": "bdf9ce19d55ea62e868385dde69b826745d5c87a1822058fd587a590003cd14e",
+    "make-check.log": "88e954c3fa3d073536dcbe1093a2e36d2ecfb93f406aa15ed9a04c1d2b793808",
+    "postgres-regression-runner.py": "c357e9bbe067246e0af7505dffc4ecec26cdf5498f6a9cc5b522f46f35647cd2",
+    "postgres-regressions.json": "05151bd65541ef77b9c688227ac2c5b8b2978c68e94681bb0ddd51670a13e90f",
+    "postgres-regressions.log": "b2c6720453f06d35157bf6fc9703ffce184bf1d11bc189b38e5a9b17338d728b"
+  },
+  "execution_authority": false,
+  "full_proposal_approved": false,
+  "limitations": [
+    "supervised_native_case_context_and_lifecycle_generation_unimplemented",
+    "complete_external_effect_interruption_coverage_unverified",
+    "nine_private_dossier_prerequisite_categories_unevidenced",
+    "full_installation_proposal_not_reviewed",
+    "native_installation_acceptance_not_run"
+  ],
+  "retention": {
+    "application_containers_unchanged": true,
+    "compact_private_evidence_retained": true,
+    "disposable_postgres_removed": true,
+    "existing_trials_preserved": true,
+    "no_new_vm": true
+  },
+  "schema": "mldsafail.protected-runtime-engineering-checkpoint.v1",
+  "source_checkpoint": "00412fb"
+}

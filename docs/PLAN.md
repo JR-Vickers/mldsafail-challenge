@@ -54,8 +54,19 @@ No deployment, epoch, capacity measurement or activation is authorized by this w
 
 ### Current host preparation — bootstrap and installed acceptance remain separate
 
+The [2026-10-24 engineering checkpoint](acceptance/production-preparation/protected-runtime-engineering-20261024.md)
+adds the checked 27-case regression registry, three production-dispatcher SQL
+cases, eight Linux inert-process variants, protocol-four recovery and a locally
+reviewed collector handoff. **Engineering completion is not claimed:** 21
+installed-native adapters, supervised case/lifecycle packet integration and
+complete external-effect interruption coverage remain implementation work.
+Native acceptance, missing host facts and complete-proposal review are separate
+unpassed gates. See the [control engineering guide](WORKLOAD_CONTROL_ENGINEERING.md).
+
+
 The [2026-10-23 protocol-3 checkpoint](acceptance/production-preparation/protected-runtime-recovery-v3-20261023.md)
-is the current recovery protocol reference. The
+is the historical protocol-three recovery reference; new journals use the
+protocol-four component above without upgrading historical journals. The
 [2026-10-24 fixture checkpoint](acceptance/production-preparation/protected-runtime-fixture-20261024.md)
 adds the independently reviewed reusable driver, concrete resource provisioning,
 worker lock handoff, frozen observations, interruption runners and conservative

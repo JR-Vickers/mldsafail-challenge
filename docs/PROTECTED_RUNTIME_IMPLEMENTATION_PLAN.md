@@ -2,6 +2,15 @@
 
 Status: in progress; no installation or native-test authority granted.
 
+The [2026-10-24 engineering checkpoint](acceptance/production-preparation/protected-runtime-engineering-20261024.md)
+adds protocol-four recovery, checked regression runners and a locally reviewed
+collection handoff. It explicitly does **not** meet this plan's engineering exit:
+21 installed-native adapters, supervised case/lifecycle integration and complete
+external-effect boundary coverage remain source work. Host facts, native
+acceptance and whole-proposal review remain separate gates. Consult the
+[control engineering guide](WORKLOAD_CONTROL_ENGINEERING.md) before preparing
+one-case review plans; those plans grant no execution authority.
+
 Latest [protocol-three recovery checkpoint](acceptance/production-preparation/protected-runtime-recovery-v3-20261023.md) adds exact intent bindings and acknowledged configuration continuation, preserving protocol-2 snapshot-only behavior. It is a reviewed component checkpoint; complete fixture, external-effect recovery, 27 executable scenarios and whole-proposal review remain unfinished.
 
 Latest [substep recovery checkpoint](acceptance/production-preparation/protected-runtime-substeps-20261023.md)
