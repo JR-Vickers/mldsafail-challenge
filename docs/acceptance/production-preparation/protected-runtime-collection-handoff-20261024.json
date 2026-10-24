@@ -1,0 +1,37 @@
+{
+  "artifact_sha256": "f42a728ea0d4d1e2facbc4bb4891527c5501294340c708c07d97ca15084d7342",
+  "checks": {
+    "all_python_entries_compile_without_execution": true,
+    "focused_tests_passed": 25,
+    "linux_only_skipped": 2,
+    "zip_source_closure_and_hashes": true,
+    "zip_unique_entries": true
+  },
+  "date": "2026-10-24",
+  "decision": "no_actionable_findings_within_scope",
+  "dossier_sha256": "9f7a7eab5600958bf415320f2b21561e4fb04ff4d63e8979060dc59c653ce0e0",
+  "execution_authority": false,
+  "implemented_by": "collector_agent",
+  "instructions_sha256": "7f6a9fcf51ab3cf8da435081ff94496e3b54d770c34d836a7661e37975b68c33",
+  "limitations": [
+    "host_reference_closure_incomplete",
+    "native_collection_not_executed",
+    "successor_not_transferred_or_installed",
+    "full_installation_proposal_not_reviewed",
+    "no_execution_authority"
+  ],
+  "plan_sha256": "c899dfa227e62f8b43f30062d6594ee0093da1a0f5066846562130ed0a50d5c2",
+  "reviewed_by": "independent_root_agent",
+  "schema": "mldsafail.collection-component-review.v1",
+  "scope": "preparation_only_handoff_source_and_exact_local_collector_archive",
+  "source_sha256": {
+    "deploy/privileged_scheduling.py": "cd78dfc123d7ac174eb400d45face428fab5b1d1d155baa6745cc159c253332a",
+    "deploy/workload_observation.py": "aa005a1f66ad59a04751842509fc1df238bc60d890c6ddd434225b5198569c4b",
+    "deploy/workload_owner_readers.py": "cd06da7f5081e8a262b9d9077e7f0b782a4c2a2e22aaa938b8944ac45aa5a35c",
+    "scripts/prepare_owner_collection_access.py": "7525e5a8b5ee267edd0fcc9257eee098bb61c17f05642120a19764ed6bcc19e8",
+    "scripts/prepare_owner_collection_handoff.py": "8837bef57394286a43158b069cca2dfa827c8bbd41d11307fe05e2e7aa645265",
+    "scripts/prepare_owner_collection_successor.py": "00bcd38918a7fa13c970d0327d1b230016508512c71199b4d972640f76495694",
+    "scripts/workload_owner_collection.py": "b1b9c4f4e442c30f01c6d6f6a229bf278caf52714daeac44ee18197a769a5fef",
+    "tests/test_owner_collection_handoff.py": "f4d2534548d49e14ba88c56ce8e31018ab18ded31e17c9ea3167bea0c79cb812"
+  }
+}

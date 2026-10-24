@@ -24,13 +24,16 @@ reference closure, coordinator image UID mapping, retained-service placement and
 storage/rollback preservation require separate classification and joins. The
 packet records these facts as blockers, without guessing missing identities.
 
-Focused collection tests passed locally (23 passed, two Linux-only subreaper
+Focused collection tests passed locally (25 passed, two Linux-only subreaper
 tests skipped on macOS). Tests cover deterministic bytes, closed source inventory,
 fixed allowlists, substituted script/plan rejection, bounded output, incomplete
 visibility, existing destination preservation and private handoff permissions.
-Independent review of the exact new source/archive remains a separate recorded
-gate until its matching review receipt exists. Native collection and complete
-proposal review remain later gates. The existing v4 unmeasured-capacity policy
+An independent root-agent review found no actionable findings within this
+preparation-only source/archive scope. It checked unique archive entries, complete
+source closure and hashes, and compilation of every Python entry without executing
+privileged collection. The [review record](protected-runtime-collection-handoff-20261024.json)
+binds exact bytes and limitations. Native collection and complete proposal review
+remain later gates. The existing v4 unmeasured-capacity policy
 is unchanged, awaiting matching acceptance/review; no historical validator is
 bypassed.
 
