@@ -56,14 +56,18 @@ No deployment, epoch, capacity measurement or activation is authorized by this w
 
 The [2026-10-23 protocol-3 checkpoint](acceptance/production-preparation/protected-runtime-recovery-v3-20261023.md)
 is the current recovery protocol reference. The
-[fixture lifecycle checkpoint](acceptance/production-preparation/protected-runtime-fixture-20261023.md)
-adds independently reviewed preparation, inspection and fail-closed lifecycle
-handling. **The complete fixture milestone remains unfinished:** concrete
-provisioning, native observations, worker lock handoff, interruption runners,
-peer-UID probe integration and verified cleanup still need implementation. Native
-transitions are disabled. Docker is unreachable from both the agent session and
-the owner's Terminal; that rehearsal blocker does not resolve the engineering
-gaps. No protected-runtime installation authority is requested.
+[2026-10-24 fixture checkpoint](acceptance/production-preparation/protected-runtime-fixture-20261024.md)
+adds the independently reviewed reusable driver, concrete resource provisioning,
+worker lock handoff, frozen observations, interruption runners and conservative
+cleanup. Docker connectivity is restored. Local container regressions pass;
+a fresh emulated guest rehearsal failed while loading offline runtime images
+within the existing 35-second command bound. Descendant cleanup, daemon stop and
+VM shutdown were verified. Complete native installation/rollback, the four
+interruption cases and the peer-UID probe remain unverified. See the
+[fixture runbook](WORKLOAD_INSTALLATION_FIXTURE.md).
+Privileged host facts, general external-effect recovery, remaining scenario
+runners and whole-proposal approval remain separate. No protected-runtime
+installation authority is requested.
 
 The [2026-10-23 substep checkpoint](acceptance/production-preparation/protected-runtime-substeps-20261023.md) adds versioned recovery journals, verified snapshot/artifact receipts and narrowly authorized snapshot continuation. Full fixture, external-effect recovery, executable acceptance and complete proposal review remain unfinished.
 

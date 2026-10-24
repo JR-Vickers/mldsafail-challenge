@@ -1,0 +1,121 @@
+{
+  "attempts": [
+    {
+      "id": "native-complete-3b4381e5",
+      "outcome": "package command child entries after client exit; final cleanup empty; cause unresolved; full prerequisite set moved to initial bootstrap",
+      "source": "f442684"
+    },
+    {
+      "fixture_cleanup_verified": true,
+      "id": "native-complete-a60ee8c0",
+      "outcome": "worker deadline lookup defect before fixture effects; fixed with regression at94c9b3e",
+      "source": "e61ac65"
+    },
+    {
+      "daemon_stop_verified": true,
+      "elapsed_seconds": 287.2670960419928,
+      "id": "native-complete-cc7e9983",
+      "outcome": "offline runtime image load timed out at35s",
+      "source": "94c9b3e",
+      "vm_shutdown_verified": true
+    }
+  ],
+  "blocker": {
+    "bound_seconds": 35,
+    "command": "docker load --input offline/runtime-images.tar",
+    "engine_error": "installation_subcommand_failed:b241bbc819d34e0294d2238fc4643b0d",
+    "interpretation": "This emulated attempt did not complete offline image loading within the existing command bound; no general native-performance conclusion follows.",
+    "observer_descendants": false,
+    "observer_errors": [],
+    "observer_remaining": [],
+    "observer_returncode": -9,
+    "timed_out": true
+  },
+  "cases": {
+    "complete": "failed_before_fixture_provisioning",
+    "interrupted-rollback": "not_run_dependency_provisioning_failed",
+    "partial-configurations": "not_run_dependency_provisioning_failed",
+    "partial-snapshots": "not_run_dependency_provisioning_failed",
+    "peer_uid_probe": "not_run_dependency_provisioning_failed",
+    "unacknowledged-images": "not_run_dependency_provisioning_failed"
+  },
+  "checks": {
+    "changed_document_links": 66,
+    "contracts_passed": 8,
+    "diff_check": true,
+    "docker_linux_regressions_passed": 75,
+    "emulated_controls_failed": 1,
+    "emulated_controls_passed": 50,
+    "emulated_failure": "0.6-second timeout containment expectation; deadline unchanged",
+    "historical_0_8_second_failure_preserved": true,
+    "make_check_passed": 1986,
+    "make_check_skipped": 60
+  },
+  "date": "2026-10-24",
+  "evidence_sha256": {
+    "component-review-20261024-v4.json": "d125e62470e22142d42cf77058b84be3172d97ccafbb3db7856b4d422686cb60",
+    "component-review-20261024-v6.json": "71cdf9817af061afc69fa03cdd4ff32955c12b3644923e9f6f93feaf20493e39",
+    "docker-final-result.json": "5700d6ae90ff649e83c5b3281b17e722a863f6b2a5cb9dee3091c1857e88454a",
+    "docker-final.log": "772e9613219e013f11f2660f50b26675e6a385cfa1074ce59114f00893034b68",
+    "final-component-review-20261024.json": "ea08b73bc79280fd0894fd37b2b306243b061bca93078e6554dddfcd52e85f35",
+    "guest-evidence.tar": "a133e3397ebd1794eb5ac5527e1d13b313f3a54d615522d97fa8cf71a76bd20f",
+    "guest-protocol.json": "a242c2c7448e90823a900a30ced9e68a4c72ad93475726b5b202a3f92586560b",
+    "mldsafail-fixture-20261024-check-approved.log": "f9f3ff41b141796c50f19311b9f67493349910cc40cbc5549923529518afe9b0",
+    "mldsafail-fixture-20261024-worker-budget-check.log": "32f162ff688eff865b8c572ddb10b440ee4e10f44e2b75e35f1ec988d917e891",
+    "native-complete-3b4381e5/guest-evidence.tar": "a133e3397ebd1794eb5ac5527e1d13b313f3a54d615522d97fa8cf71a76bd20f",
+    "native-complete-3b4381e5/guest-protocol.json": "a242c2c7448e90823a900a30ced9e68a4c72ad93475726b5b202a3f92586560b",
+    "native-complete-3b4381e5/result.json": "3f693124e7f59873a54307362253d129655df7b50f43f88780ecf6eee9d02bb9",
+    "native-complete-3b4381e5/retirement-complete.json": "0cb6ea5f92522dbb3f26003fcd8615f183743efc51da349ef79db578ae30f0a1",
+    "native-complete-a60ee8c0/guest-evidence.tar": "dfb3f6b8cb30c239a9eb7702d807ed4dde3431bdee92b7c68f246a9b320081aa",
+    "native-complete-a60ee8c0/guest-protocol.json": "4ed6cf571c582d0c4638b4343ce54e0a3129ceab4f9af2e48eb8f6560c52e3c6",
+    "native-complete-a60ee8c0/result.json": "a1b3f5139eabd1968810d06cf7fdee02190ec7c88b0d32e9a246b2ef6e4ee4c4",
+    "native-complete-a60ee8c0/retirement-complete.json": "79cf9398c224bd1a798af1aead197f4b9d45e95215f4e1dafc19413601d3c608",
+    "native-complete-cc7e9983/guest-evidence.tar": "f8913b2179fe16d27d34c32e394bcd3ab25cc1a9ad6f4fa1202e1ea35cbd1bff",
+    "native-complete-cc7e9983/guest-protocol.json": "502e12026256578e22509e9c7dfba8e6f6eb8941101cdc4cc9b8264d0703ce29",
+    "native-complete-cc7e9983/result.json": "8ad95152dc46e76f84037c5879e631a4aa38c64f2cc76e2e70d1f42c4fd735e1",
+    "native-complete-cc7e9983/retirement-complete.json": "f7a9f5717d941a55fe461efca8511a9ef55197f5d008eb7311405c33b39d4f31",
+    "redundant-kit-retirement-complete.json": "dab6396a5d72b822822b97dc6761889aa2b28a48f0c5083846be30a47fae5534",
+    "result.json": "3f693124e7f59873a54307362253d129655df7b50f43f88780ecf6eee9d02bb9",
+    "retained-guest-preflight.json": "c011bfcc28c01b73f20c6efb1053191d78f3ca85eef556087e6d773bf42f4f8b",
+    "retention-exceptions-20261024.json": "c45d0359966bbfb3e245ca40a432eefa9e8a60dd4ded572884dae2b74333ba3a",
+    "retirement-complete.json": "0cb6ea5f92522dbb3f26003fcd8615f183743efc51da349ef79db578ae30f0a1"
+  },
+  "implementation": "implemented_component_reviewed_native_unverified",
+  "independent_review": "approved_exact_component_source_hashes_only",
+  "native_acceptance": false,
+  "privileged_host_facts": "not_collected_no_vps_actions",
+  "rehearsal": "blocked_offline_runtime_image_load_timeout",
+  "retention": {
+    "bulk_deleted": true,
+    "exception_review_by": "2026-10-31",
+    "fresh_vm_group_empty": true,
+    "fresh_vm_inactivity_verified": true,
+    "fresh_vm_reaped": true,
+    "original_guest_preserved": true,
+    "original_offline_inputs_and_latest_kit_retained": true,
+    "private_raw_evidence_retained": true,
+    "reason": "Fresh-guest image files retired only after hash/identity checks under lifecycle locks, inactivity and retained-evidence verification. Private unresolved-failure records and named seven-day retention exceptions preserved.",
+    "redundant_offline_packets_removed": 2
+  },
+  "schema": "mldsafail.installation-fixture-checkpoint.v2",
+  "scope": {
+    "budget_usd": 0,
+    "fixture_only": true,
+    "installation_authority_requested": false,
+    "scientific_evaluations": 0,
+    "vps_actions": false
+  },
+  "source_commit": "94c9b3e",
+  "source_sha256": {
+    "deploy/workload_fixture_resources.py": "9d87be04596bbaf34346178c441791ca674c04c16dfcfc801534dd0f4975df77",
+    "deploy/workload_installation.py": "6d1b30a9e17e8d41e58601872705d33227d59e80c16f6c1415ffeb31be43d055",
+    "deploy/workload_log.py": "80d017c85dd52634cf0037c7b58aba6a70889013d04fc7648b7b25f4da251486",
+    "deploy/workload_observation.py": "aa005a1f66ad59a04751842509fc1df238bc60d890c6ddd434225b5198569c4b",
+    "scripts/prepare_installation_fixture_recipe.py": "8cf8e28a41d553bc9ccee81e809708543b4a27004fe2544ffd05b7f6389a32a1",
+    "scripts/provision_installation_fixture_guest.py": "d4aac38a770408015e6b1139b66aacfa84209222088664eb97f86613c91b6878",
+    "scripts/rehearse_workload_installation_fixture.py": "808c2e82465ef992bc295b3ce7f7d383cd6abf126d215eca3012f6d9b65a8aba",
+    "scripts/workload_fixture_worker.py": "20b736523540717bf893d0ec6cc84e57e18019fc56a13ed8c6f919a5c54f3996",
+    "scripts/workload_installation_fixture.py": "e177e984ac01af0c2e077129e2dac89975a10b6d9b319d24deec0565b693ef22",
+    "scripts/workload_vm_fixture.py": "4b9993312d408f41572111cd8ebade508fee4785f3de88faaca231c6fadd0c8e"
+  }
+}

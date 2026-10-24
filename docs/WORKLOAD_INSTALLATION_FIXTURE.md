@@ -1,85 +1,84 @@
-# Disposable installation fixture engineering
+# Disposable installation fixture
 
-This fixture is **unfinished**. The driver in
-[scripts/workload_installation_fixture.py](../scripts/workload_installation_fixture.py)
-currently provides exclusive preparation, private input/source bindings, lifecycle
-locking, read-only local environment reports and durable failed-phase records.
-It does not yet provide the complete concrete Linux installation fixture requested
-by the owner. In particular, an unavailable environment does not resolve the
-implementation gaps below.
+The reusable driver implements `prepare`, `provision`, `inspect`, `install`,
+`reconcile`, `rollback` and `cleanup`. The independently reviewed implementation
+is committed at `f442684`, with reviewed fixes at `e61ac65` and `94c9b3e`. The [latest checkpoint](acceptance/production-preparation/protected-runtime-fixture-20261024.md)
+records an unsuccessful fresh-guest rehearsal; native acceptance remains open.
 
-Run the usable filesystem lifecycle from the repository root:
+Use canonical absolute private paths without symlink components. Preparation
+exclusively creates a generation and freezes its Git source snapshot, input
+hashes, final paths, target identity and resource plan. Changed inputs require a
+new generation. Every mutating phase holds the lifecycle lock; bounded workers
+must prove the inherited lock and a single-use parent request. Failures preserve
+intents, observations and logs and stop dependent execution.
 
-```sh
-source .venv/bin/activate
-python -m scripts.workload_installation_fixture prepare /absolute/private/new-generation
-python -m scripts.workload_installation_fixture inspect /absolute/private/new-generation
-```
+The implementation has three layers:
 
-Use canonical absolute paths without symlink components. Each invocation requires
-the root; preparation refuses an existing namespace. A failed preparation retains
-its creation intent and error. Preparation records the selected case, source
-revision, source file hashes, driver hash, private directory births, final release
-paths and unmet environment/implementation requirements. Inputs, if supplied,
-are copied exclusively without hardlinks. A changed input or driver requires a new
-generation. Preparation does not create Linux resources or execution authority.
+- [Guest provisioning](../scripts/provision_installation_fixture_guest.py) accepts
+  pinned package versions and hash-bound archives, wheels, image archives and a
+  rootless launcher. It requires a newly allocated disposable x86_64 QEMU guest,
+  systemd, cgroup v2 delegation and subordinate UID/GID mappings. Downloads are
+  allowed here. It creates its own rootless Docker daemon and refuses inherited
+  Docker resources. See Docker's [rootless requirements](https://docs.docker.com/engine/security/rootless/tips/).
+- [Recipe preparation](../scripts/prepare_installation_fixture_recipe.py) freezes
+  actual environment identities, reviewed source bytes and final absolute paths.
+  Its built-in recipe declares schema `mldsafail.installation-fixture.v1`,
+  `fixture_only: true`, target hostname/machine ID/UID, absolute input paths,
+  built-in provision/inspect/postflight/cleanup adapters and a generated resource
+  plan. Arbitrary adapter code is unsupported.
+- [The case runner](../scripts/rehearse_workload_installation_fixture.py) drives
+  the concrete installation engine, fresh frozen-proposal observation and
+  rollback. Component review receipts must approve the exact source hashes with
+  scope `disposable_fixture_components_only`. Synthetic review and execution
+  inputs are visibly fixture-only and generation-bound; engine validation stays
+  in force.
 
-`provision`, `install`, `reconcile`, `rollback` and `cleanup` are recognized but
-fail closed. No native transition is enabled. A failed provision cannot be retried
-in that generation; installation cannot follow it. Existing independent engine
-reconciliation is still required before any future installation continuation.
-The internal worker entrypoint also refuses execution until an inherited lifecycle
-lock handoff is implemented and tested. Importable draft engine helpers are not
-an operational interface.
+Allocate each case in a fresh guest using
+[the VM lifecycle helper](../scripts/workload_vm_fixture.py). Its `--allocate-from`,
+`--download` and `--case` arguments produce independent disks and ownership
+records; running the resulting root starts the guest. Existing retained guests
+require their explicit adoption audit. The fixture commands are available through
+`python -m scripts.workload_installation_fixture --help`; guest provider, recipe
+and rehearsal modules expose their Python entrypoints for orchestration.
+A private component receipt and real offline inputs are required before native
+mutation. Do not substitute empty archives or fabricated image identities.
 
-The private recipe schema is experimental and has no supported executable adapter
-interface. Its adapter names freeze inputs only; the driver never executes them.
-Accepting arbitrary Python adapters would not establish read-only collection,
-resource ownership or safe cleanup. The declared resource list is not yet backed
-by concrete provisioning operations, so it confers no mutation permission.
+Provisioning creates disposable PostgreSQL with deterministic contents, inert
+retained web/proxy services, synthetic credentials, a previous supervisor and
+scheduling owner, bounded persistent output and three private configurations.
+The previous release is observed for compatibility before rollback selection.
+Actual interpreter and installer archives, locked wheels and retained images are
+used; dependency installation runs offline. Computational permission remains
+absent. Baselines bind retained container/image identities, database schema/data,
+unit bytes/settings, activation, release dependencies and output mounts.
 
-The intended attempt budget is 30 minutes from first provision, with the last
-five minutes reserved for cleanup/postflight. Expiry blocks further automatic
-execution and records unresolved ownership; it is never a cleanup certificate or
-a fresh budget. The current driver performs no resource deletion. Private
-namespaces and failure records remain available for inspection under
-[the retention policy](RETENTION_POLICY.md).
+The five fixed cases are `complete`, `partial-snapshots`,
+`partial-configurations`, `unacknowledged-images` and `interrupted-rollback`.
+Each interruption has an explicit boundary and reconciliation assertions.
+Unacknowledged image effects must block conservative replay. A case result alone
+cannot certify native performance or the production host. The mapped peer-UID
+probe is integrated with synthetic credentials and no Docker socket inside it;
+its native result remains unexecuted at this checkpoint.
 
-## Remaining implementation
+Each attempt is bounded to 30 minutes, reserving five minutes for cleanup and
+postflight. Cleanup proves identity and inactivity before changing resources,
+refuses unresolved effects and records uncertainty. Successful fixture cleanup
+can retain named active retained services, output, rollback dependencies and
+journals under an explicit retention exception; that is not complete retirement
+or permission for bulk deletion. Partial provisioning does not erase unacknowledged
+resources. [The retention policy](RETENTION_POLICY.md) governs later removal.
 
-- Implement built-in provisioning for actual compatible interpreter/installer
-  archives, lock-derived wheels, retained images, disposable PostgreSQL,
-  synthetic credentials, inert web/proxy services, previous supervisor,
-  scheduling owner, bounded persistent output and three private configurations.
-  Enforce the frozen resource allowlist at each operation with durable resource
-  intents and observed identities.
-- Complete the inherited lifecycle-lock handoff to bounded native workers.
-  Execute compatibility, installed and rollback observers inside those workers,
-  against frozen proposal/source bytes. The draft parent-side observation calls
-  remain unreachable; they must move before native transitions are enabled.
-- Implement read-only resource collection and deterministic database content
-  fingerprints, baseline capture and transition invariants. Check original unit
-  bytes/states, image and service births, output mounts, absent permission files,
-  computational inhibition, descendant termination and resolved transactions.
-- Integrate the existing coordinator-image peer-UID probe, including the mapped
-  UID acceptance and incorrect UID rejection, using synthetic credentials and
-  no Docker socket inside the probe.
-- Complete and verify the four fixed fault runners. The draft harness uses
-  existing snapshot/configuration callbacks and parent-step fault boundaries;
-  it has not run them against a complete fixture. Each case needs its own
-  generation and assertions for its expected reconciliation disposition.
-- Implement ownership/inactivity/retention checks and concrete cleanup receipts.
-  Unknown or unacknowledged resources must be retained. Preserve required output,
-  journals and previous-release dependencies; never downgrade PostgreSQL or
-  restart the older coordinator automatically.
+The local Docker regression suite passes. The latest fresh x86_64 emulated guest
+could not finish loading the offline runtime images within the existing
+35-second command bound. Its observer recorded a timeout, no remaining children
+and no cleanup errors. The provider stopped its daemon and VM shutdown was
+verified. Earlier attempts exposed a package-provisioning containment issue and
+a worker deadline-journal defect; reviewed corrections were tested in new
+generations. Historical emulation failure at the 0.8-second helper deadline and
+the separate 0.6-second containment regression remain recorded. Deadlines are
+unchanged. No full installation, rollback, interruption or native peer-UID
+success is claimed.
 
-The five cases are `complete`, `partial-snapshots`, `partial-configurations`,
-`unacknowledged-images` and `interrupted-rollback`. Case selection alone is not a
-runner result. Successful completion requires all concrete adapters and gates,
-independent component review, and either a verified full rehearsal or a precise
-environment blocker with failure evidence. This checkpoint meets neither full
-fixture implementation nor full rehearsal completion.
-
-The production VPS, frozen 0.5.0 benchmark, runtime deadlines and $0 budget are
-unchanged. This work grants no VPS installation, whole-proposal approval, epoch,
-notification, public activation or publication authority.
+This fixture does not authorize VPS installation, whole-proposal approval,
+epochs, notifications, public activation or publication. Benchmark 0.5.0 and the
+$0 budget remain unchanged.
