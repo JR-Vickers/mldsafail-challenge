@@ -32,9 +32,12 @@ def mutate(journal, resource, observe, action, *, fault=None, step_id=None,
     if journal.recovery_protocol in (3, 4):
         from deploy.workload_release import canonical, digest
         binding['mutation_intent_sha256'] = digest(canonical(journal.rows[-1]))
+    from deploy.workload_fixture_faults import dispatch_mutation
+    dispatch_mutation(journal, resource, 'intent')
     if fault: fault(resource, 'intent')
     try:
         result = action()
+        dispatch_mutation(journal, resource, 'applied')
         if fault: fault(resource, 'applied')
         after = observe()
         if validate is not None:
@@ -53,6 +56,7 @@ def mutate(journal, resource, observe, action, *, fault=None, step_id=None,
                        observation_error=observation_error,**binding)
         raise
     journal.append('mutation_outcome', resource=resource, observed=after,**binding)
+    dispatch_mutation(journal, resource, 'outcome')
     if fault: fault(resource, 'outcome')
     return result
 
