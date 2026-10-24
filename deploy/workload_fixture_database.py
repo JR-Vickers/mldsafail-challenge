@@ -25,7 +25,15 @@ class OwnedDatabase:
         component_review(fixture)
         require(len(token)==32 and all(c in '0123456789abcdef' for c in token),'fixture_database_token_invalid')
         self.fixture,self.resources,self.native=fixture,resources,native
-        self.root=Path(root)/'database';self.root.mkdir(mode=0o700)
+        control_root=Path(root).absolute()
+        require(control_root==fixture.root/'artifacts'/('control-'+token) and
+            not any(path.is_symlink() for path in (control_root,*control_root.parents)),
+            'fixture_database_namespace_changed')
+        intent=private(control_root/'intent.json')[1]
+        require(intent.get('generation')==fixture.manifest['generation'] and
+            intent.get('manifest_sha256')==fixture.binding and intent.get('token')==token,
+            'fixture_database_context_changed')
+        self.root=control_root/'database';self.root.mkdir(mode=0o700)
         self.token,self.deadline=token,deadline;self.identifier=None;self.binding=None;self.engines=[];self.databases=[]
         self.name='mlwe-fixture-database-'+token
         self.image=resources.settings['postgres_image'];self.password=secrets.token_hex(32)
@@ -95,10 +103,18 @@ class OwnedDatabase:
     def connect(self,index=0):
         self.inspect();name='mldsafail_acceptance_'+self.token+('_1' if index else '')
         require(index in (0,1),'fixture_database_index_invalid')
-        return self.psycopg.connect(host='127.0.0.1',port=self.port,dbname=name,user='postgres',password=self.password,
+        connection=self.psycopg.connect(host='127.0.0.1',port=self.port,dbname=name,user='postgres',password=self.password,
             autocommit=True,connect_timeout=1,options='-c statement_timeout=500 -c lock_timeout=500')
+        try:
+            actual=connection.execute('SELECT current_database(),(SELECT oid FROM pg_database WHERE datname=current_database())').fetchone()
+            expected=next((row for row in self.databases if row['name']==name),None)
+            require(actual[0]==name and (expected is None and not self.databases and index==0 or
+                expected is not None and actual[1]==expected['oid']),'fixture_database_oid_changed_preserve')
+        except BaseException:
+            connection.close();raise
+        return connection
     def engine(self,index=0):
-        from sqlalchemy import create_engine,inspect
+        from sqlalchemy import create_engine,inspect,event
         from sqlalchemy.engine import URL
         require(index in (0,1),'fixture_database_index_invalid')
         self.inspect()
@@ -114,6 +130,13 @@ class OwnedDatabase:
         engine=create_engine(URL.create('postgresql+psycopg',username='postgres',password=self.password,
             host='127.0.0.1',port=self.port,database=name),connect_args={'connect_timeout':1,'options':'-c statement_timeout=500 -c lock_timeout=500'})
         self.engines.append(engine)
+        expected=next(row for row in self.databases if row['name']==name)
+        @event.listens_for(engine,'connect')
+        def verify_database(connection,record):
+            self.inspect()
+            actual=connection.execute('SELECT current_database(),(SELECT oid FROM pg_database WHERE datname=current_database())').fetchone()
+            connection.rollback()
+            require(actual==(expected['name'],expected['oid']),'fixture_database_oid_changed_preserve')
         require(not inspect(engine).get_table_names(),'fixture_database_not_empty_preserve')
         return engine
     def cleanup(self,deadline):

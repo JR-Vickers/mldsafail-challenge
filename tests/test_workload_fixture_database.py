@@ -34,7 +34,10 @@ def database(tmp_path,monkeypatch):
     monkeypatch.setattr(review,'component_review',lambda *args:None)
     fixture=SimpleNamespace(root=tmp_path,lock_fd=5,require_target=lambda:None,binding='f'*64,manifest=dict(generation='c'*32))
     native=SimpleNamespace(config=dict(retained_services={'database':'retained'}));resources=Resources()
-    db=OwnedDatabase(fixture,resources,native,tmp_path,'d'*32,time.monotonic()+10)
+    control_root=tmp_path/'artifacts'/('control-'+'d'*32);control_root.mkdir(mode=0o700,parents=True)
+    (control_root/'intent.json').write_bytes(canonical(dict(generation='c'*32,manifest_sha256='f'*64,token='d'*32)))
+    (control_root/'intent.json').chmod(0o600)
+    db=OwnedDatabase(fixture,resources,native,control_root,'d'*32,time.monotonic()+10)
     class Connection:
         def __enter__(self):return self
         def __exit__(self,*args):pass
@@ -73,3 +76,18 @@ def test_missing_create_ack_never_adopts_name_or_label(tmp_path,monkeypatch):
     db,resources,_=database(tmp_path,monkeypatch)
     with pytest.raises(WorkloadBlocked,match='unacknowledged_preserve'):db.cleanup(time.monotonic()+10)
     assert not resources.calls
+
+
+def test_database_oid_replacement_closes_connection_and_blocks(tmp_path,monkeypatch):
+    db,resources,_=database(tmp_path,monkeypatch);db.start()
+    del db.connect
+    class Connection:
+        closed=False
+        def execute(self,*args):return self
+        def fetchone(self):return ('mldsafail_acceptance_'+'d'*32,999)
+        def close(self):self.closed=True
+    connection=Connection()
+    import psycopg
+    monkeypatch.setattr(psycopg,'connect',lambda **kwargs:connection)
+    with pytest.raises(WorkloadBlocked,match='oid_changed_preserve'):db.connect()
+    assert connection.closed

@@ -34,7 +34,7 @@ class InertController(FixtureRuntime):
     def launch(self,state,specification):
         self.child=subprocess.Popen([sys.executable,'-c','import time;time.sleep(20)'],
             stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
-            start_new_session=True)
+            start_new_session=True,preexec_fn=getattr(self,'child_preexec',None))
         self.births.append(dict(pid=self.child.pid,started_monotonic_ns=time.monotonic_ns()))
         return super().launch(state,specification)
     def terminate(self,state):
@@ -51,7 +51,7 @@ class InertController(FixtureRuntime):
             envelope=sign_envelope(payload,b'k'*32)),b'k'*32)
 
 
-def execute(control,scenario,root):
+def execute(control,scenario,root,*,database=None,runtime_factory=InertController):
     if (control,scenario) not in CASES:raise ValueError('routing_fixture_case_unsupported')
     root=Path(root).absolute()
     if any(path.is_symlink() for path in (root,*root.parents)):
@@ -60,7 +60,7 @@ def execute(control,scenario,root):
     if parent.st_uid!=os.getuid() or stat.S_IMODE(parent.st_mode)&0o077:
         raise ValueError('routing_fixture_private_parent_required')
     root.mkdir(mode=0o700,exist_ok=False)
-    runtime=InertController();engines=[];dispatchers=[];sql_trace=[]
+    runtime=runtime_factory();engines=[];dispatchers=[];sql_trace=[]
     cohort=dict(epoch_id='inert-fixture',evaluator_fingerprint='inert-fixture',
                 hidden_suite_version='inert-fixture',worker_class='inert-fixture')
     key=root/'key';key.write_bytes(b'k'*32);key.chmod(0o600)
@@ -74,7 +74,8 @@ def execute(control,scenario,root):
         with gate.locked():
             protocol=SupervisorProtocol(gate,{'participant':{'role':'participant'}})
             def build(index):
-                engine=create_engine('sqlite:///'+str(root/(str(index)+'.sqlite')));engines.append(engine)
+                engine=(database.engine(index) if database is not None else
+                    create_engine('sqlite:///'+str(root/(str(index)+'.sqlite'))));engines.append(engine)
                 Base.metadata.create_all(engine)
                 with Session(engine) as db:
                     user=User(display_name='inert-fixture');db.add(user);db.commit()
