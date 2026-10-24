@@ -139,7 +139,8 @@ def add_compute(owned,*,started=True,router_state=None):
     row=dict(Id=COMPUTE,Created=created['created_at'],Name='/'+created['name'],Image=owned.configuration['worker']['image'],
         Config=dict(Labels={LABEL:WORKLOAD,'org.mldsafail.fixture-control':owned.root.name,'org.mldsafail.fixture-generation':GENERATION}),
         HostConfig=dict(CgroupParent=owned.scope.name,NetworkMode='none',ReadonlyRootfs=True,Memory=32*1024**2,
-            MemorySwap=32*1024**2,PidsLimit=16,RestartPolicy=dict(Name='no')),
+            MemorySwap=32*1024**2,PidsLimit=16,RestartPolicy=dict(Name='no'),NanoCpus=100000000,
+            LogConfig=dict(Type='none'),CapDrop=['ALL'],SecurityOpt=['no-new-privileges'],Binds=[]),
         State=dict(Running=started,Pid=777 if started else 0,StartedAt='compute-started' if started else ''))
     rows=json.loads(owned.store.read_bytes());rows[COMPUTE]=row;owned.store.write_bytes(canonical(rows))
 
@@ -156,7 +157,8 @@ def add_database(owned):
     row=dict(Id=DATABASE,Created='pg-created',Name='/'+name,Image=PG_IMAGE,
         Config=dict(Labels={cleanup.DB_LABEL:TOKEN,'org.mldsafail.fixture-generation':GENERATION}),
         HostConfig=dict(NetworkMode='bridge',ReadonlyRootfs=True,Memory=128*1024**2,MemorySwap=128*1024**2,
-            PidsLimit=32,RestartPolicy=dict(Name='no'),Binds=[]),
+            PidsLimit=32,RestartPolicy=dict(Name='no'),Binds=[],NanoCpus=250000000,LogConfig=dict(Type='none'),
+            Tmpfs={'/var/lib/postgresql/data':'rw,size=64m','/var/run/postgresql':'rw,size=8m','/tmp':'rw,size=8m'}),
         NetworkSettings=dict(Ports={'5432/tcp':[dict(HostIp='127.0.0.1',HostPort='54321')]}),
         State=dict(Running=True,Pid=888,StartedAt='pg-started'))
     rows=json.loads(owned.store.read_bytes());rows[DATABASE]=row;owned.store.write_bytes(canonical(rows))
@@ -374,3 +376,33 @@ def test_missing_prepared_scope_ack_never_adopts_even_empty_matching_scope(owned
     for row in rows:fresh.append(row['event'],**{key:value for key,value in row.items() if key not in ('event','proposal_sha256','previous')})
     with pytest.raises(WorkloadBlocked,match='prepared_scope_unacknowledged_or_changed'):execute(owned)
     assert (owned.scope/'cgroup.kill').read_text()=='0'
+
+
+@pytest.mark.parametrize('transaction',['commit_intent','request_intent','postflight'])
+def test_unresolved_physical_transaction_preserves_database_and_case_evidence(owned,transaction):
+    add_compute(owned);add_database(owned)
+    quota=owned.output/'fixture-quota.bin';exclusive(quota,b'evidence')
+    owned.evidence.append('control_quota_file_created',observed=identity(quota,content=False))
+    path=owned.root/'runtime/workload.json';state=private(path)[1]
+    if transaction=='commit_intent':state.update(phase='commit_intent',database_commit=dict(transaction='unresolved'))
+    elif transaction=='request_intent':state['requests']={'unresolved':dict(phase='intent',sha256='0'*64)}
+    else:state['phase']='postflight'
+    path.write_bytes(canonical(state))
+    with pytest.raises(WorkloadBlocked,match='transaction_unresolved_preserve'):execute(owned)
+    assert (owned.scope/'cgroup.kill').read_text()=='1'
+    assert quota.read_bytes()==b'evidence' and owned.scope.exists() and owned.leaf.exists()
+    assert set(json.loads(owned.store.read_bytes()))=={RETAINED,COMPUTE,DATABASE}
+    assert not any('kill' in argv[3:] or 'rm' in argv[3:] or 'stop' in argv for argv in owned.calls)
+
+
+@pytest.mark.parametrize('container,field,value',[
+    (COMPUTE,'NanoCpus',1000000000),(COMPUTE,'LogConfig',{'Type':'json-file'}),
+    (COMPUTE,'CapDrop',[]),(COMPUTE,'SecurityOpt',[]),(COMPUTE,'Binds',['/retained:/app']),
+    (DATABASE,'NanoCpus',1000000000),(DATABASE,'Tmpfs',{}),(DATABASE,'LogConfig',{'Type':'json-file'}),
+])
+def test_bound_creator_policy_drift_is_preserved_before_any_docker_mutation(owned,container,field,value):
+    add_compute(owned);add_database(owned)
+    rows=json.loads(owned.store.read_bytes());rows[container]['HostConfig'][field]=value;owned.store.write_bytes(canonical(rows))
+    with pytest.raises(WorkloadBlocked,match='birth_or_policy_changed_preserve'):execute(owned)
+    assert json.loads(owned.store.read_bytes())==rows
+    assert not any('kill' in argv[3:] or 'rm' in argv[3:] for argv in owned.calls)

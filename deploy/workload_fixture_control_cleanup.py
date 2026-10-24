@@ -247,7 +247,10 @@ def _computational(native,root,state,record,existing,evidence):
             labels.get('org.mldsafail.fixture-generation')==state['reference']['generation'] and policy['CgroupParent']==Path(record['scope']['path']).name and
             policy['NetworkMode']=='none' and policy['ReadonlyRootfs'] is True and
             policy['Memory']==policy['MemorySwap']==32*1024**2 and policy['PidsLimit']==16 and
-            policy['RestartPolicy']['Name']=='no','fixture_cleanup_container_birth_or_policy_changed_preserve')
+            policy['RestartPolicy']['Name']=='no' and policy['NanoCpus']==100000000 and
+            policy['LogConfig']['Type']=='none' and set(policy['CapDrop'])=={'ALL'} and
+            policy['SecurityOpt']==['no-new-privileges'] and not policy.get('Binds'),
+            'fixture_cleanup_container_birth_or_policy_changed_preserve')
         require((row['State']['StartedAt']==binding['started_at'] if binding['started_at'] else
             not row['State']['Running'] and row['State']['StartedAt'] in ('','0001-01-01T00:00:00Z')),
             'fixture_cleanup_container_restart_unacknowledged_preserve')
@@ -286,10 +289,13 @@ def _database(native,root,fixture,token,existing,postgres_image):
             row['Name']=='/'+intent['name'] and row['State']['StartedAt']==binding['started_at'] and
             labels.get(DB_LABEL)==token and labels.get('org.mldsafail.fixture-generation')==fixture.manifest['generation'] and
             policy['NetworkMode']=='bridge' and policy['ReadonlyRootfs'] is True and policy['Memory']==policy['MemorySwap']==128*1024**2 and
-            policy['PidsLimit']==32 and policy['RestartPolicy']['Name']=='no' and not policy.get('Binds'),
+            policy['PidsLimit']==32 and policy['RestartPolicy']['Name']=='no' and not policy.get('Binds') and
+            policy['NanoCpus']==250000000 and policy['LogConfig']['Type']=='none' and policy['Tmpfs']=={
+                '/var/lib/postgresql/data':'rw,size=64m','/var/run/postgresql':'rw,size=8m','/tmp':'rw,size=8m'},
             'fixture_cleanup_database_birth_or_policy_changed_preserve')
         ports=row['NetworkSettings']['Ports'].get('5432/tcp')
-        require(type(ports) is list and len(ports)==1 and ports[0]['HostIp']=='127.0.0.1',
+        require(set(row['NetworkSettings']['Ports'])=={'5432/tcp'} and type(ports) is list and len(ports)==1 and
+            ports[0]['HostIp']=='127.0.0.1' and ports[0]['HostPort'].isdecimal() and 0<int(ports[0]['HostPort'])<65536,
                 'fixture_cleanup_database_not_loopback_preserve')
         rows=[row]
     return [binding],rows
@@ -341,6 +347,9 @@ def _cleanup_locked(fixture,resources,root,context,configuration,native,gate,sce
         record['leaf'].get('path')==str(Path(record['scope']['path'])/'creators'),
         'fixture_cleanup_prepare_incomplete_preserve')
     require(native.identity()==state['identity'],'fixture_cleanup_runtime_replaced_preserve')
+    require(gate.state['phase'] in ('acquired','launch_intent','running','termination_intent','cleaned','complete') and
+        not gate.state.get('database_commit') and not any(row.get('phase')!='complete' for row in gate.state.get('requests',{}).values()),
+        'fixture_cleanup_transaction_unresolved_preserve')
     require(evidence.complete,'fixture_cleanup_partial_evidence_preserve')
     existing=_census(native)
     expected,containers,routers=_computational(native,root,state,record,existing,evidence)
@@ -394,9 +403,6 @@ def _cleanup_locked(fixture,resources,root,context,configuration,native,gate,sce
     after=identity(scope,content=False)
     require(after['state']=='absent' or birth(scope)==record['scope'] and values(scope/'cgroup.events')['populated']==0,
             'fixture_cleanup_scope_not_empty_or_removed')
-    require(gate.state['phase'] in ('acquired','launch_intent','running','termination_intent','cleaned','complete') and
-        not gate.state.get('database_commit') and not any(row.get('phase')!='complete' for row in gate.state.get('requests',{}).values()),
-        'fixture_cleanup_transaction_unresolved_preserve')
     require(time.monotonic()<deadline,'fixture_independent_cleanup_expired')
     gate.state.update(phase='cleaned',paused=True,reason='independent_fixture_cleanup_verified');gate._write()
     resolved=copy.deepcopy(gate.state)
