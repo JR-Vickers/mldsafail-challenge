@@ -15,6 +15,8 @@ from sqlalchemy import create_engine, event, func, select
 from sqlalchemy.orm import Session
 
 from deploy.workload_control_fixture import FixtureRuntime
+from deploy.workload_installation import exclusive
+from deploy.workload_release import canonical
 from mldsafail.evaluator.dispatcher import Dispatcher
 from mldsafail.evaluator.envelope import sign_envelope
 from mldsafail.evaluator.workload import HostGate
@@ -92,6 +94,7 @@ def execute(control,scenario,root,*,database=None,runtime_factory=InertControlle
                     if statement.lstrip().upper().startswith('INSERT INTO EXPERIMENT_RESULTS'):
                         sql_trace.append(dict(event='result_insert',monotonic_ns=time.monotonic_ns(),
                             resources=int(not runtime.stopped(gate.state)),phase=gate.state['phase']))
+                exclusive(root/('database-before-'+str(index)+'.json'),canonical(snapshot(engine)))
                 return dispatcher,engine
             first,engine=build(0);before=snapshot(engine)
             injection=dict(event='injection',monotonic_ns=time.monotonic_ns())
@@ -122,6 +125,15 @@ def execute(control,scenario,root,*,database=None,runtime_factory=InertControlle
                 process_births=runtime.births,process_returncode=runtime.child.returncode if runtime.child else None,
                 trace=[injection,dict(event='observation',monotonic_ns=time.monotonic_ns())],state=state)
     finally:
+        # Preserve failed/partial transaction observations before the owned
+        # PostgreSQL service can be removed by the surrounding fixture.
+        for index,engine in enumerate(engines):
+            try:observed=snapshot(engine)
+            except BaseException as error:observed=dict(error=dict(type=type(error).__name__,message=str(error)))
+            exclusive(root/('database-after-'+str(index)+'.json'),canonical(observed))
         runtime.terminate({})
+        exclusive(root/'runtime-cleanup.json',canonical(dict(
+            processes=runtime.births,returncode=runtime.child.returncode if runtime.child else None,
+            live=runtime.live)))
         for dispatcher in dispatchers:dispatcher.engine.dispose()
         for engine in engines:engine.dispose()

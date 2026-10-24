@@ -6,6 +6,7 @@ container has a loopback-only published port, private generated credentials,
 finite resources and independently acknowledged immutable births.
 """
 import json
+import re
 from pathlib import Path
 import secrets
 import time
@@ -37,7 +38,8 @@ class OwnedDatabase:
         self.token,self.deadline=token,deadline;self.identifier=None;self.binding=None;self.engines=[];self.databases=[]
         self.name='mlwe-fixture-database-'+token
         self.image=resources.settings['postgres_image'];self.password=secrets.token_hex(32)
-        require(self.image.startswith('sha256:') and len(self.image)==71,'fixture_database_image_not_immutable')
+        require(type(self.image) is str and re.fullmatch('sha256:[a-f0-9]{64}',self.image) is not None,
+            'fixture_database_image_not_immutable')
         self.credentials_file=self.root/'postgres.env'
         exclusive(self.credentials_file,('POSTGRES_DB=mldsafail_acceptance_'+token+'\nPOSTGRES_PASSWORD='+self.password+'\n').encode())
         exclusive(self.root/'intent.json',canonical(dict(generation=fixture.manifest['generation'],

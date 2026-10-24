@@ -26,3 +26,18 @@ def test_routing_fixture_refuses_symlink_or_public_parent(tmp_path):
     with pytest.raises(ValueError,match='private_parent_required'):
         execute('coordinator_routing','deferred_admission',owned/'case')
     assert not (owned/'case').exists()
+
+
+def test_failed_dispatcher_retains_sql_observations_and_reaps_creator(tmp_path):
+    import json
+    from deploy.workload_routing_fixture import InertController
+    class LostResult(InertController):
+        def result(self,state):raise OSError('inert response acknowledgement lost')
+    path=tmp_path/'routing'
+    with pytest.raises(OSError,match='acknowledgement lost'):
+        execute('coordinator_routing','result_after_cleanup',path,runtime_factory=LostResult)
+    before=json.loads((path/'database-before-0.json').read_bytes())
+    after=json.loads((path/'database-after-0.json').read_bytes())
+    cleanup=json.loads((path/'runtime-cleanup.json').read_bytes())
+    assert before['attempts']==0 and after['attempts']==1 and after['results']==0
+    assert cleanup['processes'] and cleanup['returncode'] is not None and not cleanup['live']

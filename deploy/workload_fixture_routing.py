@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from deploy import maintenance_fence,protected_epoch
 from deploy.workload_fixture_database import OwnedDatabase
-from deploy.workload_installation import exclusive,private
+from deploy.workload_installation import Journal,exclusive,private
 from deploy.workload_release import canonical,digest
 from deploy.workload_routing_fixture import InertController,execute as dispatcher_cases,CASES as DISPATCHER_CASES
 from mldsafail.evaluator.envelope import sign_envelope
@@ -54,6 +54,10 @@ class OwnedRoutingRuntime(InertController):
     def inspect(self,state,observed):
         if self.child is None or self.child.poll() is not None:return False
         return process_birth(self.child.pid)==observed
+    def snapshot(self):
+        row=super().snapshot();row['native_sample']=self.native.sample(self.physical_state)
+        row['owned_processes']=[dict(identity=item,returncode=self.child.poll() if self.child else None) for item in self.actual_processes]
+        return row
     def result(self,state):
         if self.role=='participant':return super().result(state)
         return sign_envelope(dict(binding=dict(workload_id=state['workload_id'],role='inert',reference=state['reference']),
@@ -70,6 +74,8 @@ def administrative_case(control,scenario,root,database,runtime_factory,deadline)
     state_values=['queued','claimed','running'] if control=='zero_pending_fence' else [
         'queued' if scenario=='queued_blocks_admin' else None]
     outcomes=[];trace=[];key=root/'key';exclusive(key,b'k'*32)
+    evidence_root=root/'evidence';evidence_root.mkdir(mode=0o700)
+    evidence=Journal(evidence_root,digest(canonical(dict(control=control,scenario=scenario,database=database.identifier))))
     try:
         for index,status in enumerate(state_values):
             if status is not None:
@@ -86,12 +92,14 @@ def administrative_case(control,scenario,root,database,runtime_factory,deadline)
                         job=session.scalar(select(EvaluationJob));job.status=status;session.commit()
             runtime=runtime_factory();base=root/str(index);base.mkdir(mode=0o700);gate=HostGate(base/'gate',runtime)
             fences=[];before=rows(engine);error=None;binding=None
+            exclusive(base/'before.json',canonical(dict(rows=before,status=status)))
             with gate.locked():
                 protocol=SupervisorProtocol(gate,{'inert':{'role':'inert'}})
                 def transport(path,request):
                     response=protocol.dispatch(request)
                     trace.append(dict(event='supervisor_'+request['method'],monotonic_ns=time.monotonic_ns(),
                         phase=gate.state['phase'] if gate.state else None))
+                    evidence.append('routing_observation',observation=trace[-1])
                     return response
                 client=WorkloadClient(base/'socket',base/'client',transport=transport)
                 packet=dict(operation_id=digest(str(base).encode())[:32],attempt=str(base/'attempt'),roles=['inert'],
@@ -100,6 +108,7 @@ def administrative_case(control,scenario,root,database,runtime_factory,deadline)
                 def factory(packet,client):
                     trace.append(dict(event='database_fence',monotonic_ns=time.monotonic_ns(),
                         host_state=copy.deepcopy(gate.state)))
+                    evidence.append('routing_observation',observation=trace[-1])
                     require(gate.state['kind']=='administration' and gate.state['phase']=='acquired',
                         'fixture_admin_host_not_owned_before_fence')
                     with database.connect() as connection:identity=maintenance_fence.database_identity(connection)
@@ -122,6 +131,11 @@ def administrative_case(control,scenario,root,database,runtime_factory,deadline)
                     require(status is not None and pending_observed and
                         ('pending' in error or (error=='maintenance_acquisition_failed' and holder_error=='RaiseException')),
                         'fixture_admin_unexpected_failure')
+                finally:
+                    exclusive(base/'after.json',canonical(dict(rows=rows(engine),state=copy.deepcopy(gate.state),
+                        holder_error=fences[-1].holder_error if fences else None)))
+                    # Source failures cannot leave an inert creator running.
+                    runtime.terminate(gate.state or {})
                 after=rows(engine)
                 if status is None:require(binding is not None,'fixture_admin_success_missing')
                 else:
@@ -158,7 +172,8 @@ def execute_owned(fixture,resources,native,state,root,control,scenario,token,dea
             result=dispatcher_cases(control,scenario,Path(root)/'routing',database=database,runtime_factory=factory)
         else:result=administrative_case(control,scenario,Path(root)/'routing',database,factory,deadline)
     except BaseException as error:
-        failure=dict(type=type(error).__name__,message=str(error));raise
+        failure=dict(type=type(error).__name__,message=str(error))
+        exclusive(Path(root)/'routing-failure.json',canonical(failure));raise
     finally:
         # All SQL state is synthetic and this exact acknowledged container is
         # generation-owned. Removal aborts any failed fixture transactions; it
