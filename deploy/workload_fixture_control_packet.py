@@ -86,6 +86,7 @@ def execute(packet_path,control,scenario,output):
         require(fixture.binding==packet['fixture']['sha256'],'fixture_control_packet_generation_changed')
         require(fixture.proposal()[0]==private(packet['proposal']['path'],parse=False)[0],
             'fixture_control_packet_proposal_changed')
+        fixture.require_control_inspection(packet['inspection'])
         require(fixture.deadline()>=180,'fixture_control_insufficient_attempt_budget')
         parent=output.parent.stat()
         require(parent.st_uid==os.getuid() and not parent.st_mode&0o077,'fixture_control_packet_private_output_required')
@@ -102,6 +103,9 @@ def execute(packet_path,control,scenario,output):
             receipt.get('origin')=='local_linux' and receipt.get('installed_native_eligible') is False and
             receipt.get('paused') is True and receipt.get('failure') is None and
             type(receipt.get('cleanup')) is dict and receipt['cleanup'].get('remaining')==[] and
+            receipt.get('transactions')=='resolved' and receipt['cleanup'].get('transactions')=='resolved' and
+            receipt['cleanup'].get('gate_state',{}).get('phase') in ('cleaned','complete') and
+            receipt['cleanup']['gate_state'].get('paused') is True and
             receipt.get('retained_before',{}).get('verified') is True and
             receipt['retained_before']==receipt.get('retained_after'),
             'fixture_control_packet_receipt_changed')

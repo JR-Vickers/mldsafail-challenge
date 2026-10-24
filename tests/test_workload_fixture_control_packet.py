@@ -87,13 +87,16 @@ def execution_context(tmp_path,monkeypatch,*,authorized=True):
             if not authorized:raise WorkloadBlocked('fixture_root_owned_marker_required')
         def proposal(self):
             raw=Path(value['proposal']['path']).read_bytes();return raw,json.loads(raw)
+        def require_control_inspection(self,reference):
+            assert reference==value['inspection']
         def deadline(self):return 180
         def control(self,control,scenario):
             calls.append((control,scenario))
             retained=dict(verified=True,database='fixture')
             return dict(fixture_only=True,generation=self.manifest['generation'],control=control,scenario=scenario,
                 origin='local_linux',installed_native_eligible=False,paused=True,failure=None,
-                cleanup=dict(remaining=[]),retained_before=retained,retained_after=retained,
+                cleanup=dict(remaining=[],transactions='resolved',gate_state=dict(phase='cleaned',paused=True)),
+                transactions='resolved',retained_before=retained,retained_after=retained,
                 fixture_scope_termination=dict(state='empty',identity=dict(inode=5),events=dict(populated=0)),
                 observations=dict(create_calls=1,replay_create_calls=0))
     monkeypatch.setattr(module,'Fixture',Context)
@@ -119,7 +122,7 @@ def test_exact_fixture_packet_executes_once_without_native_promotion(tmp_path,mo
     assert len(calls)==1
 
 
-@pytest.mark.parametrize('field',['observations','cleanup','fixture_scope_termination','retained_after'])
+@pytest.mark.parametrize('field',['observations','cleanup','fixture_scope_termination','retained_after','transactions'])
 def test_partial_or_unverified_result_never_publishes_success(tmp_path,monkeypatch,field):
     from deploy.workload_fixture_control_packet import execute
     value,path,calls,context=execution_context(tmp_path,monkeypatch)
@@ -130,3 +133,13 @@ def test_partial_or_unverified_result_never_publishes_success(tmp_path,monkeypat
     with pytest.raises(WorkloadBlocked):execute(path,value['control'],value['scenario'],value['output'])
     assert Path(value['output']).exists()
     assert not Path(value['output']+'.result.json').exists()
+
+
+def test_supervisor_invalidation_requires_exact_refreshed_inspection(tmp_path,monkeypatch):
+    from deploy.workload_fixture_control_packet import execute
+    value,path,calls,context=execution_context(tmp_path,monkeypatch)
+    def stale(self,reference):raise WorkloadBlocked('fixture_control_inspection_stale')
+    monkeypatch.setattr(context,'require_control_inspection',stale)
+    with pytest.raises(WorkloadBlocked,match='inspection_stale'):
+        execute(path,value['control'],value['scenario'],value['output'])
+    assert not Path(value['output']).exists() and not calls
