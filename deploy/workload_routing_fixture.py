@@ -125,15 +125,26 @@ def execute(control,scenario,root,*,database=None,runtime_factory=InertControlle
                 process_births=runtime.births,process_returncode=runtime.child.returncode if runtime.child else None,
                 trace=[injection,dict(event='observation',monotonic_ns=time.monotonic_ns())],state=state)
     finally:
-        # Preserve failed/partial transaction observations before the owned
-        # PostgreSQL service can be removed by the surrounding fixture.
+        # Evidence failures must never prevent termination/disposal. Keep the
+        # first error as the blocking disposition after attempting all cleanup.
+        cleanup_errors=[]
         for index,engine in enumerate(engines):
-            try:observed=snapshot(engine)
-            except BaseException as error:observed=dict(error=dict(type=type(error).__name__,message=str(error)))
-            exclusive(root/('database-after-'+str(index)+'.json'),canonical(observed))
-        runtime.terminate({})
-        exclusive(root/'runtime-cleanup.json',canonical(dict(
-            processes=runtime.births,returncode=runtime.child.returncode if runtime.child else None,
-            live=runtime.live)))
-        for dispatcher in dispatchers:dispatcher.engine.dispose()
-        for engine in engines:engine.dispose()
+            try:
+                try:observed=snapshot(engine)
+                except BaseException as error:observed=dict(error=dict(type=type(error).__name__,message=str(error)))
+                exclusive(root/('database-after-'+str(index)+'.json'),canonical(observed))
+            except BaseException as error:cleanup_errors.append(error)
+        try:runtime.terminate({})
+        except BaseException as error:cleanup_errors.append(error)
+        try:
+            exclusive(root/'runtime-cleanup.json',canonical(dict(
+                processes=runtime.births,returncode=runtime.child.returncode if runtime.child else None,
+                live=runtime.live)))
+        except BaseException as error:cleanup_errors.append(error)
+        for dispatcher in dispatchers:
+            try:dispatcher.engine.dispose()
+            except BaseException as error:cleanup_errors.append(error)
+        for engine in engines:
+            try:engine.dispose()
+            except BaseException as error:cleanup_errors.append(error)
+        if cleanup_errors:raise cleanup_errors[0]

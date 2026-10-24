@@ -41,3 +41,26 @@ def test_failed_dispatcher_retains_sql_observations_and_reaps_creator(tmp_path):
     cleanup=json.loads((path/'runtime-cleanup.json').read_bytes())
     assert before['attempts']==0 and after['attempts']==1 and after['results']==0
     assert cleanup['processes'] and cleanup['returncode'] is not None and not cleanup['live']
+
+
+def test_evidence_write_failure_cannot_suppress_termination_or_disposal(tmp_path,monkeypatch):
+    import deploy.workload_routing_fixture as module
+    from sqlalchemy import event
+    controllers=[];disposed=[]
+    class Tracked(module.InertController):
+        def __init__(self):super().__init__();controllers.append(self)
+    original_create=module.create_engine
+    def engine(*args,**kwargs):
+        created=original_create(*args,**kwargs)
+        event.listen(created,'engine_disposed',lambda value:disposed.append(value))
+        return created
+    original_write=module.exclusive
+    def fail_after(path,data):
+        if path.name.startswith('database-after'):raise OSError('inert evidence disk exhausted')
+        return original_write(path,data)
+    monkeypatch.setattr(module,'create_engine',engine)
+    monkeypatch.setattr(module,'exclusive',fail_after)
+    with pytest.raises(OSError,match='evidence disk exhausted'):
+        execute('coordinator_routing','result_after_cleanup',tmp_path/'routing',runtime_factory=Tracked)
+    assert controllers[0].child is not None and controllers[0].child.poll() is not None
+    assert not controllers[0].live and disposed

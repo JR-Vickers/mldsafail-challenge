@@ -132,10 +132,12 @@ def administrative_case(control,scenario,root,database,runtime_factory,deadline)
                         ('pending' in error or (error=='maintenance_acquisition_failed' and holder_error=='RaiseException')),
                         'fixture_admin_unexpected_failure')
                 finally:
-                    exclusive(base/'after.json',canonical(dict(rows=rows(engine),state=copy.deepcopy(gate.state),
-                        holder_error=fences[-1].holder_error if fences else None)))
-                    # Source failures cannot leave an inert creator running.
-                    runtime.terminate(gate.state or {})
+                    try:
+                        exclusive(base/'after.json',canonical(dict(rows=rows(engine),state=copy.deepcopy(gate.state),
+                            holder_error=fences[-1].holder_error if fences else None)))
+                    finally:
+                        # Failed evidence capture cannot suppress creator reaping.
+                        runtime.terminate(gate.state or {})
                 after=rows(engine)
                 if status is None:require(binding is not None,'fixture_admin_success_missing')
                 else:
