@@ -102,6 +102,8 @@ def execute(packet_path,control,scenario,output):
             receipt.get('control')==control and receipt.get('scenario')==scenario and
             receipt.get('origin')=='local_linux' and receipt.get('installed_native_eligible') is False and
             receipt.get('paused') is True and receipt.get('failure') is None and
+            receipt.get('independent_cleanup',{}).get('verified') is True and
+            receipt.get('independent_postflight',{}).get('verified') is True and
             type(receipt.get('cleanup')) is dict and receipt['cleanup'].get('remaining')==[] and
             receipt.get('transactions')=='resolved' and receipt['cleanup'].get('transactions')=='resolved' and
             receipt['cleanup'].get('gate_state',{}).get('phase') in ('cleaned','complete') and

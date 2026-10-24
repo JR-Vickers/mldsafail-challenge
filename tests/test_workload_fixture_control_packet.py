@@ -95,6 +95,7 @@ def execution_context(tmp_path,monkeypatch,*,authorized=True):
             retained=dict(verified=True,database='fixture')
             return dict(fixture_only=True,generation=self.manifest['generation'],control=control,scenario=scenario,
                 origin='local_linux',installed_native_eligible=False,paused=True,failure=None,
+                independent_cleanup=dict(verified=True),independent_postflight=dict(verified=True),
                 cleanup=dict(remaining=[],transactions='resolved',gate_state=dict(phase='cleaned',paused=True)),
                 transactions='resolved',retained_before=retained,retained_after=retained,
                 fixture_scope_termination=dict(state='empty',identity=dict(inode=5),events=dict(populated=0)),
@@ -122,7 +123,7 @@ def test_exact_fixture_packet_executes_once_without_native_promotion(tmp_path,mo
     assert len(calls)==1
 
 
-@pytest.mark.parametrize('field',['observations','cleanup','fixture_scope_termination','retained_after','transactions'])
+@pytest.mark.parametrize('field',['observations','cleanup','fixture_scope_termination','retained_after','transactions','independent_cleanup','independent_postflight'])
 def test_partial_or_unverified_result_never_publishes_success(tmp_path,monkeypatch,field):
     from deploy.workload_fixture_control_packet import execute
     value,path,calls,context=execution_context(tmp_path,monkeypatch)
