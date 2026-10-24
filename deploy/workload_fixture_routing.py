@@ -51,6 +51,8 @@ class OwnedRoutingRuntime(InertController):
             'fixture_routing_role_not_inert')
         self.role=specification['role'];super().launch(state,specification)
         actual=process_birth(self.child.pid);self.actual_processes.append(actual);return actual
+    def stopped(self,state):
+        return super().stopped(state) and self.native.stopped(self.physical_state)
     def inspect(self,state,observed):
         if self.child is None or self.child.poll() is not None:return False
         return process_birth(self.child.pid)==observed

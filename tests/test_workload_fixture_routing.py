@@ -48,3 +48,15 @@ def test_actual_administrative_routing_and_fence(database,tmp_path,control,scena
         assert receipt['raw']['outcomes'][0]['processes']
     else:
         assert all(outcome['before']==outcome['after'] for outcome in receipt['raw']['outcomes'])
+
+
+def test_native_routing_stopped_requires_whole_owned_kernel_scope_empty():
+    from deploy.workload_fixture_routing import OwnedRoutingRuntime
+    class Native:
+        empty=False
+        def record(self,state):return {'leaf':{'path':'/sys/fs/cgroup/owned/creators','device':1,'inode':2}}
+        def stopped(self,state):return self.empty
+    native=Native();runtime=OwnedRoutingRuntime(native,{'workload_id':'a'*32})
+    assert not runtime.stopped({})
+    native.empty=True
+    assert runtime.stopped({})
