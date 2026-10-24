@@ -55,3 +55,15 @@ def test_scope_replacement_invalidates_raw_observations(monkeypatch):
     with pytest.raises(WorkloadBlocked, match='fixture_replaced'):
         observers.observe(dict(stage='installed', protocol=dict(origin='local_linux')),
             'delegation', 'inspected_limits')
+
+
+def test_nested_ordinary_mount_cannot_masquerade_as_kernel_scope(monkeypatch):
+    from types import SimpleNamespace
+    real_path = Path
+    mounts = ('1 0 0:42 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n'
+              '2 1 0:43 / /sys/fs/cgroup/owned rw - tmpfs tmpfs rw\n')
+    monkeypatch.setattr(observers.sys, 'platform', 'linux')
+    monkeypatch.setattr(observers, 'Path', lambda value: SimpleNamespace(read_text=lambda: mounts)
+        if str(value) == '/proc/self/mountinfo' else real_path(value))
+    with pytest.raises(WorkloadBlocked, match='cgroup2_mount_required'):
+        observers.kernel_scope(dict(fixture_cgroup='/sys/fs/cgroup/owned/child'))

@@ -5,6 +5,8 @@ receipt. A runner must perform its separately authorized injection and compare
 these raw observations. They cannot be satisfied with ordinary fixture files.
 """
 from pathlib import Path
+import os
+import re
 import sys
 import time
 
@@ -21,12 +23,20 @@ def kernel_scope(protocol):
     # Checking only a filename would allow ordinary files to masquerade as kernel
     # controller observations. The real mount and fixed namespace are required.
     mounts = Path('/proc/self/mountinfo').read_text().splitlines()
-    require(any(row.split()[4] == '/sys/fs/cgroup' and
+    def decode(value):
+        return re.sub(r'\\([0-7]{3})', lambda match: chr(int(match[1], 8)), value)
+    covering = [row for row in mounts if scope.is_relative_to(Path(decode(row.split()[4])))]
+    require(bool(covering), 'bound_observer_cgroup2_mount_required')
+    effective = max(covering, key=lambda row: len(Path(decode(row.split()[4])).parts))
+    require(effective.split(' - ', 1)[1].split()[0] == 'cgroup2' and
+            any(row.split()[4] == '/sys/fs/cgroup' and
                 row.split(' - ', 1)[1].split()[0] == 'cgroup2' for row in mounts),
             'bound_observer_cgroup2_mount_required')
     expected = protocol['identities'].get('fixture_birth')
     require(type(expected) is dict and birth(scope) == expected,
             'bound_observer_fixture_replaced')
+    major, minor = map(int, effective.split()[2].split(':'))
+    require(expected['device'] == os.makedev(major, minor), 'bound_observer_fixture_mount_changed')
     return scope
 
 
