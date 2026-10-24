@@ -1312,7 +1312,31 @@ class LinuxBackend:
             for preserved in result['preserved_pointers'].values():
                 require(all(preserved.get(key)==value for key,value in pending['before'].items() if key!='path'),
                         'installation_preserved_activation_changed')
-        if action=='inhibit_scheduling':result['permission_gate']=identity(self.source['permission_root'])
+        if action=='inhibit_scheduling':
+            from deploy.workload_preparation import manager_prefix
+            from deploy.workload_schedule_v3 import unit_name
+            result['permission_gate']=identity(self.source['permission_root'])
+            loaded={}
+            for identifier in self.source['scheduling']['computational_units']:
+                owner=self.source['scheduling']['owners'][identifier];name=unit_name(identifier,owner)
+                reference=self.source['inventory']['execution_references'].get(identifier)
+                require(reference is not None,'installation_inhibition_reference_missing')
+                directory=self.source['unit_directories'][owner['manager']+':'+str(owner['uid'])]
+                path=str(Path(directory)/(name+'.d')/'90-mldsafail-paused.conf')
+                require(any(resource['path']==path and resource['owner_uid']==owner['uid']
+                            for resource in self.proposal['scheduling']['resources']),
+                        'installation_inhibition_resource_missing')
+                raw=self.command([*manager_prefix(owner,self.source['host']['uid']),'show',name,'--all',
+                                  '--property=DropInPaths,NeedDaemonReload']).decode()
+                pairs=[line.split('=',1) for line in raw.splitlines() if '=' in line]
+                require(len(pairs)==2 and {key for key,value in pairs}=={'DropInPaths','NeedDaemonReload'},
+                        'installation_loaded_inhibition_observation_incomplete')
+                row=dict(pairs);row['DropInPaths']=' '.join(sorted(row['DropInPaths'].split()))
+                expected=' '.join(sorted(set(reference['DropInPaths'].split())|{path}))
+                require(row==dict(DropInPaths=expected,NeedDaemonReload='no'),
+                        'installation_loaded_inhibition_changed')
+                loaded[identifier]=row
+            result['loaded_inhibition']=loaded
         return result
 
     def apply_acknowledgements(self,step,journal):
