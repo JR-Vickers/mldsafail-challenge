@@ -14,3 +14,15 @@ def test_real_dispatcher_paths_and_sql_observations(tmp_path,control,scenario):
     else:
         assert result['after']['attempts']==0 and result['after']['results']==0
     with pytest.raises(FileExistsError):execute(control,scenario,tmp_path/'routing')
+
+
+def test_routing_fixture_refuses_symlink_or_public_parent(tmp_path):
+    owned=tmp_path/'owned';owned.mkdir(mode=0o700)
+    alias=tmp_path/'alias';alias.symlink_to(owned,target_is_directory=True)
+    with pytest.raises(ValueError,match='symlink_path'):
+        execute('coordinator_routing','deferred_admission',alias/'case')
+    assert not (owned/'case').exists()
+    owned.chmod(0o755)
+    with pytest.raises(ValueError,match='private_parent_required'):
+        execute('coordinator_routing','deferred_admission',owned/'case')
+    assert not (owned/'case').exists()

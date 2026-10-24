@@ -4,6 +4,8 @@ No source checkout, solver, evaluator or epoch is opened. Signed results describ
 synthetic data, so these receipts remain synthetic even on a Linux host.
 """
 from pathlib import Path
+import os
+import stat
 import subprocess
 import sys
 import time
@@ -51,7 +53,13 @@ class InertController(FixtureRuntime):
 
 def execute(control,scenario,root):
     if (control,scenario) not in CASES:raise ValueError('routing_fixture_case_unsupported')
-    root=Path(root);root.mkdir(mode=0o700,exist_ok=False)
+    root=Path(root).absolute()
+    if any(path.is_symlink() for path in (root,*root.parents)):
+        raise ValueError('routing_fixture_symlink_path')
+    parent=root.parent.stat()
+    if parent.st_uid!=os.getuid() or stat.S_IMODE(parent.st_mode)&0o077:
+        raise ValueError('routing_fixture_private_parent_required')
+    root.mkdir(mode=0o700,exist_ok=False)
     runtime=InertController();engines=[];dispatchers=[];sql_trace=[]
     cohort=dict(epoch_id='inert-fixture',evaluator_fingerprint='inert-fixture',
                 hidden_suite_version='inert-fixture',worker_class='inert-fixture')
