@@ -1300,6 +1300,14 @@ class LinuxBackend:
             require(pending is not None,'installation_activation_parent_intent_missing')
             candidates=[row['observed'] for row in journal.rows[journal.rows.index(pending)+1:]
                         if row['event']=='activation_candidate' and row.get('step_id')==step['id']]
+            result['selected_pointer']=identity(self.recipe['activation_pointer'])
+            if candidates:
+                require(len(candidates)==1 and all(result['selected_pointer'].get(key)==candidates[0].get(key)
+                        for key in ('device','inode','target')),'installation_activation_candidate_replaced')
+            else:
+                require(action=='restore_activation' and not journal.outcome('install:activate') and
+                        result['selected_pointer']==self.source['resources']['activation'],
+                        'installation_activation_candidate_missing')
             result['preserved_pointers']={row['path']:identity(row['path']) for row in candidates}
             for preserved in result['preserved_pointers'].values():
                 require(all(preserved.get(key)==value for key,value in pending['before'].items() if key!='path'),

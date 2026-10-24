@@ -331,3 +331,27 @@ def test_initial_unit_acknowledgement_rejects_unreviewed_loaded_sources(tmp_path
     else:
         instance.acknowledge_apply(step,journal)
         assert instance.reconcilable(step,instance.observe(step,journal),journal)
+
+
+@pytest.mark.parametrize('replacement',[None,'selected','preserved'])
+@pytest.mark.parametrize('action',['activate','restore_activation'])
+def test_activation_operation_receipt_requires_both_proven_pointer_births(tmp_path,action,replacement):
+    instance,journal=backend(tmp_path)
+    selected=tmp_path/'selected';selected.symlink_to('/old')
+    temporary=tmp_path/'candidate';temporary.symlink_to('/new')
+    step=dict(id=('install:' if action=='activate' else 'rollback:')+action,action=action)
+    before=identity(selected);candidate=identity(temporary)
+    journal.append('recovery_protocol',version=4)
+    journal.append('intent',step=step['id'],before=before)
+    journal.append('activation_candidate',step_id=step['id'],observed=candidate)
+    saved=tmp_path/'exchange';selected.rename(saved);temporary.rename(selected);saved.rename(temporary)
+    instance.recipe['activation_pointer']=str(selected)
+    if replacement:
+        target=selected if replacement=='selected' else temporary
+        unknown=tmp_path/'unknown';unknown.symlink_to(target.readlink());unknown.replace(target)
+        with pytest.raises(WorkloadBlocked,match='activation_.*changed|activation_candidate_replaced'):
+            instance.recovery_observation(step,journal)
+    else:
+        observation=instance.recovery_observation(step,journal)
+        assert observation['selected_pointer']['inode']==candidate['inode']
+        assert observation['preserved_pointers'][str(temporary)]['inode']==before['inode']
