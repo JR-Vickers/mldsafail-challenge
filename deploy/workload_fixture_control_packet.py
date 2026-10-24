@@ -15,7 +15,7 @@ from deploy.workload_v3 import validate_proposal,installed
 from mldsafail.evaluator.native_workload import require
 
 SCHEMA='mldsafail.fixture-control-packet.v1'
-FIELDS={'schema','fixture_only','execution_authority','fixture','proposal','inspection','control','scenario','output','envelope_seconds'}
+FIELDS={'schema','fixture_only','execution_authority','fixture','proposal','inspection','control','scenario','output','envelope_seconds','packet_path','case_command'}
 ENVELOPE=dict(startup=30,case=90,cleanup=45,postflight=15)
 
 
@@ -49,14 +49,23 @@ def validate(packet,*,now=None):
     output=Path(packet['output'])
     require(output.is_absolute() and str(output)==str(output.resolve(strict=False)) and output.parent==root/'artifacts' and
         re.fullmatch('case-[a-f0-9]{32}\\.json',output.name) is not None,'fixture_control_packet_output_scope')
+    packet_path=Path(packet['packet_path'])
+    require(packet_path.is_absolute() and str(packet_path)==str(packet_path.resolve(strict=False)),
+        'fixture_control_packet_path_invalid')
+    from scripts.workload_control_case import case_command
+    require(packet['case_command']==case_command(packet_path,proposal,packet['control'],packet['scenario'],output),
+        'fixture_control_packet_command_changed')
     from deploy.workload_fixture_controls import CASES
     require((packet['control'],packet['scenario']) in CASES,'fixture_control_packet_case_unimplemented')
     return packet
 
 
-def prepare(manifest_path,proposal_path,inspection_path,*,control,scenario,output,now=None):
-    packet=dict(schema=SCHEMA,fixture_only=True,execution_authority=False,
-        fixture=reference(manifest_path),proposal=reference(proposal_path),inspection=reference(inspection_path),
+def prepare(manifest_path,proposal_path,inspection_path,*,packet_path,control,scenario,output,now=None):
+    from scripts.workload_control_case import case_command
+    proposal_ref=reference(proposal_path);proposal=load_reference(proposal_ref)
+    packet=dict(schema=SCHEMA,fixture_only=True,execution_authority=False,packet_path=str(packet_path),
+        case_command=case_command(packet_path,proposal,control,scenario,output),
+        fixture=reference(manifest_path),proposal=proposal_ref,inspection=reference(inspection_path),
         control=control,scenario=scenario,output=str(output),envelope_seconds=ENVELOPE.copy())
     return validate(packet,now=now)
 
@@ -64,6 +73,7 @@ def prepare(manifest_path,proposal_path,inspection_path,*,control,scenario,outpu
 def execute(packet_path,control,scenario,output):
     """Use the fixture's existing lock/worker, not packet-manufactured authority."""
     raw,packet=private(packet_path);validate(packet)
+    require(str(Path(packet_path).absolute())==packet['packet_path'],'fixture_control_packet_path_changed')
     require((control,scenario,str(Path(output).absolute()))==(packet['control'],packet['scenario'],packet['output']),
         'fixture_control_packet_selection_changed')
     root=Path(packet['fixture']['path']).parent;output=Path(packet['output'])
@@ -89,7 +99,21 @@ def execute(packet_path,control,scenario,output):
             raise
         require(receipt.get('fixture_only') is True and receipt.get('generation')==fixture.manifest['generation'] and
             receipt.get('control')==control and receipt.get('scenario')==scenario and
-            receipt.get('origin')=='local_linux' and receipt.get('installed_native_eligible') is False,
+            receipt.get('origin')=='local_linux' and receipt.get('installed_native_eligible') is False and
+            receipt.get('paused') is True and receipt.get('failure') is None and
+            type(receipt.get('cleanup')) is dict and receipt['cleanup'].get('remaining')==[] and
+            receipt.get('retained_before',{}).get('verified') is True and
+            receipt['retained_before']==receipt.get('retained_after'),
             'fixture_control_packet_receipt_changed')
+        termination=receipt.get('fixture_scope_termination',{})
+        require(termination.get('state') in ('empty','removed') and type(termination.get('identity')) is dict and
+            (termination['state']=='removed' or termination.get('events',{}).get('populated')==0),
+            'fixture_control_packet_termination_unverified')
+        from deploy.workload_controls import SCENARIOS
+        expected=SCENARIOS[control][scenario];observed=receipt.get('observations',{})
+        require(all(type(observed.get(key)) is type(value) and observed[key]==value
+            for key,value in expected.items()),'fixture_control_packet_assertions_failed')
+        receipt=dict(receipt,packet_sha256=digest(raw),assertions=dict(fixture_scenario_passed=True,
+            full_scenario_passed=False,installed_native_eligible=False))
         exclusive(output.with_name(output.name+'.result.json'),canonical(dict(packet_sha256=digest(raw),receipt=receipt)))
         return receipt

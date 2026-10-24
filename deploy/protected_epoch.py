@@ -99,6 +99,15 @@ def run(packet_path, authorization_path, *, client=None, fence_factory=make_fenc
     packet = validate(private_json(packet_path), execution=True)
     client = client or WorkloadClient(packet['workload_socket'], packet['client_journal'])
     reference = dict(operation_id=packet['operation_id'], packet_sha256=hashlib.sha256(raw).hexdigest())
+    return _route_administration(packet,reference,client,fence_factory)
+
+
+def _route_administration(packet,reference,client,fence_factory):
+    """Trusted sequencing shared with fixed inert fixture controls.
+
+    Production callers enter only through run's unchanged exact authorization.
+    This helper grants no native role authority; the runtime checks that separately.
+    """
     # This marker is exclusive across retries and predates every computational
     # controller. Native/control acceptance never invokes this entrypoint.
     attempt = Path(packet['attempt'])
