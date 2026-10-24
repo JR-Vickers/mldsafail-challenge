@@ -144,3 +144,36 @@ def test_fixture_refuses_nonprivate_parent_before_effects(tmp_path):
             execute('shared_host_gate','cross_database_and_admin',tmp_path/'case')
         assert not (tmp_path/'case').exists()
     finally:tmp_path.chmod(0o700)
+
+
+def test_case_assertions_fail_on_observed_cleanup_failure(tmp_path,monkeypatch):
+    from deploy import workload_control_fixture as fixture
+    from scripts.workload_control_case import assertions
+    monkeypatch.setattr(fixture.FixtureRuntime,'terminate',lambda self,state:False)
+    result=fixture.execute('verified_cleanup','empty_scope_and_absent_containers',tmp_path/'case')
+    check=assertions(result)
+    assert result['after']['live'] is True
+    assert check['regression_passed'] is False and check['full_scenario_passed'] is False
+    assert any(row['field']=='populated' and not row['passed'] for row in check['checks'])
+
+
+def test_case_assertions_distinguish_process_scope_and_missing_measurements():
+    from scripts.workload_control_case import assertions
+    receipt=dict(control='verified_cleanup',scenario='empty_scope_and_absent_containers',
+        origin='local_linux',scope='generation_owned_inert_processes_only',
+        observations={'owned_processes':0},fixture_cleanup={'live_runtime_resources_after':False})
+    check=assertions(receipt)
+    assert check['full_scenario_passed'] is False
+    assert check['unmeasured']==['populated','containers']
+
+
+def test_cli_returns_failure_for_observation_without_full_assertions(tmp_path,monkeypatch,capsys):
+    import sys
+    from scripts import workload_control_case as entry
+    monkeypatch.setattr(sys,'argv',['workload_control_case','--packet',str(tmp_path/'packet'),
+        '--control','verified_cleanup','--scenario','empty_scope_and_absent_containers','--output',str(tmp_path/'output')])
+    monkeypatch.setattr(entry,'run',lambda *args:dict(origin='local_linux',packet_sha256='a'*64,
+        assertions={'regression_passed':True,'full_scenario_passed':False,'unmeasured':['containers']}))
+    with pytest.raises(SystemExit) as status:entry.main()
+    assert status.value.code==2
+    assert '"full_scenario_passed": false' in capsys.readouterr().out

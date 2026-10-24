@@ -7,6 +7,7 @@ from pathlib import Path
 from deploy.workload_acceptance_packet import validate, load_reference
 from deploy.workload_control_fixture import execute
 from deploy.workload_control_registry import get_runner
+from deploy.workload_controls import SCENARIOS
 from deploy.workload_installation import private
 from deploy.workload_release import canonical, digest
 from mldsafail.evaluator.native_workload import require
@@ -19,6 +20,37 @@ def case_command(packet_path, proposal, control, scenario, output):
         'PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1',str(release/'.venv/bin/python'),
         '-P','-m','scripts.workload_control_case','--packet',str(Path(packet_path).absolute()),
         '--control',control,'--scenario',scenario,'--output',str(Path(output).absolute())]
+
+
+def assertions(receipt):
+    """Compare observed values; missing measurements never become healthy defaults."""
+    control=receipt['control'];scenario=receipt['scenario']
+    observed=receipt['observations'];expected=SCENARIOS[control][scenario]
+    checks=[]
+    for field,value in expected.items():
+        present=field in observed
+        checks.append(dict(field=field,measured=present,passed=present and
+            type(observed[field]) is type(value) and observed[field]==value))
+    if control=='continuous_monitor':
+        for field,limit in (('abort_latency_ms',1100),('control_read_ms',850)):
+            value=observed.get(field)
+            checks.append(dict(field=field,measured=field in observed,
+                passed=type(value) in (int,float) and 0<=value<=limit))
+    if control=='bounded_output':
+        checks.append(dict(field='kernel_enforcement',measured='enforcement' in observed,
+            passed=observed.get('enforcement')=='kernel'))
+    cleanup=receipt.get('fixture_cleanup',{})
+    checks.append(dict(field='fixture_cleanup',measured=bool(cleanup),
+        passed=cleanup.get('live_runtime_resources_after') is False))
+    regression_passed=all(row['passed'] for row in checks)
+    required=get_runner(control,scenario)['required_origin']
+    origin_accepted=(receipt['origin']=='installed_native' if required=='installed_native' else
+        receipt['origin'] in ('synthetic','disposable_database','local_linux'))
+    # A process-only adapter cannot prove Docker/cgroup/full installed behavior.
+    full_context=receipt.get('scope')!='generation_owned_inert_processes_only'
+    return dict(checks=checks,unmeasured=[row['field'] for row in checks if not row['measured']],
+        regression_passed=regression_passed,required_origin=required,origin_accepted=origin_accepted,
+        full_scenario_passed=regression_passed and origin_accepted and full_context)
 
 
 def run(packet_path, control, scenario, output):
@@ -45,6 +77,7 @@ def run(packet_path, control, scenario, output):
         stream.write(canonical(intent));stream.flush();os.fsync(stream.fileno())
     receipt=runner(control,scenario,output.with_name(output.name+'.fixture'))
     receipt['packet_sha256']=digest(raw)
+    receipt['assertions']=assertions(receipt)
     # Keep intent immutable. Publish the completed observation exclusively too.
     result=output.with_name(output.name+'.result.json')
     descriptor=os.open(result,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
@@ -62,7 +95,9 @@ def main():
     args=parser.parse_args()
     receipt=run(args.packet,args.control,args.scenario,args.output)
     print(json.dumps(dict(origin=receipt['origin'],packet_sha256=receipt['packet_sha256'],
-        control=args.control,scenario=args.scenario,installed_native_eligible=False),sort_keys=True))
+        control=args.control,scenario=args.scenario,installed_native_eligible=False,
+        assertions=receipt['assertions']),sort_keys=True))
+    raise SystemExit(0 if receipt['assertions']['full_scenario_passed'] else 2)
 
 
 if __name__=='__main__':main()
