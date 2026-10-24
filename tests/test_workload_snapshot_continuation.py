@@ -100,7 +100,7 @@ def test_legacy_journal_cannot_acquire_partial_continuation(tmp_path):
     assert Journal(tmp_path/'journal', digest(raw)).recovery_protocol==1
 
 
-@pytest.mark.parametrize('version', [1, 4, None])
+@pytest.mark.parametrize('version', [1, 5, None])
 def test_unknown_protocol_is_rejected(tmp_path, version):
     root=tmp_path/'journal';root.mkdir(mode=0o700)
     journal=Journal(root,'a'*64);journal.append('recovery_protocol',version=version)

@@ -27,7 +27,7 @@ ROLLBACK = ('inhibit_scheduling', 'inhibit_containers', 'stop_supervisor', 'veri
 SNAPSHOTS=('original-units.json','original-scheduling-files.json','original-scheduling.json','original-container-policies.json')
 SCHEDULING_FILE_MAX=1024**2
 SCHEDULING_SNAPSHOT_MAX=16*1024**2
-RECOVERY_PROTOCOL = 3
+RECOVERY_PROTOCOL = 4
 
 
 def supervisor_enable_contents(proposal):
@@ -35,6 +35,8 @@ def supervisor_enable_contents(proposal):
 
 
 def compile_steps(proposal):
+    from deploy.workload_recovery_inventory import inventory
+    inventory()
     source=proposal['identities']; recipe=source['recipe']
     steps=[]
     for phase,names in (('install',INSTALL),('rollback',ROLLBACK)):
@@ -173,7 +175,7 @@ class Journal:
         headers=[row for row in self.rows if row['event']=='recovery_protocol']
         require(not headers or (len(headers)==1 and self.rows[0]==headers[0] and
                 type(headers[0].get('version')) is int and
-                headers[0]['version'] in (2, RECOVERY_PROTOCOL)),'installation_recovery_protocol_invalid')
+                headers[0]['version'] in (2, 3, RECOVERY_PROTOCOL)),'installation_recovery_protocol_invalid')
     @property
     def recovery_protocol(self):
         return self.rows[0]['version'] if self.rows and self.rows[0]['event']=='recovery_protocol' else 1
@@ -247,6 +249,9 @@ def execute(proposal,proposal_raw,review_raw,authority,backend,*,phase='install'
             if prior and prior['event'] not in ('reconciled_absent','reconciled_partial'):
                 require(prior['event'] in ('outcome','reconciled'),'installation_ambiguous_outcome_reconcile_required')
                 require(backend.observe(step,journal)==prior['observed'],'installation_completed_step_identity_changed')
+                if journal.recovery_protocol == 4 and hasattr(backend,'recovery_observation'):
+                    require(prior.get('operation_observation')==backend.recovery_observation(step,journal),
+                            'installation_completed_operation_postconditions_changed')
                 continue
             before=(backend.continuation_before(step,journal) if prior and prior['event']=='reconciled_partial'
                     else backend.before(step,journal))
@@ -262,7 +267,10 @@ def execute(proposal,proposal_raw,review_raw,authority,backend,*,phase='install'
             if fault: fault(step['id'],'applied')
             outcome=backend.observe(step,journal)
             require(backend.valid_outcome(step,outcome,journal),'installation_outcome_not_verified')
-            journal.append('outcome',step=step['id'],observed=outcome)
+            extra={}
+            if journal.recovery_protocol == 4 and hasattr(backend,'recovery_observation'):
+                extra['operation_observation']=backend.recovery_observation(step,journal)
+            journal.append('outcome',step=step['id'],observed=outcome,**extra)
             if fault: fault(step['id'],'outcome')
         authorize(proposal_raw,review_raw,authority,phase)
         journal.append('phase_complete',phase=phase)
@@ -292,8 +300,17 @@ def reconcile(proposal,proposal_raw,review_raw,authority,backend,*,phase='instal
                 if substeps:
                     journal.append('substep_reconciliation_observation',step_id=step['id'],substeps=substeps)
                 try:
-                    actual=backend.observe(step,journal)
-                    valid=backend.valid_outcome(step,actual,journal)
+                    try:
+                        actual=backend.observe(step,journal)
+                        valid=backend.valid_outcome(step,actual,journal)
+                    except BaseException:
+                        if not (journal.recovery_protocol == 4 and hasattr(backend,'partial_observation') and
+                                step['action'] in ('copy_bundle','tools')):raise
+                        actual=backend.partial_observation(step,journal)
+                        valid=False
+                    if (not valid and journal.recovery_protocol == 4 and hasattr(backend,'partial_observation') and
+                            step['action'] in ('copy_bundle','tools')):
+                        actual=backend.partial_observation(step,journal)
                     bound=valid and backend.reconcilable(step,actual,journal)
                     absent=not valid and hasattr(backend,'absent_reconcilable') and backend.absent_reconcilable(step,actual,journal)
                     status='completed' if bound else 'ambiguous'
@@ -315,7 +332,7 @@ def reconcile(proposal,proposal_raw,review_raw,authority,backend,*,phase='instal
                     authorize(proposal_raw,review_raw,authority,phase)
                     journal.append('reconciled_absent',step=step['id'],observed=actual)
                     continue
-                if (not bound and journal.recovery_protocol in (2, RECOVERY_PROTOCOL) and
+                if (not bound and journal.recovery_protocol in (2, 3, RECOVERY_PROTOCOL) and
                         hasattr(backend,'partial_reconcilable') and backend.partial_reconcilable(step,actual,journal)):
                     authorize(proposal_raw,review_raw,authority,phase)
                     journal.append('reconciled_partial',step=step['id'],observed=actual)
@@ -325,7 +342,10 @@ def reconcile(proposal,proposal_raw,review_raw,authority,backend,*,phase='instal
                 # ownership from its name or bytes alone.
                 require(bound,'installation_creation_identity_unacknowledged')
                 authorize(proposal_raw,review_raw,authority,phase)
-                journal.append('reconciled',step=step['id'],observed=actual)
+                extra={}
+                if journal.recovery_protocol == 4 and hasattr(backend,'recovery_observation'):
+                    extra['operation_observation']=backend.recovery_observation(step,journal)
+                journal.append('reconciled',step=step['id'],observed=actual,**extra)
     return journal.rows
 
 
@@ -687,8 +707,14 @@ class LinuxBackend:
                     if actual['state']!='absent':
                         actual=dict(identity=actual,inventory_sha256=digest(canonical(
                             verify_tree(target,self.source['manifest']['tools'][role]['members']))))
+                elif step['action']=='prerequisites' and journal.recovery_protocol == 4:
+                    from deploy.workload_recovery_inventory import observe_prerequisite
+                    actual=observe_prerequisite(row['resource'],self.source,self.command)
+                elif effect.get('effect')=='exclusive_directory' and journal.recovery_protocol == 4:
+                    actual=identity(effect['path'])
                 else:
-                    result.append(dict(record,status='observation_required'));continue
+                    result.append(dict(record,status='observation_required',
+                        disposition='unacknowledged_or_incomplete_effect_preserve_and_block'));continue
                 result.append(dict(record,status=classify(journal,row['resource'],actual),observed=actual))
             except BaseException as error:
                 result.append(dict(record,status='ambiguous',
@@ -697,9 +723,11 @@ class LinuxBackend:
     def partial_reconcilable(self,step,value,journal):
         # Protocol 2 retains snapshot-only continuation. Protocol 3 additionally
         # admits acknowledged configuration files. Neither replays external effects.
-        if journal.recovery_protocol==3 and step['id']=='install:configurations':
+        if journal.recovery_protocol == 4 and step['id'] in ('install:copy_bundle','install:tools'):
+            return self.artifact_continuable(step,value,journal)
+        if journal.recovery_protocol in (3,4) and step['id']=='install:configurations':
             return self.configuration_continuable(step,value,journal)
-        if journal.recovery_protocol not in (2,3) or step['id']!='install:snapshot':return False
+        if journal.recovery_protocol not in (2,3,4) or step['id']!='install:snapshot':return False
         rows=self.snapshot_substeps(journal)
         if not rows or set(value)!=set(SNAPSHOTS):return False
         for name in SNAPSHOTS:
@@ -711,7 +739,7 @@ class LinuxBackend:
                 if value[name].get('state')!='absent':return False
                 continue
             if len(records)!=2 or len(intents)!=1 or len(outcomes)!=1:return False
-            if journal.recovery_protocol==3:
+            if journal.recovery_protocol in (3,4):
                 from deploy.workload_mutation import classify
                 if classify(journal,resource,value[name])!='completed':return False
             expected=intents[0].get('expected_effect')
@@ -719,6 +747,91 @@ class LinuxBackend:
             if (outcomes[0]['observed']!=value[name] or value[name].get('sha256')!=expected.get('sha256') or
                     expected.get('path')!=str(journal.root/name)):return False
         return all(row['resource'] in {'snapshot:'+name for name in SNAPSHOTS} for row in rows)
+    def artifact_specs(self,step):
+        """Exact construction inventory; unknown filesystem entries are blocked."""
+        if step['action']=='copy_bundle':
+            files={str(self.bundle/name):dict(sha256=row['sha256'],mode=row['mode'])
+                   for name,row in self.source['manifest']['files'].items()}
+            files[str(self.bundle/'manifest.json')]=dict(sha256=digest(canonical(self.source['manifest'])),mode=0o600)
+            directories={str(self.bundle)}
+            for path in files:
+                directories.update(str(parent) for parent in Path(path).parents
+                                   if parent==self.bundle or parent.is_relative_to(self.bundle))
+            return dict(directories=sorted(directories,key=lambda path:(len(Path(path).parts),path)),files=files,tools={})
+        if step['action']=='tools':
+            return dict(directories=[str(self.root/'tools')],files={},
+                        tools={str(self.root/'tools'/role):row for role,row in self.source['manifest'].get('tools',{}).items()})
+        require(False,'installation_partial_artifact_unsupported')
+    def partial_observation(self,step,journal):
+        from deploy.workload_artifacts import verify_tree
+        specs=self.artifact_specs(step)
+        result=dict(directories={path:identity(path) for path in specs['directories']},
+                    files={path:identity(path) for path in specs['files']},tools={})
+        for path,row in specs['tools'].items():
+            actual=identity(path)
+            if actual['state']!='absent':
+                try:actual=dict(identity=actual,inventory_sha256=digest(canonical(verify_tree(path,row['members']))))
+                except BaseException as error:
+                    actual=dict(identity=actual,unverified=type(error).__name__)
+            result['tools'][path]=actual
+        # Do not silently adopt extra children, including incomplete extra files.
+        roots=specs['directories'][:1]
+        allowed=set(specs['directories'])|set(specs['files'])|set(specs['tools'])
+        if roots and Path(roots[0]).is_symlink():
+            result['unexpected']=[roots[0]]
+        elif step['action']=='copy_bundle' and roots and Path(roots[0]).is_dir():
+            result['unexpected']=sorted(str(path) for path in Path(roots[0]).rglob('*') if str(path) not in allowed)
+        elif step['action']=='tools' and roots and Path(roots[0]).is_dir():
+            result['unexpected']=sorted(str(path) for path in Path(roots[0]).iterdir() if str(path) not in allowed)
+        else:result['unexpected']=[]
+        return result
+    def artifact_continuable(self,step,value,journal):
+        from deploy.workload_mutation import classify
+        if value!=self.partial_observation(step,journal) or value.get('unexpected'):return False
+        specs=self.artifact_specs(step);allowed={}
+        for path in specs['directories']:
+            allowed[step['id']+':directory:'+path]=(value['directories'][path],
+                dict(path=path,effect='exclusive_directory',mode=0o700,parent_identity=identity(Path(path).parent)))
+        for path,expected in specs['files'].items():
+            allowed[step['id']+':'+path]=(value['files'][path],dict(path=path,effect='exclusive_file',
+                parent_identity=identity(Path(path).parent),**expected))
+        for path,row in specs['tools'].items():
+            from pathlib import PurePosixPath
+            expanded=dict(row['members'])
+            for name in row['members']:
+                for parent in PurePosixPath(name).parents:
+                    if str(parent)!='.':expanded.setdefault(str(parent),dict(kind='directory',mode=0o700))
+            allowed[step['id']+':'+Path(path).name]=(value['tools'][path],dict(path=path,
+                inventory_sha256=digest(canonical(expanded))))
+        rows=[row for row in journal.rows if row.get('step_id')==step['id'] and
+              row['event'] in ('mutation_intent','mutation_outcome','mutation_failed')]
+        if not rows or any(row['resource'] not in allowed for row in rows):return False
+        for resource,(actual,effect) in allowed.items():
+            records=[row for row in rows if row['resource']==resource]
+            if not records:
+                if actual.get('state')!='absent':return False
+            else:
+                if len(records)!=2 or any(row.get('expected_effect')!=effect for row in records):return False
+                if classify(journal,resource,actual)!='completed':return False
+        return True
+    def directory_substep(self,step,journal,path):
+        from deploy.workload_mutation import mutate,classify
+        path=Path(path)
+        require(not any(parent.is_symlink() for parent in (path,*path.parents)),
+                'installation_directory_parent_symlink')
+        effect=dict(path=str(path),effect='exclusive_directory',mode=0o700,parent_identity=identity(path.parent))
+        resource=step['id']+':directory:'+str(path)
+        records=[row for row in journal.rows if row['event']=='mutation_intent' and row.get('resource')==resource]
+        if records:
+            require(any(row['event']=='reconciled_partial' and row.get('step')==step['id'] for row in journal.rows) and
+                    records[0].get('expected_effect')==effect and classify(journal,resource,identity(path))=='completed',
+                    'installation_directory_substep_changed')
+            return
+        def create():
+            path.mkdir(mode=0o700);sync_directory(path.parent)
+        self.mutation_deadline()
+        mutate(journal,resource,lambda:identity(path),create,step_id=step['id'],expected_effect=effect,
+               validate=lambda actual:actual.get('state')=='observed' and actual.get('mode')==0o700)
     def configuration_continuable(self,step,value,journal):
         """Only unchanged acknowledged writes and never-attempted files continue.
 
@@ -749,7 +862,8 @@ class LinuxBackend:
             if value[role].get('sha256')!=expected[role] or value[role].get('mode')!=0o600:return False
         return bool(rows) and all(row['resource'] in allowed for row in rows)
     def continuation_before(self,step,journal):
-        value=self.observe(step,journal)
+        value=(self.partial_observation(step,journal) if journal.recovery_protocol == 4 and
+               step['action'] in ('copy_bundle','tools') else self.observe(step,journal))
         require(self.partial_reconcilable(step,value,journal),'installation_partial_resources_changed')
         return value
     def file_substep(self,step,journal,path,expected,action):
@@ -757,14 +871,14 @@ class LinuxBackend:
         from deploy.workload_mutation import mutate
         path=Path(path)
         effect=dict(path=str(path),effect='exclusive_file',**expected)
-        if journal.recovery_protocol==3 and step['id']=='install:configurations':
+        if journal.recovery_protocol == 4 or (journal.recovery_protocol == 3 and step['id']=='install:configurations'):
             require(not any(parent.is_symlink() for parent in (path,*path.parents)),
                     'installation_configuration_parent_symlink')
             effect['parent_identity']=identity(path.parent)
         resource=step['id']+':'+str(path)
         records=[row for row in journal.rows if row.get('resource')==resource and
                  row['event']=='mutation_intent']
-        if records and journal.recovery_protocol==3 and step['id']=='install:configurations':
+        if records and (journal.recovery_protocol == 4 or (journal.recovery_protocol == 3 and step['id']=='install:configurations')):
             from deploy.workload_mutation import classify
             require(any(row['event']=='reconciled_partial' and row.get('step')==step['id']
                         for row in journal.rows),'installation_partial_reconciliation_required')
@@ -783,10 +897,10 @@ class LinuxBackend:
         expected=dict(path=str(path),sha256=digest(data),effect='exclusive_private_snapshot')
         records=[row for row in self.snapshot_substeps(journal) if row['resource']==resource]
         if records:
-            require(journal.recovery_protocol in (2,3) and
+            require(journal.recovery_protocol in (2,3,4) and
                     any(row['event']=='reconciled_partial' and row.get('step')=='install:snapshot'
                         for row in journal.rows),'installation_partial_reconciliation_required')
-            if journal.recovery_protocol==3:
+            if journal.recovery_protocol in (3,4):
                 from deploy.workload_mutation import classify
                 require(classify(journal,resource,identity(path))=='completed',
                         'installation_snapshot_substep_changed')
@@ -837,7 +951,10 @@ class LinuxBackend:
         elif action=='copy_bundle':
             # Destination is exclusively created inside an acknowledged release.
             require(identity(self.root)==self._outcome(journal,'install:create_release'),'installation_release_replaced')
-            self.bundle.mkdir(mode=0o700)
+            if journal.recovery_protocol == 4:
+                for directory in self.artifact_specs(step)['directories']:
+                    self.directory_substep(step,journal,directory)
+            else:self.bundle.mkdir(mode=0o700)
             for name,row in self.source['manifest']['files'].items():
                 destination=self.bundle/name
                 destination.parent.mkdir(parents=True,mode=0o700,exist_ok=True)
@@ -853,7 +970,9 @@ class LinuxBackend:
             if tools:
                 from deploy.workload_artifacts import extract,verify_tree
                 from deploy.workload_mutation import mutate
-                root=self.root/'tools';root.mkdir(mode=0o700);sync_directory(root.parent)
+                root=self.root/'tools'
+                if journal.recovery_protocol == 4:self.directory_substep(step,journal,root)
+                else:root.mkdir(mode=0o700);sync_directory(root.parent)
                 for role,row in tools.items():
                     data,_=regular(self.bundle,row['archive'])
                     target=root/role
@@ -867,6 +986,15 @@ class LinuxBackend:
                         for parent in PurePosixPath(name).parents:
                             if str(parent)!='.':expanded.setdefault(str(parent),dict(kind='directory',mode=0o700))
                     expected_inventory=digest(canonical(expanded))
+                    resource=step['id']+':'+role
+                    prior=[record for record in journal.rows if record['event']=='mutation_intent' and record.get('resource')==resource]
+                    if prior and journal.recovery_protocol == 4:
+                        from deploy.workload_mutation import classify
+                        require(any(record['event']=='reconciled_partial' and record.get('step')==step['id'] for record in journal.rows) and
+                                prior[0].get('expected_effect')==dict(path=str(target),inventory_sha256=expected_inventory) and
+                                classify(journal,resource,observe_tool())=='completed',
+                                'installation_tool_substep_changed')
+                        continue
                     self.mutation_deadline()
                     mutate(journal,step['id']+':'+role,observe_tool,lambda:extract(data,target,row['members']),
                         step_id=step['id'],expected_effect=dict(path=str(target),inventory_sha256=expected_inventory),
@@ -1110,17 +1238,108 @@ class LinuxBackend:
                       path.stat().st_gid!=original['gid']):return False
             return set(value)==set(self.proposal['units'])
         return value.get('verified') is True
+    @measured_by_engine
+    def recovery_observation(self,step,journal):
+        """Additional operation-specific external identities for v4 receipts.
+
+        The ordinary observer still validates the full release, mount, container,
+        socket and scheduling postconditions. These observations cover effects
+        which cannot be established from desired file bytes alone.
+        """
+        action=step['action'];result={}
+        if action in ('copy_bundle','tools','dependencies','images','configurations'):
+            result['release']=identity(self.root)
+        if action=='tools' and self.source['manifest'].get('tools'):
+            result['tools_parent']=identity(self.root/'tools')
+        if action=='dependencies':result['venv']=identity(self.root/'.venv')
+        if action=='images':
+            result['private_client']=identity(self.root/'offline-docker-client')
+            result['client_configuration']=identity(self.root/'offline-docker-client'/'config.json')
+        if action in ('images','inhibit_containers','start_paused','stop_supervisor'):
+            from deploy.workload_configuration import templates
+            from mldsafail.evaluator.native_workload import NativeRuntime
+            result['runtime']=NativeRuntime(templates(self.source)['native']).identity()
+            require(result['runtime']==self.source['host']['runtime_identity'],
+                    'installation_operation_daemon_changed')
+        if action in ('units','supervisor_unit','restore_units'):
+            result['manager']=identity(self.source['host']['user_manager']['path'])
+            names=self.proposal['units'] if action=='restore_units' else self.unit_names(action)
+            loaded={};fields=('LoadState','FragmentPath','SourcePath','DropInPaths','NeedDaemonReload')
+            for name in names:
+                raw=self.command(['/usr/bin/systemctl','--user','show',name,'--all',
+                                  '--property='+','.join(fields)]).decode()
+                pairs=[line.split('=',1) for line in raw.splitlines() if '=' in line]
+                require(len(pairs)==len(fields) and {key for key,value in pairs}==set(fields),
+                        'installation_loaded_unit_observation_incomplete')
+                row=dict(pairs)
+                require(row['NeedDaemonReload']=='no','installation_unit_reload_unverified')
+                expected=dict(LoadState='loaded',FragmentPath=
+                    str(Path(self.source['installation']['unit_directory'])/name),SourcePath='',DropInPaths='')
+                if action=='restore_units':
+                    original=self.original_units(journal)[expected['FragmentPath']]
+                    if original['state']=='absent':expected.update(LoadState='not-found',FragmentPath='')
+                    # Preserve only previously inventoried drop-ins and the exact
+                    # inhibition files this proposal deliberately leaves active.
+                    from deploy.workload_schedule_v3 import unit_name
+                    for identifier,owner in self.source['scheduling']['owners'].items():
+                        if owner['manager']!='user' or owner['uid']!=self.source['host']['uid']:continue
+                        if unit_name(identifier,owner)!=name:continue
+                        reference=self.source['inventory']['execution_references'][identifier]
+                        expected['FragmentPath']=reference['FragmentPath']
+                        expected['LoadState']='loaded' if reference['FragmentPath'] else 'not-found'
+                        expected['DropInPaths']=reference['DropInPaths']
+                    inhibition=[resource['path'] for resource in self.proposal['scheduling']['resources']
+                        if resource['owner_uid']==self.source['host']['uid'] and Path(resource['path']).parent.name==name+'.d']
+                    expected['DropInPaths']=' '.join(sorted(set(expected['DropInPaths'].split())|set(inhibition)))
+                require(all(row[key]==value for key,value in expected.items()),
+                        'installation_loaded_unit_selection_changed')
+                loaded[name]=row
+            result['loaded_units']=loaded
+        if action in ('activate','restore_activation'):
+            pending=next((row for row in reversed(journal.rows) if row['event']=='intent' and row.get('step')==step['id']),None)
+            require(pending is not None,'installation_activation_parent_intent_missing')
+            candidates=[row['observed'] for row in journal.rows[journal.rows.index(pending)+1:]
+                        if row['event']=='activation_candidate' and row.get('step_id')==step['id']]
+            result['preserved_pointers']={row['path']:identity(row['path']) for row in candidates}
+            for preserved in result['preserved_pointers'].values():
+                require(all(preserved.get(key)==value for key,value in pending['before'].items() if key!='path'),
+                        'installation_preserved_activation_changed')
+        if action=='inhibit_scheduling':result['permission_gate']=identity(self.source['permission_root'])
+        return result
+
     def apply_acknowledgements(self,step,journal):
         pending=journal.outcome(step['id'])
         if not pending or pending['event']!='intent':return []
-        return [row for row in journal.rows[journal.rows.index(pending)+1:]
+        rows = [row for row in journal.rows[journal.rows.index(pending)+1:]
                 if row['event']=='resource_acknowledgement' and row.get('step_id')==step['id']]
+        if journal.recovery_protocol == 4:
+            from deploy.workload_recovery_inventory import transition
+            require(len(rows) <= 1, 'installation_duplicate_resource_acknowledgement')
+            for row in rows:
+                require(row.get('parent_intent_sha256') == digest(canonical(pending)) and
+                        row.get('operation') == step['action'] and
+                        row.get('resource_identity') == pending['before'] and
+                        row.get('expected_transition') == transition(step),
+                        'installation_resource_acknowledgement_binding_invalid')
+                if hasattr(self,'recovery_observation'):
+                    require(row.get('operation_observation') == self.recovery_observation(step,journal),
+                            'installation_operation_postconditions_changed')
+        return rows
     def acknowledge_apply(self,step,journal):
         # A whole-step resource acknowledgement is distinct from its final
         # engine outcome. Interruption after it need not discard proven births.
         observed=self.observe(step,journal)
         require(self.valid_outcome(step,observed,journal),'installation_apply_not_verified')
-        journal.append('resource_acknowledgement',step_id=step['id'],observed=observed)
+        binding = {}
+        if journal.recovery_protocol == 4:
+            from deploy.workload_recovery_inventory import transition
+            pending = journal.outcome(step['id'])
+            require(pending and pending['event'] == 'intent', 'installation_acknowledgement_parent_required')
+            binding = dict(parent_intent_sha256=digest(canonical(pending)), operation=step['action'],
+                           resource_identity=pending['before'], expected_transition=transition(step))
+            if hasattr(self,'recovery_observation'):
+                binding['operation_observation'] = self.recovery_observation(step,journal)
+        journal.append('resource_acknowledgement',step_id=step['id'],observed=observed,**binding)
     def absent_reconcilable(self,step,value,journal):
         # Only these operations have no external effects beyond the observed
         # files. Scheduling, Docker, units and prerequisite partial progress
@@ -1150,7 +1369,18 @@ class LinuxBackend:
 
     def reconcilable(self,step,value,journal):
         acknowledgements=self.apply_acknowledgements(step,journal)
-        if acknowledgements:return len(acknowledgements)==1 and acknowledgements[0]['observed']==value
+        if acknowledgements:
+            return (len(acknowledgements)==1 and acknowledgements[0]['observed']==value and
+                    (journal.recovery_protocol != 4 or self.valid_outcome(step,value,journal)))
+        if journal.recovery_protocol == 4:
+            from deploy.workload_recovery_inventory import OPERATIONS
+            # Desired settings, names and bytes alone never prove ownership of
+            # an unacknowledged external operation. Read-only checks can repeat.
+            _, effects = OPERATIONS[step['action']]
+            if all(kind == 'read_only' for _,kind in effects):
+                return self.valid_outcome(step,value,journal)
+            if step['action'] not in ('activate','restore_activation','restore_units'):
+                return False
         # Any unacknowledged creation might belong to another operation.
         if step['action'] in ('activate','restore_activation'):
             if step['action']=='restore_activation' and not journal.outcome('install:activate'):

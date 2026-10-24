@@ -15,7 +15,7 @@ def mutate(journal, resource, observe, action, *, fault=None, step_id=None,
         pending=next((row for row in reversed(journal.rows) if row['event']=='intent'),None)
         step_id=pending['step'] if pending else None
     binding=dict(step_id=step_id,expected_effect=expected_effect)
-    if journal.recovery_protocol == 3:
+    if journal.recovery_protocol in (3, 4):
         from deploy.workload_release import canonical, digest
         parent = next((row for row in reversed(journal.rows)
                        if row.get('step') == step_id and row['event'] == 'intent'), None)
@@ -23,8 +23,13 @@ def mutate(journal, resource, observe, action, *, fault=None, step_id=None,
         binding.update(parent_intent_sha256=digest(canonical(parent)),
                        operation=(expected_effect or {}).get('effect', resource))
     before = observe()
+    if journal.recovery_protocol == 4:
+        # Bind identity and transition independently of the operation's label.
+        binding.update(resource_identity=before,
+                       expected_transition=expected_effect or dict(effect=resource,
+                           postcondition='operation_specific_observation_required'))
     journal.append('mutation_intent', resource=resource, before=before,**binding)
-    if journal.recovery_protocol == 3:
+    if journal.recovery_protocol in (3, 4):
         from deploy.workload_release import canonical, digest
         binding['mutation_intent_sha256'] = digest(canonical(journal.rows[-1]))
     if fault: fault(resource, 'intent')
@@ -59,7 +64,7 @@ def classify(journal, resource, actual):
     require(rows and rows[0]['event'] == 'mutation_intent', 'mutation_intent_missing')
     intent = rows[0]
     outcome = next((row for row in reversed(rows) if row['event'] == 'mutation_outcome'), None)
-    if journal.recovery_protocol == 3:
+    if journal.recovery_protocol in (3, 4):
         from deploy.workload_release import canonical, digest
         parent = next((row for row in journal.rows if row['event'] == 'intent' and
                        digest(canonical(row)) == intent.get('parent_intent_sha256')), None)
@@ -70,10 +75,16 @@ def classify(journal, resource, actual):
         for row in rows[1:]:
             require(row.get('mutation_intent_sha256') == digest(canonical(intent)) and
                     all(row.get(key) == intent.get(key) for key in
-                        ('step_id', 'expected_effect', 'parent_intent_sha256', 'operation')),
+                        (('step_id', 'expected_effect', 'parent_intent_sha256', 'operation') +
+                         (('resource_identity', 'expected_transition') if journal.recovery_protocol == 4 else ()))),
                     'mutation_receipt_binding_invalid')
         require(len([row for row in rows if row['event'] == 'mutation_outcome']) <= 1,
                 'mutation_duplicate_outcome')
+    if journal.recovery_protocol == 4:
+        require(intent.get('resource_identity') == intent['before'] and
+                intent.get('expected_transition') == (intent.get('expected_effect') or dict(
+                    effect=resource, postcondition='operation_specific_observation_required')),
+                'mutation_transition_binding_invalid')
     if outcome:
         return 'completed' if actual == outcome['observed'] else 'replaced'
     # Unchanged observations alone cannot establish absence of side effects.
