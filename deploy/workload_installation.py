@@ -408,7 +408,8 @@ class LinuxBackend:
         return json.loads(raw)
     def command(self,argv):
         from mldsafail.evaluator.native_workload import process_birth
-        import signal,resource,sys
+        import signal,sys
+        from deploy.workload_log import LogPipe
         limit=min(35,max(.001,getattr(self,'deadline',time.monotonic()+35)-time.monotonic()))
         require(sys.platform=='linux' and limit>.15,'installation_command_budget_or_platform')
         journal=getattr(self,'journal',None)
@@ -419,18 +420,17 @@ class LinuxBackend:
         reserve=min(.25,limit/4)
         wrapped=[sys.executable,'-I',str(Path(__file__).with_name('workload_observation.py')),str(report),
                  str(limit-reserve-.05),'--cleanup-seconds',str(reserve),*argv]
-        def bound_log(): resource.setrlimit(resource.RLIMIT_FSIZE,(1024**2,1024**2))
         process=None;recorded=None;failure=None;cleanup_errors=[];containment=None;births=[];wrapper_timeout=False
         try:
-            with log.open('xb') as stream:
+            with log.open('xb') as stream, LogPipe(stream,1024**2) as pipe:
                 os.chmod(log,0o600)
                 try:
-                    process=subprocess.Popen(wrapped,stdout=stream,stderr=subprocess.STDOUT,start_new_session=True,preexec_fn=bound_log,
+                    process=subprocess.Popen(wrapped,stdout=pipe.write_fd,stderr=subprocess.STDOUT,start_new_session=True,
                         env={**os.environ,'PYTHONDONTWRITEBYTECODE':'1','UV_OFFLINE':'1','UV_NO_CACHE':'1','PIP_NO_INDEX':'1',
                              'PYTHONPATH':str(self.bundle/'src')+':'+str(self.bundle)})
                     recorded=process_birth(process.pid)
                     if journal: journal.append('subcommand_client',command=token,birth=recorded)
-                    process.wait(timeout=limit)
+                    pipe.wait(process,timeout=limit)
                 except subprocess.TimeoutExpired:
                     wrapper_timeout=True
                     raise

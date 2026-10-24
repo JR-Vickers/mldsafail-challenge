@@ -23,7 +23,7 @@ def test_preparation_is_private_exclusive_and_records_source(prepared):
     value = fixture.Fixture(prepared)
     assert value.manifest['source_revision']
     assert value.manifest['source_hashes']['deploy/workload_installation.py']
-    assert value.manifest['implementation_blockers']
+    assert value.manifest['implementation_blockers'] == []
     assert value.manifest['root']['mode'] == 0o700
     assert not value.manifest['execution_authority']
     before = (prepared/'manifest.json').read_bytes()
@@ -75,7 +75,7 @@ def test_namespace_replacement_is_preserved_and_blocks(prepared):
     assert (prepared/'manifest.json').exists()
 
 
-@pytest.mark.parametrize('name', ['inputs', 'artifacts', 'journal'])
+@pytest.mark.parametrize('name', ['inputs', 'artifacts', 'journal', 'runtime-journal'])
 def test_subdirectory_symlink_and_replacement_block(prepared, name):
     saved = prepared/('saved-'+name)
     (prepared/name).rename(saved)
@@ -93,7 +93,7 @@ def test_inspection_is_exclusive_and_explicit_about_incompleteness(prepared):
     first = value.inspect(); second = value.inspect()
     assert first['path'] != second['path']
     observed = json.loads(Path(first['path']).read_bytes())
-    assert observed['implementation_blockers']
+    assert observed['implementation_blockers'] == []
     assert not observed['runtime_suitability_verified']
     assert not observed['execution_authority']
     assert before == value.journal.path.read_bytes()
@@ -127,11 +127,10 @@ def test_failed_provision_is_durable_and_never_retried(prepared, monkeypatch):
         value.transition('install')
 
 
-def test_engineering_gate_precedes_any_adapter_execution(prepared, monkeypatch):
+def test_builtin_plan_required_before_native_execution(prepared, monkeypatch):
     value = fixture.Fixture(prepared)
     monkeypatch.setattr(value, 'require_target', lambda: None)
-    monkeypatch.setattr(value, 'adapter', lambda *args, **kwargs: pytest.fail('unimplemented adapter executed'))
-    with pytest.raises(WorkloadBlocked, match='engineering_incomplete'):
+    with pytest.raises(WorkloadBlocked, match='builtin_resource_plan_required'):
         value.transition('provision')
 
 
@@ -157,7 +156,7 @@ def test_final_five_minutes_reserved(prepared):
 def test_external_adapters_cannot_run(prepared):
     value = fixture.Fixture(prepared)
     for phase in ('provision', 'inspect', 'postflight', 'cleanup'):
-        with pytest.raises(WorkloadBlocked, match='not_implemented'):
+        with pytest.raises(WorkloadBlocked, match='builtin_resource_plan_required'):
             value.adapter(phase)
 
 
@@ -170,10 +169,24 @@ def test_internal_worker_does_not_bypass_lock(prepared, monkeypatch):
 
 def test_callable_engine_paths_are_also_fenced(prepared):
     value = fixture.Fixture(prepared)
-    with pytest.raises(WorkloadBlocked, match='engineering_incomplete'):
+    with pytest.raises(WorkloadBlocked, match='inherited_lock_required'):
         value.engine('install')
-    with pytest.raises(WorkloadBlocked, match='engineering_incomplete'):
+    with pytest.raises(WorkloadBlocked, match='inherited_lock_required'):
         fixture.fixture_engine(prepared, phase='install', review=None, authority=None)
+
+
+def test_inherited_descriptor_cannot_borrow_another_worker_phase(prepared,monkeypatch):
+    from types import SimpleNamespace
+    from scripts.workload_fixture_worker import work
+    output=prepared/'artifacts/result.json'
+    request=dict(event='fixture_worker_intent',token='token',operation='engine',output=str(output),
+                 phase='install',reconciliation=False,review_sha256=None,authority_sha256=None)
+    fake=SimpleNamespace(root=prepared,journal=SimpleNamespace(rows=[request]),require_target=lambda:None)
+    monkeypatch.setattr(fixture,'Fixture',lambda root:fake)
+    with fixture.lifecycle_lock(prepared) as fd:
+        with pytest.raises(WorkloadBlocked,match='worker_request_changed'):
+            work(prepared,fd,'token','engine',output,phase='rollback')
+    assert not output.exists()
 
 
 def test_environment_collection_does_not_claim_docker_suitability():
@@ -189,6 +202,31 @@ def test_changed_driver_binding_blocks(prepared):
     with pytest.raises(WorkloadBlocked, match='driver_changed'):
         fixture.Fixture(prepared)
 
+
+def test_changed_executing_module_binding_blocks_before_native_work(prepared):
+    path=prepared/'manifest.json';value=json.loads(path.read_bytes())
+    value['source_hashes']['deploy/workload_log.py']='0'*64
+    path.unlink();exclusive(path,canonical(value))
+    with pytest.raises(WorkloadBlocked,match='executing_source_changed'):fixture.Fixture(prepared)
+
+
+def test_builtin_preparation_freezes_an_independent_source_snapshot(tmp_path):
+    import tempfile
+    with tempfile.TemporaryDirectory(prefix='fkit-',dir=Path('/tmp').resolve()) as short:
+        root=Path(short)/'fixture';settings=tmp_path/'settings.json'
+        exclusive(settings,canonical(dict(unit_directory=str(Path.home()/'.config/systemd/user'))))
+        recipe=tmp_path/'recipe.json'
+        exclusive(recipe,canonical(dict(schema=fixture.SCHEMA,fixture_only=True,
+            target=dict(hostname='workload-rehearsal-test',machine_id='synthetic',uid=1000),inputs=dict(settings=str(settings)),
+            adapters={phase:'builtin' for phase in ('provision','inspect','postflight','cleanup')},resources=[])))
+        manifest=fixture.prepare(root,recipe=recipe)
+        assert manifest['source_root']==str(root/'source')
+        original=Path(fixture.__file__)
+        copied=root/'source/scripts/workload_installation_fixture.py'
+        assert copied.read_bytes()==original.read_bytes()
+        assert copied.stat().st_nlink==1 and copied.stat().st_ino!=original.stat().st_ino
+        assert (root/'source/.git').is_dir()
+        fixture.Fixture(root)
 
 def test_input_contents_and_birth_are_frozen(tmp_path):
     root = tmp_path/'fixture'
@@ -227,7 +265,7 @@ def test_command_failures_always_record_results(prepared, monkeypatch, dispositi
         def poll(self): return self.returncode
         def wait(self, timeout):
             if disposition == 'timeout':
-                raise fixture.subprocess.TimeoutExpired('synthetic', timeout)
+                raise RuntimeError('synthetic timeout')
             return 0
     def launch(argv, **kwargs):
         report = Path(argv[3])

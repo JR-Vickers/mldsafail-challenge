@@ -63,7 +63,7 @@ def test_unsignalable_descendant_retains_reconciliation_birth(tmp_path,monkeypat
     report=tmp_path/'report'
     monkeypatch.setattr(observer.sys,'argv',['wrapper',str(report),'1','inert'])
     monkeypatch.setattr(observer.ctypes,'CDLL',lambda *a,**k:SimpleNamespace(prctl=lambda *a:0))
-    monkeypatch.setattr(observer.subprocess,'Popen',lambda *a:SimpleNamespace(wait=lambda **k:None,returncode=0))
+    monkeypatch.setattr(observer.subprocess,'Popen',lambda *a:SimpleNamespace(wait=lambda **k:None,returncode=0,pid=0))
     monkeypatch.setattr(observer,'children',lambda:[73])
     monkeypatch.setattr(observer,'child_birth',lambda pid:dict(pid=pid,start_ticks=99))
     monkeypatch.setattr(observer.os,'waitpid',lambda *a:(0,0))

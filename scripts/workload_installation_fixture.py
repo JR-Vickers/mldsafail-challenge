@@ -29,8 +29,7 @@ CASES = ('complete', 'partial-snapshots', 'partial-configurations',
          'unacknowledged-images', 'interrupted-rollback')
 PHASES = ('prepare', 'provision', 'inspect', 'install', 'reconcile', 'rollback', 'cleanup')
 LIMIT = 1024**2
-IMPLEMENTATION_BLOCKERS = ('concrete_provisioner_missing', 'concrete_resource_observer_missing',
-                           'concrete_cleanup_missing', 'peer_uid_probe_runner_missing')
+IMPLEMENTATION_BLOCKERS = ()
 
 
 def absolute(path):
@@ -84,7 +83,7 @@ def validate_recipe(recipe, root):
             recipe['target']['uid'] > 0, 'fixture_disposable_target_required')
     require(set(recipe['adapters']) == {'provision', 'inspect', 'postflight', 'cleanup'},
             'fixture_adapters_required')
-    require(all(name in recipe['inputs'] for name in recipe['adapters'].values()),
+    require(all(name == 'builtin' or name in recipe['inputs'] for name in recipe['adapters'].values()),
             'fixture_adapter_input_missing')
     require(all(name and name.isidentifier() for name in recipe['inputs']), 'fixture_input_name')
     paths = []
@@ -120,7 +119,7 @@ def prepare(root, *, recipe=None, case='complete', source=None):
 def _prepare(root, *, recipe, case, source):
     generation = uuid.uuid4().hex
     with lifecycle_lock(root):
-        for name in ('inputs', 'artifacts', 'journal'):
+        for name in ('inputs', 'artifacts', 'journal', 'runtime-journal'):
             (root/name).mkdir(mode=0o700)
         source = Path(source or Path(__file__).resolve().parents[1])
         revision = subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD'], text=True).strip()
@@ -137,12 +136,42 @@ def _prepare(root, *, recipe, case, source):
                 data, mode = regular(path.parent, path.name)
                 destination = root/'inputs'/name
                 exclusive(destination, data, 0o600)
-                inputs[name] = dict(identity(destination), bytes=len(data), original_mode=mode)
+                inputs[name] = dict(identity(destination), bytes=len(data), original_mode=mode, original_name=path.name)
+        resource_plan = None
+        source_root = source
+        if value and set(value['adapters'].values()) == {'builtin'}:
+            require('settings' in inputs,'fixture_settings_missing')
+            settings = json.loads((root/'inputs/settings').read_bytes())
+            from deploy.workload_units import absolute as unit_path
+            for path in (root/'release/.venv/bin/python',root/'previous/.venv/bin/python',
+                         root/'release/config/supervisor.json',root/'previous/config/supervisor.json',
+                         root/'gate',root/'gate-previous',Path(settings['unit_directory'])):
+                unit_path(str(path))
+            from deploy.workload_fixture_resources import resource_plan as plan
+            resource_plan = plan(root,value['target']['uid'],settings['unit_directory'])
+            source_root = root/'source'
+            source_root.mkdir(mode=0o700)
+            for name, expected in source_hashes.items():
+                data,mode = regular(source,name)
+                require(digest(data)==expected,'fixture_source_changed_during_prepare')
+                path = source_root/name
+                path.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+                exclusive(path,data,0o700 if mode&0o111 else 0o600)
+            # A local Git index supports the existing complete-release helper;
+            # the original revision and every copied byte remain separately bound.
+            prefix = ['git','-c','init.templateDir=','-c','core.hooksPath=/dev/null','-c','commit.gpgsign=false']
+            for argv in ([*prefix,'init','-q',str(source_root)],
+                         [*prefix,'-C',str(source_root),'add','.'],
+                         [*prefix,'-C',str(source_root),'-c','user.name=Disposable Fixture','-c','user.email=fixture@invalid',
+                          'commit','-qm','Exact fixture runtime snapshot']):
+                subprocess.run(argv,check=True,capture_output=True,timeout=15)
         manifest = dict(schema=SCHEMA, fixture_only=True, generation=generation, case=case,
-                        directories={name: identity(root/name) for name in ('inputs', 'artifacts', 'journal')},
+                        directories={name: identity(root/name) for name in ('inputs', 'artifacts', 'journal', 'runtime-journal',
+                                     *(['source'] if source_root!=source else []))},
                         root=identity(root), host=host(), source_revision=revision,
                         source_status_sha256=digest(status.encode()),
                         source_hashes=source_hashes,
+                        source_root=str(source_root), resource_plan=resource_plan,
                         driver_sha256=digest(Path(__file__).read_bytes()),
                         created_at=time.time(), budget_seconds=1800, cleanup_reserve_seconds=300,
                         final_paths={name: str(root/name) for name in
@@ -184,12 +213,15 @@ class Fixture:
                 self.manifest['root'] == identity(self.root), 'fixture_namespace_replaced')
         require(digest(Path(__file__).read_bytes()) == self.manifest['driver_sha256'],
                 'fixture_driver_changed_new_generation_required')
+        executing = Path(__file__).resolve().parents[1]
+        for name, expected in self.manifest['source_hashes'].items():
+            require(digest(regular(executing,name)[0])==expected,'fixture_executing_source_changed')
         self.journal = Journal(self.root/'journal', self.binding)
         for name, expected in self.manifest['directories'].items():
             require(identity(directory(self.root/name)) == expected, 'fixture_directory_replaced')
         for name, expected in self.manifest['inputs'].items():
             actual = identity(self.root/'inputs'/name)
-            require(all(actual.get(k) == v for k, v in expected.items() if k not in ('bytes', 'original_mode')),
+            require(all(actual.get(k) == v for k, v in expected.items() if k not in ('bytes', 'original_mode', 'original_name')),
                     'fixture_input_changed_new_generation_required')
 
     def last(self, phase):
@@ -214,16 +246,17 @@ class Fixture:
                 'fixture_vm_marker_changed')
 
     def deadline(self, *, cleanup=False):
-        start = next((r['started_at'] for r in self.journal.rows if r['event'] == 'fixture_attempt_started'), None)
-        require(start is not None, 'fixture_attempt_not_started')
-        remaining = start + (1800 if cleanup else 1500) - time.time()
+        attempt = next((r for r in self.journal.rows if r['event']=='fixture_attempt_started'),None)
+        require(attempt is not None, 'fixture_attempt_not_started')
+        remaining = (attempt['started_monotonic']-time.monotonic() if 'started_monotonic' in attempt
+                     else attempt['started_at']-time.time())+(1800 if cleanup else 1500)
         require(0 < remaining <= 1800, 'fixture_attempt_expired_preserve_unresolved_ownership')
         return remaining
 
     def command(self, argv, *, cleanup=False, seconds=300):
         """Bounded Linux subreaper; raw output and descendant evidence stay private."""
         self.require_target()
-        import resource
+        from deploy.workload_log import LogPipe
         from mldsafail.evaluator.native_workload import process_birth
         allowance = min(seconds, self.deadline(cleanup=cleanup))
         require(allowance > 4, 'fixture_cleanup_reserve_reached')
@@ -233,8 +266,6 @@ class Fixture:
         wrapper = Path(__file__).resolve().parents[1]/'deploy/workload_observation.py'
         self.journal.append('fixture_command_intent', command=token, argv_sha256=digest(canonical(argv)),
                             allowance=allowance)
-        def bound():
-            resource.setrlimit(resource.RLIMIT_FSIZE, (LIMIT, LIMIT))
         process = None
         failure = None
         birth = None
@@ -242,15 +273,24 @@ class Fixture:
         containment = None
         group_remaining = False
         try:
-            with output.open('xb') as stream:
+            with output.open('xb') as stream, LogPipe(stream,LIMIT) as pipe:
                 os.chmod(output, 0o600)
-                process = subprocess.Popen([sys.executable, '-I', str(wrapper), str(report),
-                                            str(allowance-3), *argv], stdout=stream, stderr=stream,
-                                           start_new_session=True, preexec_fn=bound,
+                wrapped = [sys.executable, '-I', str(wrapper), str(report),str(allowance-3),*argv]
+                inherited = ()
+                if self.lock_fd is not None:
+                    base = self.manifest['source_root']
+                    code = ('import sys;sys.path[:0]='+repr([base+'/src',base])+
+                            ';from scripts.workload_fixture_worker import wrap;wrap('+repr(str(self.root))+','+
+                            str(self.lock_fd)+','+repr(str(report))+','+repr(allowance-3)+','+repr(argv)+')')
+                    wrapped = [sys.executable,'-I','-B','-c',code]
+                    inherited = (self.lock_fd,)
+                process = subprocess.Popen(wrapped, stdout=pipe.write_fd, stderr=subprocess.STDOUT,
+                                           start_new_session=True,
+                                           pass_fds=inherited,
                                            env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'})
                 birth = process_birth(process.pid)
                 self.journal.append('fixture_command_birth', command=token, birth=birth)
-                process.wait(timeout=allowance-1)
+                pipe.wait(process,timeout=allowance-1)
         except BaseException as error:
             failure = dict(type=type(error).__name__, message=str(error))
         finally:
@@ -290,10 +330,41 @@ class Fixture:
         return output
 
     def adapter(self, phase, *, cleanup=False):
-        # Arbitrary external Python adapters cannot prove a resource allowlist,
-        # read-only inspection or safe retirement. Keep this gate closed until
-        # concrete built-in adapters and their resource receipts are implemented.
-        require(False, 'fixture_concrete_'+phase+'_adapter_not_implemented')
+        recipe = self.manifest['recipe']
+        require(recipe and set(recipe['adapters'].values())=={'builtin'} and self.manifest['resource_plan'],
+                'fixture_builtin_resource_plan_required')
+        from scripts.rehearse_workload_installation_fixture import component_review
+        component_review(self)
+        require(phase in ('provision','inspect','cleanup','peer-probe'),'fixture_builtin_operation_invalid')
+        return self.worker(phase,cleanup=cleanup,seconds=1500 if phase=='provision' else 180)
+
+    def worker(self, operation, *, cleanup=False, seconds=300, phase='install',review=None,authority=None,reconciliation=False):
+        from scripts.workload_fixture_worker import inherited_lock
+        inherited_lock(self.root,self.lock_fd)
+        token = uuid.uuid4().hex
+        output = self.root/'artifacts'/('worker-'+token+'.json')
+        from mldsafail.evaluator.native_workload import process_birth
+        request = dict(token=token,operation=operation,output=str(output),phase=phase,reconciliation=reconciliation,
+                       review_sha256=digest(private(review,parse=False)[0]) if review else None,
+                       authority_sha256=digest(private(authority,parse=False)[0]) if authority else None,
+                       parent=process_birth(os.getpid()))
+        self.journal.append('fixture_worker_intent',**request)
+        base = self.manifest['source_root']
+        interpreter = sys.executable
+        if operation=='engine':
+            _,proposal = self.proposal()
+            base = proposal['identities']['recipe']['bundle_root']
+            interpreter = proposal['identities']['recipe']['bootstrap_interpreter']['path']
+        code = ('import sys;sys.path[:0]='+repr([base+'/src',base])+
+                ';from scripts.workload_fixture_worker import work;work('+repr(str(self.root))+','+str(self.lock_fd)+','+
+                repr(token)+','+repr(operation)+','+repr(str(output))+',phase='+repr(phase)+',review='+repr(str(review) if review else None)+
+                ',authority='+repr(str(authority) if authority else None)+',reconciliation='+repr(reconciliation)+')')
+        self.command([interpreter,'-I','-B','-c',code],cleanup=cleanup,seconds=seconds)
+        _,result = private(output)
+        require(result['fixture_only'] is True and result['generation']==self.manifest['generation'] and
+                result['token']==token and result['operation']==operation,'fixture_worker_result_binding')
+        self.journal.append('fixture_worker_complete',token=token,observed=identity(output))
+        return result['result']
 
     def artifact(self, label, value):
         path = self.root/'artifacts'/(label+'-'+uuid.uuid4().hex+'.json')
@@ -320,7 +391,8 @@ class Fixture:
         return raw, value
 
     def engine(self, phase, *, reconciliation=False, authority=None, review=None):
-        require(not IMPLEMENTATION_BLOCKERS, 'fixture_engineering_incomplete')
+        from scripts.workload_fixture_worker import inherited_lock
+        inherited_lock(self.root,self.lock_fd)
         raw, proposal = self.proposal()
         # Artifacts are supplied, never manufactured approval by the fixture.
         review_raw, reviewed = private(absolute(review))
@@ -333,14 +405,7 @@ class Fixture:
         require(bool(authorized.get('reconcile')) == reconciliation, 'fixture_reconcile_authority_changed')
         source = proposal['identities']
         recipe = source['recipe']
-        argv = [recipe['bootstrap_interpreter']['path'], '-P', '-B', '-m', 'scripts.workload_installation_fixture',
-                '_engine', str(self.root), '--review', str(review), '--authorization', str(authority),
-                '--engine-phase', phase]
-        if reconciliation:
-            argv.append('--reconcile-engine')
-        # Isolated Python loads the exact frozen engine, not the operator checkout.
-        code = 'import runpy,sys;sys.path[:0]=' + repr([recipe['bundle_root']+'/src', recipe['bundle_root']]) + ';sys.argv=' + repr(argv[4:]) + ';runpy.run_module("scripts.workload_installation_fixture",run_name="__main__")'
-        return self.command([argv[0], '-I', '-B', '-c', code])
+        return self.worker('engine',phase=phase,review=review,authority=authority,reconciliation=reconciliation)
 
     def inspect(self):
         """Collection only, with a newly and exclusively published private report."""
@@ -349,9 +414,17 @@ class Fixture:
                       implementation_blockers=list(IMPLEMENTATION_BLOCKERS),
                       runtime_suitability_verified=False,
                       lifecycle_head=self.journal.head, execution_authority=False)
+        if self.last('provision') and self.last('provision')['event']=='fixture_phase_complete':
+            result['resources'] = self.adapter('inspect')
+            result['runtime_suitability_verified'] = True
         return self.artifact('inspection', result)
 
     def transition(self, phase, *, authority=None, review=None, engine_phase='install'):
+        if self.lock_fd is None:
+            with lifecycle_lock(self.root) as fd:
+                self.lock_fd=fd
+                try:return self.transition(phase,authority=authority,review=review,engine_phase=engine_phase)
+                finally:self.lock_fd=None
         require(phase in PHASES and phase not in ('prepare', 'inspect'), 'fixture_phase_invalid')
         self.journal.reload()
         prior = self.last(phase)
@@ -364,7 +437,7 @@ class Fixture:
                     'fixture_fresh_reconciliation_required')
         if phase == 'provision':
             require(not any(r['event'] == 'fixture_attempt_started' for r in self.journal.rows), 'fixture_attempt_used')
-            self.journal.append('fixture_attempt_started', started_at=time.time())
+            self.journal.append('fixture_attempt_started', started_at=time.time(),started_monotonic=time.monotonic())
         elif phase != 'cleanup':
             require(self.last('provision') and self.last('provision')['event'] == 'fixture_phase_complete',
                     'fixture_provision_not_complete')
@@ -372,30 +445,18 @@ class Fixture:
         try:
             self.require_target()
             self.deadline(cleanup=phase == 'cleanup')
-            require(not IMPLEMENTATION_BLOCKERS,
-                    'fixture_engineering_incomplete:'+','.join(IMPLEMENTATION_BLOCKERS))
             if phase == 'provision':
                 self.adapter('provision')
-                _, proposal = self.proposal()
-                from deploy.workload_installed import observe_rollback
-                receipt = observe_rollback(proposal['identities'])
-                self.artifact('rollback-compatibility', receipt)
+                self.proposal()
+                self.adapter('peer-probe')
             elif phase in ('install', 'rollback', 'reconcile'):
                 self.engine(engine_phase if phase == 'reconcile' else phase, reconciliation=phase == 'reconcile',
                             authority=authority, review=review)
-                if phase == 'install':
-                    from deploy.workload_installed import collect
-                    from deploy.workload_v3 import installed
-                    _, proposal = self.proposal()
-                    measured = collect(proposal)
-                    installed(measured, proposal)
-                    self.artifact('installed', measured)
-                self.adapter('postflight')
             else:
                 # The adapter must prove ownership/inactivity before any deletion.
                 # No recursive removal or Docker prune is built into this driver.
-                self.adapter('cleanup', cleanup=True)
-                self.adapter('postflight', cleanup=True)
+                cleanup_result = self.adapter('cleanup', cleanup=True)
+                require(cleanup_result.get('cleanup_verified') is True,'fixture_cleanup_ownership_unresolved_preserve')
             self.journal.append('fixture_phase_complete', phase=phase)
         except BaseException as error:
             self.journal.append('fixture_phase_failed', phase=phase,
@@ -404,9 +465,10 @@ class Fixture:
             raise
 
 
-def fixture_engine(root, *, phase, review, authority, reconciliation=False):
+def fixture_engine(root, *, phase, review, authority, reconciliation=False, lock_fd=None):
     """Fixture-only fault injection through existing Python boundaries."""
-    require(not IMPLEMENTATION_BLOCKERS, 'fixture_engineering_incomplete')
+    from scripts.workload_fixture_worker import inherited_lock
+    inherited_lock(root,lock_fd)
     fixture = Fixture(root)
     fixture.require_target()
     raw, proposal = fixture.proposal()
@@ -469,8 +531,9 @@ def main():
         # The child lock handoff is unfinished. Refuse the private worker route
         # rather than exposing an unlocked mutation entrypoint.
         raise RuntimeError('fixture_internal_worker_requires_inherited_lifecycle_lock')
-    with lifecycle_lock(args.root):
+    with lifecycle_lock(args.root) as fd:
         fixture = Fixture(args.root)
+        fixture.lock_fd = fd
         if args.phase == 'inspect':
             print(json.dumps(fixture.inspect()))
         else:

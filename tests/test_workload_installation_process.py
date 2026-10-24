@@ -42,3 +42,12 @@ def test_command_timeout_retains_failure_and_births(tmp_path):
         instance.command([sys.executable,'-c','import time;time.sleep(30)'])
     row=instance.journal.rows[-1]
     assert row['containment']['timed_out'] and row['descendant_births']
+
+
+def test_large_installer_resource_is_not_limited_by_log_cap(tmp_path):
+    instance=backend(tmp_path);resource=tmp_path/'library.so'
+    result=instance.command([sys.executable,'-I','-c',
+        'import pathlib,sys;pathlib.Path(sys.argv[1]).write_bytes(b"x"*(3*1024**2));print("installed")',str(resource)])
+    assert resource.stat().st_size==3*1024**2 and result==b'installed\n'
+    assert not instance.journal.rows[-1]['cleanup_errors']
+    assert not instance.journal.rows[-1]['containment']['remaining']

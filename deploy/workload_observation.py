@@ -12,6 +12,9 @@ import subprocess
 import sys
 import time
 
+MAX_BIRTHS = 4096
+MAX_EVIDENCE_BYTES = 1024**2
+
 
 def children():
     return [int(pid) for pid in Path('/proc/self/task/'+str(os.getpid())+'/children').read_text().split()]
@@ -32,8 +35,15 @@ def main():
     if ctypes.CDLL(None, use_errno=True).prctl(36, 1, 0, 0, 0) != 0:
         raise OSError(ctypes.get_errno(), 'subreaper unavailable')
     progress = open(report+'.births.jsonl', 'x')
+    os.fchmod(progress.fileno(),0o600)
+    progress_bytes = 0
     def retain(row):
-        progress.write(json.dumps(row)+'\n');progress.flush();os.fsync(progress.fileno())
+        nonlocal progress_bytes
+        raw = json.dumps(row)+'\n'
+        if len(observed)>=MAX_BIRTHS or progress_bytes+len(raw.encode())>MAX_EVIDENCE_BYTES:
+            raise RuntimeError('descendant_lifetime_evidence_limit')
+        progress.write(raw);progress.flush();os.fsync(progress.fileno())
+        progress_bytes += len(raw.encode())
     observed = {}
     def snapshot():
         pending = children();seen=set()
@@ -68,34 +78,55 @@ def main():
             timed_out = True
             process.kill()
             process.wait(timeout=cleanup_seconds)
+    except BaseException as error:
+        errors.append(dict(error=type(error).__name__,detail=str(error)[:256]))
+    finally:
         escaped = bool(children())
         deadline = time.monotonic()+cleanup_seconds
-        # An unreaped child PID cannot be reused. Record births before signals.
+        # Cleanup must run even when sampling/evidence allocation failed. An
+        # unreaped direct child cannot have its PID reused; waitpid supplies
+        # authority to signal it even after the evidence capacity is exhausted.
+        unrecorded_observations = 0
+        blocked=set()
         while children() and time.monotonic() < deadline:
             for pid in children():
+                if time.monotonic()>=deadline:break
+                if pid in blocked:continue
                 try:
                     row=child_birth(pid);key=(row['pid'],row['start_ticks'])
                     if key not in observed:
-                        retain(dict(event='descendant',birth=row));observed[key]=row
-                    waited, _ = os.waitpid(pid, os.WNOHANG)
+                        try:
+                            retain(dict(event='descendant',birth=row));observed[key]=row
+                        except RuntimeError:
+                            unrecorded_observations += 1
+                    waited, status = os.waitpid(pid, os.WNOHANG)
+                    if waited==process.pid:process.returncode=os.waitstatus_to_exitcode(status)
                     if waited == 0:os.kill(pid, signal.SIGKILL)
                 except (ProcessLookupError,FileNotFoundError):pass
                 except OSError as error:
-                    errors.append(dict(pid=pid,error=type(error).__name__))
-            if errors:break
+                    if len(errors)<MAX_BIRTHS:errors.append(dict(pid=pid,error=type(error).__name__))
+                    if len(blocked)<MAX_BIRTHS:blocked.add(pid)
+                    else:break
+            if all(pid in blocked for pid in children()):break
             time.sleep(.005)
-    except BaseException as error:
-        errors.append(dict(error=type(error).__name__))
-    finally:
         remaining=[]
-        for pid in children():
+        final_children=children()
+        if len(final_children)>MAX_BIRTHS:errors.append(dict(error='remaining_children_evidence_limit'))
+        for pid in final_children[:MAX_BIRTHS]:
             try:remaining.append(child_birth(pid))
             except FileNotFoundError:pass
         progress.close()
+        result = dict(returncode=process.returncode,timed_out=timed_out,
+                      descendants=escaped,remaining=remaining,observed=list(observed.values()),errors=errors,
+                      unrecorded_cleanup_observations=unrecorded_observations)
+        raw = json.dumps(result)
+        if len(raw.encode())>MAX_EVIDENCE_BYTES:
+            result.update(remaining=remaining[:256],observed=list(observed.values())[:256],
+                          errors=[dict(error='final_evidence_limit',ownership='unresolved')])
+            raw = json.dumps(result)
         with open(report, 'x') as stream:
-            json.dump(dict(returncode=process.returncode,timed_out=timed_out,
-                           descendants=escaped,remaining=remaining,
-                           observed=list(observed.values()),errors=errors),stream)
+            os.fchmod(stream.fileno(),0o600)
+            stream.write(raw)
             stream.flush();os.fsync(stream.fileno())
 
 
