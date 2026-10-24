@@ -101,6 +101,7 @@ def execute(packet_path,control,scenario,output):
             exclusive(output.with_name(output.name+'.failure.json'),canonical(dict(
                 packet_sha256=digest(raw),type=type(error).__name__,message=str(error),ownership='blocked_preserve')))
             raise
+        require(time.monotonic()<packet_deadline,'fixture_control_packet_expired')
         require(receipt.get('fixture_only') is True and receipt.get('generation')==fixture.manifest['generation'] and
             receipt.get('control')==control and receipt.get('scenario')==scenario and
             receipt.get('origin')=='local_linux' and receipt.get('installed_native_eligible') is False and
@@ -125,4 +126,5 @@ def execute(packet_path,control,scenario,output):
         receipt=dict(receipt,packet_sha256=digest(raw),assertions=dict(fixture_scenario_passed=True,
             full_scenario_passed=False,installed_native_eligible=False))
         exclusive(output.with_name(output.name+'.result.json'),canonical(dict(packet_sha256=digest(raw),receipt=receipt)))
+        require(time.monotonic()<packet_deadline,'fixture_control_packet_publication_expired')
         return receipt

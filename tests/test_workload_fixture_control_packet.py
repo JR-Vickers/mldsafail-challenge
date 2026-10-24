@@ -145,3 +145,16 @@ def test_supervisor_invalidation_requires_exact_refreshed_inspection(tmp_path,mo
     with pytest.raises(WorkloadBlocked,match='inspection_stale'):
         execute(path,value['control'],value['scenario'],value['output'])
     assert not Path(value['output']).exists() and not calls
+
+
+def test_expired_case_cannot_publish_passing_packet(tmp_path,monkeypatch):
+    import deploy.workload_fixture_control_packet as module
+    value,path,calls,context=execution_context(tmp_path,monkeypatch)
+    clock=[100.0];monkeypatch.setattr(module.time,'monotonic',lambda:clock[0])
+    original=context.control
+    def late(self,*args,**kwargs):
+        receipt=original(self,*args,**kwargs);clock[0]=281.0;return receipt
+    monkeypatch.setattr(context,'control',late)
+    with pytest.raises(WorkloadBlocked,match='packet_expired'):
+        module.execute(path,value['control'],value['scenario'],value['output'])
+    assert Path(value['output']).exists() and not Path(value['output']+'.result.json').exists()
