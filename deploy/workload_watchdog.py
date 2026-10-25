@@ -79,7 +79,7 @@ def native_authority(protocol,review_path,authorization_path,root):
     from deploy.workload_native_protocol import claim
     require(review_path is not None and authorization_path is not None,'watchdog_native_authority_required')
     review_raw,review=private(review_path);authority_raw,authority=private(authorization_path)
-    binding=digest(canonical(protocol));now=time.time()
+    binding=digest(canonical(protocol));authority_clock=time.monotonic();now=time.time()
     require(review.get('decision')=='approved' and review.get('protocol_sha256')==binding and
             review.get('implemented_by') and review.get('reviewed_by') and
             review['implemented_by']!=review['reviewed_by'],'watchdog_native_review_required')
@@ -88,7 +88,7 @@ def native_authority(protocol,review_path,authorization_path,root):
             authority.get('protocol_sha256')==binding and authority.get('review_sha256')==digest(review_raw) and
             type(authority.get('issued_at')) in (int,float) and type(authority.get('expires_at')) in (int,float) and
             authority['issued_at']<=now<authority['expires_at'] and
-            protocol['timeout_seconds']<=authority['expires_at']-now<=180 and
+            0<authority['expires_at']-now<=180 and
             0<authority['expires_at']-authority['issued_at']<=180 and
             type(authority.get('nonce')) is str and len(authority['nonce'])==32,'watchdog_native_exact_authority_required')
     host=protocol['identities']
@@ -102,13 +102,21 @@ def native_authority(protocol,review_path,authorization_path,root):
             type(journal.get('path')) is str and
             str(Path(root).absolute().parent)==journal['path'] and
             identity(journal['path'])==journal,'watchdog_native_journal_changed')
-    claim(authorization_path,protocol,expected_sha256=digest(authority_raw),journal_root=journal['path'])
+    remaining=authority['expires_at']-now
+    reserved=sum(row['seconds'] for row in protocol['cases'])+protocol['cleanup']['seconds']+protocol['postflight']['seconds']
+    require(remaining>=min(protocol['timeout_seconds'],reserved) and
+            (remaining>=protocol['timeout_seconds'] or remaining>reserved),
+            'watchdog_native_startup_reserve_expired')
+    consumed=claim(authorization_path,protocol,expected_sha256=digest(authority_raw),journal_root=journal['path'])
+    return dict(review=dict(path=str(Path(review_path).absolute()),sha256=digest(review_raw)),
+        authorization=dict(path=str(Path(authorization_path).absolute()),sha256=digest(authority_raw)),
+        claim=identity(consumed),deadline_monotonic=authority_clock+remaining)
 
 
 def execute(protocol,root,*,birth=process_birth,review_path=None,authorization_path=None):
     started=time.monotonic()
     validate(protocol)
-    if protocol['origin']=='installed_native':native_authority(protocol,review_path,authorization_path,root)
+    grant=(native_authority(protocol,review_path,authorization_path,root) if protocol['origin']=='installed_native' else None)
     root=Path(root);root.mkdir(mode=0o700,exist_ok=False)
     # Native evidence cannot be minted on a synthetic or non-Linux adapter.
     if protocol['origin']!='synthetic':
@@ -124,14 +132,31 @@ def execute(protocol,root,*,birth=process_birth,review_path=None,authorization_p
         scope=protocol['fixture_cgroup'].removeprefix('/sys/fs/cgroup')
         require(not (actual==scope or actual.startswith(scope+'/')),'watchdog_inside_fixture_cgroup')
     exclusive(root/'intent.json',canonical(protocol))
-    deadline=started+protocol['timeout_seconds'];records=[];failed=False;uncertain=False
+    deadline=min(started+protocol['timeout_seconds'],grant['deadline_monotonic']) if grant else started+protocol['timeout_seconds']
+    proof=None
+    if grant and 'native_context' in protocol['identities']:
+        from deploy.workload_native_supervision import publish
+        require(protocol['identities']['native_context']['watchdog_root']==str(root.absolute()),
+            'watchdog_native_context_root_changed')
+        proof=publish(root,protocol,grant,deadline)
+    records=[];failed=False;uncertain=False
+    declared_rows=[protocol['startup'],*protocol['cases'],protocol['cleanup'],protocol['postflight']]
     def run(row):
         nonlocal uncertain
         path=root/(str(len(records))+'-command.log')
         process=None;identity=None;timed_out=False;containment=None
         report=root/(str(len(records))+'-descendants.json')
         retained_births=[]
-        allowance=min(row['seconds'],max(.001,deadline-time.monotonic()))
+        remaining=deadline-time.monotonic()
+        if row is protocol['startup']:
+            reserve=sum(item['seconds'] for item in protocol['cases'])+protocol['cleanup']['seconds']+protocol['postflight']['seconds']
+            remaining-=reserve
+        allowance=min(row['seconds'],max(.001,remaining))
+        stage=None
+        if proof:
+            from deploy.workload_native_supervision import stage_intent
+            require(remaining>0,'watchdog_native_stage_expired')
+            stage=stage_intent(proof,next(index for index,item in enumerate(declared_rows) if item is row),row,min(deadline,time.monotonic()+allowance))
         argv=row['argv']
         if sys.platform=='linux':
             reserve=min(.25,allowance/4)
@@ -144,6 +169,9 @@ def execute(protocol,root,*,birth=process_birth,review_path=None,authorization_p
                 def limit_output(): resource.setrlimit(resource.RLIMIT_FSIZE,(1024**2,1024**2))
                 process=subprocess.Popen(argv,stdout=output,stderr=subprocess.STDOUT,start_new_session=True,preexec_fn=limit_output)
                 identity=birth(process.pid)
+                if proof:
+                    from deploy.workload_native_supervision import stage_birth
+                    stage_birth(proof,next(index for index,item in enumerate(declared_rows) if item is row),identity)
                 exclusive(root/(str(len(records))+'-birth.json'),canonical(identity))
                 process.wait(timeout=allowance)
             except subprocess.TimeoutExpired:
