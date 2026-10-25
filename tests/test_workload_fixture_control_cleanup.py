@@ -506,3 +506,99 @@ def test_complete_runtime_journal_retains_strict_historical_behavior(owned):
     assert not (original.root.parent/('control-recovery-'+TOKEN)).exists()
     actual.append('normal_runtime_observation')
     assert Journal(original.root,original.binding).rows[-1]['event']=='normal_runtime_observation'
+
+
+def native_lifecycle(tmp_path):
+    root=tmp_path/'native-context';root.mkdir(mode=0o700)
+    journal_root=root/'journal';journal_root.mkdir(mode=0o700)
+    runtime=root/'runtime-journal';runtime.mkdir(mode=0o700)
+    manifest=dict(schema='mldsafail.workload-native-context.v1',origin='installed_native',generation=TOKEN,
+        root=identity(root),directories={'journal':identity(journal_root),'runtime-journal':identity(runtime)},execution_authority=False)
+    raw=canonical(manifest);exclusive(root/'manifest.json',raw);binding=digest(raw)
+    journal=Journal(journal_root,binding);journal.append('native_control_hold_observed',token='7'*32)
+    with journal.path.open('ab') as stream:stream.write(b'{"torn_native_lifecycle":')
+    return root,journal,binding,journal.path.read_bytes()
+
+
+def test_native_lifecycle_prefix_has_explicit_manifest_guard_and_separate_sidecar(tmp_path):
+    root,journal,binding,raw=native_lifecycle(tmp_path)
+    with pytest.raises(WorkloadBlocked,match='recovery_journal_scope_invalid'):
+        cleanup.recovery_journal(journal.root,binding,TOKEN)
+    proxy=cleanup.recovery_journal(journal.root,binding,TOKEN,native_lifecycle=True)
+    assert proxy.complete is False and proxy.root==root/('lifecycle-recovery-'+TOKEN)
+    assert proxy.root!=root/('control-recovery-'+TOKEN)
+    assert private(proxy.root/'anchor.json')[1]['native_manifest']==identity(root/'manifest.json')
+    proxy.append('native_cleanup_observation',token='6'*32);proxy.reload()
+    assert proxy.rows[-1]['token']=='6'*32 and journal.path.read_bytes()==raw
+    assert not (root/('control-recovery-'+TOKEN)).exists()
+
+
+@pytest.mark.parametrize('field,value',[
+    ('schema','mldsafail.installation-fixture.v1'),('origin','local_linux'),('generation','0'*32),
+    ('execution_authority',True),('root',{}),('directories',{})])
+def test_native_lifecycle_recovery_never_guesses_manifest_scope(tmp_path,field,value):
+    root,journal,_,raw=native_lifecycle(tmp_path);path=root/'manifest.json'
+    manifest=private(path)[1];manifest[field]=value;updated=canonical(manifest);path.write_bytes(updated)
+    with pytest.raises(WorkloadBlocked,match='native_cleanup_lifecycle_manifest_changed'):
+        cleanup.recovery_journal(journal.root,digest(updated),TOKEN,native_lifecycle=True)
+    assert journal.path.read_bytes()==raw
+    assert not (root/('lifecycle-recovery-'+TOKEN)).exists()
+
+
+def test_native_lifecycle_reload_rejects_manifest_replacement_and_keeps_original(tmp_path):
+    root,journal,binding,raw=native_lifecycle(tmp_path)
+    proxy=cleanup.recovery_journal(journal.root,binding,TOKEN,native_lifecycle=True)
+    path=root/'manifest.json';data=path.read_bytes();path.rename(root/'preserved-manifest');exclusive(path,data)
+    with pytest.raises(WorkloadBlocked,match='native_cleanup_lifecycle_manifest_changed'):proxy.reload()
+    assert journal.path.read_bytes()==raw
+
+
+def test_runtime_recovery_reload_rejects_replaced_source_directory(owned):
+    path,raw,proxy=partial_runtime(owned);old=path.parent
+    old.rename(old.with_name('preserved-runtime'));old.mkdir(mode=0o700)
+    (old.with_name('preserved-runtime')/path.name).rename(path)
+    with pytest.raises(WorkloadBlocked,match='preserved_runtime_journal_changed'):proxy.reload()
+    assert path.read_bytes()==raw
+
+
+def test_partial_lifecycle_allows_only_proven_compartment_safety_stop(owned):
+    add_compute(owned);add_database(owned)
+    owned.fixture.lifecycle_journal=SimpleNamespace(complete=False)
+    called=[];owned.fixture.cleanup_barrier=lambda:called.append('must-not-call')
+    before=len(owned.calls);containers=owned.store.read_bytes()
+    with pytest.raises(WorkloadBlocked,match='partial_lifecycle_journal_preserve'):execute(owned)
+    assert (owned.scope/'cgroup.kill').read_text()=='1' and private(owned.root/'runtime/workload.json')[1]['paused']
+    assert owned.calls[before:]==[] and not called and owned.store.read_bytes()==containers
+    assert not (owned.root/'independent-cleanup.json').exists()
+
+
+def test_partial_lifecycle_cannot_publish_postflight_from_earlier_cleanup_ack(owned):
+    assert execute(owned)['verified'];owned.fixture.lifecycle_journal=SimpleNamespace(complete=False)
+    before=len(owned.calls)
+    with pytest.raises(WorkloadBlocked,match='partial_lifecycle_journal_preserve'):
+        cleanup.postflight(owned.fixture,owned.resources,CONTROL,SCENARIO,TOKEN)
+    assert owned.calls[before:]==[] and not (owned.root/'independent-postflight.json').exists()
+
+
+@pytest.mark.parametrize('barrier',['missing','hold_lost','busy'])
+def test_native_cleanup_requires_live_global_hold_barrier_before_docker(owned,barrier):
+    add_compute(owned);add_database(owned)
+    owned.fixture.manifest['schema']='mldsafail.workload-native-context.v1'
+    if barrier!='missing':
+        def reject():raise WorkloadBlocked('native_global_'+barrier)
+        owned.fixture.cleanup_barrier=reject
+    before=len(owned.calls);containers=owned.store.read_bytes()
+    with pytest.raises(WorkloadBlocked,match='global_'):execute(owned)
+    assert (owned.scope/'cgroup.kill').read_text()=='1' and owned.calls[before:]==[]
+    assert owned.store.read_bytes()==containers and not (owned.root/'independent-cleanup.json').exists()
+
+
+def test_native_postflight_rechecks_global_hold_barrier(owned):
+    owned.fixture.manifest['schema']='mldsafail.workload-native-context.v1'
+    calls=[];owned.fixture.cleanup_barrier=lambda:calls.append('verified')
+    assert execute(owned)['verified'] and calls==['verified']
+    def hold_lost():raise WorkloadBlocked('native_global_hold_lost')
+    owned.fixture.cleanup_barrier=hold_lost;before=len(owned.calls)
+    with pytest.raises(WorkloadBlocked,match='global_hold_lost'):
+        cleanup.postflight(owned.fixture,owned.resources,CONTROL,SCENARIO,TOKEN)
+    assert owned.calls[before:]==[] and not (owned.root/'independent-postflight.json').exists()

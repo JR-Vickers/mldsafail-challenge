@@ -113,19 +113,32 @@ class _PreservedRuntimeJournal:
     compartment eligible for a Docker-free safety stop.
     """
     complete=False
-    def __init__(self,source,prefix,source_identity,sidecar):
+    def __init__(self,source,prefix,source_identity,sidecar,native_manifest=None):
         self.source_path=source;self.prefix=prefix;self.source_identity=source_identity
+        self.source_root_identity=identity(source.parent)
+        self.anchor_identity=identity(sidecar.root/'anchor.json');self.native_manifest_identity=native_manifest
         self.sidecar=sidecar;self.root=sidecar.root;self.path=sidecar.path;self.binding=sidecar.binding
     @property
     def rows(self):return [*self.prefix.rows,*self.sidecar.rows]
     @property
     def head(self):return self.sidecar.head
+    def _verify(self):
+        if self.native_manifest_identity is not None:
+            require(identity(self.source_path.parent.parent/'manifest.json')==self.native_manifest_identity,
+                    'native_cleanup_lifecycle_manifest_changed')
+        require(identity(self.source_path)==self.source_identity and
+            identity(self.source_path.parent)==self.source_root_identity,
+            'fixture_cleanup_preserved_runtime_journal_changed')
+        require(identity(self.sidecar.root)==self.sidecar.root_identity and
+            identity(self.sidecar.root/'anchor.json')==self.anchor_identity,
+            'fixture_cleanup_recovery_sidecar_anchor_changed')
     def append(self,event,**values):
-        require(identity(self.source_path)==self.source_identity,'fixture_cleanup_preserved_runtime_journal_changed')
-        self.sidecar.append(event,**values)
+        self._verify();self.sidecar.append(event,**values)
+    def reload(self):
+        self._verify();self.sidecar.reload()
 
 
-def recovery_journal(root,binding,token):
+def recovery_journal(root,binding,token,*,native_lifecycle=False):
     """Only cleanup workers may select this after exact parent-request checks.
 
     A partial trailing record is never truncated, rewritten or upgraded. Earlier
@@ -133,10 +146,19 @@ def recovery_journal(root,binding,token):
     private sidecar bound to every byte of the interrupted original.
     """
     root=Path(root)
-    require(type(token) is str and re.fullmatch('[a-f0-9]{32}',token) and root.is_absolute() and
-        root.name=='runtime-journal' and root.is_dir() and root.stat().st_uid==os.getuid() and
+    require(type(native_lifecycle) is bool and type(token) is str and re.fullmatch('[a-f0-9]{32}',token) and root.is_absolute() and
+        root.name==('journal' if native_lifecycle else 'runtime-journal') and root.is_dir() and root.stat().st_uid==os.getuid() and
         root.stat().st_mode&0o077==0 and not any(path.is_symlink() for path in (root,*root.parents)),
         'fixture_cleanup_recovery_journal_scope_invalid')
+    native_manifest=None
+    if native_lifecycle:
+        raw,manifest=private(root.parent/'manifest.json')
+        require(digest(raw)==binding and manifest.get('schema')=='mldsafail.workload-native-context.v1' and
+            manifest.get('origin')=='installed_native' and manifest.get('generation')==token and
+            manifest.get('root')==identity(root.parent) and manifest.get('execution_authority') is False and
+            manifest.get('directories',{}).get('journal')==identity(root),
+            'native_cleanup_lifecycle_manifest_changed')
+        native_manifest=identity(root.parent/'manifest.json')
     source=root/'installation.jsonl'
     # A never-created runtime journal has no interrupted record to interpret.
     if not source.exists() and not source.is_symlink():return Journal(root,binding)
@@ -144,9 +166,11 @@ def recovery_journal(root,binding,token):
     if prefix.complete:return Journal(root,binding)
     original=identity(source)
     require(original.get('sha256')==prefix.raw_sha256,'fixture_cleanup_preserved_runtime_journal_changed')
-    sidecar_root=root.parent/('control-recovery-'+token)
+    sidecar_root=root.parent/(('lifecycle-recovery-' if native_lifecycle else 'control-recovery-')+token)
     anchor=dict(schema='mldsafail.fixture-preserved-runtime-journal.v1',token=token,binding=binding,
         source=original,source_root=identity(root),raw_sha256=prefix.raw_sha256,prefix_head=prefix.head)
+    if native_lifecycle:
+        anchor.update(schema='mldsafail.native-preserved-lifecycle-journal.v1',native_manifest=native_manifest)
     if sidecar_root.exists() or sidecar_root.is_symlink():
         sidecar=Journal(sidecar_root,binding)
         require(private(sidecar_root/'anchor.json')[1]==anchor,'fixture_cleanup_recovery_sidecar_anchor_changed')
@@ -160,7 +184,7 @@ def recovery_journal(root,binding,token):
         acknowledgements[0].get('observed')==identity(sidecar_root/'anchor.json'),
         'fixture_cleanup_recovery_sidecar_unacknowledged_or_replaced')
     require(identity(source)==original,'fixture_cleanup_preserved_runtime_journal_changed')
-    return _PreservedRuntimeJournal(source,prefix,original,sidecar)
+    return _PreservedRuntimeJournal(source,prefix,original,sidecar,native_manifest)
 
 
 def _context(fixture,control,scenario,token):
@@ -384,6 +408,13 @@ def _terminated(expected):
     except FileNotFoundError:return True
 
 
+def _cleanup_barrier(fixture):
+    barrier=getattr(fixture,'cleanup_barrier',None)
+    if fixture.manifest.get('schema')=='mldsafail.workload-native-context.v1':
+        require(callable(barrier),'native_cleanup_global_hold_barrier_missing')
+    if callable(barrier):barrier()
+
+
 def cleanup(fixture,resources,control,scenario,token,deadline=None):
     started=time.monotonic();deadline=min(started+45,deadline if deadline is not None else started+45)
     require(time.monotonic()<deadline,'fixture_independent_cleanup_expired')
@@ -410,6 +441,9 @@ def _cleanup_locked(fixture,resources,root,context,configuration,native,gate,sce
         'fixture_cleanup_prepare_incomplete_preserve')
     require(evidence.complete,'fixture_cleanup_partial_evidence_preserve')
     require(getattr(fixture.journal,'complete',True),'fixture_cleanup_partial_runtime_journal_preserve')
+    require(getattr(getattr(fixture,'lifecycle_journal',fixture.journal),'complete',True),
+            'fixture_cleanup_partial_lifecycle_journal_preserve')
+    _cleanup_barrier(fixture)
     require(gate.state['phase'] in ('acquired','launch_intent','running','termination_intent','cleaned','complete') and
         not gate.state.get('database_commit') and not any(row.get('phase')!='complete' for row in gate.state.get('requests',{}).values()),
         'fixture_cleanup_transaction_unresolved_preserve')
@@ -483,6 +517,9 @@ def postflight(fixture,resources,control,scenario,token,deadline=None):
     started=time.monotonic();deadline=min(started+15,deadline if deadline is not None else started+15)
     root,context,proposal,configuration=_context(fixture,control,scenario,token)
     require(getattr(fixture.journal,'complete',True),'fixture_cleanup_partial_runtime_journal_preserve')
+    require(getattr(getattr(fixture,'lifecycle_journal',fixture.journal),'complete',True),
+            'fixture_cleanup_partial_lifecycle_journal_preserve')
+    _cleanup_barrier(fixture)
     receipt=private(root/'independent-cleanup.json')[1]
     acknowledgements=[row for row in fixture.journal.rows if row['event']=='fixture_control_independent_cleanup' and row.get('token')==token]
     require(len(acknowledgements)==1 and acknowledgements[0].get('observed')==identity(root/'independent-cleanup.json') and
