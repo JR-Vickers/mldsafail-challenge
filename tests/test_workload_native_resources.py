@@ -296,3 +296,11 @@ def test_supervisor_replacement_during_status_blocks_mixed_identity(native_conte
         assert not (own.context.root/'baseline.json').exists()
     finally:
         for endpoint in replacement_sockets:endpoint.close()
+
+
+def test_exact_public_table_inventory_does_not_depend_on_database_collation(native_context):
+    own=native_context;own.responses.inventory='\n'.join(reversed(table_allowlist())).encode()+b'\n'
+    assert NativeResources(own.context).fingerprint(own.source)['tables'].keys()==table_allowlist().keys()
+    own.responses.inventory+=b'users\n'
+    with pytest.raises(WorkloadBlocked,match='table_inventory_incomplete_or_unknown'):
+        NativeResources(own.context).fingerprint(own.source)

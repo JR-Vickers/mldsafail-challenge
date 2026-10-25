@@ -163,7 +163,8 @@ class NativeResources(Resources):
                 'native_retained_database_schema_changed')
         inventory=self._psql(TABLE_INVENTORY_QUERY)
         tables=inventory.decode('ascii').splitlines();allowed=table_allowlist()
-        require(tables==list(allowed),'native_retained_database_table_inventory_incomplete_or_unknown')
+        require(len(tables)==len(allowed) and set(tables)==set(allowed),
+                'native_retained_database_table_inventory_incomplete_or_unknown')
         identity_raw=self._psql(DATABASE_IDENTITY_QUERY)
         fields=identity_raw.decode('ascii').rstrip('\n').split('\t')
         require(len(fields)==3 and fields[:2]==[row['database'],row['username']] and fields[2].isdecimal() and int(fields[2])>0,
