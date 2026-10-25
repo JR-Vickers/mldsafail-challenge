@@ -65,7 +65,20 @@ def work(root, fd, token, operation, output, *, phase='install',review=None,auth
     require(Path(output).parent==fixture.root/'artifacts' and not Path(output).exists(),'fixture_worker_output_invalid')
     # The parent owns the lifecycle journal. Workers have a separate journal;
     # nested commands and injected faults cannot corrupt the parent's head.
-    fixture.journal = Journal(fixture.root/'runtime-journal',fixture.binding)
+    recovery_selection=None
+    if operation in ('control-cleanup','control-postflight'):
+        selected=phase.split(':')
+        require(len(selected)==3 and not reconciliation and review is None and authority is None,
+            'fixture_control_recovery_request_invalid')
+        control,scenario,original_token=selected
+        original=[row for row in fixture.lifecycle_journal.rows if row['event']=='fixture_worker_intent' and
+            row['operation']=='control' and row['token']==original_token and row['phase']==control+':'+scenario]
+        require(len(original)==1,'fixture_control_recovery_original_request_changed')
+        from deploy.workload_fixture_control_cleanup import recovery_journal
+        fixture.journal=recovery_journal(fixture.root/'runtime-journal',fixture.binding,original_token)
+        recovery_selection=(control,scenario,original_token)
+    else:
+        fixture.journal = Journal(fixture.root/'runtime-journal',fixture.binding)
     require(not any(row.get('token')==token for row in fixture.journal.rows),'fixture_worker_request_replay')
     fixture.journal.append('fixture_worker_claim',token=token,operation=operation,parent=parent)
     from deploy.workload_fixture_resources import Resources
@@ -100,13 +113,8 @@ def work(root, fd, token, operation, output, *, phase='install',review=None,auth
             result = resources.cleanup(proposal)
         elif operation in ('control-cleanup','control-postflight'):
             from deploy.workload_fixture_control_cleanup import cleanup as control_cleanup,postflight as control_postflight
-            selected=phase.split(':')
-            require(len(selected)==3 and not reconciliation and review is None and authority is None,
-                'fixture_control_recovery_request_invalid')
-            control,scenario,original_token=selected
-            original=[row for row in fixture.lifecycle_journal.rows if row['event']=='fixture_worker_intent' and
-                row['operation']=='control' and row['token']==original_token and row['phase']==control+':'+scenario]
-            require(len(original)==1,'fixture_control_recovery_original_request_changed')
+            require(recovery_selection is not None,'fixture_control_recovery_request_invalid')
+            control,scenario,original_token=recovery_selection
             resources.cleanup_mode=True
             method=control_cleanup if operation=='control-cleanup' else control_postflight
             result=method(fixture,resources,control,scenario,original_token)
