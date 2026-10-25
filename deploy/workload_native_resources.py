@@ -173,33 +173,41 @@ class NativeResources(Resources):
             raw=self._psql(table_query(name));count=len(raw.splitlines())
             require(count<=ROW_LIMIT,'native_retained_database_row_limit_exceeded')
             fingerprints[name]=dict(rows=count,sha256=digest(raw))
+        require(self._psql(DATABASE_IDENTITY_QUERY)==identity_raw,'native_retained_database_identity_changed_during_read')
         require(self._retained_database()==container,'native_retained_database_container_changed')
         return dict(schema_sha256=schema,identity=dict(row,oid=int(fields[2])),container=container,tables=fingerprints,
                     data_sha256=digest(canonical(fingerprints)))
 
     def _supervisor(self):
         from mldsafail.evaluator.workload_client import WorkloadClient
-        source=self.source;path=Path(source['resources']['socket']['path'])
-        record=private_json(path.parent/'socket.json');observed=identity(path);process=record['process']
-        require(observed.get('mode')==0o600 and observed.get('uid')==source['host']['uid'] and
-            all(observed.get(key)==record.get(key) for key in ('path','device','inode')) and
-            process_birth(process['pid'])==process and Path('/proc/'+str(process['pid'])).stat().st_uid==source['host']['uid'],
-            'native_resource_supervisor_birth_changed')
-        main=self.run(['/usr/bin/systemctl','--user','show','mldsafail-workload-supervisor.service','--property=MainPID','--value'])
-        membership=Path('/proc/'+str(process['pid'])+'/cgroup').read_text().strip()
-        require(main.strip()==str(process['pid']).encode() and membership.startswith('0::/') and
-            not Path('/sys/fs/cgroup'+membership[3:]).is_relative_to(source['installation']['heavy_path']),
-            'native_resource_supervisor_placement_changed')
+        source=self.source;path=Path(source['resources']['socket']['path']);record_path=path.parent/'socket.json'
+        def snapshot():
+            record=private_json(record_path);receipt=identity(record_path)
+            require(private_json(record_path)==record and identity(record_path)==receipt,
+                    'native_resource_supervisor_record_changed_during_read')
+            observed=identity(path);process=record['process']
+            require(observed.get('mode')==0o600 and observed.get('uid')==source['host']['uid'] and
+                all(observed.get(key)==record.get(key) for key in ('path','device','inode')) and
+                process_birth(process['pid'])==process and Path('/proc/'+str(process['pid'])).stat().st_uid==source['host']['uid'],
+                'native_resource_supervisor_birth_changed')
+            main=self.run(['/usr/bin/systemctl','--user','show','mldsafail-workload-supervisor.service','--property=MainPID','--value'])
+            membership=Path('/proc/'+str(process['pid'])+'/cgroup').read_text().strip()
+            require(main.strip()==str(process['pid']).encode() and membership.startswith('0::/') and
+                not Path('/sys/fs/cgroup'+membership[3:]).is_relative_to(source['installation']['heavy_path']),
+                'native_resource_supervisor_placement_changed')
+            return dict(record=record,receipt=receipt,socket=observed,process=process,membership=membership,main=main)
+        before=snapshot()
         transition=getattr(self.fixture,'verify_supervisor_transition',None)
         require(callable(transition),'native_resource_supervisor_transition_observer_missing')
-        transition(record,observed)
+        transition(before['record'],before['socket'])
         state=WorkloadClient(str(path),self.root/'supervisor-inspection').status()
         require(state and state.get('paused') is True and state.get('phase') in ('cleaned','complete') and
             type(state.get('request_counts')) is dict and type(state['request_counts'].get('intent')) is int and
             state['request_counts']['intent']==0 and all(type(state.get(key)) is int and state[key]==0
                 for key in ('inflight_resumes','inflight_launches')),
             'native_resource_supervisor_not_paused_or_transaction_pending')
-        self.journal.append('native_control_supervisor_observed',process=process,socket=observed,
+        require(snapshot()==before,'native_resource_supervisor_changed_during_status')
+        self.journal.append('native_control_supervisor_observed',process=before['process'],socket=before['socket'],
                             phase=state['phase'],paused=True)
         return True
 

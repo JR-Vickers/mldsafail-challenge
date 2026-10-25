@@ -44,7 +44,7 @@ def native_context(tmp_path,monkeypatch,native_fixture):
     source['rollback']['schema'].update(database='retained_native',username='postgres')
     tables={name:(b'{"version_num":"baseline"}\n' if name=='alembic_version' else b'') for name in table_allowlist()}
     responses=SimpleNamespace(schema=schema,inventory='\n'.join(table_allowlist()).encode()+b'\n',
-        database=b'retained_native\tpostgres\t42\n',tables=tables,services=deepcopy(source['retained_services']),restart_on_table=False)
+        database=b'retained_native\tpostgres\t42\n',tables=tables,services=deepcopy(source['retained_services']),restart_on_table=False,identity_on_table=None)
     calls=[]
     owner=source['host']['uid'];unit='compute.service';directory=tmp_path/'units';directory.mkdir()
     dropin=directory/(unit+'.d');dropin.mkdir();file=dropin/'90-mldsafail-paused.conf';exclusive(file,b'[Unit]\nConditionPathExists=/never-enabled\n')
@@ -93,6 +93,7 @@ def native_context(tmp_path,monkeypatch,native_fixture):
                         name=next(name for name in table_allowlist() if 'public."'+name+'"' in sql)
                         assert table_query(name) in sql;raw=responses.tables[name]
                         if responses.restart_on_table:responses.services['database']['started_at']='restarted'
+                        if responses.identity_on_table is not None:responses.database=responses.identity_on_table
         output=root/'artifacts'/('command-'+str(len(calls))+'.log');exclusive(output,raw)
         return output
     context.command=command
@@ -107,7 +108,7 @@ def native_context(tmp_path,monkeypatch,native_fixture):
         assert all(observed[key]==context.inspection['resources']['socket'][key] for key in ('path','device','inode'))
     context.verify_supervisor_transition=verify_supervisor_transition
     try:yield SimpleNamespace(context=context,proposal=proposal,source=source,config=config,responses=responses,calls=calls,
-        status=status,proc=proc,heavy=native_fixture[3],dropin=file)
+        status=status,proc=proc,heavy=native_fixture[3],dropin=file,supervisor_socket=endpoint_path)
     finally:endpoint.close()
 
 
@@ -265,3 +266,33 @@ def test_postflight_requires_context_supervisor_transition_proof(native_context)
     del own.context.verify_supervisor_transition
     with pytest.raises(WorkloadBlocked,match='supervisor_transition_observer_missing'):resources.postflight(own.proposal)
     assert not (own.context.root/'baseline.json').exists()
+
+
+def test_database_oid_change_during_table_reads_blocks_mixed_fingerprint(native_context):
+    own=native_context;resources=NativeResources(own.context)
+    own.responses.identity_on_table=b'retained_native\tpostgres\t43\n'
+    with pytest.raises(WorkloadBlocked,match='database_identity_changed_during_read'):resources.fingerprint(own.source)
+    assert not (own.context.root/'baseline.json').exists()
+
+
+@pytest.mark.parametrize('replacement',['record','process','placement','socket'])
+def test_supervisor_replacement_during_status_blocks_mixed_identity(native_context,monkeypatch,replacement):
+    from mldsafail.evaluator.workload_client import WorkloadClient
+    own=native_context;resources=NativeResources(own.context);replacement_sockets=[]
+    def status(client):
+        if replacement=='record':
+            path=own.supervisor_socket.parent/'socket.json';data=path.read_bytes();path.rename(path.with_name('preserved-socket.json'));exclusive(path,data)
+        elif replacement=='process':
+            path=own.proc/'54321/stat';path.write_text(path.read_text().replace('777','888'))
+        elif replacement=='placement':(own.proc/'54321/cgroup').write_text('0::/different-supervisor')
+        else:
+            own.supervisor_socket.rename(own.supervisor_socket.with_name('preserved.sock'))
+            endpoint=socket.socket(socket.AF_UNIX);endpoint.bind(str(own.supervisor_socket));own.supervisor_socket.chmod(0o600)
+            replacement_sockets.append(endpoint)
+        return deepcopy(own.status)
+    monkeypatch.setattr(WorkloadClient,'status',status)
+    try:
+        with pytest.raises(WorkloadBlocked,match='supervisor_.*changed'):resources.postflight(own.proposal)
+        assert not (own.context.root/'baseline.json').exists()
+    finally:
+        for endpoint in replacement_sockets:endpoint.close()
