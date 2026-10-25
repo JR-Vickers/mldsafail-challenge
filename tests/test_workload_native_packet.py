@@ -3,7 +3,7 @@ import pytest
 from deploy.workload_release import canonical
 from deploy.workload_v3 import bootstrap
 from deploy.workload_v3_fixture import inspection,installed
-from deploy.workload_native_packet import prepare,FACTS
+from deploy.workload_native_packet import prepare,FACTS,required_source
 from mldsafail.evaluator.workload import WorkloadBlocked
 
 
@@ -16,6 +16,7 @@ def inputs(tmp_path,monkeypatch):
     def write(name,value):
         path=tmp_path/name;path.write_bytes(canonical(value));path.chmod(0o600);return path
     source=proposal['identities']
+    for name in required_source():source['manifest']['files'][name]=dict(sha256='f'*64,bytes=1,mode=0o600)
     facts=dict(schema=FACTS,origin='host_observation',captured_at=1100,
         host={key:source['host'][key] for key in ('hostname','uid','boot_id')},
         authority_journal=dict(state='observed',path=source['recipe']['journal_root'],uid=1000,mode=0o700,device=1,inode=5),
@@ -28,7 +29,7 @@ def compile_packet(tmp_path,monkeypatch,change=None):
     write,proposal,inspection,facts,source=inputs(tmp_path,monkeypatch)
     if change:change(facts)
     return prepare(proposal,inspection,packet_path=tmp_path/'packet',watchdog_root=Path(source['recipe']['journal_root'])/('native-control-'+'a'*32),
-        control='durable_launch_intent',scenario='lost_create_ack',generation='a'*32,facts_path=write('facts',facts),now=1100)
+        control='durable_launch_intent',scenario='lost_create_ack',generation='a'*32,attempt_generation='b'*32,facts_path=write('facts',facts),now=1100)
 
 
 def test_exact_native_case_order_and_envelope_without_authority(tmp_path,monkeypatch):
@@ -42,7 +43,7 @@ def test_exact_native_case_order_and_envelope_without_authority(tmp_path,monkeyp
     assert protocol['identities']['installation']['proposal']==packet['proposal']
 
 
-@pytest.mark.parametrize('missing',['authority_journal','fixture_cgroup','postgres_image'])
+@pytest.mark.parametrize('missing',['host','captured_at','authority_journal','fixture_cgroup','postgres_image'])
 def test_missing_facts_are_explicit_blockers_without_guessed_packet(tmp_path,monkeypatch,missing):
     report=compile_packet(tmp_path,monkeypatch,lambda facts:facts.pop(missing))
     assert report['packet'] is None and 'native_control_fact_missing:'+missing in report['blockers']
@@ -57,3 +58,15 @@ def test_missing_facts_are_explicit_blockers_without_guessed_packet(tmp_path,mon
 ])
 def test_wrong_host_scope_or_visibility_rejected(tmp_path,monkeypatch,change):
     with pytest.raises(WorkloadBlocked):compile_packet(tmp_path,monkeypatch,change)
+
+
+def test_old_release_is_blocked_before_native_packet_publication(tmp_path,monkeypatch):
+    write,proposal_path,inspection_path,facts,source=inputs(tmp_path,monkeypatch)
+    import json
+    proposal=json.loads(proposal_path.read_bytes());proposal['identities']['manifest']['files'].pop('deploy/workload_native_context.py')
+    proposal_path.write_bytes(canonical(proposal))
+    report=prepare(proposal_path,inspection_path,packet_path=tmp_path/'packet',
+        watchdog_root=Path(source['recipe']['journal_root'])/('native-control-'+'a'*32),
+        control='durable_launch_intent',scenario='lost_create_ack',generation='a'*32,attempt_generation='b'*32,facts_path=write('facts',facts),now=1100)
+    assert report['packet'] is None
+    assert 'frozen_native_source_missing:deploy/workload_native_context.py' in report['blockers']

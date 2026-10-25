@@ -15,7 +15,7 @@ STAGE='mldsafail.workload-native-stage.v1'
 BIRTH='mldsafail.workload-native-stage-birth.v1'
 
 
-def publish(root,protocol,grant,deadline):
+def publish(root,protocol,grant,deadline,*,watchdog_source_sha256=None,attempt=None):
     root=Path(root).absolute()
     require(protocol['origin']=='installed_native' and time.monotonic()<deadline,
             'native_supervision_authority_or_deadline_missing')
@@ -24,11 +24,15 @@ def publish(root,protocol,grant,deadline):
     stages=[dict(index=index,kind=kind,name=row['name'],intent_path=str(root/f'native-stage-{index}.json'),
                  birth_path=str(root/f'native-stage-{index}-birth.json'))
             for index,(kind,row) in enumerate(zip(kinds,rows))]
+    if watchdog_source_sha256 is None:
+        from deploy.workload_watchdog import WATCHDOG_SOURCE_SHA256
+        watchdog_source_sha256=WATCHDOG_SOURCE_SHA256
     proof=dict(schema=SCHEMA,origin='installed_native',protocol_sha256=digest(canonical(protocol)),
         watchdog=process_birth(__import__('os').getpid()),root=identity(root),
         review=grant['review'],authorization=grant['authorization'],claim=grant['claim'],
         deadline_monotonic=deadline,created_monotonic=time.monotonic(),
-        watchdog_source_sha256=digest(Path(__file__).with_name('workload_watchdog.py').read_bytes()),stages=stages)
+        watchdog_source_sha256=watchdog_source_sha256,stages=stages)
+    if attempt is not None:proof['attempt']=attempt
     path=root/'native-supervision.json';exclusive(path,canonical(proof))
     return proof
 

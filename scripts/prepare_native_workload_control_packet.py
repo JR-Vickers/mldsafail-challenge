@@ -14,13 +14,14 @@ def main():
     parser.add_argument('--packet',required=True,type=Path)
     parser.add_argument('--watchdog-root',required=True,type=Path)
     parser.add_argument('--generation',required=True)
+    parser.add_argument('--attempt-generation',required=True,help='Original shared collection attempt; reuse across split packets')
     parser.add_argument('--control',required=True)
     parser.add_argument('--scenario',required=True)
     parser.add_argument('--output',required=True,type=Path)
     parser.add_argument('--publish-packet',action='store_true')
     args=parser.parse_args()
     report=prepare(args.proposal,args.inspection,packet_path=args.packet,watchdog_root=args.watchdog_root,
-        control=args.control,scenario=args.scenario,generation=args.generation,facts_path=args.facts)
+        control=args.control,scenario=args.scenario,generation=args.generation,attempt_generation=args.attempt_generation,facts_path=args.facts)
     exclusive(args.output,canonical(report))
     if args.publish_packet and report['packet'] is not None:exclusive(args.packet,canonical(report['packet']))
 

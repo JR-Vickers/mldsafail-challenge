@@ -18,6 +18,8 @@ from deploy.workload_release import canonical, digest
 from deploy.workload_installation import exclusive,identity
 from mldsafail.evaluator.native_workload import process_birth, require
 
+WATCHDOG_SOURCE_SHA256=digest(Path(__file__).read_bytes())
+
 
 def validate(protocol):
     require(set(protocol)=={'origin','identities','fixture_cgroup','startup','cases','cleanup','postflight','timeout_seconds'},
@@ -116,6 +118,10 @@ def native_authority(protocol,review_path,authorization_path,root):
 def execute(protocol,root,*,birth=process_birth,review_path=None,authorization_path=None):
     started=time.monotonic()
     validate(protocol)
+    if 'native_context' in protocol['identities']:
+        context=protocol['identities']['native_context']
+        require(type(context) is dict and context.get('watchdog_root')==str(Path(root).absolute()),
+            'watchdog_native_context_root_changed')
     grant=(native_authority(protocol,review_path,authorization_path,root) if protocol['origin']=='installed_native' else None)
     root=Path(root);root.mkdir(mode=0o700,exist_ok=False)
     # Native evidence cannot be minted on a synthetic or non-Linux adapter.
@@ -138,7 +144,12 @@ def execute(protocol,root,*,birth=process_birth,review_path=None,authorization_p
         from deploy.workload_native_supervision import publish
         require(protocol['identities']['native_context']['watchdog_root']==str(root.absolute()),
             'watchdog_native_context_root_changed')
-        proof=publish(root,protocol,grant,deadline)
+        from deploy.workload_native_attempt import bind as bind_attempt,verify as verify_attempt
+        attempt=bind_attempt(protocol,grant['claim'])
+        deadline=min(deadline,verify_attempt(protocol,attempt))
+        reserved=sum(row['seconds'] for row in protocol['cases'])+protocol['cleanup']['seconds']+protocol['postflight']['seconds']
+        require(deadline-time.monotonic()>reserved,'watchdog_native_attempt_startup_reserve_expired')
+        proof=publish(root,protocol,grant,deadline,watchdog_source_sha256=WATCHDOG_SOURCE_SHA256,attempt=attempt)
     records=[];failed=False;uncertain=False
     declared_rows=[protocol['startup'],*protocol['cases'],protocol['cleanup'],protocol['postflight']]
     def run(row):
