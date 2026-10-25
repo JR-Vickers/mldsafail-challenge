@@ -6,12 +6,13 @@ name-discovery cleanup, replay creators, or remove retained services/databases.
 """
 import copy
 import json
+import os
 import re
 import time
 from types import SimpleNamespace
 from pathlib import Path
 
-from deploy.workload_installation import exclusive,identity,private
+from deploy.workload_installation import Journal,exclusive,identity,private
 from deploy.workload_release import canonical,digest
 from mldsafail.evaluator.native_workload import NativeRuntime,LABEL,birth,publish,require,values
 from mldsafail.evaluator.workload import HostGate,ResourcePolicy
@@ -88,8 +89,8 @@ def prepared_scope(root,state,native,record):
     record('control_native_prepared',observed=identity(root/'prepared-scope.json'),binding=copy.deepcopy(value))
 
 
-def _evidence(root,binding):
-    raw=private(root/'evidence/installation.jsonl',parse=False)[0]
+def _journal_prefix(path,binding):
+    raw=private(path,parse=False)[0]
     require(len(raw)<=16*1024**2,'fixture_cleanup_evidence_size_limit')
     complete=raw.endswith(b'\n');lines=raw.splitlines()
     if not complete:lines=lines[:-1]
@@ -98,7 +99,68 @@ def _evidence(root,binding):
         row=json.loads(line)
         require(row.get('proposal_sha256')==binding and row.get('previous')==head,'fixture_cleanup_evidence_changed')
         rows.append(row);head=digest(canonical(row))
-    return SimpleNamespace(rows=rows,complete=complete)
+    return SimpleNamespace(rows=rows,complete=complete,head=head,raw_sha256=digest(raw))
+
+
+def _evidence(root,binding):return _journal_prefix(root/'evidence/installation.jsonl',binding)
+
+
+class _PreservedRuntimeJournal:
+    """Read-only original prefix plus a separately chained recovery sidecar.
+
+    This is deliberately not continuation or repair of the interrupted journal.
+    complete=False prevents removal and success even if older ACKs prove a
+    compartment eligible for a Docker-free safety stop.
+    """
+    complete=False
+    def __init__(self,source,prefix,source_identity,sidecar):
+        self.source_path=source;self.prefix=prefix;self.source_identity=source_identity
+        self.sidecar=sidecar;self.root=sidecar.root;self.path=sidecar.path;self.binding=sidecar.binding
+    @property
+    def rows(self):return [*self.prefix.rows,*self.sidecar.rows]
+    @property
+    def head(self):return self.sidecar.head
+    def append(self,event,**values):
+        require(identity(self.source_path)==self.source_identity,'fixture_cleanup_preserved_runtime_journal_changed')
+        self.sidecar.append(event,**values)
+
+
+def recovery_journal(root,binding,token):
+    """Only cleanup workers may select this after exact parent-request checks.
+
+    A partial trailing record is never truncated, rewritten or upgraded. Earlier
+    ACKs remain readable, while fresh worker claims/observations go to a fixed
+    private sidecar bound to every byte of the interrupted original.
+    """
+    root=Path(root)
+    require(type(token) is str and re.fullmatch('[a-f0-9]{32}',token) and root.is_absolute() and
+        root.name=='runtime-journal' and root.is_dir() and root.stat().st_uid==os.getuid() and
+        root.stat().st_mode&0o077==0 and not any(path.is_symlink() for path in (root,*root.parents)),
+        'fixture_cleanup_recovery_journal_scope_invalid')
+    source=root/'installation.jsonl'
+    # A never-created runtime journal has no interrupted record to interpret.
+    if not source.exists() and not source.is_symlink():return Journal(root,binding)
+    prefix=_journal_prefix(source,binding)
+    if prefix.complete:return Journal(root,binding)
+    original=identity(source)
+    require(original.get('sha256')==prefix.raw_sha256,'fixture_cleanup_preserved_runtime_journal_changed')
+    sidecar_root=root.parent/('control-recovery-'+token)
+    anchor=dict(schema='mldsafail.fixture-preserved-runtime-journal.v1',token=token,binding=binding,
+        source=original,source_root=identity(root),raw_sha256=prefix.raw_sha256,prefix_head=prefix.head)
+    if sidecar_root.exists() or sidecar_root.is_symlink():
+        sidecar=Journal(sidecar_root,binding)
+        require(private(sidecar_root/'anchor.json')[1]==anchor,'fixture_cleanup_recovery_sidecar_anchor_changed')
+    else:
+        sidecar_root.mkdir(mode=0o700);exclusive(sidecar_root/'anchor.json',canonical(anchor))
+        sidecar=Journal(sidecar_root,binding)
+        sidecar.append('fixture_control_recovery_sidecar',token=token,observed=identity(sidecar_root/'anchor.json'))
+    acknowledgements=[row for row in sidecar.rows if row['event']=='fixture_control_recovery_sidecar']
+    require(len(acknowledgements)==1 and sidecar.rows[0]==acknowledgements[0] and
+        acknowledgements[0].get('token')==token and
+        acknowledgements[0].get('observed')==identity(sidecar_root/'anchor.json'),
+        'fixture_cleanup_recovery_sidecar_unacknowledged_or_replaced')
+    require(identity(source)==original,'fixture_cleanup_preserved_runtime_journal_changed')
+    return _PreservedRuntimeJournal(source,prefix,original,sidecar)
 
 
 def _context(fixture,control,scenario,token):
@@ -346,11 +408,12 @@ def _cleanup_locked(fixture,resources,root,context,configuration,native,gate,sce
     require(record.get('phase')=='prepared' and type(record.get('leaf')) is dict and
         record['leaf'].get('path')==str(Path(record['scope']['path'])/'creators'),
         'fixture_cleanup_prepare_incomplete_preserve')
-    require(native.identity()==state['identity'],'fixture_cleanup_runtime_replaced_preserve')
+    require(evidence.complete,'fixture_cleanup_partial_evidence_preserve')
+    require(getattr(fixture.journal,'complete',True),'fixture_cleanup_partial_runtime_journal_preserve')
     require(gate.state['phase'] in ('acquired','launch_intent','running','termination_intent','cleaned','complete') and
         not gate.state.get('database_commit') and not any(row.get('phase')!='complete' for row in gate.state.get('requests',{}).values()),
         'fixture_cleanup_transaction_unresolved_preserve')
-    require(evidence.complete,'fixture_cleanup_partial_evidence_preserve')
+    require(native.identity()==state['identity'],'fixture_cleanup_runtime_replaced_preserve')
     existing=_census(native)
     expected,containers,routers=_computational(native,root,state,record,existing,evidence)
     database,databases=_database(native,root,fixture,token,existing,resources.settings['postgres_image'])
@@ -419,6 +482,7 @@ def _cleanup_locked(fixture,resources,root,context,configuration,native,gate,sce
 def postflight(fixture,resources,control,scenario,token,deadline=None):
     started=time.monotonic();deadline=min(started+15,deadline if deadline is not None else started+15)
     root,context,proposal,configuration=_context(fixture,control,scenario,token)
+    require(getattr(fixture.journal,'complete',True),'fixture_cleanup_partial_runtime_journal_preserve')
     receipt=private(root/'independent-cleanup.json')[1]
     acknowledgements=[row for row in fixture.journal.rows if row['event']=='fixture_control_independent_cleanup' and row.get('token')==token]
     require(len(acknowledgements)==1 and acknowledgements[0].get('observed')==identity(root/'independent-cleanup.json') and

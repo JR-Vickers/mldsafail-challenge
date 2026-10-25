@@ -406,3 +406,103 @@ def test_bound_creator_policy_drift_is_preserved_before_any_docker_mutation(owne
     with pytest.raises(WorkloadBlocked,match='birth_or_policy_changed_preserve'):execute(owned)
     assert json.loads(owned.store.read_bytes())==rows
     assert not any('kill' in argv[3:] or 'rm' in argv[3:] for argv in owned.calls)
+
+
+def partial_runtime(owned):
+    path=owned.fixture.journal.path
+    with path.open('ab') as stream:stream.write(b'{"interrupted_runtime_append":')
+    raw=path.read_bytes()
+    with pytest.raises(WorkloadBlocked,match='partial_journal'):Journal(path.parent,owned.fixture.binding)
+    proxy=cleanup.recovery_journal(path.parent,owned.fixture.binding,TOKEN)
+    owned.fixture.journal=proxy
+    return path,raw,proxy
+
+
+def test_partial_runtime_journal_preserves_bytes_and_only_stops_proven_scope(owned):
+    add_compute(owned);add_database(owned)
+    path,raw,proxy=partial_runtime(owned)
+    assert proxy.complete is False and proxy.path!=path
+    proxy.append('fixture_worker_claim',token='7'*32,operation='control-cleanup')
+    before=len(owned.calls);containers=owned.store.read_bytes()
+    with pytest.raises(WorkloadBlocked,match='partial_runtime_journal_preserve'):execute(owned)
+    assert (owned.scope/'cgroup.kill').read_text()=='1'
+    assert private(owned.root/'runtime/workload.json')[1]['paused'] is True
+    assert private(owned.root/'runtime'/(WORKLOAD+'.native.json'))[1]['revoked'] is True
+    assert owned.calls[before:]==[]  # No Docker info/inspect/kill/rm or unit stop.
+    assert owned.store.read_bytes()==containers and path.read_bytes()==raw
+    assert not (owned.root/'independent-cleanup.json').exists()
+    assert any(row['event']=='fixture_control_cleanup_scope_kill_acknowledged' for row in proxy.sidecar.rows)
+    assert proxy.sidecar.path.read_bytes().endswith(b'\n')
+
+
+def test_partial_runtime_without_prior_context_ack_never_adopts_scope(owned):
+    path=owned.fixture.journal.path;path.write_bytes(b'{"partial":')
+    proxy=cleanup.recovery_journal(path.parent,owned.fixture.binding,TOKEN);owned.fixture.journal=proxy
+    before=len(owned.calls)
+    with pytest.raises(WorkloadBlocked,match='context_unacknowledged_or_replaced'):execute(owned)
+    assert (owned.scope/'cgroup.kill').read_text()=='0' and owned.calls[before:]==[]
+    assert path.read_bytes()==b'{"partial":'
+
+
+def test_partial_runtime_cannot_promote_earlier_cleanup_ack_to_postflight_success(owned):
+    add_compute(owned);assert execute(owned)['verified'] is True
+    path,raw,_=partial_runtime(owned);before=len(owned.calls)
+    with pytest.raises(WorkloadBlocked,match='partial_runtime_journal_preserve'):
+        cleanup.postflight(owned.fixture,owned.resources,CONTROL,SCENARIO,TOKEN)
+    assert not (owned.root/'independent-postflight.json').exists()
+    assert owned.calls[before:]==[] and path.read_bytes()==raw
+
+
+def test_recovery_sidecar_reopens_separately_without_rewriting_original(owned):
+    path,raw,proxy=partial_runtime(owned)
+    proxy.append('fixture_worker_claim',token='7'*32,operation='control-cleanup')
+    reopened=cleanup.recovery_journal(path.parent,owned.fixture.binding,TOKEN)
+    assert reopened.complete is False and reopened.sidecar.head==proxy.sidecar.head
+    assert any(row.get('token')=='7'*32 for row in reopened.rows)
+    reopened.append('fixture_recovery_observation',scope=owned.record['scope'])
+    assert path.read_bytes()==raw and reopened.sidecar.rows[-1]['event']=='fixture_recovery_observation'
+
+
+@pytest.mark.parametrize('change',['prefix','source_after_open','anchor','sidecar_partial','binding'])
+def test_recovery_reader_and_sidecar_reject_tampering_without_touching_scope(owned,change):
+    path=owned.fixture.journal.path
+    if change=='prefix':
+        lines=path.read_bytes().splitlines();row=json.loads(lines[0]);row['previous']='0'*63+'1'
+        path.write_bytes(canonical(row)+b'\n'+b'\n'.join(lines[1:])+b'\n{"partial":')
+        raw=path.read_bytes()
+        with pytest.raises(WorkloadBlocked,match='evidence_changed'):
+            cleanup.recovery_journal(path.parent,owned.fixture.binding,TOKEN)
+        assert path.read_bytes()==raw
+    else:
+        _,raw,proxy=partial_runtime(owned)
+        if change=='source_after_open':
+            with path.open('ab') as stream:stream.write(b'changed')
+            head=proxy.head
+            with pytest.raises(WorkloadBlocked,match='preserved_runtime_journal_changed'):
+                proxy.append('must_not_append')
+            assert proxy.head==head and path.read_bytes()==raw+b'changed'
+        elif change=='anchor':
+            anchor=proxy.root/'anchor.json';data=anchor.read_bytes();anchor.rename(anchor.with_name('preserved-anchor'))
+            exclusive(anchor,data)
+            with pytest.raises(WorkloadBlocked,match='sidecar_unacknowledged_or_replaced'):
+                cleanup.recovery_journal(path.parent,owned.fixture.binding,TOKEN)
+            assert path.read_bytes()==raw
+        elif change=='sidecar_partial':
+            with proxy.path.open('ab') as stream:stream.write(b'{"partial":')
+            with pytest.raises(WorkloadBlocked,match='partial_journal'):
+                cleanup.recovery_journal(path.parent,owned.fixture.binding,TOKEN)
+            assert path.read_bytes()==raw
+        else:
+            with pytest.raises(WorkloadBlocked,match='evidence_changed'):
+                cleanup.recovery_journal(path.parent,'0'*64,TOKEN)
+            assert path.read_bytes()==raw
+    assert (owned.scope/'cgroup.kill').read_text()=='0'
+
+
+def test_complete_runtime_journal_retains_strict_historical_behavior(owned):
+    original=owned.fixture.journal
+    actual=cleanup.recovery_journal(original.root,original.binding,TOKEN)
+    assert isinstance(actual,Journal) and actual.rows==original.rows
+    assert not (original.root.parent/('control-recovery-'+TOKEN)).exists()
+    actual.append('normal_runtime_observation')
+    assert Journal(original.root,original.binding).rows[-1]['event']=='normal_runtime_observation'
