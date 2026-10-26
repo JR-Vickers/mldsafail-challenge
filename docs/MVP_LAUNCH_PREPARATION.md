@@ -1,5 +1,14 @@
 # MVP public-launch preparation review
 
+Architecture review, 2026-10-26: [proposed smaller launch design](LAUNCH_ARCHITECTURE_REVIEW.md)
+recommends an invited supervised preview, retaining protected execution and result
+integrity while replacing general installation machinery with a fixed-release
+procedure. Its bounded batches and replacement checklist are **proposed**, not an
+approved policy change or execution authority. Existing gates remain in force
+until explicitly dispositioned; dated evidence and outcomes below remain intact.
+Review this recommendation before extending the current deployment workstream.
+
+
 ## Capacity investigation cancelled — 2026-10-21
 
 The owner dropped the standalone capacity investigation under the $0 budget,

@@ -1,5 +1,14 @@
 # MLWE competition implementation and acceptance plan
 
+Architecture review, 2026-10-26: [proposed smaller launch design](LAUNCH_ARCHITECTURE_REVIEW.md)
+recommends an invited supervised preview, retaining protected execution and result
+integrity while replacing general installation machinery with a fixed-release
+procedure. Its bounded batches and replacement checklist are **proposed**, not an
+approved policy change or execution authority. Existing gates remain in force
+until explicitly dispositioned; dated evidence and outcomes below remain intact.
+Review this recommendation before extending the current deployment workstream.
+
+
 Retention update, 2026-10-19: the owner adopted
 [lean-launch retention](RETENTION_POLICY.md) and explicitly authorized immediate
 cleanup. That policy supersedes blanket requirements below to retain complete
