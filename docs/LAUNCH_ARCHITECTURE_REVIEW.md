@@ -1,8 +1,7 @@
-# Proposed smaller 0.5.0 research preview
+# Smaller 0.5.0 research preview — accepted policy
 
-Review date: 2026-10-26. **Proposal only.** No deletion, installation, evaluation,
-epoch, notification or launch is authorized. Existing requirements apply until
-explicitly replaced. Scope: existing VPS, $0, tiny synthetic instances, frozen
+Review date: 2026-10-26. **Policy accepted; implementation contract awaits S02.** No deletion, installation, evaluation,
+epoch, notification or launch is authorized. The matrix below records procedural replacements; retained runtime gates still apply. Scope: existing VPS, $0, tiny synthetic instances, frozen
 0.5.0 scoring and verification; 0.6.0, C diagnostics, capacity investigations and
 backup setup remain outside scope.
 
@@ -21,8 +20,8 @@ If frozen workloads cannot complete safely, evaluation remains closed.
 Local engineering, tests, fresh-agent reviews and local commits are authorized.
 This accepts the policy direction and authorizes preparation of its implementation;
 it does not assert that the gate mapping or independent S02 review has passed.
-The finite S01 gate mapping and S02 contract review still need completion before
-S03. Existing runtime validators and historical receipt meanings remain intact;
+The finite S01 gate mapping is complete below; fresh S02 contract review still
+needs completion before S03. Existing runtime validators and historical receipt meanings remain intact;
 no operational receipt may be fabricated or a capacity guard silently bypassed.
 Installation, native execution, production evaluations, deletion, invitations and
 publication retain their applicable separate approvals. No push is authorized.
@@ -144,6 +143,71 @@ future reviewed change to the supported launch path, not permission to delete no
 | P2 diagnostic/capacity/0.6.0 and backup workstreams | Historical tools explain outcomes but are not launch functionality. Additional campaigns create cost and scope creep. | **Defer**, remove as launch prerequisites only where already owner-settled. Preserve failures and scientific evidence. Backup absence means irreversible data-loss risk; existing timers cannot be disabled under this proposal without their own disposition. | `scripts/production_diagnostic*`, `capacity_investigation*`, `benchmark_v060/`, `deploy/backup_postgres.py`, `install_restic.py`, dated acceptance packets |
 | P2 release caches, duplicate contexts and trial stores | Needed only while active or for unresolved evidence; disk burden matters on VPS. | **Remove eligible bulk later** under retention ownership/inactivity checks; keep compact records, current installation, verified rollback and scientific evidence. Risk: mistaken classification destroys recovery; no broad prune or shared-hardlink edits. | `RETENTION_POLICY.md`, `BUILD_CACHE_RETIREMENT.md`, `scripts/retire_build_cache.py`, `retain_release.py` |
 
+## S01 finite launch acceptance matrix — 2026-10-26
+
+This inventory maps current requirements to acceptance work; it is not a passing
+launch receipt. Sources: [PLAN](PLAN.md) source requirements and sections 2–10,
+[MVP decisions and eight items](MVP_LAUNCH_PREPARATION.md),
+[runtime runbook](SINGLE_WORKLOAD_DEPLOYMENT.md),
+[older launch preparation](LAUNCH_PREPARATION.md) and
+[older public packet](PUBLIC_LAUNCH_PACKET.md). Keep retains the obligation;
+replace requires the specified narrower evidence; historical preserves old
+outcomes without requiring another campaign. Session ownership grants no live
+authority. Existing receipts apply only to their exact identities.
+
+| Requirement / source | Disposition | Acceptance evidence and existing state | Responsible session / remaining authority |
+| --- | --- | --- | --- |
+| Safety, tiny profiles, private data, scoring and verification — PLAN 2–5, frozen spec, AGENTS.md | Keep | Frozen 0.5.0 worker/locks, public-only contestant inputs, trusted verification, invalid answers ineligible and frozen 60-second failure penalty. Bind exact source/image/fingerprint/cohort. No practical targets, private tuning or changed score semantics. | S02 trace; S08/S14–S18 verify; separate evaluation authority. |
+| 0.6.0 adoption/native accounting campaign — old public packet decisions, MVP scope | Replace / historical | 0.5.0 preview with explicit cooperative-timing limitations in final package/packet. No hostile-code timing claim or relabeled historical scores; no 0.6.0 campaign required. | S08/S18; owner publication scope later. |
+| Retained artifacts, worker provenance and participant package — MVP 1–2, old distribution section | Keep | Reuse matching archive/clean-install receipts; original worker build commit unknown with accepted preview limitation. Freeze current candidate and compatible rollback dependency closure; independent exact public archive/privacy review. Packaging passed locally, nothing published. | S08/S17/S18; publication remains owner action. |
+| Production config/secrets/images/schema/namespace isolation — MVP 3, public packet configuration discipline | Keep | Preparation passed for recorded bytes, full validation awaits audited epoch. Fresh scoped secrets, disjoint staging paths/volumes, immutable images, explicit initial migration/schema verification. Switches cannot migrate implicitly. | S08–S11/S14–S17; exact installation/epoch authority. |
+| HTTPS/OAuth/sessions/CSRF/token lifecycle/private DB and proxy boundaries — MVP 5 | Keep | Real selected-deployment TLS trust and renewal/reload, GitHub callback/login, secure cookies, CSRF and token creation/revocation/expiry receipts. Supplied OAuth choices settled; synthetic authentication insufficient. | S16; applicable listener/deployment authority. |
+| Queue/quota/rate limits, immutable source, idempotency/cancellation — PLAN source requirements, MVP 6 | Keep | Concurrent duplicate/same-key-body-conflict and quota checks, one bounded queue, eligible Python/public inputs and immutable source. Cancellation retains ownership until cleanup. Existing queue/services source is not installed proof. | S03–S06/S13/S17; final journey separately authorized. |
+| Always-on dispatch/automatic reopen — review operating procedure, runtime recovery | Replace | Persistent closed-by-default windows; atomic close/claim across coordinators. Closed queue waits without consuming attempts; missing/corrupt state and restart inhibit launch. Close prevents next dispatch; active job finishes protected or uses verified cancellation. Admission closure remains separate. Not implemented. | S03–S06 source/tests; S12–S13 installed observations; operator opening requires applicable authority. |
+| Shared host exclusion, all scheduling/restart owners and administrative fence — PLAN source requirements, runtime transactions | Keep | Actual all-account/cron/container trigger/reference inventory and inhibition; host-wide lock before participant claim or administrative zero-pending SQL fence. Queued jobs block maintenance; window permission never grants administrative authority. | S03–S04/S06–S07/S09/S13–S15; privileged facts missing; exact live authority required. |
+| Host/ancestor CPU/RAM/PIDs/swap/reserve — runtime resource enforcement | Keep | Actual delegation and ancestor births/allowances; admission floors 1 GiB available RAM and 5 GiB free disk; aggregate RAM bounded by physical minus reserve/effective ancestors, one CPU, 448 PIDs, zero swap, frozen worker limits. Resource deferral leaves jobs queued; retained web/DB/proxy checked before/after. Workload fit remains unknown. | S07/S09–S14; separately authorized native checks/epoch. |
+| Storage/output enforcement — runtime resource enforcement | Keep | Installed ext4/xfs output maximum 1 GiB with noexec/nosuid/nodev; kernel combined log bound 128 MiB, two 64 MiB participant or up to eight 16 MiB admin streams. Size scans insufficient; actual storage facts missing. | S07/S09–S13; exact installation/native authority. |
+| Isolation, peer rejection, watchdog/independent cleanup — runtime native gate, control registry | Keep | All required controls and all 27 registered scenarios need matching installed injection/observer/order/identity, independent cleanup/postflight and retained-service evidence. Source runners/local Linux/PostgreSQL checks exist; all full installed-native scenarios unexecuted. Three-case helper cannot pass complete controls. | S06/S10 local; S11–S13 independent review and exact native authority. |
+| Positive termination, stale leases, parent/worker death and protection failure — runtime resources/recovery | Keep | Absent owned containers and empty owned cgroups with birth binding before release; no lease-expiry replacement. Parent OOM/monitor loss/aggregate exhaustion means infrastructure failure, no score/automatic retry, persistent pause. Uncertain cleanup retains blocked ownership. | S04/S06/S13; native cases separately authorized. |
+| Retry eligibility, DB/operator commit barrier and reconciliation — runtime transactions, protected epoch | Keep | Ordinary infrastructure retry only after verified cleanup/reconciliation and still-open window. Durable commit intent plus DB/operator reconciliation preserves committed result once; uncommitted orphan becomes infrastructure failure after cleanup. No recompute on lost acknowledgement, journal deletion, attempt reset or legacy-expired-job requeue. | S02 finalize; S04/S06/S13/S15/S17 verify under applicable authority. |
+| Measured capacity — maintenance/policy validators, MVP 4 | Replace for new v4; historical v2/v3 unchanged | Explicit unmeasured_capacity with exact resource-policy hash, complete control-specific evidence, independent reviewer/executor and exact owner/reviewer packet bindings. Preparation freshness 24 hours, live five minutes. Existing v4 implementation lacks installed acceptance. No fabricated receipt, unconditional bypass or certified-sizing claim; inability to fit keeps evaluation closed. | S02 trace; S08–S14 bind/review; S15 separate epoch authority. |
+| Generic bootstrap/installer/general continuation and VM acceptance — runtime configuration/recovery, implementation/fixture plans | Replace | One exact host-bound release/install/restore sheet: original settings, dependency closure, before/after observations, each mutation's interruption inspection/reversal, local image-load/service-switch/inhibition/restore rehearsal, independent exact-byte review, paused installed receipt. Generic completeness deferred, not passed. Failed 35-second VM image-load rehearsal stays failed. | S07–S11 local/review; S12 exact installation authority; S13 separate native authority. |
+| Overlapping packets/protocol generations — runtime runbook, epoch CLI | Replace new launch routing only | One matrix/release-bound installation proposal; distinct installation/native/epoch/rollout grants. New administration selects v4 end to end; historical readers/guards unchanged. Actual installed supervisor/socket/cgroup/mount/image births required; proposed identities cannot pass. | S02/S08–S11/S14; align entrypoints/defaults/runbooks and test before execution. |
+| Fresh epoch/reference/audit/seal/cohort — MVP 4, production epoch procedure | Keep | One separately authorized fresh 0.5.0 attempt on selected host/frozen worker; independent audit/seal/reference and final cohort/full config receipts. No staging/C reuse, automatic second attempt or private tuning. Preserve partial/failed evidence. Preparation is not execution. | S14 exact packet/review; S15 explicit epoch authority. |
+| C/load/pacing/monitor investigation, old seven staging scenarios/full production rehearsal — PLAN 10, old public rehearsal | Historical / replace release acceptance | Preserve failed loaded reads, lease inspection, uncertain pacing and unreached cases. No new campaign. Required failure behaviors covered by S06/S13 plus one final release-bound functional journey; scoped old fault passes cannot certify new runtime. | S02 check coverage; S06/S13/S17/S18; no new load rehearsal authorized. |
+| Application rollback/forward and interrupted deployment — MVP 7, old rehearsal | Keep recovery; replace generic workflow | Compatible complete dependency closure and schema disposition, exact stop/inspect/restore sheet, local interruption/restore receipts and matching installed-control evidence. Recheck usable recovery at final journey. No implicit migration/downgrade/DB restore; uncertainty stays paused. | S08–S13/S17; any live restore check separately authorized. |
+| Encrypted off-host restore/backup freshness/custody/timers — old preparation operations, PLAN 10 | Replace / defer setup | Accepted potential permanent DB/result/private-evidence loss recorded in go/no-go. Application rollback cannot recover data loss; no backup pass claimed or new storage prerequisite. Existing timer owners still inventoried; no implicit disabling. | S07/S09/S18; policy settled; exact live changes need authority. |
+| Remote lease alerts/heartbeats/automatic repair — old operations, MVP 7 | Replace / defer automation | Owner manual HTTPS checks open/close, every 15 minutes open and daily closed; record incident contact and window preflight for DB/queue/resources/supervisor/unresolved ownership. Walk through paused incident response; HTTP cannot prove worker health. Keep local watchdog/cleanup. Old lease failure stays failed, no notifications sent. | S05/S16/S18; owner responsibility accepted, contact/window fields finalized before rollout. |
+| Three-person external pilot — old pilot, MVP 6/8 | Replace launch prerequisite with final journey; recruitment separate | One final-package clean install → public validation → immutable submission/status → verified audited cohort result, idempotency and applicable cancellation, release-bound receipt. Old pilot not reported passed; invitations/consent/observations remain unexecuted. | S17/S18; specific journey authority; separate recruitment authority. |
+| Go/no-go, activation/publication — MVP 8, old publication sequence | Keep decision boundary; replace obsolete checklist | Final matrix reconciles actual scoped passes/failures and release/config/worker/cohort IDs, cooperative timing/manual operations/data-loss limitations, exact rollout commands and blockers. Old canonical ledger remains historical, cannot pass by omission. | S18 review; S19 explicit activation scope; owner pushes/publishes, invitations separately authorized. |
+| Retention/cache/dead-code retirement — retention policy | Keep; optional post-acceptance | Compact permanent records, unresolved-failure evidence, scientific data, current install and verified rollback retained. Ownership/inactivity/path checks before eligible bulk removal; no shared-hardlink mutation or broad prune. No S01–S02 deletion. | Optional S20–S21 scoped removal; not a new launch blocker. |
+
+### Protocol identities and fixed-install substitution
+
+Administrative `mldsafail.production-operation.v4` routes through
+[protected_epoch.validate](../deploy/protected_epoch.py),
+[production_maintenance.packet_state](../deploy/production_maintenance.py) and
+[workload_policy.validate_controls/authorize](../deploy/workload_policy.py), selected
+by [the epoch CLI](../scripts/production_epoch_operation.py). Historical v2/v3
+administrative validators still require measured-capacity receipts. V4 substitutes
+reviewed unmeasured controls, without relaxing limits or claiming capacity.
+
+Those numbers do not select installer versions. [workload_v3.py](../deploy/workload_v3.py)
+compiles v3 bootstrap proposals/installed acceptance; the runbook also describes
+v1/v2 bootstrap preparation. Protocol-four recovery in the
+[engineering handoff](acceptance/production-preparation/protected-runtime-engineering-20261026.md)
+binds mutation/continuation receipts. Neither an administrative v4 grant nor a
+protocol-four recovery receipt proves installation or complete bootstrap approval.
+
+S08–S11 must align fixed-path entrypoints, validators, defaults and documentation.
+The fixed sheet replaces general installer completeness/continuation coverage,
+not actual host inventory, UID maps, delegation, storage, original settings,
+release/rollback closure, interrupted-step inspection or independent exact review.
+It requires a local selected-path rehearsal, separately approved paused install
+and actual identities, then separately authorized native checks for every retained
+control before epoch approval. Failed local fixtures cannot become installed
+passes. S01 changes no executable selector, runtime API or benchmark bytes.
+
 ## Changes that must travel together
 
 Window control, coordinator restart policy, retries, queue status text and operator
@@ -156,7 +220,7 @@ Do not remove legacy modules until imports, historical receipt readers and recov
 consumers have been inventoried. Alert deferral must name the human cadence/contact
 at the same time. Retention removal must retain the rollback dependency closure.
 
-## Bounded implementation batches (future authorization required)
+## Bounded implementation batches (local preparation authorized)
 
 | Order | Deliverable and acceptance | Reversal |
 | --- | --- | --- |
@@ -169,8 +233,8 @@ at the same time. Retention removal must retain the rollback dependency closure.
 
 ## Sequential agent implementation sessions
 
-This is the execution map for future fresh-context sessions, not authorization to
-implement or deploy the proposed architecture today. Use one session per row,
+This is the execution map for fresh-context sessions. Local preparation is authorized;
+live execution retains separate authority. Use one session per row,
 in order, without parallel implementation. The six batches above describe the
 architecture; the sessions below divide them into smaller handoffs. Historical
 backlogs are evidence, not additional assignments. Do not start the next row in
@@ -253,7 +317,8 @@ Do not grow the architecture or silently skip failed checks to fit a session.
 
 | Current session | Status | Recorded outcome / next action |
 | --- | --- | --- |
-| S01 | Pending — owner choices accepted | Policy acceptance recorded above. Next action: complete the finite gate mapping and evidence requirements using the accepted choices, then hand off to fresh S02 independent review. No installation or launch authority granted. |
+| S01 | Complete — 2026-10-26 | Matrix, evidence requirements and fixed-install/protocol boundaries recorded; checks in handoff below. |
+| S02 | Pending — current | Independently trace S01 mapping in fresh context; finalize contract before S03. |
 
 ## Failure walkthrough and required evidence
 
@@ -269,7 +334,7 @@ These are design checks, not claims that new behavior has passed runtime tests.
 | Interrupted result recording | Durable intent plus DB reconciliation preserves a matching committed result once; uncommitted orphan becomes infrastructure failure after cleanup. Never recompute merely because acknowledgement was lost. |
 | Failed deployment | Stop at uncertain mutation, preserve observations, keep compute inhibited and restore exact compatible files/images/configuration. No automatic migration/downgrade or database restore assumption. Verify retained services before reopening. |
 
-## Replacement launch checklist (proposed)
+## Replacement launch checklist (policy accepted; acceptance pending)
 
 **Engineering:** implement batch 2; finish fixed-install packet and finite acceptance
 matrix; verify actual containment, output storage and restart/commit failure cases;
@@ -282,15 +347,48 @@ authorized audited production benchmark; verify real HTTPS/OAuth/token and one f
 participant journey; test restoration; name incident contact and record manual
 checks/window schedule. Preserve original failures and compact run records.
 
-**Owner decisions:** accept delayed supervised results and the named manual check
-cadence; approve replacing the general installation/acceptance workflow with the
-fixed-release packet (this changes existing procedural requirements); explicitly
-adopt the reviewed unmeasured-capacity execution-policy disposition (the old
-validator requirement is currently unsatisfied); decide whether launch may proceed
-with deferred backups and potential permanent loss of database/epoch/evidence.
-Then separately approve exact installation, native checks, epoch and final
-activation/publication scopes as applicable. Invitations are not authorized here.
+**Accepted owner decisions:** supervised windows, fixed installation/restoration,
+reviewed v4 unmeasured capacity, owner-operated manual checks and deferred backups
+with potential permanent data loss. Do not request these decisions again. S02
+reviews the implementation contract. Exact installation, native checks, epoch and
+activation/publication scopes retain separate applicable authority; invitations
+are not authorized here.
 
 No change to tiny-instance restrictions, frozen scoring, private-data isolation,
 answer verification, shared host exclusion, reserve/limits or positive termination
 is proposed. If a fixed-install path cannot meet these, the launch stays blocked.
+
+## S01 handoff — 2026-10-26
+
+Status: complete; S02 pending. Reviewed baseline:
+`eb45fe00e6ad7f984068b2426bb350fa3a81bee8`, clean tree at start.
+Read AGENTS.md, PLAN, this review, MVP/older launch packets, runtime runbook,
+retention policy and 2026-10-26 engineering handoff; traced maintenance/policy
+validators, protected epoch validation/routing and bootstrap/recovery version
+sources linked above. Runtime/configuration bytes unchanged; no installed or
+private identities refreshed. Changed documents: PLAN and this review.
+
+Authority: accepted policy and local documentation/commit scope. Existing source
+implementation/local checks are scoped evidence; installed acceptance is absent.
+No new owner policy choice blocks S01. S02 must independently check completeness
+and material policy conflicts. Later privileged facts, fixed-path implementation,
+rehearsal/proposal review, installed native acceptance, epoch and journey remain
+unresolved; this mapping does not satisfy them.
+
+Checks: changed-document local link/anchor checks and `git diff --check` passed;
+PLAN routing and ledger both select S02. Runtime tests and `make check` not run:
+the session schedule and requested documentation-only verification specify document
+checks. Reversal: revert this documentation commit to restore prior mapping/routing;
+accepted owner policy and historical outcomes remain unchanged. No runtime rollback.
+
+Exact next assignment: S02 in a separate fresh conversation without S01 transcript.
+Supply repository instructions, PLAN, this review and this handoff. First inspect
+tree/recent commits, then independently trace every matrix row against current
+requirements, frozen spec and validator/control-registry sources. Correct omissions
+within accepted policy; record material conflicts as blockers. Finalize window
+close/claim behavior, restart inhibition, administrative exclusion, retry eligibility
+and result reconciliation for S03–S06. Every replacement needs concrete acceptance;
+no historical failure may become a pass. If review passes, route both records to
+S03, commit locally and stop without S03 work. Record external fresh-session runner
+construction and restart/review-failure rehearsal as prerequisites to unattended
+chaining after S02 and before S03. Do not build the runner during S01.
