@@ -55,6 +55,8 @@ class SupervisorProtocol:
             with self.gate.mutex:
                 if self.gate.state is None:return None
                 state={key:copy.deepcopy(value) for key,value in self.gate.state.items() if key not in ('requests','completed_workloads','pause_actions')}
+                state['inflight_launches']=self.gate.inflight_launches
+                state['inflight_resumes']=self.gate.inflight_resumes
                 state['request_counts']={phase:sum(entry['phase']==phase for entry in self.gate.state.get('requests',{}).values()) for phase in ('intent','complete')}
                 return state
         # Monotone generation/sequence IDs make discarded outcomes permanently

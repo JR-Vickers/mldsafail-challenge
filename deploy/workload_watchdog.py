@@ -9,7 +9,6 @@ import json
 import socket
 from pathlib import Path
 import signal
-import resource
 import subprocess
 import time
 import sys
@@ -175,49 +174,54 @@ def execute(protocol,root,*,birth=process_birth,review_path=None,authorization_p
                   str(report),str(max(.001,allowance-reserve-.05)),
                   '--cleanup-seconds',str(reserve),*argv]
         start=time.monotonic()
-        with path.open('xb') as output:
-            try:
-                def limit_output(): resource.setrlimit(resource.RLIMIT_FSIZE,(1024**2,1024**2))
-                process=subprocess.Popen(argv,stdout=output,stderr=subprocess.STDOUT,start_new_session=True,preexec_fn=limit_output)
-                identity=birth(process.pid)
-                if proof:
-                    from deploy.workload_native_supervision import stage_birth
-                    stage_birth(proof,next(index for index,item in enumerate(declared_rows) if item is row),identity)
-                exclusive(root/(str(len(records))+'-birth.json'),canonical(identity))
-                process.wait(timeout=allowance)
-            except subprocess.TimeoutExpired:
-                timed_out=True
-            finally:
-                if process is not None and process.poll() is None:
-                    try:
-                        require(birth(process.pid)==identity,'watchdog_client_birth_changed')
-                        os.killpg(process.pid,signal.SIGKILL);process.wait(timeout=min(.1,max(.001,deadline-time.monotonic())))
-                    except BaseException:
-                        uncertain=True
-                if process is not None and process.poll() is not None:
-                    try: os.killpg(process.pid,0)
-                    except ProcessLookupError: pass
-                    else: uncertain=True
-                if sys.platform=='linux':
-                    try:
-                        containment=json.loads(report.read_bytes())
-                        if containment['remaining'] or containment['errors']:uncertain=True
-                        timed_out=timed_out or containment['timed_out']
-                    except (OSError,ValueError,KeyError):
-                        uncertain=True
-                    progress=Path(str(report)+'.births.jsonl')
-                    if progress.exists():
-                        for line in progress.read_bytes().splitlines():
-                            try:retained_births.append(json.loads(line))
-                            except ValueError:uncertain=True
-                output.flush();os.fsync(output.fileno())
+        from deploy.workload_log import LogPipe
+        command_error=None
+        try:
+            with path.open('xb') as output,LogPipe(output,1024**2) as pipe:
+                try:
+                    os.fchmod(output.fileno(),0o600)
+                    process=subprocess.Popen(argv,stdout=pipe.write_fd,stderr=subprocess.STDOUT,start_new_session=True)
+                    identity=birth(process.pid)
+                    if proof:
+                        from deploy.workload_native_supervision import stage_birth
+                        stage_birth(proof,next(index for index,item in enumerate(declared_rows) if item is row),identity)
+                    exclusive(root/(str(len(records))+'-birth.json'),canonical(identity))
+                    pipe.wait(process,timeout=allowance)
+                except subprocess.TimeoutExpired:
+                    timed_out=True
+                finally:
+                    if process is not None and process.poll() is None:
+                        try:
+                            require(birth(process.pid)==identity,'watchdog_client_birth_changed')
+                            os.killpg(process.pid,signal.SIGKILL);process.wait(timeout=min(.1,max(.001,deadline-time.monotonic())))
+                        except BaseException:
+                            uncertain=True
+                    if process is not None and process.poll() is not None:
+                        try: os.killpg(process.pid,0)
+                        except ProcessLookupError: pass
+                        else: uncertain=True
+                    if sys.platform=='linux':
+                        try:
+                            containment=json.loads(report.read_bytes())
+                            if containment['remaining'] or containment['errors']:uncertain=True
+                            timed_out=timed_out or containment['timed_out']
+                        except (OSError,ValueError,KeyError):
+                            uncertain=True
+                        progress=Path(str(report)+'.births.jsonl')
+                        if progress.exists():
+                            for line in progress.read_bytes().splitlines():
+                                try:retained_births.append(json.loads(line))
+                                except ValueError:uncertain=True
+        except BaseException as error:
+            command_error=dict(type=type(error).__name__,message=str(error))
         record=dict(name=row['name'],argv_sha256=digest(canonical(row['argv'])),birth=identity,
                     returncode=(containment['returncode'] if containment is not None else process.returncode if process else None),
                     containment=containment,descendant_births=retained_births,timed_out=timed_out,
-                    elapsed_seconds=time.monotonic()-start,log_sha256=digest(path.read_bytes()),
+                    elapsed_seconds=time.monotonic()-start,log_sha256=digest(path.read_bytes()) if path.exists() else None,
+                    command_error=command_error,
                     termination_verified=process is not None and process.poll() is not None and not uncertain)
         records.append(record);exclusive(root/(str(len(records)-1)+'-outcome.json'),canonical(record))
-        return (record['returncode']==0 and not timed_out and record['termination_verified'] and
+        return (record['returncode']==0 and command_error is None and not timed_out and record['termination_verified'] and
                 not (containment and containment['descendants']))
     try:
         failed=not run(protocol['startup'])

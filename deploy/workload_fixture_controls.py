@@ -353,8 +353,13 @@ def execute(fixture,resources,control,scenario,token):
     from scripts.workload_fixture_worker import inherited_lock
     from scripts.rehearse_workload_installation_fixture import component_review
     inherited_lock(fixture.root,fixture.lock_fd);fixture.require_target();component_review(fixture)
+    native_stage=False
+    if fixture.manifest.get('schema')=='mldsafail.workload-native-context.v1':
+        from deploy.workload_native_context import NativeContext
+        require(type(fixture) is NativeContext,'native_component_context_type_required')
+        native_stage=True
     require((control,scenario) in CASES,'fixture_control_native_adapter_not_implemented')
-    require(fixture.deadline()>=180,'fixture_control_insufficient_attempt_budget')
+    require(fixture.deadline()>4 if native_stage else fixture.deadline()>=180,'fixture_control_insufficient_attempt_budget')
     require(type(token) is str and len(token)==32 and all(c in '0123456789abcdef' for c in token),
         'fixture_control_token_invalid')
     claims=[row for row in fixture.journal.rows if row['event']=='fixture_control_case_claim' and row.get('token')==token]
@@ -364,14 +369,16 @@ def execute(fixture,resources,control,scenario,token):
         row.get('control')==control and row.get('scenario')==scenario]
     require(len(requests)==1 and type(requests[0].get('started_monotonic')) in (int,float) and
         type(requests[0].get('packet_deadline')) in (int,float),'fixture_control_parent_budget_binding_missing')
-    started=requests[0]['started_monotonic'];packet_deadline=min(started+177,requests[0]['packet_deadline'])
+    started=requests[0]['started_monotonic']
+    packet_deadline=(min(fixture.stage_deadline,time.monotonic()+fixture.deadline()-3) if native_stage else
+        min(started+177,requests[0]['packet_deadline']))
     root=fixture.root/'artifacts'/('control-'+token);root.mkdir(mode=0o700)
     exclusive(root/'intent.json',canonical(dict(generation=fixture.manifest['generation'],
         manifest_sha256=fixture.binding,control=control,scenario=scenario,token=token,
         envelope=dict(startup=30,case=90,cleanup=45,postflight=15),outer_supervision_reserve_seconds=3)))
     evidence_root=root/'evidence';evidence_root.mkdir(mode=0o700)
     evidence=Journal(evidence_root,fixture.binding)
-    phase_deadline=[started+30];phase=['startup'];original_run=resources.run
+    phase_deadline=[min(started+30,packet_deadline)];phase=['startup'];original_run=resources.run
     evidence_lock=threading.RLock();command_lock=threading.Lock()
     original_append=evidence.append
     def append(event,**fields):
@@ -424,7 +431,7 @@ def _run(fixture,resources,control,scenario,root,started,packet_deadline,phase_d
     require(status and status['paused'] is True and status['phase'] in ('cleaned','complete'),
         'fixture_control_installed_supervisor_not_paused')
     require(time.monotonic()<started+30,'fixture_control_startup_expired')
-    phase[0]='case';phase_deadline[0]=min(started+120,time.monotonic()+90)
+    phase[0]='case';phase_deadline[0]=min(packet_deadline,started+120,time.monotonic()+90)
     case_deadline=phase_deadline[0]
     # This is fixture-only construction, not a replacement for any installed
     # configuration or its native acceptance binding.
@@ -699,7 +706,7 @@ def _run(fixture,resources,control,scenario,root,started,packet_deadline,phase_d
     except BaseException as error:
         failure=dict(type=type(error).__name__,message=str(error))
     finally:
-        phase[0]='cleanup';phase_deadline[0]=min(started+165,time.monotonic()+45)
+        phase[0]='cleanup';phase_deadline[0]=min(packet_deadline,started+165,time.monotonic()+45)
         cleanup_deadline=phase_deadline[0]
         evidence.append('control_cleanup_started',monotonic_ns=time.monotonic_ns())
         runtime.release_quota()

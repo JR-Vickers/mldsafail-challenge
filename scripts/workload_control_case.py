@@ -1,4 +1,4 @@
-"""Run one exactly bound synthetic control case; this creates no authority."""
+"""Run one exactly bound control case or authorized native stage; grants no authority."""
 import argparse
 import json
 import os
@@ -89,13 +89,36 @@ def run(packet_path, control, scenario, output):
     return receipt
 
 
+def run_native(packet_path,control,scenario,output,phase):
+    require(phase in ('case','cleanup','postflight'),'control_native_phase_invalid')
+    from deploy.workload_native_context import NativeContext
+    context=NativeContext.open(packet_path,stage=phase)
+    operation={'case':context.run_case,'cleanup':context.cleanup_case,'postflight':context.postflight_case}[phase]
+    receipt=operation(control,scenario,output)
+    if phase=='case':
+        require(receipt.get('origin')=='installed_native' and receipt.get('case_observed') is True and
+            receipt.get('accepted') is False,'control_native_case_observation_missing')
+    elif phase=='cleanup':require(receipt.get('verified') is True,'control_native_cleanup_unverified')
+    else:
+        require(receipt.get('schema')=='mldsafail.workload-control-postflight.v3' and
+            receipt.get('origin')=='installed_native','control_native_postflight_observation_missing')
+    return receipt
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--packet',type=Path,required=True)
     parser.add_argument('--control',required=True)
     parser.add_argument('--scenario',required=True)
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--native-phase',choices=('case','cleanup','postflight'))
     args=parser.parse_args()
+    if args.native_phase:
+        receipt=run_native(args.packet,args.control,args.scenario,args.output,args.native_phase)
+        if args.native_phase=='postflight':print(canonical(receipt).decode())
+        else:print(json.dumps(dict(origin='installed_native',stage=args.native_phase,accepted=False,
+            case_observed=receipt.get('case_observed'),verified=receipt.get('verified')),sort_keys=True))
+        return
     receipt=run(args.packet,args.control,args.scenario,args.output)
     print(json.dumps(dict(origin=receipt['origin'],packet_sha256=receipt['packet_sha256'],
         control=args.control,scenario=args.scenario,installed_native_eligible=False,

@@ -347,10 +347,13 @@ class Fixture:
         require(phase in ('provision','inspect','cleanup','peer-probe'),'fixture_builtin_operation_invalid')
         return self.worker(phase,cleanup=cleanup,seconds=1500 if phase=='provision' else 180)
 
-    def worker(self, operation, *, cleanup=False, seconds=300, phase='install',review=None,authority=None,reconciliation=False):
+    def worker(self, operation, *, cleanup=False, seconds=300, phase='install',review=None,authority=None,reconciliation=False,token=None):
         from scripts.workload_fixture_worker import inherited_lock
         inherited_lock(self.root,self.lock_fd)
-        token = uuid.uuid4().hex
+        token = uuid.uuid4().hex if token is None else token
+        require(type(token) is str and len(token)==32 and all(c in '0123456789abcdef' for c in token) and
+            not any(row['event']=='fixture_worker_intent' and row.get('token')==token for row in self.journal.rows),
+            'fixture_worker_token_reused_or_invalid')
         output = self.root/'artifacts'/('worker-'+token+'.json')
         from mldsafail.evaluator.native_workload import process_birth
         request = dict(token=token,operation=operation,output=str(output),phase=phase,reconciliation=reconciliation,

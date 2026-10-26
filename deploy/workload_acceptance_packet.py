@@ -66,7 +66,11 @@ def verify_installed(packet_path):
     require(packet['stage']=='installed','acceptance_installed_packet_required')
     proposal=load_reference(packet['proposal'])
     from deploy.workload_installed import collect
-    installed(collect(proposal),proposal)
+    observation=collect(proposal)
+    installed(observation,proposal)
+    if packet['protocol']['origin']=='installed_native' and 'native_context' in packet['protocol']['identities']:
+        from deploy.workload_native_context import NativeContext
+        NativeContext.startup(packet_path,packet['protocol']['identities']['native_context']['watchdog_root'],observation=observation)
 
 
 def execute(packet_path,root,*,review_path=None,authorization_path=None):

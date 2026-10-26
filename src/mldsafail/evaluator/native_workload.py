@@ -208,6 +208,12 @@ class NativeRuntime:
                     bytes=filesystem.f_blocks * filesystem.f_frsize, filesystem=row[split+1])
 
     def preflight(self, policy):
+        # This fixed, denial-only marker never grants execution authority. Any
+        # existing inode (including stale, malformed or symlinked markers)
+        # inhibits the installed gate; only exact owner-bound cleanup removes it.
+        try: (self.root/'native-control-hold.json').lstat()
+        except FileNotFoundError: pass
+        else: require(False,'native_control_hold_active')
         require(hashlib.sha256(Path(self.config['controller_configuration']).read_bytes()).hexdigest() == self.config['controller_configuration_sha256'], 'native_controller_configuration_changed')
         controller = private_json(self.config['controller_configuration'])
         require(set(controller) == {'native_configuration','identity','epoch_path','worker_image','signing_key'} and

@@ -11,6 +11,14 @@ from mldsafail.evaluator.native_workload import require
 from scripts.workload_installation_fixture import CASES, Fixture, lifecycle_lock, prepare
 
 REVIEW_FILES = (
+    'deploy/workload_native_context.py',
+    'deploy/workload_native_resources.py',
+    'deploy/workload_native_supervision.py',
+    'deploy/workload_native_packet.py',
+    'deploy/workload_watchdog.py',
+    'src/mldsafail/evaluator/native_workload.py',
+    'src/mldsafail/evaluator/workload.py',
+    'src/mldsafail/evaluator/workload_socket.py',
     'deploy/workload_fixture_control_cleanup.py',
     'deploy/workload_fixture_database.py',
     'deploy/workload_fixture_routing.py',
@@ -37,6 +45,10 @@ REVIEW_FILES = (
 
 
 def component_review(fixture):
+    if fixture.manifest.get('schema')=='mldsafail.workload-native-context.v1':
+        from deploy.workload_native_context import NativeContext
+        require(type(fixture) is NativeContext,'native_component_context_type_required')
+        return fixture.component_review()
     _,component = private(fixture.root/'inputs/component_review')
     require(component.get('decision')=='approved' and component.get('scope')=='disposable_fixture_components_only' and
             component.get('reviewed_by') != component.get('implemented_by') and component.get('reviewed_by') and

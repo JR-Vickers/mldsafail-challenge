@@ -98,6 +98,7 @@ class HostGate:
         self.mutex = threading.RLock()
         self.state = None
         self.inflight_launches = 0
+        self.inflight_resumes = 0
         self.path = self.root / 'workload.json'
 
     def _validate(self, state):
@@ -571,6 +572,18 @@ class HostGate:
             self._write()
 
     def resume(self):
+        # An independent native-control admission snapshot must distinguish a
+        # paused owner from a resume already admitted before its denial hold.
+        # Status remains responsive while stopped/preflight I/O is in flight.
+        with self.mutex:
+            self.inflight_resumes += 1
+        try:
+            return self._resume_verified()
+        finally:
+            with self.mutex:
+                self.inflight_resumes -= 1
+
+    def _resume_verified(self):
         self._owned()
         with self.mutex:
             if self.inflight_launches: raise WorkloadBlocked('creator_response_pending')

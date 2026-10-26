@@ -153,3 +153,20 @@ def test_postflight_requires_actual_owned_cgroup_termination(tmp_path,monkeypatc
         with pytest.raises(WorkloadBlocked,match='populated|birth_changed'):watchdog.fixture_termination(data)
     else:
         assert watchdog.fixture_termination(data)['state']==('empty' if mode=='empty' else 'removed')
+
+
+def test_outer_log_cap_does_not_prevent_owned_kernel_writer_limits(tmp_path):
+    data=protocol()
+    data['cases'][0]['argv']=[sys.executable,'-c',
+        'import resource;resource.setrlimit(resource.RLIMIT_FSIZE,(16*1024**2,16*1024**2));print("owned writer limit admitted")']
+    receipt=execute(data,tmp_path/'run',birth=lambda pid:dict(pid=pid))
+    assert receipt['passed']
+
+
+def test_log_overflow_records_failure_and_still_attempts_bound_cleanup(tmp_path):
+    data=protocol();data['cases'][0]['argv']=[sys.executable,'-c','import sys;sys.stdout.write("x"*(2*1024**2));sys.stdout.flush()']
+    receipt=execute(data,tmp_path/'run',birth=lambda pid:dict(pid=pid))
+    assert not receipt['passed']
+    assert 'cleanup' in [row['name'] for row in receipt['records']]
+    assert (tmp_path/'run/1-command.log').stat().st_size<=1024**2
+    assert receipt['records'][1]['command_error'] is not None

@@ -45,7 +45,12 @@ def wrap(root, fd, report, allowance, argv):
 def work(root, fd, token, operation, output, *, phase='install',review=None,authority=None,reconciliation=False):
     inherited_lock(root,fd)
     from scripts.workload_installation_fixture import Fixture, fixture_engine
-    fixture = Fixture(root)
+    NativeContext=None
+    manifest=private(Path(root)/'manifest.json')[1] if (Path(root)/'manifest.json').exists() else {}
+    if manifest.get('schema')=='mldsafail.workload-native-context.v1':
+        from deploy.workload_native_context import NativeContext
+        fixture=NativeContext.from_root(root);fixture.require_operation(operation,phase)
+    else:fixture=Fixture(root)
     fixture.lock_fd = fd
     fixture.require_target()
     request = [row for row in fixture.journal.rows if row['event']=='fixture_worker_intent' and row['token']==token]
@@ -82,7 +87,10 @@ def work(root, fd, token, operation, output, *, phase='install',review=None,auth
     require(not any(row.get('token')==token for row in fixture.journal.rows),'fixture_worker_request_replay')
     fixture.journal.append('fixture_worker_claim',token=token,operation=operation,parent=parent)
     from deploy.workload_fixture_resources import Resources
-    resources = Resources(fixture)
+    if type(fixture) is NativeContext:
+        from deploy.workload_native_resources import NativeResources
+        resources=NativeResources(fixture)
+    else:resources = Resources(fixture)
     from deploy.workload_installed import observation_runner
     with observation_runner(resources.run):
         if operation=='provision':
@@ -117,7 +125,8 @@ def work(root, fd, token, operation, output, *, phase='install',review=None,auth
             control,scenario,original_token=recovery_selection
             resources.cleanup_mode=True
             method=control_cleanup if operation=='control-cleanup' else control_postflight
-            result=method(fixture,resources,control,scenario,original_token)
+            result=method(fixture,resources,control,scenario,original_token,
+                deadline=fixture.stage_deadline if type(fixture) is NativeContext else None)
         elif operation=='control':
             from deploy.workload_fixture_controls import execute as control_execute
             selected=phase.split(':')
