@@ -140,6 +140,94 @@ at the same time. Retention removal must retain the rollback dependency closure.
 | 5. Establish benchmark and functional launch | Separately authorize one fresh epoch, audit/seal/reference/cohort; finalize configuration. Verify actual TLS/OAuth/token lifecycle and final participant journey, monitoring procedure and rollback compatibility. Owner reviews exact rollout packet before invitation/publication. | Keep admission/compute closed; retain failed evidence and original epoch outcomes. No automatic epoch retry. |
 | 6. Retire unused launch paths | After accepted replacement, remove obsolete launch entrypoints/docs and only dependency-audited dead code in separate commits; preserve historical readers and records. Link/import checks and affected tests must pass. Retention cleanup is separately scoped. | Revert removal commit; restore only matching inactive artifacts, never revive old scheduling owners automatically. |
 
+## Sequential agent implementation sessions
+
+This is the execution map for future fresh-context sessions, not authorization to
+implement or deploy the proposed architecture today. Use one session per row,
+in order, without parallel implementation. The six batches above describe the
+architecture; the sessions below divide them into smaller handoffs. Historical
+backlogs are evidence, not additional assignments. Do not start the next row in
+the same session merely because context or time remains.
+
+### How every fresh session selects its task
+
+When the owner says “Let's review docs/PLAN.md and
+docs/LAUNCH_ARCHITECTURE_REVIEW and determine the next course of action for our
+public launch,” read `AGENTS.md`, the routing note at the top of `PLAN.md`, this
+section, and the latest session handoff. Check the working tree and recent commits
+before editing. Select the earliest session whose exit checks are not complete;
+read only its listed inputs and the source/tests needed for that task. Do not
+restart the whole architecture review or pursue dated agendas elsewhere in PLAN.
+Announce the session ID, expected deliverable and applicable authority in chat,
+then complete its authorized work. The generic follow-up prompt selects work;
+it does not approve a proposed policy or authorize VPS mutations, evaluations,
+notifications, invitations or publication.
+
+If a prerequisite or required authority is missing, finish the local preparation
+that makes the decision concrete, record the exact blocker and ask for that
+specific decision in chat. Keep the same session current. Do not skip it, reopen
+cancelled investigations, generate new prerequisite projects or describe an
+unexecuted action as complete. Reuse an existing approval when its exact scope
+and artifact identities still apply. A material policy disagreement goes to the
+owner with a concrete alternative and its consequences.
+
+### Session schedule
+
+Each row inherits the frozen benchmark/safety boundaries and the no-push rule.
+“Local checks” means focused tests for code changes plus `make check`; documentation
+only sessions use changed-document link checks and `git diff --check`. Disposable
+fixtures do not authorize production evaluations. Native rows require the exact
+separate execution authority already required by project policy.
+
+| ID / batch | Read first | Exact assignment and deliverable | Exit checks and boundary |
+| --- | --- | --- | --- |
+| S01 / 1 — policy decision packet | This review, MVP roadmap decisions, runtime runbook, current epoch policy validators | Map every current launch gate to keep/replace/historical in one finite acceptance matrix. Specify proposed supervised windows, manual monitoring responsibility, fixed-install workflow, v4 unmeasured-capacity disposition and deferred-backup risk in ordinary language. Identify exact policy/source changes needed and present the concrete owner choices in chat. | Documentation only. Record actual owner decisions with date/scope; unresolved choices keep S01 pending. Do not treat this session schedule as adoption or waive a safety gate. |
+| S02 / 1 — independent contract review | S01 packet and decisions, frozen spec, relevant validator sources | In a fresh session, review the proposed gate mapping against existing requirements. Resolve omissions; distinguish administrative authority protocol versions from installer/bootstrap versions. Produce the approved implementation contract and finite acceptance matrix, with retained native checks and explicit replacements. | Every old launch gate has a disposition and evidence requirement; owner approval covers policy changes. If independent review under applicable policy requires another reviewer, obtain it rather than self-certify. No deployment or broad cleanup. |
+| S03 / 2 — persistent window control | S02 contract, supervisor service, coordinator claim path, workload unit/config sources | Implement the smallest persistent closed-by-default window gate and explicit open/close interface. Specify close-during-active-work behavior and administrative-role behavior. Gate all participant dispatch paths atomically against close and restart; retain host-wide lock and commit ownership. | Focused close/claim race, competing coordinators, missing/corrupt state and restart tests plus local checks. No production commands. Hand off the exact interface to S04. |
+| S04 / 2 — restart, retries and cancellation | S03 interface/tests, Compose, queue/coordinator recovery, cancellation and cleanup paths | Integrate window gate with coordinator startup/restart policy and ordinary infrastructure retries. Ensure a restart cannot reopen a window, closed windows retain queued jobs, and cancellation/retry cannot release unverified ownership or repeat ambiguous committed work. | Focused crash/restart, retry-after-close, cancellation and commit-ambiguity tests plus local checks. Do not change frozen scoring or legacy evidence. |
+| S05 / 2 — participant and operator window experience | S03–S04 handoffs, web status/submission templates, administrative controls | Add clear waiting/window status and operator open/close/preflight instructions using the implemented interface. Keep admission closure distinct from dispatch pause. Document manual availability cadence/contact fields and incident behavior. | Verify status matches gate state without exposing private configuration; quota/idempotency behavior preserved. Local checks; no real notifications or windows opened. |
+| S06 / 2 — independent window acceptance review | S02 matrix and S03–S05 changes/tests | Review the complete window change against normal/duplicate submission, timeout, cancellation, concurrent admin work, worker crash, restart and interrupted result recording. Run relevant disposable integration fixtures; repair bounded defects or record a precise failed check. | Source-level window acceptance recorded with exact commits; native checks remain pending. Local checks. No extra load campaign or production evaluation. |
+| S07 / 3 — fixed-host evidence inventory | Latest host collection handoff, owner collection procedure, retention policy, S02 matrix | Inventory supplied private evidence first. Build one list of missing actual scheduling owners/references, UID mappings, delegation, storage enforcement, retained services and rollback identities. Reuse authorized read-only collection; prepare exact owner-assisted collection only where needed. | Required facts have evidence or named missing fields; secrets stay private. Missing privileged facts keep S07 pending. Do not repeatedly refresh time-sensitive facts before execution, mutate services or resume capacity work. |
+| S08 / 3 — fixed release and dependency closure | S07 facts, release/image manifests, participant packaging records, current configuration validators | Freeze one candidate application/runtime/configuration dependency set and one compatible rollback. Verify image/archive availability, configuration compatibility and explicit schema/migration behavior. Scope new administrative routing to the approved generation without breaking historical readers. | Complete identity/dependency manifest, known provenance limitations and rollback compatibility disposition. Local validation checks. No new worker/evaluator semantics or image deployment. |
+| S09 / 3 — exact install and restoration sheet | S07–S08 manifests, current installation tooling and recovery inventory | Write exact host-bound pause, zero-pending admission, scheduling inhibition, prerequisite installation, file/image switch, observation and restoration commands. Capture original settings and stop-on-ambiguity rules for each mutation. Reuse small helpers; do not finish a general continuation framework. Align affected runbooks/packet entrypoints with S02 policy. | No placeholders or implicit migrations in executable proposal; rollback restores full dependency closure. Each interruption has a concrete inspection/reversal step. Local checks only; no transfer or installation. |
+| S10 / 3 — local fixed-install rehearsal | S09 packet, disposable fixture guide and S02 matrix | Rehearse the selected fixed install and restore in an authorized disposable local fixture. Cover interruption before/after mutation, image load, service switch, persistent inhibition and restoration. Record failures honestly; repair only the fixed path. | Successful scoped receipts or an explicit blocker; local rehearsal is not native acceptance. Run local checks for changes. Do not launch another generic fixture/recovery project. |
+| S11 / 3 — independent installation proposal review | S07–S10 artifacts and current source/configuration identities | Review exact installation/restoration bytes, authority scope, native test cases, resource/retained-service checks and failure handling. Assemble the complete owner-reviewable installation packet with explicit later native/epoch scopes. | Independent review resolved; current facts refreshed only as required for the proposed execution window. Present exact installation approval request if not already authorized. No host mutation in this session. |
+| S12 / 4 — paused installation | Approved S11 packet and authority | Execute only the authorized installation scope, keep computation inhibited, record each mutation and actual installed file/socket/cgroup/image identity, and verify retained services. On failure use the approved inspection/restoration procedure. | Installed-paused receipt or preserved failure/restoration outcome. Authorization mismatch or uncertain cleanup stops work. Installation alone grants no native tests or epoch. |
+| S13 / 4 — native control acceptance | S12 identities, S02 matrix, separately authorized native packet | Execute only approved bounded native isolation/resource/output, peer rejection, parent/worker death, cleanup, restart inhibition and commit/reconciliation checks. Verify retained services and leave scheduling paused. | Matching installed-release receipts for every required control or precise failed gate. Do not infer passes from local fixtures, weaken limits, or perform a capacity campaign. |
+| S14 / 5 — production benchmark preparation | S13 receipts, production configuration preparation, epoch operator and S02 policy disposition | Complete the exact fresh 0.5.0 epoch/create/reference/audit proposal and bind host, worker and configuration identities. Confirm zero-pending fence and shared scheduling prerequisites. Present the separately scoped epoch decision. | Complete reviewed packet with actual limits and stop conditions; no unresolved capacity-policy validator bypass. No epoch created or trial evaluation performed merely to prepare approval. |
+| S15 / 5 — authorized benchmark establishment | Approved S14 packet and explicit epoch authority | Perform only the authorized fresh epoch operation, reference and independent audit/seal steps under their applicable authority. Bind the production cohort/configuration to actual outcomes. Preserve partial/failed evidence without automatic retries. | Audited sealed epoch/reference/cohort and validated final configuration, or a recorded failed attempt and blocker. No staging/C epoch reuse or unsolicited second attempt. |
+| S16 / 5 — real HTTPS and authentication | Final release/configuration, OAuth/TLS preparation and applicable deployment authority | Complete and verify trusted TLS, renewal/reload, actual GitHub callback/login, secure sessions, CSRF and token creation/revocation/expiry. Check manual availability procedure and incident contact with the operator. | Redacted actual-deployment receipts; no synthetic-auth substitute, notifications or invitations without authority. Do not imply HTTPS readiness proves worker health. |
+| S17 / 5 — final journey and recovery evidence | S13, S15–S16 receipts, final participant package and rollback identities | Under specific authority, run one final clean-install → public validation → immutable submission → status → verified result/cohort journey, including idempotency and applicable cancellation checks. Verify the exact rollback/restoration evidence still matches; perform any live restore check only if separately authorized. | Release-bound functional receipt and usable recovery sheet, or explicit gaps. No new load campaign, private tuning or unapproved repeated evaluations. |
+| S18 / 5 — go/no-go packet | S02 matrix and S12–S17 receipts, MVP roadmap | Assemble exact release identities, passed/failed gates, cooperative-timing limitations, window schedule/contact, manual checks, backup/data-loss disposition and concrete activation/publication commands. Reconcile current summaries with actual evidence. Present a clear go/no-go recommendation and remaining owner decisions in chat. | Complete reviewable rollout proposal; owner approval for exact activation/publication scope remains separate. No publication, recruitment or pushes by implication. |
+| S19 / 5 — approved rollout | S18 packet and explicit rollout authority | Execute only authorized activation/live checks; owner handles pushes/publication unless explicitly delegated. Record actual opening state and operator responsibility. | Scoped rollout receipt or paused failure disposition. Invite no one and send no message unless explicitly authorized. |
+| S20 / 6 — optional retirement proposal | Accepted replacement receipts, import/CLI dependency inventory and retention policy | Inventory obsolete launch entrypoints/docs/dead modules and eligible bulky artifacts. Prepare exact removal groups, retained historical readers/evidence, rollback closure, checks and reversal paths for owner review. | Removal proposal only; the architecture review authorized no deletion. This is post-acceptance housekeeping, not a new launch blocker. |
+| S21 / 6 — authorized retirement | Approved S20 path/module list and current ownership/inactivity evidence | Perform only approved removals, in dependency-complete commits; preserve historical receipts/readers, scientific evidence, current installation and compatible rollback. Verify retained paths/services and affected imports/links/tests. | Local checks and compact cleanup manifest; no broad pruning, hardlink edits, resumed old schedulers or pushes. Skip this optional session unless removal is authorized. |
+
+### Durable handoff and progress record
+
+Each session must leave a short handoff in this document under the ledger below
+(or link an existing appropriately private/redacted acceptance record). Include:
+session ID and status (`pending`, `blocked`, or `complete`), source/configuration
+identities, changed files, checks with actual outcomes, owner decisions/authority
+and scope, unresolved issues, reversal instructions, and the exact next session ID
+with its first action. Separate implementation, local verification, native
+acceptance and execution authority. Never commit credentials or private inputs.
+Update the ledger and the routing note in `PLAN.md` together, commit a sensible
+validated checkpoint locally, and present findings, checks, blockers and next step
+in chat. The next agent must not depend on access to that chat.
+
+Completion requires the row's exit checks, not just a report. When waiting for an
+owner answer, record the pending question and do not mark that session complete.
+An interruption resumes the current session from its recorded remaining work;
+it does not reset attempts or execution authority. If a bounded task proves too
+large, record explicit child steps such as S09a/S09b with separate deliverables
+and exit checks here, complete only the current child, and preserve the ordering.
+Do not grow the architecture or silently skip failed checks to fit a session.
+
+| Current session | Status | Recorded outcome / next action |
+| --- | --- | --- |
+| S01 | Pending | Session schedule prepared only. Next agent: produce the concrete policy decision packet and finite gate mapping; present owner choices before proposed architecture implementation. No adoption, installation or launch authority has been recorded by this schedule. |
+
 ## Failure walkthrough and required evidence
 
 These are design checks, not claims that new behavior has passed runtime tests.

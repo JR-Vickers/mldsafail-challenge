@@ -8,6 +8,16 @@ approved policy change or execution authority. Existing gates remain in force
 until explicitly dispositioned; dated evidence and outcomes below remain intact.
 Review this recommendation before extending the current deployment workstream.
 
+Fresh-agent routing: use the [sequential session schedule and progress ledger](LAUNCH_ARCHITECTURE_REVIEW.md#sequential-agent-implementation-sessions)
+for the next public-launch course of action. **Current session: S01, pending** —
+prepare the policy decision packet and finite gate mapping, then present the owner
+choices in chat. This session architecture is documented; the proposed launch
+architecture is not yet adopted. Complete one bounded session per handoff, update
+this pointer and the review ledger together, and commit locally. The owner's
+generic “review these docs / next course of action” prompt selects the earliest
+unfinished session; it does not grant new execution or policy authority. Later
+dated agendas below do not override this routing or revive cancelled workstreams.
+
 
 Retention update, 2026-10-19: the owner adopted
 [lean-launch retention](RETENTION_POLICY.md) and explicitly authorized immediate
