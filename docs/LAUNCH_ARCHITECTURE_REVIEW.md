@@ -1,6 +1,6 @@
 # Smaller 0.5.0 research preview — accepted policy
 
-Review date: 2026-10-26. **Policy accepted; implementation contract awaits S02.** No deletion, installation, evaluation,
+Review date: 2026-10-26. **Policy accepted; S02 implementation contract reviewed.** No deletion, installation, evaluation,
 epoch, notification or launch is authorized. The matrix below records procedural replacements; retained runtime gates still apply. Scope: existing VPS, $0, tiny synthetic instances, frozen
 0.5.0 scoring and verification; 0.6.0, C diagnostics, capacity investigations and
 backup setup remain outside scope.
@@ -20,8 +20,7 @@ If frozen workloads cannot complete safely, evaluation remains closed.
 Local engineering, tests, fresh-agent reviews and local commits are authorized.
 This accepts the policy direction and authorizes preparation of its implementation;
 it does not assert that the gate mapping or independent S02 review has passed.
-The finite S01 gate mapping is complete below; fresh S02 contract review still
-needs completion before S03. Existing runtime validators and historical receipt meanings remain intact;
+The finite S01 gate mapping is complete below; independent S02 contract review is complete below; S03 remains unimplemented. Existing runtime validators and historical receipt meanings remain intact;
 no operational receipt may be fabricated or a capacity guard silently bypassed.
 Installation, native execution, production evaluations, deletion, invitations and
 publication retain their applicable separate approvals. No push is authorized.
@@ -208,6 +207,67 @@ and actual identities, then separately authorized native checks for every retain
 control before epoch approval. Failed local fixtures cannot become installed
 passes. S01 changes no executable selector, runtime API or benchmark bytes.
 
+## S02 independent verification and implementation contract — 2026-10-26
+
+This fresh session independently reviewed S01 at `2d5f7c8` against current
+requirements and executable validators. The matrix above is retained with the
+clarifications below. No material conflict with the accepted owner policy was
+found. This is a reviewed local implementation contract, not installed acceptance
+or approval of a future execution packet. Historical S01 handoff text remains
+unchanged as a dated record.
+
+### Requirement and validator trace; matrix clarifications
+
+| Matrix rows / requirement source | Independently checked implementation / resulting obligation |
+| --- | --- |
+| Safety, science, package, epoch and cohort — PLAN 2–7 and frozen spec | [Frozen specification](PRIMITIVE_SELECTION_SPEC.md), [0.5.0 constants](../src/mldsafail/benchmark_v050/constants.py), [evidence audit](../src/mldsafail/benchmark_v050/evidence.py), [production preparation](../deploy/production_preparation.py) and [protected epoch validation](../deploy/protected_epoch.py). Preserve all 100 ranked cases, one warmup/three measurements, independent correctness, invalid warmup ineligibility, equal five-cell score, anchored ties and uncertainty. Partial evidence cannot rank; raw evidence stays private. Package privacy review includes archives and diagnostics, not just solver inputs. |
+| Authentication/configuration/admission/journey — MVP 1–6, old public packet configuration and rehearsal | [Production preflight](../deploy/production_preflight.py), [web services](../src/mldsafail/web/services.py), [API](../src/mldsafail/web/api.py), [authentication](../src/mldsafail/web/auth.py), [comparison](../src/mldsafail/web/comparison.py) and production Compose. Retain authentication failures, trusted proxy/security headers and rejection of operational paths, as well as TLS/cookie/CSRF/token lifecycle. S16 records those actual-deployment observations; S17 binds result/API/leaderboard privacy and version/epoch identities, including reconciliation of a lost submission response by its original idempotency key. |
+| Windows, exclusion, cancellation, retries and commits — PLAN source requirements, runtime transactions | [Queue](../src/mldsafail/evaluator/queue.py), [coordinator](../src/mldsafail/evaluator/coordinator.py), [dispatcher](../src/mldsafail/evaluator/dispatcher.py), [supervisor gate](../src/mldsafail/evaluator/workload.py), [private protocol](../src/mldsafail/evaluator/workload_socket.py) and [maintenance fence](../deploy/maintenance_fence.py). Existing protected dispatcher obtains host ownership before SQL claim; no persistent participant window exists. Existing ordinary failure retry and generic stale-job requeue are source paths to review in S04, not proof of the new contract. |
+| Resources, storage, isolation, termination and native scenarios — runtime runbook | [Native adapter](../src/mldsafail/evaluator/native_workload.py), [control shapes](../deploy/workload_controls.py), [registry](../deploy/workload_control_registry.py) and [native context](../deploy/workload_native_context.py). Preserve all 27 scenarios across 17 controls, plus peer-UID rejection and bounded socket behavior. S11 enumerates exact native cases/authority; S13 records installed observations. The registry distinguishes host-required origins from disposable/local evidence for other controls; local fixtures never become installed-native receipts. The launch contract retains the complete installed bridge and independent cleanup/postflight, not merely the three-case helper. |
+| Unmeasured capacity, scheduling census and administrative generation — PLAN source requirements, runtime policy | [Maintenance packet state](../deploy/production_maintenance.py), [workload policy](../deploy/workload_policy.py), [protected epoch](../deploy/protected_epoch.py) and [epoch CLI](../scripts/production_epoch_operation.py). V4 execution still requires verified scheduling exclusion and hash-bound privileged scheduling v2 evidence. A maintenance-proposal state is preparation only. Preserve v2/v3 measured-capacity guards. New release routing must reject legacy execution selection without breaking historical validation. |
+| Fixed install, rollback, old rehearsal/pilot/load, manual checks, deferred backups and retention — MVP 7–8, older packets, PLAN 8–10 | [Runtime runbook](SINGLE_WORKLOAD_DEPLOYMENT.md), [engineering handoff](acceptance/production-preparation/protected-runtime-engineering-20261026.md), [MVP decisions](MVP_LAUNCH_PREPARATION.md), [older preparation](LAUNCH_PREPARATION.md), [older packet](PUBLIC_LAUNCH_PACKET.md) and [retention policy](RETENTION_POLICY.md). Replacement evidence remains S09–S13 fixed-path interruptions/restoration, S16 manual procedure, S17 final journey and S18 explicit risk/go-no-go. No new full load campaign, pilot, off-host backup setup or generic installer completeness is required. Existing failures and unfunded recovery remain recorded; no cleanup is performed by S02. |
+
+V4 evidence details omitted from the short matrix are mandatory, not optional:
+`validate_controls` binds the receipt to host, source, operation, resource-policy
+hash, all three private configuration files and runtime identities. Configuration
+files must be distinct absolute non-symlink, owner-only regular files with one
+link and bounded size. Each control artifact and every unique scenario must have
+matching hashes, identities, ordered injection/observation traces and the exact
+control-specific observations (including kernel output enforcement and bounded
+monitor latency). Reviewer and executor must differ. Native lifecycle evidence
+has the validator's explicit boot/daemon exception; other scenario boot/daemon
+bindings must match current runtime. Enduring native evidence applies only to its
+exact installed bytes; it is not a substitute for a current live observation.
+The enclosing receipt is less than 24 hours old for preparation and live
+observation less than five minutes old for execution. Exact owner authorization
+is less than five minutes old, binds serialized packet, canonical native config,
+roles and independent approved review bytes, and has a positive lifetime at most
+9,000 seconds. S11/S14 must validate these existing constraints without rewriting
+historical receipts or repeatedly rerunning native tests merely for freshness.
+
+### S03–S06 required behavior and acceptance
+
+The interface names/storage choice are for S03 to select and hand off. The
+following observable behavior is fixed; no implementation is claimed here.
+
+| Contract | Required behavior and evidence / session |
+| --- | --- |
+| Durable authority and open | A single host-wide participant window is closed on first use, missing/corrupt state, reboot, supervisor or coordinator restart. An old persisted open bit cannot authorize a new process generation. Only an authenticated operator action with fresh preflight may open it; web/submission clients cannot open or resume it. Opening must fail with unresolved ownership/commit state or protection pause. Repeated open/close is safe and does not create work. S03 specifies the private API, durable state/version, generation binding and failure responses; S04 covers startup integration. |
+| Atomic close and claim | Serialize close with participant authorization and SQL claim across coordinators/databases, retaining host gate before SQL mutex ordering. Close must not return while a previously admitted but unclaimed reservation can later consume an attempt: either drain that critical section before reporting closed or revoke it before SQL claim. A completed pre-close claim is the sole active job; it may finish under existing protection, including launch after close if not yet launched. No later claim/attempt or second dispatch is allowed. Test both race orders, acquire-before-claim interruption, competing coordinators and direct protected launch routes. No status-only precheck, window file read or container stop establishes this guarantee. S03. |
+| Graceful close versus protection pause | Ordinary close inhibits new participant claims, preserves queued jobs and permits the one claimed job to finish, verify, clean up and reconcile/commit once. It does not call an aborting protection pause as a substitute for graceful closure. Explicit cancellation retains existing positive termination and commit barriers. Operator status distinguishes closed/active/draining from closed/idle and protection-blocked; report idle only after verified cleanup and acknowledgement. Reopening cannot erase ownership. S03/S05. |
+| Administrative roles and admission | Participant open grants no administrative authority; closed windows do not waive exact v4 create/reference/audit grants, host exclusion or zero-pending SQL fence. Separately authorized administration can run while the participant window is closed only after those checks, never concurrently with participant work. Queue entries still block maintenance; closing dispatch does not drain or cancel the queue. Admission remains independently bounded/open or closed, and an admission fence cannot be bypassed by opening a window. S03/S04 test participant/admin contention and queued/claimed/running fence denial. |
+| Restart and recovery | All coordinator entrypoints (including one-shot mode and configured production fallback paths), Compose restart policy and units must fail closed. Coordinator construction must not silently reopen or resume. Reconciliation/cleanup of existing ownership remains possible while closed, but cannot launch another computation. Crash at acquire, SQL claim, bind, create/start, result, cleanup, commit intent or acknowledgement leaves computation inhibited until exact state is reconciled and operator explicitly opens. S04 tests restarts of each component and preserves retained services; no journal deletion, lease clearing or attempt reset. |
+| Ordinary retry | Only a positively cleaned, reconciled ordinary infrastructure failure with remaining existing attempt budget is eligible. The window must still be open when retry eligibility is committed and again atomically at its next claim. Close/restart during failure handling cannot create a retry that escapes the gate. If closed when failure is recorded, record terminal infrastructure failure without automatic requeue; already queued retries stay queued and consume no further attempt until explicit open. Protection abort, lease/identity/monitor loss, cancellation, ambiguous outcome or legacy expired ownership never automatically retries. Review `apply_outcome(retry=True)`, generic stale recovery and unprotected coordinator branches in S04; reject unsupported production bypasses. No timeout penalty or invalid answer becomes an infrastructure retry. |
+| Commit and cancellation races | Preserve durable workload/job/attempt/source/cohort binding. Matching committed result survives lost acknowledgement exactly once; absent commit becomes terminal infrastructure failure (or reconciled cancellation) after cleanup, without reusing orphan output. Conflicting/missing acknowledged records block release/open. Cancellation winning the result transaction cannot publish success; terminal success cannot be recomputed by cancellation/retry. S04 verifies database outage, commit-before-ack loss, uncommitted orphan and cancel/commit races while closed and open. |
+| Participant/operator experience | S05 exposes sanitized actual waiting/window/active state, keeping it distinct from admission, quotas and health. No private paths, seeds, configuration or diagnostics cross status/logs. Document preflight, exact open/close/cancel/reconcile instructions, manual cadence (open/close, every 15 minutes open, daily closed), named owner/contact and incident closure. No notifications or real windows opened. |
+| Independent acceptance | S06 independently reviews exact S03–S05 commits and runs disposable integrations covering normal/duplicate/conflicting submissions, quota/idempotency, frozen timeout/invalid answer behavior, graceful close, cancellation, admin contention, concurrent claims, missing/corrupt state, restart/crash and interrupted result recording. Record actual test/fixture origins, skipped/failed cases and remaining native gates. Each code session runs focused checks plus `make check`; source-level acceptance never certifies the VPS. |
+
+Unattended chaining has an additional preparation prerequisite after S02 and
+before S03: an external fresh-session runner with durable structured handoffs,
+verified restart and review-failure rehearsal. This session neither builds nor
+certifies that runner. Individually owner-started fresh sessions remain supported;
+absence of the runner does not block that mode or authorize automatic chaining.
+
 ## Changes that must travel together
 
 Window control, coordinator restart policy, retries, queue status text and operator
@@ -318,7 +378,8 @@ Do not grow the architecture or silently skip failed checks to fit a session.
 | Current session | Status | Recorded outcome / next action |
 | --- | --- | --- |
 | S01 | Complete — 2026-10-26 | Matrix, evidence requirements and fixed-install/protocol boundaries recorded; checks in handoff below. |
-| S02 | Pending — current | Independently trace S01 mapping in fresh context; finalize contract before S03. |
+| S02 | Complete — 2026-10-26 | Fresh-session requirement/validator trace and S03–S06 contract below; documentation checks passed. |
+| S03 | Pending — current | Read S02 contract and inspect gate/claim paths; implement window control only in a new session. |
 
 ## Failure walkthrough and required evidence
 
@@ -350,7 +411,7 @@ checks/window schedule. Preserve original failures and compact run records.
 **Accepted owner decisions:** supervised windows, fixed installation/restoration,
 reviewed v4 unmeasured capacity, owner-operated manual checks and deferred backups
 with potential permanent data loss. Do not request these decisions again. S02
-reviews the implementation contract. Exact installation, native checks, epoch and
+has reviewed the implementation contract below. Exact installation, native checks, epoch and
 activation/publication scopes retain separate applicable authority; invitations
 are not authorized here.
 
@@ -392,3 +453,38 @@ no historical failure may become a pass. If review passes, route both records to
 S03, commit locally and stop without S03 work. Record external fresh-session runner
 construction and restart/review-failure rehearsal as prerequisites to unattended
 chaining after S02 and before S03. Do not build the runner during S01.
+
+## S02 handoff — 2026-10-26
+
+Status: complete. Independent fresh-session review baseline:
+`2d5f7c8` (S01 documentation checkpoint), clean tree at start. Read repository
+instructions, PLAN and this review including S01 handoff; traced frozen science,
+MVP/older launch requirements, runtime runbook, policy/maintenance/epoch validators,
+control shapes/registry and current queue/coordinator/dispatcher/gate paths.
+No S01 conversation transcript was used. No material policy conflict or additional
+owner decision blocks the local contract. The approved policy remains owner scope;
+this session supplies independent contract verification, not live packet review.
+
+Changed files: PLAN and this review only. Added explicit validator trace, evidence
+freshness/identity/reviewer constraints, web/proxy/privacy observations and the
+S03–S06 contract. Confirmed administrative v4, bootstrap v3 and protocol-four
+recovery are distinct. Current runtime/configuration/private identities were not
+changed or refreshed; no installation, native test, evaluation, notification,
+cleanup, push or S03 implementation was performed.
+
+Checks: changed-document local link/anchor checks and `git diff --check` passed.
+`source .venv/bin/activate && make check` passed: 2,674 passed, 75 skipped,
+12 warnings; frozen contract follow-up 8 passed. Skips are not native acceptance;
+warnings concern existing multithreaded fork usage. PLAN routing and ledger both
+select S03. All 27 registry scenarios remain required; installed-native acceptance,
+privileged host facts, exact install proposal, epoch and functional journey remain
+later gates with separate applicable authority. The external runner and its
+restart/review-failure rehearsal remain unimplemented prerequisites only for
+unattended chaining.
+
+Reversal: revert this documentation commit; no runtime rollback is needed.
+Preserve accepted policy and historical outcomes. Exact next assignment: S03 in
+a new session. First read the S02 contract above and inspect supervisor private
+protocol, host gate acquisition, dispatcher SQL claim and direct launch paths;
+select the smallest durable window API with explicit close/claim serialization.
+Hand its exact interface and race tests to S04. Do not fold S04–S06 into S03.

@@ -5,15 +5,15 @@ Architecture review, 2026-10-26: the owner accepted the policy direction in
 supervised preview, fixed installation/restoration, reviewed unmeasured-capacity
 policy, owner-operated manual checks and deferred-backup data-loss risk. Local
 engineering, tests, fresh-agent reviews and local commits are authorized. The
-S01 finite gate mapping is complete; independent S02 review remains pending. No live action,
+S01 gate mapping and independent S02 requirement/validator review are complete. No live action,
 deletion, invitation, publication or push is authorized by this acceptance.
 Historical outcomes and runtime verification requirements remain unchanged.
 
 Fresh-agent routing: use the [sequential session schedule and progress ledger](LAUNCH_ARCHITECTURE_REVIEW.md#sequential-agent-implementation-sessions).
-**Current session: S02, pending — S01 mapping complete.** Independently trace the
-[acceptance matrix](LAUNCH_ARCHITECTURE_REVIEW.md#s01-finite-launch-acceptance-matrix--2026-10-26)
-and S01 handoff against requirements and validators in a separate fresh conversation,
-then finalize the implementation contract. Stop before S03 implementation.
+**Current session: S03, pending — S02 contract review complete.** In a new session,
+read the [S02 contract and handoff](LAUNCH_ARCHITECTURE_REVIEW.md#s02-independent-verification-and-implementation-contract--2026-10-26),
+then inspect supervisor/dispatcher/queue authorization paths and implement only
+the persistent window gate assigned to S03. S02 performed no implementation.
 Do not ask the owner to repeat accepted policy choices. Complete one
 bounded session per handoff, update this pointer and the review ledger together,
 and commit locally. The unattended runner and its rehearsal are not implemented;
