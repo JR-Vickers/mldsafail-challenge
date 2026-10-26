@@ -1,22 +1,22 @@
 # MLWE competition implementation and acceptance plan
 
-Architecture review, 2026-10-26: [proposed smaller launch design](LAUNCH_ARCHITECTURE_REVIEW.md)
-recommends an invited supervised preview, retaining protected execution and result
-integrity while replacing general installation machinery with a fixed-release
-procedure. Its bounded batches and replacement checklist are **proposed**, not an
-approved policy change or execution authority. Existing gates remain in force
-until explicitly dispositioned; dated evidence and outcomes below remain intact.
-Review this recommendation before extending the current deployment workstream.
+Architecture review, 2026-10-26: the owner accepted the policy direction in
+[the smaller launch design](LAUNCH_ARCHITECTURE_REVIEW.md#owner-policy-acceptance--2026-10-26):
+supervised preview, fixed installation/restoration, reviewed unmeasured-capacity
+policy, owner-operated manual checks and deferred-backup data-loss risk. Local
+engineering, tests, fresh-agent reviews and local commits are authorized. The
+finite gate mapping and independent review remain unfinished; no live action,
+deletion, invitation, publication or push is authorized by this acceptance.
+Historical outcomes and runtime verification requirements remain unchanged.
 
-Fresh-agent routing: use the [sequential session schedule and progress ledger](LAUNCH_ARCHITECTURE_REVIEW.md#sequential-agent-implementation-sessions)
-for the next public-launch course of action. **Current session: S01, pending** —
-prepare the policy decision packet and finite gate mapping, then present the owner
-choices in chat. This session architecture is documented; the proposed launch
-architecture is not yet adopted. Complete one bounded session per handoff, update
-this pointer and the review ledger together, and commit locally. The owner's
-generic “review these docs / next course of action” prompt selects the earliest
-unfinished session; it does not grant new execution or policy authority. Later
-dated agendas below do not override this routing or revive cancelled workstreams.
+Fresh-agent routing: use the [sequential session schedule and progress ledger](LAUNCH_ARCHITECTURE_REVIEW.md#sequential-agent-implementation-sessions).
+**Current session: S01, pending — owner choices accepted.** Complete the finite
+gate mapping and evidence requirements, then hand off to fresh S02 independent
+review. Do not ask the owner to repeat accepted policy choices. Complete one
+bounded session per handoff, update this pointer and the review ledger together,
+and commit locally. The unattended runner and its rehearsal are not implemented;
+automatic chaining still needs that preparation. Later dated agendas below do
+not override this routing or revive cancelled workstreams.
 
 
 Retention update, 2026-10-19: the owner adopted

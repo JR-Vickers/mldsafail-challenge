@@ -6,6 +6,33 @@ explicitly replaced. Scope: existing VPS, $0, tiny synthetic instances, frozen
 0.5.0 scoring and verification; 0.6.0, C diagnostics, capacity investigations and
 backup setup remain outside scope.
 
+## Owner policy acceptance — 2026-10-26
+
+The owner accepted all recommendations in the S01 decision discussion: supervised
+invited preview with explicit evaluation windows and paused restart behavior;
+a fixed reviewed installation/restoration procedure instead of completing the
+general installer; reviewed v4 unmeasured-capacity policy with unchanged limits,
+reserve, exclusion and native acceptance; manual availability checks at window
+open/close, every 15 minutes while open and daily while closed, with the owner
+responsible for checks and incident response; and continued backup deferral with
+explicit acceptance of potential permanent database/result/private-evidence loss.
+If frozen workloads cannot complete safely, evaluation remains closed.
+
+Local engineering, tests, fresh-agent reviews and local commits are authorized.
+This accepts the policy direction and authorizes preparation of its implementation;
+it does not assert that the gate mapping or independent S02 review has passed.
+The finite S01 gate mapping and S02 contract review still need completion before
+S03. Existing runtime validators and historical receipt meanings remain intact;
+no operational receipt may be fabricated or a capacity guard silently bypassed.
+Installation, native execution, production evaluations, deletion, invitations and
+publication retain their applicable separate approvals. No push is authorized.
+
+The unattended orchestration runner, structured progress/handoffs and restart/
+review-failure rehearsal are still to be implemented and verified. Until then,
+the numbered workflow can be conducted through individual fresh sessions but
+cannot automatically chain itself. Host-fact and live-action blockers in later
+sessions remain explicit stop points, not reasons to delay authorized local work.
+
 ## Recommended operating design (one-page procedure)
 
 Choose an invited, supervised preview. Keep the website and database available;
@@ -226,7 +253,7 @@ Do not grow the architecture or silently skip failed checks to fit a session.
 
 | Current session | Status | Recorded outcome / next action |
 | --- | --- | --- |
-| S01 | Pending | Session schedule prepared only. Next agent: produce the concrete policy decision packet and finite gate mapping; present owner choices before proposed architecture implementation. No adoption, installation or launch authority has been recorded by this schedule. |
+| S01 | Pending — owner choices accepted | Policy acceptance recorded above. Next action: complete the finite gate mapping and evidence requirements using the accepted choices, then hand off to fresh S02 independent review. No installation or launch authority granted. |
 
 ## Failure walkthrough and required evidence
 
