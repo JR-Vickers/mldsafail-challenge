@@ -110,3 +110,8 @@ def test_native_context_does_not_allow_vm_installation_adapters():
     value=object.__new__(context.NativeContext)
     for name in ('adapter','engine','transition','control'):
         with pytest.raises(WorkloadBlocked):getattr(value,name)('install')
+
+
+def test_native_attempt_verifier_is_in_independent_review_closure():
+    from scripts.rehearse_workload_installation_fixture import REVIEW_FILES
+    assert 'deploy/workload_native_attempt.py' in REVIEW_FILES

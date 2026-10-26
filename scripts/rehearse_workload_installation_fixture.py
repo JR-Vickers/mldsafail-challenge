@@ -15,6 +15,7 @@ REVIEW_FILES = (
     'deploy/workload_native_resources.py',
     'deploy/workload_native_supervision.py',
     'deploy/workload_native_packet.py',
+    'deploy/workload_native_attempt.py',
     'deploy/workload_watchdog.py',
     'src/mldsafail/evaluator/native_workload.py',
     'src/mldsafail/evaluator/workload.py',
