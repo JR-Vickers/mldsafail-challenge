@@ -1,9 +1,9 @@
 # Control runner engineering and collection handoff
 
 This is local development guidance, not execution authority. The current
-[engineering record](acceptance/production-preparation/protected-runtime-engineering-20261024.md)
-separates implemented adapters, local results, unimplemented installed adapters,
-native acceptance, missing host facts and complete-proposal review.
+[engineering record](acceptance/production-preparation/protected-runtime-engineering-20261026.md)
+separates implemented runners, local results, native acceptance, missing host
+facts and complete-proposal review.
 
 `deploy/workload_controls.py` remains the 27-scenario inventory.
 `deploy/workload_control_registry.py` is the checked registry; coverage comes from
@@ -33,13 +33,25 @@ python -m scripts.prepare_workload_control_packet \
   --output /absolute/private/control-preparation.json
 ```
 
-This preparation schema is deliberately not the executable acceptance schema.
-It binds frozen proposal/inspection references, selected order, source hashes,
-configuration hashes and resource identities. Missing facts stay explicit
-blockers. It currently cannot produce a ready installed-native execution packet:
-generation-owned context, lifecycle cleanup/postflight commands and matching
-native adapters still need implementation and review. Do not remove those
-blockers because a reviewer or owner field is present.
+The command above preserves the older preparation-only review format. For the
+installed-native bridge, use `scripts.prepare_native_workload_control_packet`
+with explicit `--facts`, `--generation`, `--attempt-generation` and
+`--watchdog-root` in addition to proposal, inspection, packet, selection and
+output. Its default output is a review report. `--publish-packet` writes the
+nested executable packet only when all required facts are present; it grants no
+execution authority. Old frozen releases missing the bridge produce blockers.
+The watchdog root must be the proposal journal's `native-control-<generation>`.
+Reuse the original attempt generation across split packets.
+
+Every registry scenario now has a fixed installed-native context binding. The
+context requires live watchdog/stage ancestry, exact source review and a consumed
+owner claim. Startup repeats installed inspection and exclusively places a
+persistent denial-only hold on the installed gate. It requires no pending
+requests or in-flight launch/resume before creating case resources. The case
+uses generation-owned inert resources and disposable databases. Cleanup and
+postflight run independently; only their verified final watchdog receipt can
+publish success. Historical synthetic and local receipts retain their origins.
+An ambiguous hold or resource remains blocked for explicit reconciliation.
 
 The fixed envelope is startup 30 seconds, case 90, cleanup 45 and postflight 15,
 180 seconds total. A split packet must fit the same original fixture attempt's

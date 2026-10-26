@@ -54,14 +54,14 @@ No deployment, epoch, capacity measurement or activation is authorized by this w
 
 ### Current host preparation — bootstrap and installed acceptance remain separate
 
-The [2026-10-24 engineering checkpoint](acceptance/production-preparation/protected-runtime-engineering-20261024.md)
-adds the checked 27-case regression registry, three production-dispatcher SQL
-cases, eight Linux inert-process variants, protocol-four recovery and a locally
-reviewed collector handoff. **Engineering completion is not claimed:** 21
-installed-native adapters, supervised case/lifecycle packet integration and
-complete external-effect interruption coverage remain implementation work.
-Native acceptance, missing host facts and complete-proposal review are separate
-unpassed gates. See the [control engineering guide](WORKLOAD_CONTROL_ENGINEERING.md).
+The [2026-10-26 engineering handoff](acceptance/production-preparation/protected-runtime-engineering-20261026.md)
+records the 27 checked runners, supervised installed-native bridge, independent
+cleanup/postflight, protocol-four operation recovery and deterministic collector.
+Implementation, local verification, native acceptance, missing host facts and
+complete-proposal approval are tracked separately. Native acceptance and the
+host-bound proposal remain later gates. The dated 2026-10-24 record retains its
+original incomplete implementation outcome. See the
+[control engineering guide](WORKLOAD_CONTROL_ENGINEERING.md).
 
 
 The [2026-10-23 protocol-3 checkpoint](acceptance/production-preparation/protected-runtime-recovery-v3-20261023.md)

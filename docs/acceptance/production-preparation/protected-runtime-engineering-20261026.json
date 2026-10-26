@@ -1,0 +1,355 @@
+{
+  "checks": {
+    "changed_document_links": true,
+    "contracts_passed": 8,
+    "diff_check": true,
+    "independent_bridge_passed": 171,
+    "independent_bridge_skipped": 4,
+    "independent_followup_passed": 77,
+    "linux_watchdog_attempt_passed": 29,
+    "make_check_passed": 2674,
+    "make_check_skipped": 75
+  },
+  "collection_artifact_sha256": "f42a728ea0d4d1e2facbc4bb4891527c5501294340c708c07d97ca15084d7342",
+  "control_coverage": {
+    "implemented_owned_runners": 27,
+    "legacy_native_runners": 6,
+    "scenarios": 27,
+    "supervised_native_bindings": 27
+  },
+  "date": "2026-10-26",
+  "engineering_complete": true,
+  "execution_authority": false,
+  "full_proposal_approved": false,
+  "limitations": [
+    "nine_privileged_dossier_categories_unevidenced",
+    "complete_host_bound_proposal_not_approved",
+    "full_installation_and_native_acceptance_not_run",
+    "local_linux_checks_use_Docker_amd64_emulation_not_full_native_acceptance",
+    "initial_linux_check_missing_pytest_fixed_by_readonly_local_package_path"
+  ],
+  "native_acceptance": false,
+  "native_unexecuted": [
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "shared_host_gate",
+      "disposition": "blocked_before_execution",
+      "scenario": "cross_database_and_admin"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "coordinator_routing",
+      "disposition": "blocked_before_execution",
+      "scenario": "deferred_admission"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "coordinator_routing",
+      "disposition": "blocked_before_execution",
+      "scenario": "result_after_cleanup"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "administrative_routing",
+      "disposition": "blocked_before_execution",
+      "scenario": "host_gate_before_fence"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "administrative_routing",
+      "disposition": "blocked_before_execution",
+      "scenario": "queued_blocks_admin"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "zero_pending_fence",
+      "disposition": "blocked_before_execution",
+      "scenario": "queued_claimed_running"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "inspected_births",
+      "disposition": "blocked_before_execution",
+      "scenario": "daemon_replacement"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "inspected_births",
+      "disposition": "blocked_before_execution",
+      "scenario": "container_restart"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "durable_launch_intent",
+      "disposition": "blocked_before_execution",
+      "scenario": "lost_create_ack"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "durable_launch_intent",
+      "disposition": "blocked_before_execution",
+      "scenario": "lost_start_ack"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "common_cgroup",
+      "disposition": "blocked_before_execution",
+      "scenario": "controller_worker_descendants"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "ancestor_limits",
+      "disposition": "blocked_before_execution",
+      "scenario": "parent_oom"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "ancestor_limits",
+      "disposition": "blocked_before_execution",
+      "scenario": "ancestor_limit_change"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "continuous_monitor",
+      "disposition": "blocked_before_execution",
+      "scenario": "stuck_control_io"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "continuous_monitor",
+      "disposition": "blocked_before_execution",
+      "scenario": "stale_sample"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "bounded_output",
+      "disposition": "blocked_before_execution",
+      "scenario": "log_exhaustion"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "bounded_output",
+      "disposition": "blocked_before_execution",
+      "scenario": "generation_quota_exhaustion"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "verified_cleanup",
+      "disposition": "blocked_before_execution",
+      "scenario": "surviving_worker"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "verified_cleanup",
+      "disposition": "blocked_before_execution",
+      "scenario": "empty_scope_and_absent_containers"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "abnormal_exit",
+      "disposition": "blocked_before_execution",
+      "scenario": "controller_disconnect"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "persistent_pause",
+      "disposition": "blocked_before_execution",
+      "scenario": "supervisor_sigkill"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "explicit_resume",
+      "disposition": "blocked_before_execution",
+      "scenario": "failed_preflight"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "explicit_resume",
+      "disposition": "blocked_before_execution",
+      "scenario": "fresh_preflight"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "native_linux_acceptance",
+      "disposition": "blocked_before_execution",
+      "scenario": "inert_lifecycle_and_cleanup"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "delegation",
+      "disposition": "blocked_before_execution",
+      "scenario": "missing_controller"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "delegation",
+      "disposition": "blocked_before_execution",
+      "scenario": "inspected_limits"
+    },
+    {
+      "blockers": [
+        "matching_reviewed_installed_release",
+        "fresh_privileged_host_facts",
+        "delegated_runtime_and_storage",
+        "exact_owner_authorized_packet"
+      ],
+      "control": "scheduling_exclusion",
+      "disposition": "blocked_before_execution",
+      "scenario": "retained_trigger_inventory"
+    }
+  ],
+  "private_evidence": {
+    "results/integration-evidence/protected-runtime-engineering-20261025/linux-check-20261026.log": "b71db6006ecc410f6085db2500759568a2da5d0cdf2fd3f7165307654085abe2",
+    "results/integration-evidence/protected-runtime-engineering-20261025/linux-check-initial-20261026.log": "7f7f1dcc148bc7c586fa45ca9b8c323267833bbd49950f20909fa47501a6e0ea",
+    "results/integration-evidence/protected-runtime-engineering-20261025/make-check-20261026.log": "02aa1b4ff57ef58bcdc8fa6f3722cce1432ec5cd8c0af2cf01405fa197b74969"
+  },
+  "retention": {
+    "disposable_containers": "removed",
+    "historical_records": "unchanged",
+    "private_raw_evidence": "retain targeted logs, reviews and unresolved failure evidence",
+    "retained_resources": "preserved"
+  },
+  "reviews": {
+    "results/integration-evidence/protected-runtime-engineering-20261024/independent-component-review-final.json": "bdf9ce19d55ea62e868385dde69b826745d5c87a1822058fd587a590003cd14e",
+    "results/integration-evidence/protected-runtime-engineering-20261024/independent-component-review.json": "3712570c02694eb7c1b4d435d4017b75827169cffc2fc0e51078e3298b726db1",
+    "results/integration-evidence/protected-runtime-engineering-20261024/independent-external-recovery-review.json": "fd7177309da172b131bcaf4f5342296fd3bf7d40e1218a1748fe717177d0ea07",
+    "results/integration-evidence/protected-runtime-engineering-20261024/independent-fixture-component-review-20261025.json": "a4faa0de2742c7c1b0f9728ae80f0473ce3281a94d821807942354cf9cc73fbb",
+    "results/integration-evidence/protected-runtime-engineering-20261024/independent-fixture-fault-review.json": "991fa240ae935e1e775542fd275ef23ed681ceb52e1400464c2d592999e2b43c",
+    "results/integration-evidence/protected-runtime-engineering-20261024/independent-fixture-packet-database-review-v2.json": "1385d83de037471a190a51f7e5b1b1ca939cd393fbd632c72722a4b40e9f0070",
+    "results/integration-evidence/protected-runtime-engineering-20261024/independent-fixture-packet-database-review.json": "990548ff9203aac1a08319c374a20d5763aa19b919e70adf2b95d75ce76736ef",
+    "results/integration-evidence/protected-runtime-engineering-20261024/independent-native-bridge-review-20261026.json": "da9c1ea7b4e2508325a0c9087c43542fb832d637d8b435d7ea29ee10082bbbdc",
+    "results/integration-evidence/protected-runtime-engineering-20261024/independent-native-cleanup-review-20261025.json": "aacd0a807cd62c92b5b6692df973c920383c408996ed266cb3cdf97a8dfd4bea",
+    "results/integration-evidence/protected-runtime-engineering-20261024/independent-native-resources-review-20261025.json": "a74113ffa89a3c4c60b1fa499d696a0e6797abf3ae21f16d33eb0df92e5262eb"
+  },
+  "source_commit": "f8254ddc1236fd5d3954370a2ae0d4666d6feec4"
+}

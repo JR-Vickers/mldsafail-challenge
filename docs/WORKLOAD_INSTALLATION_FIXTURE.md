@@ -82,3 +82,9 @@ success is claimed.
 This fixture does not authorize VPS installation, whole-proposal approval,
 epochs, notifications, public activation or publication. Benchmark 0.5.0 and the
 $0 budget remain unchanged.
+
+The [2026-10-26 engineering handoff](acceptance/production-preparation/protected-runtime-engineering-20261026.md)
+adds the independently supervised installed-native control context. It reuses
+owned fixture runners without granting installation, rollback or VM lifecycle
+authority. The complete fixture installation → fresh inspection → rollback path
+and its four interruption cases remain separate from one-case native packets.
