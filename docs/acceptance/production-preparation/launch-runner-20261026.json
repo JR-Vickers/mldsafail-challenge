@@ -1,0 +1,80 @@
+{
+  "schema": "mldsafail.launch-runner-preparation.v1",
+  "date": "2026-10-26",
+  "baseline": "2cc9d0209a2147808caff5df4358d5da4bce8874",
+  "controller_sha256": "05a3d61f4fa585582e1bb54329d951c03b536c5bfc23fbaf2ba2ec13a108baed",
+  "codex_version": "codex-cli 0.163.0",
+  "scope": "local external-controller preparation; no project sessions or live actions",
+  "real_cli_smoke": {
+    "outcome": "passed",
+    "fixture": "isolated toy Git repository: create smoke.txt, update toy routing and handoff",
+    "baseline": "ecc431b4bcf707237782cbb0807cc59ae94bcfd6",
+    "checkpoint": "b79f5acd94fa5985ceab01d4453903b9b4ebc26a",
+    "threads": [
+      {
+        "role": "implement",
+        "thread_id": "01a176c4-0d63-7610-bd9f-bb16d962aff8",
+        "report": {
+          "session": "S03",
+          "status": "complete",
+          "commit": "ecc431b4bcf707237782cbb0807cc59ae94bcfd6",
+          "summary": "Created smoke.txt, added the complete S03 ledger row and handoff, and routed PLAN to S04. Edits remain unstaged and uncommitted for the controller.",
+          "checks": [
+            "Exact smoke.txt content: passed",
+            "Schedule rows preserved: passed",
+            "make check: passed",
+            "git diff --check: passed",
+            "Full baseline-to-working-tree change reviewed"
+          ],
+          "blockers": []
+        }
+      },
+      {
+        "role": "review",
+        "thread_id": "01a176c4-a157-7151-92be-a7bde17db673",
+        "report": {
+          "session": "S03",
+          "status": "complete",
+          "commit": "b79f5acd94fa5985ceab01d4453903b9b4ebc26a",
+          "summary": "Reviewed the entire baseline-to-HEAD change and S02 contract. Smoke content, three-column S03 ledger, handoff, and S04 routing satisfy the assignment. Schedule rows are unchanged; working tree is clean. No implementation findings.",
+          "checks": [
+            "make check: exit 0",
+            "Baseline-to-HEAD git diff --check: exit 0",
+            "Working-tree git diff --check: exit 0",
+            "Exact smoke.txt bytes equal runner-smoke followed by newline: passed",
+            "Inspected all changed files and the sole session commit"
+          ],
+          "blockers": []
+        }
+      }
+    ],
+    "controller_sha256": "0b61cd20ec314caac27379f74bf0c5fe6cb11cefb1b812adeaabb79f3788d8e0"
+  },
+  "earlier_toy_failures": [
+    "Linked-worktree Git index denied by workspace-write sandbox; resolved by controller-owned checkpoints.",
+    "Lowercase complete ledger status rejected; resolved by case-insensitive status validation."
+  ],
+  "independent_review": {
+    "reviewer": "fresh runner_review agent session",
+    "outcome": "no unresolved blockers after repairs",
+    "findings_repaired": [
+      "surviving child process group",
+      "external checks entering writable repair",
+      "runtime assignment and protected-file guards",
+      "dirty recovery completion",
+      "child birth registration race",
+      "frozen worker dependency paths"
+    ]
+  },
+  "disposable_rehearsals": {
+    "passed": 20,
+    "scope": "temporary Git and process fixtures; fake Codex"
+  },
+  "native_acceptance": "not performed",
+  "local_checks": {
+    "focused_and_affected": "21 passed",
+    "make_check": "2694 passed, 75 skipped, 12 warnings; frozen contract follow-up 8 passed",
+    "initial_full_suite_failure": "New runner entrypoint leaked umask into an existing test; fixed by preserving caller and child-bootstrap umask, with regressions.",
+    "documents": "118 local links/anchors passed; git diff --check passed"
+  }
+}

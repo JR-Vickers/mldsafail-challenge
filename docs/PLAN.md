@@ -16,8 +16,9 @@ then inspect supervisor/dispatcher/queue authorization paths and implement only
 the persistent window gate assigned to S03. S02 performed no implementation.
 Do not ask the owner to repeat accepted policy choices. Complete one
 bounded session per handoff, update this pointer and the review ledger together,
-and commit locally. The unattended runner and its rehearsal are not implemented;
-automatic chaining still needs that preparation. Later dated agendas below do
+and commit locally. The [fresh-session runner](LAUNCH_SESSION_RUNNER.md) and its
+restart/review-failure rehearsals are verified for local preparation. Start it
+explicitly; live-action rows and missing external evidence remain stop points. Later dated agendas below do
 not override this routing or revive cancelled workstreams.
 
 

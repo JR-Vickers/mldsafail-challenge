@@ -25,10 +25,10 @@ no operational receipt may be fabricated or a capacity guard silently bypassed.
 Installation, native execution, production evaluations, deletion, invitations and
 publication retain their applicable separate approvals. No push is authorized.
 
-The unattended orchestration runner, structured progress/handoffs and restart/
-review-failure rehearsal are still to be implemented and verified. Until then,
-the numbered workflow can be conducted through individual fresh sessions but
-cannot automatically chain itself. Host-fact and live-action blockers in later
+The [external fresh-session runner](LAUNCH_SESSION_RUNNER.md), structured progress
+and restart/review-failure rehearsals are now verified for local preparation; see
+the runner handoff below. It must be explicitly started. Individual fresh sessions
+remain supported; live rows stop for separately authorized external procedures. Host-fact and live-action blockers in later
 sessions remain explicit stop points, not reasons to delay authorized local work.
 
 ## Recommended operating design (one-page procedure)
@@ -488,3 +488,60 @@ a new session. First read the S02 contract above and inspect supervisor private
 protocol, host gate acquisition, dispatcher SQL claim and direct launch paths;
 select the smallest durable window API with explicit close/claim serialization.
 Hand its exact interface and race tests to S04. Do not fold S04–S06 into S03.
+
+## Runner preparation handoff — 2026-10-26
+
+Status: complete local runner preparation; S03 remains pending and unstarted.
+Baseline: `2cc9d02` (S02 contract checkpoint), clean tree at start. The owner
+explicitly requested building/verifying the external fresh-session runner. This
+follow-up implements the prerequisite identified in S02; it does not perform
+S03 or alter any session assignment or live authority. The historical S02 handoff
+above retains its dated unimplemented-runner outcome.
+
+Changed files: `tools/launch_runner/runner.py`, `sessions.json` and `smoke.py`;
+`tests/test_launch_session_runner.py`; the [operator guide](LAUNCH_SESSION_RUNNER.md);
+PLAN/this review and a [compact preparation receipt](acceptance/production-preparation/launch-runner-20261026.json).
+The controller creates a dedicated local worktree/branch, pins its own code,
+manifest and assignment rows outside that workspace, and records atomic private
+state and per-invocation evidence. Each implementation/repair/review starts a new
+Codex CLI process; no conversation is resumed. Controller-owned checkpoints avoid
+the linked-worktree Git index write restriction demonstrated by the actual CLI.
+A session advances only after controller checks and a separate read-only review
+of the exact checkpoint. Bounded retries, launch/time limits, inherited locking,
+durable child birth registration, process-group checks and fresh recovery
+inspection prevent blind replay. Dirty interrupted edits and failed evidence stay
+preserved. This cooperative controller is not hostile-process containment.
+
+Independent fresh-agent code review found and prompted fixes for surviving
+grandchildren, external check failure entering writable repair, assignment/worker
+freeze guards, dirty recovery and the process-birth registration gap. Final bounded
+review reported no unresolved blockers. Two earlier toy attempts exposed Git index
+permissions and case-sensitive completion parsing; their failures remain failures.
+A final real-CLI toy implementation/controller checkpoint/fresh review passed with
+two distinct thread IDs and matching reviewed commit, recorded in the receipt.
+The committed opt-in smoke helper reproduces that toy protocol. It runs no project
+implementation or cryptographic evaluation.
+
+Checks: 20 disposable runner tests passed; affected/focused tests 21 passed.
+The initial full suite found an in-process umask leak from the new CLI entrypoint;
+preserving the caller's umask, including across child bootstrap, fixed it;
+regressions cover both paths.
+Final `make check`: 2,694 passed, 75 skipped, 12 existing fork warnings; frozen
+contract follow-up 8 passed. Changed-document local links/anchors and
+`git diff --check` passed. Skips do not establish native acceptance.
+
+Authority and stop conditions: local preparation/testing/commits only, no pushes.
+S12/S13/S15/S16/S17/S19/S21 launch no agent until the owner supplies completion
+records from their separately authorized external procedures; importing a record
+requires checks and independent review and grants no execution. S07 or another
+session may stop earlier for missing facts. S20–S21 are opt-in. The original
+checkout and production resources were not changed by the toy rehearsals. No
+runner has been initialized or started against the actual project session list.
+
+Reversal: stop any explicitly started controller, preserve its worktree/private
+records, and revert the preparation commit. Reverting source does not stop a
+running child or replace an existing run's pinned controller. No runtime rollback.
+Exact next assignment: explicitly initialize/start the documented runner from the
+committed checkpoint to dispatch S03 in a fresh session, or start S03 manually.
+Its first action remains reading the S02 contract and inspecting supervisor/claim
+paths. Do not treat runner verification as window implementation or VPS acceptance.
